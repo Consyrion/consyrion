@@ -1,0 +1,46 @@
+import { randomUUID } from "node:crypto";
+
+export type IdPrefix =
+  | "org"
+  | "mem"
+  | "prj"
+  | "brf"
+  | "rql"
+  | "rnd"
+  | "rqc"
+  | "cred"
+  | "mdl"
+  | "aud"
+  | "ses"
+  | "par"
+  | "rol"
+  | "stg"
+  | "pro"
+  | "rev"
+  | "msg"
+  | "obj"
+  | "scr"
+  | "vot"
+  | "dec"
+  | "apr"
+  | "use"
+  | "job"
+  | "doc"
+  | "pln"
+  | "tsk"
+  | "agx"
+  | "art"
+  | "tst"
+  | "crv"
+  | "ghi"
+  | "inv"
+  | "prc"
+  | "tok"
+  | "idk"
+  | "mss"
+  | "dlc"
+  | "dlv";
+
+export function newId(prefix: IdPrefix): string {
+  return `${prefix}_${randomUUID().replaceAll("-", "")}`;
+}

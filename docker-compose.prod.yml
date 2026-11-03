@@ -1,0 +1,30 @@
+# Example single-host deployment (VM). Replace secrets via an .env file that is NOT committed.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: consyrion
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: consyrion
+    volumes: [pgdata:/var/lib/postgresql/data]
+    restart: unless-stopped
+  migrate:
+    image: consyrion-worker
+    command: ["migrate"]
+    environment: [DATABASE_URL]
+    depends_on: [postgres]
+  web:
+    image: consyrion-web
+    env_file: .env.production
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [migrate]
+    restart: unless-stopped
+  worker:
+    image: consyrion-worker
+    env_file: .env.production
+    # The worker starts sandbox containers. Prefer rootless Docker on the host (docs/deployment.md).
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    depends_on: [migrate]
+    restart: unless-stopped
+volumes:
+  pgdata:

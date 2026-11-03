@@ -1,0 +1,11 @@
+# Rollback guard (#181, stage 1) – read by rollback-guard.sh, see docs/hetzner.md "Rollback guard".
+# release_level: what this release can safely handle. 1 = reads decision format versions and refuses unknown ones.
+# 2 = also refuses councils started for a newer gate version before any verdict exists, and re-checks a build's
+#     approval on every run and resume (stage 1b of #181).
+# 3 = writes gate version 2 (S1 requirement gate). Rolling back is allowed to 2 (stage 1b) only: stage 1 would run a
+#     queued version-2 council that has no verdict yet with the old gate.
+# min_rollback_level: the lowest release_level rollback.sh may switch back to from this release. A release without
+# this file has level 0 (e.g. production e33a3bb): it would approve decisions it cannot read, so it is refused.
+# Raise min_rollback_level only together with a release that must never be rolled back past.
+release_level=3
+min_rollback_level=2

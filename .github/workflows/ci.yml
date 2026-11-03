@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Rollback guard tests
+        run: bash deploy/hetzner/rollback-guard.test.sh
+      - name: Check that migrations match the schema
+        run: |
+          pnpm db:generate
+          git diff --exit-code -- packages/db/drizzle || (echo "Schema changed without a committed migration. Run pnpm db:generate." && exit 1)
+      - run: pnpm build
+      - name: No engine logic in the browser bundle (#189)
+        run: node scripts/check-client-bundle.mjs
+
+  vscode-extension:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter consyrion package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: consyrion-vsix
+          path: apps/vscode/dist/consyrion.vsix
+
+  docker-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build web image
+        run: docker build -f Dockerfile.web -t consyrion-web .
+      - name: Build worker image
+        run: docker build -f Dockerfile.worker -t consyrion-worker .
+      - name: Smoke test web image (health endpoint answers, DB unreachable → 503)
+        run: |
+          docker run -d --name web -p 3000:3000 -e DATABASE_URL=postgres://nobody:none@127.0.0.1:1/none -e BETTER_AUTH_SECRET=ci-secret-ci-secret-ci-secret-1234 -e BETTER_AUTH_URL=http://localhost:3000 consyrion-web
+          for i in $(seq 1 30); do code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/health || true); [ "$code" = "503" ] && break; sleep 2; done
+          docker logs web | tail -20
+          test "$code" = "503"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/sign-in)" = "200"

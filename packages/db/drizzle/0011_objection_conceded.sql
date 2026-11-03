@@ -1,0 +1,1 @@
+ALTER TABLE "minority_objection" ADD COLUMN "conceded" boolean DEFAULT false NOT NULL;

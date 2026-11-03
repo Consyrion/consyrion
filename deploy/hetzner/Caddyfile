@@ -1,0 +1,13 @@
+# HTTPS for the app domain (Let's Encrypt via Caddy). Security headers beyond these come from the app (CSP).
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	reverse_proxy web:3000
+}

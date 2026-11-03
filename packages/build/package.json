@@ -1,0 +1,28 @@
+{
+  "name": "@consyrion/build",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "seed:demo-execution": "tsx test/seed-execution.ts"
+  },
+  "dependencies": {
+    "@consyrion/ai": "workspace:*",
+    "@consyrion/core": "workspace:*",
+    "@consyrion/council": "workspace:*",
+    "@consyrion/db": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "zod": "^4.6.7",
+    "@consyrion/github": "workspace:*",
+    "diff": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0"
+  }
+}

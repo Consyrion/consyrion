@@ -1,0 +1,62 @@
+# Self-hosted CONSYRION AI on one machine: PostgreSQL, migrations, web app and worker, built from this checkout.
+#   deploy/selfhost/init.sh                                  # once: writes deploy/selfhost/.env with fresh secrets
+#   docker compose -f deploy/selfhost/compose.yml up -d --build
+# Then open http://localhost:3000, sign up and add your own AI provider keys (BYOK). See docs/self-hosting.md.
+name: consyrion
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: consyrion
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run deploy/selfhost/init.sh first}
+      POSTGRES_DB: consyrion
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U consyrion"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build: { context: ../.., dockerfile: Dockerfile.worker }
+    image: consyrion-worker:local
+    command: ["migrate"]
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  web:
+    build: { context: ../.., dockerfile: Dockerfile.web }
+    image: consyrion-web:local
+    env_file: [.env]
+    environment:
+      COUNCIL_WORKER: external
+    ports: ["127.0.0.1:${PORT:-3000}:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    image: consyrion-worker:local
+    env_file: [.env]
+    environment:
+      # Execution Council (optional): generated code runs in sandbox containers started through the host's Docker.
+      # Workspaces use the same path inside and outside the worker so the sandbox sees the files.
+      TMPDIR: /tmp/consyrion-workspaces
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/consyrion-workspaces:/tmp/consyrion-workspaces
+    group_add: ["${DOCKER_GID:-0}"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,0 +1,83 @@
+/** Minimal client for the Consyrion REST API (personal API token, one workspace). No vscode imports. */
+export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+export class ConsyrionApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  status: string;
+}
+
+export interface SessionSummary {
+  id: string;
+  projectId: string;
+  projectName: string;
+  mode: string;
+  status: string;
+  currentPhase: string | null;
+  createdAt: string;
+}
+
+export type ApprovalAction = "approve" | "reject" | "request_more_debate" | "request_changes" | "select_alternative";
+
+export class ConsyrionApi {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly token: string,
+    private readonly fetchImpl: FetchLike = fetch,
+  ) {}
+
+  private async request<T>(path: string, init: RequestInit = {}, raw = false): Promise<T> {
+    const response = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${this.token}`, Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+      throw new ConsyrionApiError(response.status, body.error?.message ?? `Request failed (${response.status})`);
+    }
+    return (raw ? await response.text() : response.status === 204 ? undefined : await response.json()) as T;
+  }
+
+  async projects() {
+    return (await this.request<{ projects: ProjectSummary[] }>("/api/projects")).projects.filter((p) => p.status !== "archived");
+  }
+
+  async sessions(projectId: string) {
+    return (await this.request<{ sessions: SessionSummary[] }>(`/api/projects/${encodeURIComponent(projectId)}/sessions`)).sessions;
+  }
+
+  session(sessionId: string) {
+    return this.request<Record<string, unknown>>(`/api/sessions/${encodeURIComponent(sessionId)}`);
+  }
+
+  reportMarkdown(sessionId: string) {
+    return this.request<string>(`/api/sessions/${encodeURIComponent(sessionId)}/report`, {}, true);
+  }
+
+  approve(sessionId: string, action: ApprovalAction, comment: string, selectedProposalId?: string) {
+    return this.request<{ status: string }>(`/api/sessions/${encodeURIComponent(sessionId)}/approval`, { method: "POST", body: JSON.stringify({ action, comment, selectedProposalId }) });
+  }
+
+  async executions(sessionId: string) {
+    return (await this.request<{ executions: Array<{ id: string; status: string; createdAt: string }> }>(`/api/sessions/${encodeURIComponent(sessionId)}/executions`)).executions;
+  }
+
+  execution(planId: string) {
+    return this.request<{
+      plan: { id: string; status: string; pullRequestUrl: string | null };
+      files: Array<{ path: string; content: string; changed: boolean; before: string | null }>;
+      deletedFiles: string[];
+      tests: Array<{ kind: string; status: string; command: string }>;
+      reviews: Array<{ focus: string; verdict: string }>;
+    }>(`/api/executions/${encodeURIComponent(planId)}`);
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "consensus_result" ADD COLUMN "based_on" jsonb DEFAULT '[]'::jsonb NOT NULL;

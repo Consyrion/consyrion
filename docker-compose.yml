@@ -1,0 +1,14 @@
+# Optional local PostgreSQL. Without Docker, the app falls back to embedded PGlite.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: consyrion
+      POSTGRES_PASSWORD: consyrion
+      POSTGRES_DB: consyrion
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

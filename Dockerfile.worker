@@ -1,0 +1,16 @@
+# Council + Execution Council worker. Build: docker build -f Dockerfile.worker -t consyrion-worker .
+# Needs access to a container runtime for the code sandbox (see docs/deployment.md, docs/hetzner.md).
+# Runs as uid 1000 (`node`), the same uid as the sandbox user, so workspaces it creates are usable inside the
+# sandbox; on the server TMPDIR points to a host directory mounted at the same path (deploy/hetzner/compose.yml).
+FROM node:24-alpine
+WORKDIR /app
+RUN corepack enable pnpm && apk add --no-cache docker-cli
+COPY . .
+RUN pnpm install --frozen-lockfile --filter @consyrion/worker... --filter @consyrion/db...
+ENV NODE_ENV=production
+USER node
+# Started through the installed binaries, not pnpm: corepack would otherwise fetch pnpm at runtime for the
+# unprivileged user. Migrations: docker run --rm -e DATABASE_URL=... consyrion-worker migrate
+COPY --chmod=755 deploy/worker-entrypoint.sh /usr/local/bin/consyrion-worker
+ENTRYPOINT ["consyrion-worker"]
+CMD ["start"]

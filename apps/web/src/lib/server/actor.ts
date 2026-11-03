@@ -1,0 +1,53 @@
+import "server-only";
+import { DomainError } from "@consyrion/core";
+import { ensurePersonalOrganization, listOrganizationsForUser, resolveActor, resolveApiToken, type ActorContext } from "@consyrion/db";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { getAuth } from "./auth";
+import { getDb } from "./db";
+
+export const ACTIVE_ORG_COOKIE = "consyrion_org";
+
+export async function getSessionUser() {
+  // Read request headers before touching the database so Next.js treats every caller as dynamic.
+  const requestHeaders = await headers();
+  const session = await (await getAuth()).api.getSession({ headers: requestHeaders });
+  return session?.user ?? null;
+}
+
+export async function requireUser() {
+  const user = await getSessionUser();
+  if (!user) throw new DomainError("UNAUTHENTICATED", "Sign in required");
+  return user;
+}
+
+/**
+ * Resolves the organization the request acts in. The cookie is only a preference: membership is
+ * always re-checked against the database.
+ */
+export async function requireActor(options: { integration?: boolean } = {}): Promise<ActorContext> {
+  const requestHeaders = await headers();
+  const authorization = requestHeaders.get("authorization");
+  if (authorization?.startsWith("Bearer ")) {
+    // Personal API token (VS Code extension, automation): bound to one workspace, membership re-checked.
+    const db = await getDb();
+    const { userId, organizationId, scope } = await resolveApiToken(db, authorization.slice(7).trim());
+    // Fail closed (#101): an integration token reaches only handlers that opted in with { integration: true }.
+    // Approvals, builds, GitHub, keys, team, tokens, billing and deletions never do.
+    if (scope !== "full" && !options.integration)
+      throw new DomainError("FORBIDDEN", "This API token has the integration scope (councils only); this endpoint needs a full-access token or the web app");
+    return resolveActor(db, userId, organizationId);
+  }
+  const user = await requireUser();
+  const db = await getDb();
+  const preferred = (await cookies()).get(ACTIVE_ORG_COOKIE)?.value;
+  const orgs = await listOrganizationsForUser(db, user.id);
+  const target = orgs.find((org) => org.id === preferred) ?? orgs[0] ?? (await ensurePersonalOrganization(db, user.id, user.name));
+  return resolveActor(db, user.id, target.id);
+}
+
+/** For server components: unauthenticated visitors are redirected instead of receiving an error. */
+export async function requirePageActor(): Promise<ActorContext> {
+  if (!(await getSessionUser())) redirect("/sign-in");
+  return requireActor();
+}

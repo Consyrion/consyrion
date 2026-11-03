@@ -1,0 +1,112 @@
+# CONSYRION on one Hetzner Cloud server (docs/hetzner.md). Started by deploy.sh from /opt/consyrion/app.
+# Public: only Caddy on 80/443. Postgres, web and worker sit on internal networks without published ports.
+name: consyrion
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+    volumes:
+      # Relative to this file's directory (compose resolves bind sources there).
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge]
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: consyrion
+      POSTGRES_DB: consyrion
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [db]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U consyrion -d consyrion"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    image: consyrion-worker:${APP_VERSION:-latest}
+    command: ["migrate"]
+    env_file: [/opt/consyrion/secrets/app.env]
+    networks: [db]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    image: consyrion-web:${APP_VERSION:-latest}
+    env_file: [/opt/consyrion/secrets/app.env]
+    environment:
+      APP_VERSION: ${APP_VERSION:-latest}
+      COUNCIL_WORKER: external
+      # Councils and builds run only with the engine (#188), never with the public test engine.
+      CONSYRION_REQUIRE_PRODUCTION_ENGINE: "1"
+    networks: [edge, db]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    image: consyrion-worker:${APP_VERSION:-latest}
+    env_file: [/opt/consyrion/secrets/app.env]
+    environment:
+      APP_VERSION: ${APP_VERSION:-latest}
+      CONSYRION_REQUIRE_PRODUCTION_ENGINE: "1"
+      # Workspaces live on the host at the same path, so sandbox containers started through the host's Docker
+      # see the files the worker wrote (uid 1000 on both sides).
+      TMPDIR: /srv/consyrion/workspaces
+      SANDBOX_DOCKER_RUNTIME: ${SANDBOX_DOCKER_RUNTIME:-runsc}
+      # Capacity (#149): parallel jobs, share of one workspace, sandboxed builds at once (CX23: one sandbox).
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      WORKER_JOBS_PER_WORKSPACE: ${WORKER_JOBS_PER_WORKSPACE:-3}
+      WORKER_MAX_BUILDS: ${WORKER_MAX_BUILDS:-1}
+    # The worker (trusted Consyrion code, no inbound port) starts sandbox containers; generated code never gets
+    # the socket, runs as uid 1000 with no capabilities, under gVisor, and without network for tests.
+    group_add: ["${DOCKER_GID:?set DOCKER_GID}"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/consyrion/workspaces:/srv/consyrion/workspaces
+    networks: [db, egress]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+secrets:
+  postgres_password:
+    file: /opt/consyrion/secrets/postgres_password
+
+networks:
+  # Caddy ↔ web only.
+  edge:
+  # Web/worker ↔ Postgres; internal: no route to the internet.
+  db:
+    internal: true
+  # Worker → AI providers and GitHub (outbound HTTPS).
+  egress:
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:

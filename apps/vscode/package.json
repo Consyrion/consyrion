@@ -1,0 +1,53 @@
+{
+  "name": "consyrion",
+  "displayName": "Consyrion",
+  "description": "Follow Consyrion council decisions, approve verdicts and review generated code inside VS Code.",
+  "version": "0.1.0",
+  "publisher": "consyrion",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "repository": { "type": "git", "url": "https://github.com/Consyrion/consyrion" },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Other"],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [{ "id": "consyrion", "title": "Consyrion", "icon": "media/icon.svg" }]
+    },
+    "views": {
+      "consyrion": [{ "id": "consyrion.projects", "name": "Projects & decisions" }]
+    },
+    "viewsWelcome": [
+      { "view": "consyrion.projects", "contents": "Connect to Consyrion with a personal API token (Consyrion → Settings → API tokens).\n[Sign in](command:consyrion.signIn)" }
+    ],
+    "commands": [
+      { "command": "consyrion.signIn", "title": "Consyrion: Sign in with API token" },
+      { "command": "consyrion.signOut", "title": "Consyrion: Sign out" },
+      { "command": "consyrion.refresh", "title": "Consyrion: Refresh", "icon": "$(refresh)" },
+      { "command": "consyrion.openSession", "title": "Consyrion: Open decision" },
+      { "command": "consyrion.openChanges", "title": "Consyrion: Open generated changes" }
+    ],
+    "menus": {
+      "view/title": [{ "command": "consyrion.refresh", "when": "view == consyrion.projects", "group": "navigation" }]
+    },
+    "configuration": {
+      "title": "Consyrion",
+      "properties": {
+        "consyrion.serverUrl": { "type": "string", "default": "https://consyrion.com", "description": "Base URL of your Consyrion server." }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --sourcemap",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "package": "pnpm build && vsce package --no-dependencies --out dist/consyrion.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "~1.90.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2"
+  }
+}

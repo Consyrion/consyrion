@@ -1,0 +1,44 @@
+# Testing
+
+| Package | Command | What is covered |
+|---|---|---|
+| `packages/core` | `pnpm --filter @consyrion/core test` | RBAC matrix, encryption (round trip, tamper, tenant binding, rotation), phase names, weights |
+| `packages/db` | `pnpm --filter @consyrion/db test` | Real SQL on in-memory PGlite: migrations, org creation, tenant isolation, roles, brief versioning, credential storage |
+| `packages/ai` | `pnpm --filter @consyrion/ai test` | Adapter contract tests with **mocked SDK clients**, retry policy, model discovery error isolation |
+| `packages/council` | `pnpm --filter @consyrion/council test` | Full council runs on PGlite with **scripted test models** (test/scripted-adapter.ts): isolation of Independent Thinking, reveal, 11:1 security block, refuted/unresolved objections, failing model, budget stop, cancel, crash resume, mode differences, approval gate, more-debate cycle, tenant isolation, queue locking |
+| `packages/build` | `pnpm --filter @consyrion/build test` | Execution Council with scripted engineers and a fake sandbox: approval and feasibility gates, DAG order, repair loop, reviews, resume of failed tasks, GitHub flow |
+| `packages/github` | `pnpm --filter @consyrion/github test` | App JWT, webhook signatures, state, scoped tokens, snapshot and pull-request secret filters, draft PR without touching the base branch |
+| `apps/web` | `pnpm --filter @consyrion/web test` | API error mapping, no leakage of internal errors, design-system components, execution status |
+
+## Real provider end-to-end tests
+Run locally with the user's own keys on 26 Oct 2026 (BYOK; keys are entered by the user in the app, never in the
+repository):
+- **Full workflow:** decision → human approval → Execution Council → draft PR in a sandbox repository
+  (tests reported "not run" – no Docker on that machine, shown as a warning by design).
+- **Councils up to the Final Verdict:** Anthropic (Claude Haiku), DeepSeek, Z.ai GLM 4.7 and xAI Grok (grok-4.7,
+  grok-4.20). Moonshot Kimi delivered proposals in a live council; OpenAI (gpt-4o-mini) was selected in a live test
+  but a complete OpenAI council is not recorded here. Findings from these runs were fixed:
+  GLM timeouts (#120, #123, #127), consensus summary vs. revisions (#105), honest failure status (#106), feasibility
+  gate for contradictory requirements (#121), score rounding (#122), media models in discovery (#118).
+- **Key check and model lists:** verified for all eight providers except Qwen. Google Gemini: key and live model list
+  verified; one call to the retired `gemini-2.5-flash-lite` returned 404 (model choice, not an adapter fault).
+- **Not yet run with a real key:** Qwen.
+
+Add a key under *AI providers* and use **Check** and **Load models** (both are free – no tokens are generated). The *AI providers* page links to each provider's
+key console (Anthropic, OpenAI, Google AI Studio, DeepSeek, Z.ai, Moonshot/Kimi, Alibaba Model Studio, xAI); API usage is prepaid and billed separately
+from ChatGPT or Claude subscriptions.
+
+## Manual verification (Milestone 1)
+Screenshots of the running app are in `docs/screenshots/m1/`.
+
+## Golden cases (evaluation harness, #33)
+`packages/council/eval/` runs fixed decision scenarios through the real engine with deterministic models and
+checks properties of the outcome (winner, tie, blocking objection, confidence, failed models). It runs in CI as
+part of the council tests and prints a report with `pnpm --filter @consyrion/council eval`. Limits and how
+to add cases: `packages/council/eval/README.md`.
+
+
+## Reference set (#182)
+Twelve synthetic briefs with human-reviewed gold labels measure whether real councils decide **correctly** (false
+approvals and unnecessary blocks counted apart). Scoring is offline from exported Decision Report JSONs; live runs
+need a budget approval. Study plan, hypotheses and protocol: `docs/reference-set.md`.

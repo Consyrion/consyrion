@@ -1,0 +1,1 @@
+ALTER TABLE "vote" ADD COLUMN "requirement_checks" jsonb;

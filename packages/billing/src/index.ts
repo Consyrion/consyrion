@@ -9,6 +9,8 @@ import { getPlanCatalog, upsertStripeSubscription, type Database } from "@consyr
 export interface StripeConfig {
   secretKey: string;
   webhookSecret: string;
+  /** Customer portal configuration created by the admin setup; absent = Stripe's default configuration. */
+  portalConfigurationId?: string;
 }
 
 export function stripeConfigFromEnv(env: Record<string, string | undefined> = process.env): StripeConfig | null {
@@ -27,14 +29,18 @@ export class StripeClient {
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
-  private async request<T>(method: "GET" | "POST", path: string, data?: Record<string, string>): Promise<T> {
+  async request<T>(method: "GET" | "POST" | "DELETE", path: string, data?: Record<string, string>): Promise<T> {
     const response = await this.fetchImpl(`https://api.stripe.com${path}`, {
       method,
       headers: { Authorization: `Bearer ${this.config.secretKey}`, ...(data ? { "Content-Type": "application/x-www-form-urlencoded" } : {}) },
       body: data ? form(data) : undefined,
     });
     const json = (await response.json().catch(() => ({}))) as T & { error?: { message?: string } };
-    if (!response.ok) throw new DomainError("PROVIDER_ERROR", `Stripe request failed (${response.status})`);
+    if (!response.ok) {
+      // Stripe's message never contains the secret key; it tells the admin what to fix (e.g. "Invalid API Key").
+      const detail = json.error?.message ? `: ${json.error.message.slice(0, 200)}` : "";
+      throw new DomainError("PROVIDER_ERROR", `Stripe request failed (${response.status})${detail}`);
+    }
     return json;
   }
 
@@ -54,7 +60,11 @@ export class StripeClient {
   }
 
   createPortalSession(customerId: string, returnUrl: string) {
-    return this.request<{ url: string }>("POST", "/v1/billing_portal/sessions", { customer: customerId, return_url: returnUrl });
+    return this.request<{ url: string }>("POST", "/v1/billing_portal/sessions", {
+      customer: customerId,
+      return_url: returnUrl,
+      ...(this.config.portalConfigurationId ? { configuration: this.config.portalConfigurationId } : {}),
+    });
   }
 }
 
@@ -115,3 +125,5 @@ export async function handleStripeEvent(db: Database, event: { type: string; dat
   });
   return { handled: true };
 }
+
+export * from "./setup";

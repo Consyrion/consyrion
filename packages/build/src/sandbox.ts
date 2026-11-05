@@ -132,18 +132,23 @@ export class DockerSandbox implements Sandbox {
   }
 }
 
-/** Used when no container runtime exists. Never executes anything. */
+/** Used when no container runtime exists (or the operator disabled it). Never executes anything. */
 export class UnavailableSandbox implements Sandbox {
   readonly name = "none";
+  constructor(private readonly reason = "No container runtime is available; the command was not executed.") {}
   async available() {
     return false;
   }
   async run(): Promise<SandboxResult> {
-    return { status: "not_run", exitCode: null, output: "No container runtime is available; the command was not executed.", durationMs: 0 };
+    return { status: "not_run", exitCode: null, output: this.reason, durationMs: 0 };
   }
 }
 
-export async function detectSandbox(): Promise<Sandbox> {
+/** Message of a run on an installation with SANDBOX_DISABLED=true (hosted app: tests run in the user's GitHub CI). */
+export const SANDBOX_DISABLED_REASON = "Not run on CONSYRION AI: tests run in your repository's GitHub Actions once the draft pull request is open.";
+
+export async function detectSandbox(env: Record<string, string | undefined> = process.env): Promise<Sandbox> {
+  if (/^(1|true|yes)$/i.test(env.SANDBOX_DISABLED ?? "")) return new UnavailableSandbox(SANDBOX_DISABLED_REASON);
   const docker = new DockerSandbox();
   return (await docker.available()) ? docker : new UnavailableSandbox();
 }

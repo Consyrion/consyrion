@@ -3,6 +3,15 @@
 Package `packages/build`. Starts only for a session whose verdict a human approved
 (`POST /api/sessions/:id/executions`, owners/admins). It never merges, pushes or deploys.
 
+## One builder model (05.11.26)
+When starting, the user picks **who builds it**: either all council models share the tasks (default) or one model
+plans and writes every task (`builderParticipantId`, stored as `development_plan.builder_participant_id`); the other
+models of the council only review. Resume can still hand a failed task to another model when the user asks.
+
+**Tests on the hosted app.** app.consyrion.com runs no generated code (`SANDBOX_DISABLED=true` on the worker,
+`deploy/hetzner/compose.yml`): tests are stored as "not run" with the note that they run in the repository's GitHub
+Actions once the draft PR is open; the PR view shows those checks. Self-hosted installations keep the Docker sandbox.
+
 ## Flow
 1. **Plan** – the author model of the approved proposal writes a plan: stack (`node` | `python`), install
    and test commands, 2–8 tasks with dependencies. The task graph is validated (unknown deps, duplicates, cycles).

@@ -204,6 +204,20 @@
       "when": 1793358486317,
       "tag": "0028_polite_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793868812392,
+      "tag": "0029_greedy_jubilee",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793869152738,
+      "tag": "0030_unique_stephen_strange",
+      "breakpoints": true
     }
   ]
 }

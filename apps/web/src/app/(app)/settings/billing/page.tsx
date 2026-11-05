@@ -1,21 +1,24 @@
-import { stripeConfigFromEnv } from "@consyrion/billing";
-import { can, isSelfHosted, type Entitlements } from "@consyrion/core";
+import { can, isSelfHosted, isUnlimited, type Entitlements } from "@consyrion/core";
 import { approximateCost, getEntitlements, getPlanCatalog, getSubscription, listPriceHints, usageThisMonth } from "@consyrion/db";
 import { DeleteHint, PortalButton, PriceHintForm, UpgradeButton } from "@/components/saas";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
+import { getStripeConfig } from "@/lib/server/stripe";
 
 export const metadata = { title: "Billing and usage" };
 
+const limitText = (limit: number) => (isUnlimited(limit) ? "unlimited" : String(limit));
+
 function Meter({ label, used, limit }: { label: string; used: number; limit: number }) {
-  const pct = limit === 0 ? 100 : Math.min(100, (used / limit) * 100);
+  const unlimited = isUnlimited(limit);
+  const pct = unlimited ? 0 : limit === 0 ? 100 : Math.min(100, (used / limit) * 100);
   return (
     <div className="text-sm">
       <div className="flex justify-between">
         <span>{label}</span>
         <span className="text-muted">
-          {used} / {limit === 0 ? "not included" : limit}
+          {used} / {unlimited ? "unlimited" : limit === 0 ? "not included" : limit}
         </span>
       </div>
       <div className="mt-1 h-2 rounded-full bg-surface-2" role="progressbar" aria-valuenow={used} aria-valuemax={limit} aria-label={label}>
@@ -44,7 +47,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     usageThisMonth(db, actor.organizationId),
     listPriceHints(db, actor),
   ]);
-  const stripe = Boolean(stripeConfigFromEnv());
+  const stripe = Boolean(await getStripeConfig());
   const canBill = can(actor.role, "billing:manage");
   return (
     <>
@@ -81,7 +84,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <span>
                       <strong>{p.name}</strong> {p.priceLabel ? <span className="text-muted">· {p.priceLabel}</span> : null}
                       <span className="block text-muted">
-                        {ent.maxMembers} members · {ent.maxProjects} projects · {ent.maxSessionsPerMonth} sessions/month · Execution Council {ent.executionCouncil ? "yes" : "no"}
+                        {ent.maxMembers} {ent.maxMembers === 1 ? "member" : "members"} · {limitText(ent.maxProjects)} projects · {limitText(ent.maxSessionsPerMonth)} councils/month · up
+                        to {ent.maxParticipantsPerSession} models · build on GitHub {ent.executionCouncil && ent.github ? "yes" : "no"}
                       </span>
                     </span>
                     {p.key === plan ? <Badge tone="success">current</Badge> : canBill && stripe && p.stripePriceId ? <UpgradeButton plan={p.key} label={`Choose ${p.name}`} /> : null}

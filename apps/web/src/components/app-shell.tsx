@@ -158,6 +158,10 @@ export function AppShell({ user, organizationName, isAdmin = false, children }: 
               <Icon name="logout" />
             </button>
           </div>
+          {/* AGPL-3.0 §13: users of the hosted app get a link to its source code. */}
+          <a href="https://github.com/Consyrion/consyrion" target="_blank" rel="noreferrer" className="block px-1 text-xs text-muted hover:text-text">
+            Open source (AGPL-3.0) · Source code
+          </a>
         </div>
       </aside>
       <main id="main" className="mx-auto w-full min-w-0 max-w-[1680px] px-4 pt-4 pb-32 md:px-8 md:py-8 xl:px-10">

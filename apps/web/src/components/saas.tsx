@@ -346,3 +346,58 @@ export function RotateKey({ id }: { id: string }) {
     </span>
   );
 }
+
+/** /admin → Stripe: paste the secret key once; product, monthly price, webhook and portal are created at Stripe. */
+export function AdminStripeSetup({ status }: { status: { connected: boolean; fromEnv: boolean; mode?: string; keyHint?: string; priceId?: string; amountCents?: number } }) {
+  const { busy, error, run } = useAction();
+  const [secretKey, setSecretKey] = useState("");
+  const [amount, setAmount] = useState(((status.amountCents ?? 499) / 100).toFixed(2));
+  const [done, setDone] = useState<string | null>(null);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm">
+        {status.connected ? (
+          <>
+            <Badge tone={status.mode === "live" ? "success" : "warning"}>{status.mode === "live" ? "live" : "test mode"}</Badge> Connected with key {status.keyHint} · Pro price{" "}
+            {((status.amountCents ?? 0) / 100).toFixed(2)} € / month (VAT incl.) · <code>{status.priceId}</code>
+          </>
+        ) : status.fromEnv ? (
+          "Configured through STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET in the environment. Paste a key below to manage it here instead."
+        ) : (
+          "Not connected – nobody can buy Pro yet."
+        )}
+      </p>
+      <div className="grid gap-3 md:grid-cols-3">
+        <TextField
+          label={status.connected ? "New secret key (optional)" : "Stripe secret key"}
+          type="password"
+          autoComplete="off"
+          placeholder="sk_test_… or sk_live_…"
+          value={secretKey}
+          onChange={(e) => setSecretKey(e.target.value)}
+        />
+        <TextField label="Pro price per month in € (VAT incl.)" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <div className="self-end">
+          <Button
+            disabled={busy || (!status.connected && secretKey.length < 10)}
+            onClick={() =>
+              void run(async () => {
+                const r = await fetchJson<{ mode: string; amountCents: number }>("/api/admin/stripe", { method: "POST", body: JSON.stringify({ secretKey: secretKey || undefined, amount }) });
+                setSecretKey("");
+                setDone(`Saved (${r.mode}): Pro costs ${(r.amountCents / 100).toFixed(2)} € / month.`);
+              })
+            }
+          >
+            {busy ? "Talking to Stripe…" : status.connected ? "Save" : "Connect Stripe"}
+          </Button>
+        </div>
+      </div>
+      <p className="text-xs text-muted">
+        Stripe dashboard → Developers → API keys → secret key. The key is stored encrypted and never shown again. A new price creates a new Stripe price; running
+        subscriptions keep theirs.
+      </p>
+      {done ? <Alert tone="success">{done}</Alert> : null}
+      {error ? <Alert>{error}</Alert> : null}
+    </div>
+  );
+}

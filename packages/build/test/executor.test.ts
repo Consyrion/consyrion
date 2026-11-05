@@ -370,6 +370,29 @@ describe("Execution Council", () => {
     expect(view.plan).toMatchObject({ status: "cancelled", planFeedback: "Too broad" });
   });
 
+  it("lets one chosen model plan and write every task while the others only review", async () => {
+    const { sessionId, resolveAdapter } = await approvedSession();
+    await submitApproval(handle.db, actor, sessionId, { action: "approve" });
+    const participants = await handle.db.select().from(schema.councilParticipant).where(eq(schema.councilParticipant.sessionId, sessionId));
+    const builder = participants.find((p) => p.modelId === "m3")!;
+    await expect(startExecution(handle.db, actor, sessionId, { requirePlanApproval: false, builderParticipantId: "par_unknown" })).rejects.toMatchObject({ code: "VALIDATION" });
+    const { id } = await startExecution(handle.db, actor, sessionId, { requirePlanApproval: false, builderParticipantId: builder.id });
+    await runExecution({ db: handle.db, resolveAdapter, sandbox: new FakeSandbox(() => "passed") }, id);
+    const view = await getExecutionView(handle.db, actor, id);
+    expect(view.plan.status).toBe("completed");
+    expect(view.plan.plannerParticipantId).toBe(builder.id);
+    expect(view.tasks.every((t) => t.assignedParticipantId === builder.id)).toBe(true);
+    expect(view.reviews.length).toBeGreaterThan(0);
+    expect(view.reviews.every((r) => r.reviewerParticipantId !== builder.id)).toBe(true);
+  });
+
+  it("does not run tests on an installation with SANDBOX_DISABLED and says they run in GitHub", async () => {
+    const { detectSandbox, SANDBOX_DISABLED_REASON } = await import("../src/sandbox");
+    const sandbox = await detectSandbox({ SANDBOX_DISABLED: "true" });
+    expect(await sandbox.available()).toBe(false);
+    expect(await sandbox.run({} as never)).toMatchObject({ status: "not_run", output: SANDBOX_DISABLED_REASON });
+  });
+
   it("reports tests as not run when no sandbox exists and never fakes a pass", async () => {
     const { sessionId, resolveAdapter } = await approvedSession();
     await submitApproval(handle.db, actor, sessionId, { action: "approve" });

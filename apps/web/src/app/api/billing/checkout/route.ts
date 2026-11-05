@@ -1,4 +1,4 @@
-import { stripeConfigFromEnv, StripeClient } from "@consyrion/billing";
+import { StripeClient } from "@consyrion/billing";
 import { assertCan, DomainError, PLAN_KEYS, type PlanKey } from "@consyrion/core";
 import { getPlanCatalog, getSubscription } from "@consyrion/db";
 import { NextResponse } from "next/server";
@@ -6,12 +6,13 @@ import { requireActor, requireUser } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
 import { publicOrigin } from "@/lib/server/origin";
+import { getStripeConfig } from "@/lib/server/stripe";
 
 export const POST = handle(async (request: Request) => {
   const actor = await requireActor();
   assertCan(actor.role, "billing:manage");
   const user = await requireUser();
-  const config = stripeConfigFromEnv();
+  const config = await getStripeConfig();
   if (!config) throw new DomainError("CONFIGURATION", "Online checkout is not configured; contact us to change your plan");
   const { plan } = (await readJson(request)) as { plan?: string };
   if (!PLAN_KEYS.includes(plan as PlanKey)) throw new DomainError("VALIDATION", "Unknown plan");

@@ -1,4 +1,16 @@
-# Commercial SaaS (Milestone 6)
+# Hosted service: plans and Stripe (Milestone 6)
+
+This applies only to the hosted instance (app.consyrion.com) and to anyone who runs CONSYRION AI as a service.
+Self-hosted installations set `SELF_HOSTED=true` and have no plans (docs/self-hosting.md).
+
+## Pricing of app.consyrion.com (owner decision 05.11.26)
+| Plan | Price | Limits |
+|---|---|---|
+| Free (`starter`) | 0 € | 2 council runs per month, up to 3 models, 3 projects, advice only (no GitHub build) |
+| Pro (`pro`) | 4.99 € / month incl. VAT | unlimited council runs, up to 6 models, build on GitHub (Execution Council), 3 members |
+
+The values live in the `plan_definition` table on the server (migration 0029 set them). Users cannot change them;
+the platform admin changes them in `/admin` → Plan catalog. Limits of 1,000,000 or more are shown as "unlimited".
 
 ## Business model: platform subscription + BYOK
 Binding product decision (issue #30): Consyrion is **strictly BYOK**. Customers connect their own Anthropic,
@@ -26,8 +38,17 @@ Consyrion charges a **platform subscription** (hosting, database, workers, sandb
 input/output tokens). An approximate cost appears only for models where the workspace entered its own price;
 the provider invoice is authoritative.
 
-## Stripe (optional)
-`STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` enable Checkout (subscription mode) and the customer portal.
+## Stripe
+**Set up from `/admin` → "Stripe and Pro price"** (same approach as OnJam): paste the secret key (`sk_test_…` for the
+sandbox, `sk_live_…` for real money) and the monthly price. The server checks the key and creates at Stripe: product
+"CONSYRION AI Pro", a monthly EUR price with `tax_behavior=inclusive`, the webhook to `/api/billing/webhook` and a
+customer portal configuration (cancel at period end, payment method, invoices). Key and webhook secret are stored
+encrypted in `platform_setting` (`CREDENTIALS_MASTER_KEY_*`) and never shown again; the Pro plan gets the new price
+id and label. Changing the price later needs no key: a new Stripe price is created and the old one archived, running
+subscriptions keep their price. Before live sales: VAT registration/OSS and Stripe Tax, legal pages, payout account.
+
+Alternatively `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` in the environment enable Checkout (subscription mode)
+and the customer portal; the admin setup takes precedence.
 Webhook `/api/billing/webhook` verifies `Stripe-Signature` (5 min tolerance) and applies
 `customer.subscription.created|updated|deleted`. Without these variables nothing can be charged; the admin
 assigns plans manually. Stripe test mode keys are recommended until launch.

@@ -907,6 +907,8 @@ export const developmentPlan = pgTable(
     plannerParticipantId: text("planner_participant_id")
       .notNull()
       .references(() => councilParticipant.id),
+    /** Single builder chosen by the user: plans and writes every task; the other models only review. Null = spread over the council. */
+    builderParticipantId: text("builder_participant_id").references(() => councilParticipant.id),
     status: executionStatus("status").notNull().default("queued"),
     /** When true (default), the run stops after planning until an owner/admin approves the plan (#45, #56). */
     requirePlanApproval: boolean("require_plan_approval").notNull().default(true),
@@ -1060,6 +1062,18 @@ export const planDefinition = pgTable("plan_definition", {
   /** Stripe price used for checkout; null = plan cannot be bought online. */
   stripePriceId: text("stripe_price_id"),
   active: boolean("active").notNull().default(true),
+  ...timestamps,
+});
+
+/**
+ * Platform-wide settings (one row per key), e.g. the Stripe connection. `secret` holds an encrypted envelope
+ * (CREDENTIALS_MASTER_KEY_*); the plaintext never leaves the server and is never shown again.
+ */
+export const platformSetting = pgTable("platform_setting", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<Record<string, unknown>>().notNull(),
+  secret: text("secret"),
+  updatedBy: text("updated_by"),
   ...timestamps,
 });
 

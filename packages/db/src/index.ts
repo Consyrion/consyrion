@@ -16,3 +16,4 @@ export * from "./repositories/api-tokens";
 export * from "./repositories/idempotency";
 export * from "./repositories/delivery";
 export * from "./repositories/requirements";
+export * from "./repositories/platform-settings";

@@ -44,6 +44,7 @@ export function ExecutionScreen({ view, canApprove }: { view: View; canApprove: 
   const [planComment, setPlanComment] = useState("");
   const [file, setFile] = useState<string | null>(null);
   const [retryModel, setRetryModel] = useState("");
+  const [builder, setBuilder] = useState("");
 
   if (view.session.status !== "approved") {
     return <EmptyState title="Locked until a decision is approved" description="The Execution Council never starts without explicit human approval of a verdict." />;
@@ -53,7 +54,7 @@ export function ExecutionScreen({ view, canApprove }: { view: View; canApprove: 
     setBusy(true);
     setError(null);
     try {
-      await fetchJson(`/api/sessions/${view.session.id}/executions`, { method: "POST", body: JSON.stringify({}) });
+      await fetchJson(`/api/sessions/${view.session.id}/executions`, { method: "POST", body: JSON.stringify(builder ? { builderParticipantId: builder } : {}) });
       await load();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Could not start");
@@ -122,9 +123,24 @@ export function ExecutionScreen({ view, canApprove }: { view: View; canApprove: 
         </p>
         {error ? <div className="mt-3"><Alert>{error}</Alert></div> : null}
         {canApprove ? (
-          <Button className="mt-4" onClick={() => void start()} disabled={busy}>
-            {busy ? "Starting…" : "Start Execution Council"}
-          </Button>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="min-w-64 text-sm">
+              <span className="block font-medium">Who builds it?</span>
+              <Select value={builder} onChange={(event) => setBuilder(event.target.value)} className="mt-1 w-full">
+                <option value="">All council models share the tasks</option>
+                {view.participants
+                  .filter((p) => p.status === "active")
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      Only {modelName(view, p.id)} – the others review
+                    </option>
+                  ))}
+              </Select>
+            </label>
+            <Button onClick={() => void start()} disabled={busy}>
+              {busy ? "Starting…" : "Start Execution Council"}
+            </Button>
+          </div>
         ) : (
           <p className="mt-3 text-sm text-warning">Only owners and admins can start development.</p>
         )}

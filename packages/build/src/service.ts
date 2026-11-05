@@ -15,6 +15,8 @@ export const executionInput = z.object({
   maxRepairAttempts: z.number().int().min(0).max(5).default(2),
   /** Stop after planning until the plan is approved (default). */
   requirePlanApproval: z.boolean().default(true),
+  /** One council model that plans and writes all the code; the others review. Omitted = tasks spread over the council. */
+  builderParticipantId: z.string().min(1).max(64).optional(),
 });
 
 export const planApprovalInput = z.object({
@@ -57,6 +59,14 @@ export async function startExecution(db: Database, ctx: ActorContext, sessionId:
   if (active.length) throw new DomainError("CONFLICT", "An Execution Council run is already active");
   await assertEntitlement(db, ctx.organizationId, "execution");
   const [proposal] = await db.select().from(schema.proposal).where(eq(schema.proposal.id, approval.selectedProposalId));
+  const builderId = parsed.data.builderParticipantId;
+  if (builderId) {
+    const [builder] = await db
+      .select({ id: schema.councilParticipant.id, status: schema.councilParticipant.status })
+      .from(schema.councilParticipant)
+      .where(and(eq(schema.councilParticipant.id, builderId), eq(schema.councilParticipant.sessionId, sessionId)));
+    if (!builder || builder.status !== "active") throw new DomainError("VALIDATION", "The builder must be an active model of this council");
+  }
   const [project] = await db.select().from(schema.project).where(eq(schema.project.id, session.projectId));
   const id = newId("pln");
   await db.insert(schema.developmentPlan).values({
@@ -65,7 +75,8 @@ export async function startExecution(db: Database, ctx: ActorContext, sessionId:
     sessionId,
     approvalId: approval.id,
     proposalId: approval.selectedProposalId,
-    plannerParticipantId: proposal!.authorParticipantId,
+    plannerParticipantId: builderId ?? proposal!.authorParticipantId,
+    builderParticipantId: builderId ?? null,
     tokenBudget: parsed.data.tokenBudget,
     maxRepairAttempts: parsed.data.maxRepairAttempts,
     requirePlanApproval: parsed.data.requirePlanApproval,
@@ -80,7 +91,7 @@ export async function startExecution(db: Database, ctx: ActorContext, sessionId:
     action: "execution.started",
     targetType: "development_plan",
     targetId: id,
-    metadata: { sessionId },
+    metadata: { sessionId, builderParticipantId: builderId ?? null },
   });
   await enqueue(db, EXECUTION_JOB, { planId: id }, `${EXECUTION_JOB}:${id}`, ctx.organizationId);
   return { id };

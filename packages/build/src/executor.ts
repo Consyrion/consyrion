@@ -358,7 +358,8 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
             acceptanceCriteria: task.acceptanceCriteria,
             dependsOn: task.dependsOn,
             // Spread tasks over the council's models; the planner keeps the first task.
-            assignedParticipantId: participants[index % participants.length]!.id,
+            // A chosen builder writes every task; otherwise the tasks are spread over the council.
+            assignedParticipantId: plan!.builderParticipantId ? planner.id : participants[index % participants.length]!.id,
           });
         }
       });

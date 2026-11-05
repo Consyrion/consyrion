@@ -26,9 +26,18 @@ export interface PlanDefinition {
   priceLabel: string | null;
 }
 
+/** Limits at or above this value mean "unlimited" (shown as such in the UI). */
+export const UNLIMITED = 1_000_000;
+
+export function isUnlimited(limit: number): boolean {
+  return limit >= UNLIMITED;
+}
+
 export const DEFAULT_PLAN_CATALOG: PlanDefinition[] = [
-  { key: "starter", name: "Starter", priceLabel: null, entitlements: { maxMembers: 1, maxProjects: 3, maxSessionsPerMonth: 10, maxParticipantsPerSession: 3, executionCouncil: false, github: false, maxExecutionsPerMonth: 0, maxSandboxMinutesPerMonth: 0 } },
-  { key: "pro", name: "Pro", priceLabel: null, entitlements: { maxMembers: 3, maxProjects: 25, maxSessionsPerMonth: 100, maxParticipantsPerSession: 5, executionCouncil: false, github: true, maxExecutionsPerMonth: 0, maxSandboxMinutesPerMonth: 0 } },
+  // Hosted app.consyrion.com (owner decision 05.11.26): Free = 2 councils a month, advice only; Pro = 4.99 € incl. VAT,
+  // unlimited councils and the GitHub build. The platform admin can change every value at runtime (/admin).
+  { key: "starter", name: "Free", priceLabel: "Free", entitlements: { maxMembers: 1, maxProjects: 3, maxSessionsPerMonth: 2, maxParticipantsPerSession: 3, executionCouncil: false, github: false, maxExecutionsPerMonth: 0, maxSandboxMinutesPerMonth: 0 } },
+  { key: "pro", name: "Pro", priceLabel: "4.99 € / month", entitlements: { maxMembers: 3, maxProjects: UNLIMITED, maxSessionsPerMonth: UNLIMITED, maxParticipantsPerSession: 6, executionCouncil: true, github: true, maxExecutionsPerMonth: UNLIMITED, maxSandboxMinutesPerMonth: 0 } },
   { key: "developer", name: "Developer", priceLabel: null, entitlements: { maxMembers: 5, maxProjects: 50, maxSessionsPerMonth: 200, maxParticipantsPerSession: 6, executionCouncil: true, github: true, maxExecutionsPerMonth: 50, maxSandboxMinutesPerMonth: 600 } },
   { key: "business", name: "Business", priceLabel: null, entitlements: { maxMembers: 50, maxProjects: 500, maxSessionsPerMonth: 2_000, maxParticipantsPerSession: 6, executionCouncil: true, github: true, maxExecutionsPerMonth: 500, maxSandboxMinutesPerMonth: 6_000 } },
 ];
@@ -40,14 +49,14 @@ export const DEFAULT_PLAN: PlanKey = "starter";
  * still bounded by the absolute limits in policy.ts.
  */
 export const SELF_HOSTED_ENTITLEMENTS: Entitlements = {
-  maxMembers: 1_000_000,
-  maxProjects: 1_000_000,
-  maxSessionsPerMonth: 1_000_000,
-  maxParticipantsPerSession: 1_000_000,
+  maxMembers: UNLIMITED,
+  maxProjects: UNLIMITED,
+  maxSessionsPerMonth: UNLIMITED,
+  maxParticipantsPerSession: UNLIMITED,
   executionCouncil: true,
   github: true,
-  maxExecutionsPerMonth: 1_000_000,
-  maxSandboxMinutesPerMonth: 1_000_000,
+  maxExecutionsPerMonth: UNLIMITED,
+  maxSandboxMinutesPerMonth: UNLIMITED,
 };
 
 export function isSelfHosted(env: Record<string, string | undefined> = process.env): boolean {

@@ -76,6 +76,9 @@ services:
       # see the files the worker wrote (uid 1000 on both sides).
       TMPDIR: /srv/consyrion/workspaces
       SANDBOX_DOCKER_RUNTIME: ${SANDBOX_DOCKER_RUNTIME:-runsc}
+      # Hosted app (owner decision 05.11.26): no code runs on this server; tests run in the user's GitHub Actions on the
+      # draft PR. Set SANDBOX_DISABLED=false in deploy.env to run the gVisor sandbox again.
+      SANDBOX_DISABLED: ${SANDBOX_DISABLED:-true}
       # Capacity (#149): parallel jobs, share of one workspace, sandboxed builds at once (CX23: one sandbox).
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
       WORKER_JOBS_PER_WORKSPACE: ${WORKER_JOBS_PER_WORKSPACE:-3}

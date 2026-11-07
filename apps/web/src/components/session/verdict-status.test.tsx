@@ -181,3 +181,24 @@ describe("the server's English reason in the interface language (QA 07.11.26)", 
     expect(html).not.toContain("the council could not confirm");
   });
 });
+
+describe("conflict of interest withholds the recommendation (night test 07.11.26)", () => {
+  it("says that the qualified proposal meets every requirement instead of 'could not confirm'", () => {
+    const v = view(
+      "needs_verification",
+      { approvable: false, reason: "Needs verification – the council could not confirm that a proposal meets every requirement." },
+      { proposals: [], confidenceIssues: [{ kind: "conflict_of_interest", proposalId: "p2", blockedProposalId: "p3" }] },
+    );
+    (v as unknown as { proposals: unknown[] }).proposals = [
+      { id: "p2", label: "2", kind: "standard", authorParticipantId: "a", revisions: [{ version: 1, content: { title: "B" } }] },
+      { id: "p3", label: "3", kind: "standard", authorParticipantId: "b", revisions: [{ version: 1, content: { title: "B" } }] },
+    ];
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="de" messages={messagesFor("de")}>
+        <VerdictScreen view={v} canApprove onChange={async () => {}} />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("Vorschlag 2 erfüllt alle Anforderungen, wird aber nicht automatisch empfohlen");
+    expect(html).not.toContain("konnte nicht bestätigen");
+  });
+});

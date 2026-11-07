@@ -1,6 +1,7 @@
 "use client";
 
 import type { CouncilPhase } from "@consyrion/core/browser";
+import { useEngineText } from "./engine-text";
 import { createTranslator, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import sessionEn from "../../../messages/session/en.json";
@@ -408,6 +409,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
 function Objections({ view }: { view: View }) {
   const [category, setCategory] = useState("all");
   const t = useTranslations("councilRoom");
+  const engine = useEngineText();
   const severityText = useEnumText("verdict.cruxes.severity");
   const statusText = useEnumText("councilRoom.objectionStatus");
   const categories = [...new Set(view.objections.map((o) => o.category))];
@@ -482,16 +484,16 @@ function Objections({ view }: { view: View }) {
                     <span className="text-muted">
                       {o.reviewedByParticipantId ? t("reviewBy", { model: modelName(view, o.reviewedByParticipantId) }) : t("review")}
                     </span>{" "}
-                    {o.resolutionReason.length > 320 ? (
+                    {engine(o.resolutionReason)!.length > 320 ? (
                       // Long notes of earlier runs stay readable: the start, the rest on request.
                       <details className="inline">
                         <summary className="inline cursor-pointer">
-                          {o.resolutionReason.slice(0, 280)}… {t("more")}
+                          {engine(o.resolutionReason)!.slice(0, 280)}… {t("more")}
                         </summary>
-                        {o.resolutionReason.slice(280)}
+                        {engine(o.resolutionReason)!.slice(280)}
                       </details>
                     ) : (
-                      o.resolutionReason
+                      engine(o.resolutionReason)
                     )}
                   </li>
                 ) : null}

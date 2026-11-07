@@ -94,7 +94,8 @@
       "colOutput": "Output tokens",
       "colCost": "≈ Cost",
       "pricesTitle": "Your provider prices (optional, for the estimate)",
-      "priceHint": "{provider} · {model}: in {input} / out {output} {currency} per 1M"
+      "priceHint": "{provider} · {model}: in {input} / out {output} {currency} per 1M",
+      "endsOn": "Cancelled – your plan stays active until {date}, then the workspace moves to Free. Nothing more is charged."
     },
     "providers": {
       "needKey": "Need a key? Create one in the provider console:",
@@ -211,7 +212,8 @@
         "save": "Save",
         "connect": "Connect Stripe",
         "help": "Stripe dashboard → Developers → API keys → secret key. The key is stored encrypted and never shown again. A new price creates a new Stripe price; running subscriptions keep theirs."
-      }
+      },
+      "portalStaleCustomer": "This subscription does not exist in the connected Stripe account (it was probably created in Stripe test mode). Your plan stays as it is; to manage it online, start a new subscription."
     },
     "delivery": {
       "errorSave": "Could not save the connection",

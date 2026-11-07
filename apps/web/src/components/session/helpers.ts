@@ -86,6 +86,49 @@ const VERDICT_REASONS: ReadonlyArray<readonly [prefix: string, key: string]> = [
   ["This verdict uses a result this version does not know", "unknownOutcome"],
 ];
 
+/**
+ * Night test R2-04 (08.11.26): the requirement gate's summary and causes come from the engine in English. The known
+ * sentences are shown in the interface language; anything else (estimates, new wording) stays as sent.
+ */
+const GATE_SUMMARIES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^None of the (other )?evaluated proposals meets all confirmed requirements according to these evaluations\.$/, "noneMeets"],
+  [/^None of the (\d+) (other )?evaluated proposals could be confirmed against all requirements: .*$/, "noneConfirmed"],
+  [/^(\d+) of (\d+) (other )?evaluated proposals miss a confirmed requirement according to these evaluations; (\d+) could not be confirmed .*$/, "someMiss"],
+];
+// "evaluators?" keeps the engine's own wording out of the browser bundle (scripts/check-client-bundle.mjs markers).
+const GATE_CAUSES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^(\S+) not met according to (\d+) of (\d+) evaluators \(model judgement\)\.$/, "notMet"],
+  [/^(\S+) disputed: (\d+) of (\d+) evaluators confirm it, (\d+) found it not met\.$/, "disputed"],
+  [/^(\S+) not confirmed: (\d+) of (\d+) evaluators? could not confirm it\.$/, "notConfirmed"],
+  [/^(\S+) not confirmed: (\d+) of (\d+) evaluators? gave no valid answer\.$/, "noAnswer"],
+];
+
+export function useGateText() {
+  const t = useTranslations("requirementGate.text");
+  const summary = (text: string | null | undefined) => {
+    if (!text) return text ?? null;
+    for (const [re, key] of GATE_SUMMARIES) {
+      const m = re.exec(text);
+      if (!m) continue;
+      const other = text.includes(" other evaluated") ? "yes" : "no";
+      if (key === "noneMeets") return t("noneMeets", { other });
+      if (key === "noneConfirmed") return t("noneConfirmed", { n: Number(m[1]), other });
+      return t("someMiss", { unmet: Number(m[1]), n: Number(m[2]), open: Number(m[4]), other });
+    }
+    return text;
+  };
+  const cause = (text: string) => {
+    for (const [re, key] of GATE_CAUSES) {
+      const m = re.exec(text);
+      if (!m) continue;
+      if (key === "disputed") return t("disputed", { id: m[1]!, pass: Number(m[2]), n: Number(m[3]), fail: Number(m[4]) });
+      return t(key as "notMet", { id: m[1]!, k: Number(m[2]), n: Number(m[3]) });
+    }
+    return text;
+  };
+  return { summary, cause };
+}
+
 export function useVerdictReason() {
   const t = useTranslations("verdictScreen.reasons");
   return (reason: string | null | undefined) => {

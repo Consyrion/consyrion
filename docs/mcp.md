@@ -72,3 +72,7 @@ with mitigations, cost estimate, assumptions and next steps, plus the hard requi
 an agent in Cursor or Claude Code to implement in the local project. `decided.basis` says how binding it is:
 `approved_by_human`, `recommended_awaiting_approval` or `leading_not_approvable` – the tool description tells the agent to
 ask the user before implementing anything but an approved decision. Approval itself stays in the app.
+
+- `verdict.approvable` (get_decision, session status): true only when something can be approved now – the
+  recommendation or an alternative. A `no_qualifying_solution` verdict without an approvable proposal reads false,
+  as in the web UI (Windows smoke test 08.11.26).

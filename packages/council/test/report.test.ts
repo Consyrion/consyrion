@@ -207,6 +207,9 @@ describe("decision report in the interface language (#322)", () => {
     expect(de).toContain("Verbrauchte Tokens: 0 von 400'000");
     expect(de).toContain("Django-PWA mit PostgreSQL-Exclusion-Constraint und Warm-Standby");
     expect(de).not.toContain("## Remaining risks");
+    // Night test R2-01 (08.11.26): no raw status values in the German report.
+    expect(de).not.toMatch(/Status: [a-z]+_[a-z]+/);
+    expect(de).toMatch(/Status: (?:wartet auf Freigabe|läuft|freigegeben|abgelehnt|Änderungen angefordert|in der Warteschlange|abgebrochen|fehlgeschlagen)/);
     // English stays exactly as before.
     expect(reportToMarkdown(report)).toBe(reportToMarkdown(report, "en"));
   });

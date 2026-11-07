@@ -94,7 +94,8 @@
       "colOutput": "Tokens de salida",
       "colCost": "≈ Coste",
       "pricesTitle": "Tus precios de proveedor (opcional, para la estimación)",
-      "priceHint": "{provider} · {model}: entrada {input} / salida {output} {currency} por millón"
+      "priceHint": "{provider} · {model}: entrada {input} / salida {output} {currency} por millón",
+      "endsOn": "Cancelada: tu plan sigue activo hasta el {date}; después el espacio pasa a Free. No se cobra nada más."
     },
     "providers": {
       "needKey": "¿Necesitas una clave? Créala en la consola del proveedor:",
@@ -211,7 +212,8 @@
         "save": "Guardar",
         "connect": "Conectar Stripe",
         "help": "Panel de Stripe → Developers → API keys → Secret key. La clave se guarda cifrada y nunca se vuelve a mostrar. Un precio nuevo crea un nuevo precio en Stripe; las suscripciones en curso conservan el suyo."
-      }
+      },
+      "portalStaleCustomer": "Esta suscripción no existe en la cuenta de Stripe conectada (probablemente se creó en modo de prueba). Tu plan no cambia; para gestionarlo en línea, contrata una nueva suscripción."
     },
     "delivery": {
       "errorSave": "No se pudo guardar la conexión",

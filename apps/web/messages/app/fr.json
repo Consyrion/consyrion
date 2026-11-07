@@ -384,7 +384,18 @@
     "readOnly": "Seuls les membres autorisés à modifier le projet peuvent confirmer les exigences.",
     "afterImplementation": "mesurable seulement après la mise en œuvre",
     "afterImplementationText": "Avant que quoi que ce soit ne soit construit, aucun modèle ne peut confirmer « {text} » ; le Council se terminera donc par « À vérifier ». Laissez l’exigence telle quelle et ajoutez comment elle est mesurée (méthode, valeur cible) afin que les propositions puissent être comparées sur ce point.",
-    "addPlan": "Ajouter un plan de mesure comme exigence"
+    "addPlan": "Ajouter un plan de mesure comme exigence",
+    "reasons": {
+      "injection": "Ressemble à une instruction adressée aux modèles d’IA, pas à une exigence produit",
+      "metaRule": "Indique quand une exigence est considérée comme remplie au lieu de décrire le produit – le council juge les propositions sur le fond",
+      "context": "Issu de l’idée ou de l’objectif – contexte, pas une exigence stricte. Conserve-la si c’en est une.",
+      "document": "Issu d’un document, sans formulation contraignante (doit, uniquement, au plus, une limite …) – description, ligne de tableau ou valeur mesurée. Conserve-la si c’est une exigence.",
+      "instruction": "Une consigne de travail pour le council dans ce cycle, pas une exigence produit. Conserve-la si c’en est une.",
+      "duplicate": "Répète une exigence du champ des exigences ; elle n’apparaît donc qu’une fois. Conserve-la si elle dit davantage."
+    },
+    "undecidedError": "Au moins une affirmation proposée n’est ni conservée ni exclue avec un motif. Recharge la page et décide de chaque affirmation signalée.",
+    "conflict": "{first} et {second} se contredisent peut-être : suppression au plus tard après {deleteDays} jours, mais conservation d’au moins {retainDays} jours. Aucune proposition ne peut satisfaire les deux – modifie l’une d’elles avant de lancer le council.",
+    "reasonMissingError": "Il manque le motif d’au moins une affirmation non reprise (au moins 3 caractères). Ajoute-le et confirme à nouveau."
   },
   "voteWeights": {
     "noRanking": "Aucun classement chargé – neutre 5",
@@ -447,7 +458,9 @@
       "selected": "{n} / {max} sélectionnés",
       "loading": "Chargement des modèles de vos fournisseurs…",
       "noKeys": "Aucune clé API pour l’instant. <link>Ajoutez d’abord une clé de fournisseur</link>.",
-      "filter": "Filtrer les modèles"
+      "filter": "Filtrer les modèles",
+      "unavailableSince": "404 le {date}",
+      "unavailableHint": "Le dernier appel de ce modèle dans ce workspace a été refusé par le fournisseur (modèle introuvable). Il reste sélectionnable : chaque démarrage d'un council le vérifie à nouveau, et la note disparaît dès que le modèle répond ou après 24 heures."
     },
     "roles": {
       "title": "3. Perspectives du 12 Minds Council",

@@ -141,3 +141,66 @@ describe("verdict dashboard (stage 1 visualisations)", () => {
     expect(html).toContain("unbestätigt");
   });
 });
+
+describe("requirements no proposal meets (night test 07.11.26)", () => {
+  it("names them in the hero when nothing can be approved", () => {
+    const failAll: DashboardMatrix = {
+      ...matrix,
+      requirementGate: {
+        ...matrix.requirementGate!,
+        proposals: matrix.requirementGate!.proposals.map((g) => ({
+          ...g,
+          feasibility: "fail" as const,
+          requirements: g.requirements.map((r) => ({ ...r, status: "FAIL" as const })),
+        })),
+      },
+    };
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <VerdictDashboard
+          view={view}
+          matrix={failAll}
+          outcome={{ title: "No solution", tone: "danger" }}
+          reason={null}
+          approvableIds={new Set()}
+          recommendedId={null}
+          nextAction="request_changes"
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("No proposal meets R1, R2. These requirements may contradict each other");
+    expect(html).toContain('data-next-action="request_changes"');
+    // With an approvable proposal the hint stays away.
+    expect(render()).not.toContain("No proposal meets");
+  });
+
+  it("names a requirement every proposal leaves unconfirmed (R2-02, 08.11.26)", () => {
+    const openAll: DashboardMatrix = {
+      ...matrix,
+      requirementGate: {
+        ...matrix.requirementGate!,
+        proposals: matrix.requirementGate!.proposals.map((g) => ({
+          ...g,
+          feasibility: "needs_verification" as const,
+          requirements: g.requirements.map((r, i) => ({ ...r, status: i === 0 ? ("PASS" as const) : ("UNKNOWN" as const) })),
+        })),
+      },
+    };
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <VerdictDashboard
+          view={view}
+          matrix={openAll}
+          outcome={{ title: "Needs verification", tone: "warning" }}
+          reason={null}
+          approvableIds={new Set()}
+          recommendedId={null}
+          nextAction="request_changes"
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("Confirmed for no proposal: R2.");
+    expect(html).not.toContain("No proposal meets");
+    expect(render()).not.toContain("Confirmed for no proposal");
+  });
+});

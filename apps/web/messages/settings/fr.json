@@ -94,7 +94,8 @@
       "colOutput": "Jetons de sortie",
       "colCost": "≈ Coût",
       "pricesTitle": "Vos prix fournisseurs (facultatif, pour l’estimation)",
-      "priceHint": "{provider} · {model} : entrée {input} / sortie {output} {currency} par million"
+      "priceHint": "{provider} · {model} : entrée {input} / sortie {output} {currency} par million",
+      "endsOn": "Résilié – ton plan reste actif jusqu’au {date}, puis l’espace passe à Free. Plus rien n’est prélevé."
     },
     "providers": {
       "needKey": "Besoin d’une clé ? Créez-la dans la console du fournisseur :",
@@ -211,7 +212,8 @@
         "save": "Enregistrer",
         "connect": "Connecter Stripe",
         "help": "Tableau de bord Stripe → Developers → API keys → Secret key. La clé est stockée chiffrée et n’est plus jamais affichée. Un nouveau prix crée un nouveau prix Stripe ; les abonnements en cours conservent le leur."
-      }
+      },
+      "portalStaleCustomer": "Cet abonnement n’existe pas dans le compte Stripe connecté (probablement créé en mode test). Ton plan reste inchangé ; pour le gérer en ligne, souscris un nouvel abonnement."
     },
     "delivery": {
       "errorSave": "Impossible d’enregistrer la connexion",

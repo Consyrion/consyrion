@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useEngineText } from "./engine-text";
 import { Card } from "../ui/surface";
 import { deriveCruxes, remainingDisagreements, type Crux, type CruxStatus } from "./cruxes";
 import type { View } from "./helpers";
@@ -46,13 +47,15 @@ export function CruxesCard({ view, recommendedId }: { view: View; recommendedId:
 
 function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
   const t = useTranslations("verdict.cruxes");
+  const engine = useEngineText();
   return (
     <li className="rounded-xl border border-line p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="font-semibold text-text">{t("number", { n: index })}</span>
         <span className="text-muted">{t("proposal", { label: c.proposal })}</span>
         <span className="rounded-full border border-line px-2 py-0.5 text-muted">
-          {t(`severity.${c.severity}`)}{c.category ? ` · ${c.category.replaceAll("_", " ")}` : ""}
+          {t(`severity.${c.severity}`)}
+          {c.category ? ` · ${c.category.replaceAll("_", " ")}` : ""}
         </span>
         <span className={`rounded-full border px-2 py-0.5 ${STATUS_TONE[c.status]}`}>
           <span aria-hidden="true">{STATUS_ICON[c.status]}</span> {t(`status.${c.status}`)}
@@ -66,7 +69,11 @@ function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
         <dd>
           {c.claim.by}
           {c.claim.role ? ` · ${c.claim.role}` : ""}
-          {c.claim.evidence ? <span className="block text-muted">{t("evidence")}: {c.claim.evidence}</span> : null}
+          {c.claim.evidence ? (
+            <span className="block text-muted">
+              {t("evidence")}: {c.claim.evidence}
+            </span>
+          ) : null}
         </dd>
         <dt className="text-muted">{t("authorAnswer", { model: c.author.by })}</dt>
         <dd>
@@ -77,9 +84,11 @@ function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
               : (c.author.response ?? t("noAnswer"))}
         </dd>
         <dt className="text-muted">{t("review")}</dt>
-        <dd>{c.review.reason ? `${c.review.by ? `${c.review.by}: ` : ""}${c.review.reason}` : t("notReviewed")}</dd>
+        <dd>{c.review.reason ? `${c.review.by ? `${c.review.by}: ` : ""}${engine(c.review.reason)}` : t("notReviewed")}</dd>
         <dt className="text-muted">{t("changed")}</dt>
-        <dd>{c.revision ? (c.revision.moot ? t("revisedMoot", { version: c.revision.version }) : t("revised", { version: c.revision.version })) : t("notRevised")}</dd>
+        <dd>
+          {c.revision ? (c.revision.moot ? t("revisedMoot", { version: c.revision.version }) : t("revised", { version: c.revision.version })) : t("notRevised")}
+        </dd>
       </dl>
     </li>
   );

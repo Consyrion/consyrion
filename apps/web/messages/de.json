@@ -255,7 +255,11 @@
         "title": "Deine Frage wird zum Auftrag",
         "text": "Lege ein Projekt an und beschreibe die Entscheidung. Wähle die Modelle und bis zu zwölf Perspektiven. Du verbindest deine eigenen Anbieter-Keys und setzt ein festes Token-Budget – CONSYRION AI verkauft keine KI-Guthaben.",
         "example": "Frage: „Welche Datenbankarchitektur soll unser SaaS-Produkt nutzen?“ – drei Modelle, zwölf Perspektiven, ein Budget auf deinen eigenen Keys.",
-        "points": ["Projekt, Frage und Kontext", "Modelle und Perspektiven nach Wahl", "Deine eigenen API-Keys, dein Budget"]
+        "points": [
+          "Projekt, Frage und Kontext",
+          "Modelle und Perspektiven nach Wahl",
+          "Deine eigenen API-Keys, dein Budget"
+        ]
       },
       "independent-thinking": {
         "kicker": "Phase 1",
@@ -444,7 +448,9 @@
         "approved": "Entschieden: Empfehlung freigegeben",
         "rejected": "Entschieden: abgelehnt",
         "aiVerdict": "KI-Urteil: {verdict}"
-      }
+      },
+      "unmetByAll": "Kein Vorschlag erfüllt {list}. {n, plural, one {Diese Anforderung ist womöglich nicht erfüllbar} other {Diese Anforderungen widersprechen sich womöglich}} – ändere den Auftrag und starte einen neuen Council.",
+      "openByAll": "Bei keinem Vorschlag bestätigt: {list}. Ergänze im Auftrag, was dazu feststeht, oder fordere Vorschläge an, die {n, plural, one {diese Anforderung} other {diese Anforderungen}} ausdrücklich belegen."
     },
     "process": {
       "proposal": "Vorschlag {label}",
@@ -507,65 +513,120 @@
     "models": [
       {
         "role": "Software-Architekt",
-        "roles": ["Architektur", "Skalierbarkeit", "Zuverlässigkeit", "Kosten"]
+        "roles": [
+          "Architektur",
+          "Skalierbarkeit",
+          "Zuverlässigkeit",
+          "Kosten"
+        ]
       },
       {
         "role": "Sicherheitsexperte",
-        "roles": ["Sicherheit", "Data Governance", "Performance", "Compliance"]
+        "roles": [
+          "Sicherheit",
+          "Data Governance",
+          "Performance",
+          "Compliance"
+        ]
       },
       {
         "role": "Kritischer Denker",
-        "roles": ["Kritiker", "Wartbarkeit", "Entwicklererlebnis", "Betrieb"]
+        "roles": [
+          "Kritiker",
+          "Wartbarkeit",
+          "Entwicklererlebnis",
+          "Betrieb"
+        ]
       }
     ],
     "apiKey": "Dein API-Key",
     "decision": "Entscheidung",
     "proposal": "Vorschlag {letter}",
-    "proposalLines": ["Managed Multi-Tenant", "Self-hosted Cluster", "Hybride Architektur"],
+    "proposalLines": [
+      "Managed Multi-Tenant",
+      "Self-hosted Cluster",
+      "Hybride Architektur"
+    ],
     "evidenceAttached": "Belege angehängt",
     "example": "Beispiel",
     "optional": "optional",
     "brief": {
       "title": "Auftrag",
-      "lines": ["Welche Datenbank-Architektur?", "3 Modelle · 12 Perspektiven", "Budget auf deinen Keys"]
+      "lines": [
+        "Welche Datenbank-Architektur?",
+        "3 Modelle · 12 Perspektiven",
+        "Budget auf deinen Keys"
+      ]
     },
     "objection": {
       "title": "Einwand · Sicherheit",
-      "lines": ["Risiko Mandantentrennung", "Gegen Belege geprüft", "Bleibt dokumentiert"]
+      "lines": [
+        "Risiko Mandantentrennung",
+        "Gegen Belege geprüft",
+        "Bleibt dokumentiert"
+      ]
     },
-    "evidence": ["Beleg: Testergebnisse", "Beleg: Anbieter-Doku"],
+    "evidence": [
+      "Beleg: Testergebnisse",
+      "Beleg: Anbieter-Doku"
+    ],
     "hybrid": {
       "title": "Hybrid A + C",
-      "lines": ["Gegen Einwände überarbeitet", "Wo vereinbar zusammengeführt"]
+      "lines": [
+        "Gegen Einwände überarbeitet",
+        "Wo vereinbar zusammengeführt"
+      ]
     },
     "difference": "Differenz dokumentiert",
     "report": {
       "title": "Entscheidungsbericht",
-      "lines": ["Empfohlen: Hybrid A + C", "Minderheitsposition bleibt"],
-      "bars": ["Sicherheit", "Kosten", "Zeit bis Start"]
+      "lines": [
+        "Empfohlen: Hybrid A + C",
+        "Minderheitsposition bleibt"
+      ],
+      "bars": [
+        "Sicherheit",
+        "Kosten",
+        "Zeit bis Start"
+      ]
     },
     "awaiting": "Wartet auf deine Freigabe",
     "approved": "✓ Von dir freigegeben",
     "pipeline": [
       {
         "title": "Aufgaben",
-        "lines": ["Geprüfter Plan", "Aufgabengraph"]
+        "lines": [
+          "Geprüfter Plan",
+          "Aufgabengraph"
+        ]
       },
       {
         "title": "Code",
-        "lines": ["Isolierte Sandbox", "Kein Netzwerkzugriff"]
+        "lines": [
+          "Isolierte Sandbox",
+          "Kein Netzwerkzugriff"
+        ]
       },
       {
         "title": "Tests",
-        "lines": ["Laufen in der Sandbox", "Ergebnisse angehängt"]
+        "lines": [
+          "Laufen in der Sandbox",
+          "Ergebnisse angehängt"
+        ]
       },
       {
         "title": "Reviews",
-        "lines": ["Unabhängige Modelle", "Befunde sichtbar"]
+        "lines": [
+          "Unabhängige Modelle",
+          "Befunde sichtbar"
+        ]
       },
       {
         "title": "Draft-PR",
-        "lines": ["GitHub Draft Pull Request", "Merge bleibt deine Wahl"]
+        "lines": [
+          "GitHub Draft Pull Request",
+          "Merge bleibt deine Wahl"
+        ]
       }
     ]
   },

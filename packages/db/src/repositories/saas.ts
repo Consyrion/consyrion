@@ -79,6 +79,7 @@ export async function getSubscription(db: Database, organizationId: string) {
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
     }
   );
 }
@@ -122,8 +123,10 @@ export async function upsertStripeSubscription(
     stripeCustomerId: string;
     stripeSubscriptionId: string;
     currentPeriodEnd: Date | null;
+    cancelAtPeriodEnd?: boolean;
   },
 ) {
+  data = { ...data, cancelAtPeriodEnd: data.cancelAtPeriodEnd ?? false };
   await db
     .insert(subscription)
     .values({ ...data, provider: "stripe" })
@@ -134,7 +137,26 @@ export async function upsertStripeSubscription(
     action: "billing.subscription_updated",
     targetType: "subscription",
     targetId: data.organizationId,
-    metadata: { plan: data.plan, status: data.status },
+    metadata: { plan: data.plan, status: data.status, cancelAtPeriodEnd: data.cancelAtPeriodEnd },
+  });
+}
+
+/**
+ * The stored Stripe customer does not exist in the connected Stripe account (test-mode customer after switching to live
+ * keys). The ids are forgotten so checkout can create a new customer; plan and status stay as they are and the
+ * subscription counts as manually assigned, because there is nothing to manage at Stripe.
+ */
+export async function forgetStripeCustomer(db: Database, organizationId: string, actorUserId: string | null) {
+  await db
+    .update(subscription)
+    .set({ stripeCustomerId: null, stripeSubscriptionId: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, provider: "manual" })
+    .where(eq(subscription.organizationId, organizationId));
+  await recordAudit(db, {
+    organizationId,
+    actorUserId,
+    action: "billing.stale_stripe_customer_forgotten",
+    targetType: "subscription",
+    targetId: organizationId,
   });
 }
 

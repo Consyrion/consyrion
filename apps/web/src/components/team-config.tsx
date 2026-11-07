@@ -33,7 +33,7 @@ interface CredentialModels {
   credentialId: string;
   provider: "anthropic" | "openai" | "google" | "deepseek" | "glm" | "kimi" | "qwen" | "xai";
   label: string;
-  models: { modelId: string; displayName: string; contextWindow: number | null; strength?: StrengthSuggestion }[];
+  models: { modelId: string; displayName: string; contextWindow: number | null; strength?: StrengthSuggestion; unavailableSince?: string | null }[];
   error: string | null;
 }
 
@@ -265,9 +265,7 @@ export function TeamConfig({
                 : t("models.intro", { min: MIN_PARTICIPANTS, max: maxModels })}
             </p>
           </div>
-          <Badge tone={selected.length >= 2 ? "success" : "warning"}>
-            {t("models.selected", { n: selected.length, max: maxModels })}
-          </Badge>
+          <Badge tone={selected.length >= 2 ? "success" : "warning"}>{t("models.selected", { n: selected.length, max: maxModels })}</Badge>
         </div>
         {loadError ? (
           <div className="mt-4">
@@ -324,9 +322,16 @@ export function TeamConfig({
                                 onChange={() => toggleModel(entry, model)}
                                 disabled={!checked && selected.length >= maxModels}
                               />
-                              <span className="truncate" title={model.modelId}>
+                              <span className={`truncate ${model.unavailableSince ? "text-muted line-through" : ""}`} title={model.modelId}>
                                 {model.displayName}
                               </span>
+                              {model.unavailableSince ? (
+                                <span className="ml-auto shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-xs text-warning" title={t("models.unavailableHint")}>
+                                  {t("models.unavailableSince", {
+                                    date: format.dateTime(new Date(model.unavailableSince), { dateStyle: "short", timeStyle: "short" }),
+                                  })}
+                                </span>
+                              ) : null}
                             </label>
                           </li>
                         );
@@ -359,9 +364,7 @@ export function TeamConfig({
 
       <Card>
         <h2 className="font-semibold">{t("roles.title")}</h2>
-        <p className="text-sm text-muted">
-          {t("roles.intro", { n: roles.length })}
-        </p>
+        <p className="text-sm text-muted">{t("roles.intro", { n: roles.length })}</p>
         {roleSuggestion ? <RoleSuggestionCard suggestion={roleSuggestion} active={roles} onApply={setRoles} /> : null}
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {COUNCIL_ROLES.map((role) => {
@@ -514,9 +517,7 @@ export function TeamConfig({
         {overBudget ? (
           <label className="mt-3 flex items-start gap-2 text-sm text-warning">
             <input type="checkbox" className="mt-1" checked={budgetConfirmed} onChange={(e) => setBudgetConfirmed(e.target.checked)} />
-            <span>
-              {t("summary.overBudget", { budget: format.number(tokenBudget) })}
-            </span>
+            <span>{t("summary.overBudget", { budget: format.number(tokenBudget) })}</span>
           </label>
         ) : null}
         {problems.length ? (
@@ -532,7 +533,13 @@ export function TeamConfig({
               <p className="font-medium">{t("summary.checkWeights")}</p>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {voteWarnings.map((w) => (
-                  <li key={`${w.kind}-${w.index}`}>{voteWarningText(tVotes, w, voteRows.map((r) => r.name))}</li>
+                  <li key={`${w.kind}-${w.index}`}>
+                    {voteWarningText(
+                      tVotes,
+                      w,
+                      voteRows.map((r) => r.name),
+                    )}
+                  </li>
                 ))}
               </ul>
             </Alert>

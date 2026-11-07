@@ -255,7 +255,11 @@
         "title": "Your question becomes a brief",
         "text": "Create a project and describe the decision. Choose the models and up to twelve perspectives. You connect your own provider keys and set a hard token budget – CONSYRION AI sells no AI credits.",
         "example": "Question: “Which database architecture should our SaaS product use?” – three models, twelve perspectives, a budget on your own keys.",
-        "points": ["Project, question and context", "Models and perspectives you pick", "Your own API keys, your budget"]
+        "points": [
+          "Project, question and context",
+          "Models and perspectives you pick",
+          "Your own API keys, your budget"
+        ]
       },
       "independent-thinking": {
         "kicker": "Phase 1",
@@ -444,7 +448,9 @@
         "approved": "Decided: recommendation approved",
         "rejected": "Decided: rejected",
         "aiVerdict": "AI verdict: {verdict}"
-      }
+      },
+      "unmetByAll": "No proposal meets {list}. {n, plural, one {This requirement may not be achievable} other {These requirements may contradict each other}} – change the brief and start a new council.",
+      "openByAll": "Confirmed for no proposal: {list}. Add to the brief what is known about it, or ask for proposals that show {n, plural, one {this requirement} other {these requirements}} explicitly."
     },
     "process": {
       "proposal": "Proposal {label}",
@@ -507,65 +513,120 @@
     "models": [
       {
         "role": "Software Architect",
-        "roles": ["Architecture", "Scalability", "Reliability", "Cost"]
+        "roles": [
+          "Architecture",
+          "Scalability",
+          "Reliability",
+          "Cost"
+        ]
       },
       {
         "role": "Security Expert",
-        "roles": ["Security", "Data governance", "Performance", "Compliance"]
+        "roles": [
+          "Security",
+          "Data governance",
+          "Performance",
+          "Compliance"
+        ]
       },
       {
         "role": "Critical Thinker",
-        "roles": ["Critic", "Maintainability", "Developer experience", "Operations"]
+        "roles": [
+          "Critic",
+          "Maintainability",
+          "Developer experience",
+          "Operations"
+        ]
       }
     ],
     "apiKey": "Your API key",
     "decision": "Decision",
     "proposal": "Proposal {letter}",
-    "proposalLines": ["Managed multi-tenant", "Self-hosted cluster", "Hybrid architecture"],
+    "proposalLines": [
+      "Managed multi-tenant",
+      "Self-hosted cluster",
+      "Hybrid architecture"
+    ],
     "evidenceAttached": "Evidence attached",
     "example": "example",
     "optional": "optional",
     "brief": {
       "title": "Brief",
-      "lines": ["Which database architecture?", "3 models · 12 perspectives", "Budget on your own keys"]
+      "lines": [
+        "Which database architecture?",
+        "3 models · 12 perspectives",
+        "Budget on your own keys"
+      ]
     },
     "objection": {
       "title": "Objection · Security",
-      "lines": ["Tenant isolation risk", "Checked against evidence", "Kept on record"]
+      "lines": [
+        "Tenant isolation risk",
+        "Checked against evidence",
+        "Kept on record"
+      ]
     },
-    "evidence": ["Evidence: test results", "Evidence: provider docs"],
+    "evidence": [
+      "Evidence: test results",
+      "Evidence: provider docs"
+    ],
     "hybrid": {
       "title": "Hybrid A + C",
-      "lines": ["Revised against objections", "Merged where compatible"]
+      "lines": [
+        "Revised against objections",
+        "Merged where compatible"
+      ]
     },
     "difference": "Difference documented",
     "report": {
       "title": "Decision report",
-      "lines": ["Recommended: Hybrid A + C", "Minority position kept"],
-      "bars": ["Security", "Cost", "Time to launch"]
+      "lines": [
+        "Recommended: Hybrid A + C",
+        "Minority position kept"
+      ],
+      "bars": [
+        "Security",
+        "Cost",
+        "Time to launch"
+      ]
     },
     "awaiting": "Awaiting your approval",
     "approved": "✓ Approved by you",
     "pipeline": [
       {
         "title": "Tasks",
-        "lines": ["Validated plan", "Task graph"]
+        "lines": [
+          "Validated plan",
+          "Task graph"
+        ]
       },
       {
         "title": "Code",
-        "lines": ["Isolated sandbox", "No network access"]
+        "lines": [
+          "Isolated sandbox",
+          "No network access"
+        ]
       },
       {
         "title": "Tests",
-        "lines": ["Run in the sandbox", "Results attached"]
+        "lines": [
+          "Run in the sandbox",
+          "Results attached"
+        ]
       },
       {
         "title": "Reviews",
-        "lines": ["Independent models", "Findings visible"]
+        "lines": [
+          "Independent models",
+          "Findings visible"
+        ]
       },
       {
         "title": "Draft PR",
-        "lines": ["GitHub draft pull request", "Merge stays your call"]
+        "lines": [
+          "GitHub draft pull request",
+          "Merge stays your call"
+        ]
       }
     ]
   },

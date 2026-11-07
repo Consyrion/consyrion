@@ -398,7 +398,8 @@
       "needsVerification": "Requiere verificación: el consejo no pudo confirmar que una propuesta cumpla todos los requisitos. No se puede aprobar ni construir.",
       "notQualified": "Según las evaluaciones, esta propuesta no cumple todos los requisitos confirmados (o no se pudo confirmar). No se puede aprobar ni construir. Cambia el encargo o los requisitos e inicia un nuevo consejo.",
       "limitedReview": "Demasiados pocos modelos independientes revisaron esta propuesta (se necesitan al menos 2). Es una favorita provisional y no se puede aprobar ni construir. Inicia un nuevo consejo con al menos 3 modelos.",
-      "unknownOutcome": "Este veredicto usa un resultado que esta versión no conoce. Aquí no se puede aprobar ni construir."
+      "unknownOutcome": "Este veredicto usa un resultado que esta versión no conoce. Aquí no se puede aprobar ni construir.",
+      "conflictOfInterest": "La propuesta {qualified} cumple todos los requisitos, pero no se recomienda automáticamente: la propuesta {blocked} obtuvo más puntos y solo la bloquearon las comprobaciones del autor de la propuesta {qualified}, una decisión a su propio favor. Inicia un nuevo consejo (p. ej. con otro modelo) para decidir sin este conflicto de intereses."
     }
   },
   "requirementGate": {
@@ -428,6 +429,48 @@
     "evidence": "Pruebas ({n})",
     "notEveryPart": "(no se confirmaron todas las partes)",
     "checkEstimate": "estimación {low}–{high}",
-    "didNotCount": "no contó: {reason}"
+    "didNotCount": "no contó: {reason}",
+    "text": {
+      "noneMeets": "Ninguna de las propuestas {other, select, yes {restantes } other {}}evaluadas cumple todos los requisitos confirmados según estas evaluaciones.",
+      "noneConfirmed": "Ninguna de las {n} propuestas {other, select, yes {restantes } other {}}evaluadas pudo confirmarse frente a todos los requisitos: las evaluaciones dejan requisitos abiertos. No confirmado no significa no cumplido.",
+      "someMiss": "{unmet} de {n} propuestas {other, select, yes {restantes } other {}}evaluadas incumplen un requisito confirmado según estas evaluaciones; {open} no pudieron confirmarse (no confirmado no significa no cumplido).",
+      "notMet": "{id} no cumplido según {k} de {n} evaluadores (juicio de los modelos).",
+      "disputed": "{id} discutido: {pass} de {n} evaluadores lo confirman, {fail} lo consideran no cumplido.",
+      "notConfirmed": "{id} no confirmado: {k} de {n} evaluadores no pudieron confirmarlo.",
+      "noAnswer": "{id} no confirmado: {k} de {n} evaluadores no dieron una respuesta válida."
+    }
+  },
+  "engineText": {
+    "noJudgeFailed": "No había ningún revisor independiente disponible – {reason} en cada juez elegible",
+    "noJudge": "No había ningún revisor independiente disponible",
+    "partialReviews": "({got} de {needed} revisiones independientes necesarias – no había más jueces disponibles)",
+    "conceded": "Concedido por el autor – registrado como aceptado hasta que una revisión lo corrija (revisor: {said}).",
+    "changedAfterConcede": "Contenido cambiado tras la concesión en {versions} (no vinculado a esta objeción).",
+    "addressed": "Abordado por el autor en {versions}.",
+    "notReReviewed": "No revisado de nuevo de forma independiente.",
+    "said": {
+      "unresolved": "sin resolver",
+      "refuted": "refutado",
+      "resolved": "resuelto",
+      "accepted": "aceptado"
+    },
+    "issue": {
+      "missing_evaluators": "La propuesta {label} fue evaluada por {evaluators} de {expected} evaluadores esperados",
+      "vote_disagrees": "La votación por mayoría favorece la propuesta {label}, no la mayor puntuación ponderada",
+      "participant_failed": "{model} abandonó el council ({reason}); faltan su propuesta, sus críticas y sus puntuaciones",
+      "unreviewed_objections": "{count, plural, one {# objeción no pudo ser revisada por un revisor independiente y sigue abierta} other {# objeciones no pudieron ser revisadas por un revisor independiente y siguen abiertas}}",
+      "single_evaluator": "La propuesta {label} fue evaluada por un solo evaluador independiente (solo dos modelos activos)",
+      "requirements_disputed": "{failed} de {total} evaluadores independientes consideran que la propuesta {label} incumple un requisito estricto",
+      "insufficient_evaluators": "Solo {evaluators} de {expected} evaluadores esperados dieron puntuaciones utilizables – demasiado pocos para una decisión del council; repite la evaluación",
+      "no_debate_contribution": "{model} no aportó ninguna revisión de rol al 12 Minds Council (fallaron todas las llamadas); sus perspectivas faltan en el debate, pero su voto cuenta en el Final Verdict si evaluó",
+      "undefended_proposal": "La propuesta {label} no fue defendida – {reason}: {count, plural, one {# objeción sigue} other {# objeciones siguen}} sin respuesta, lo que no equivale a una crítica no rebatida",
+      "phase_shortened": "{phase} se acortó para reservar el presupuesto de tokens para el Final Verdict; el veredicto se basa en las revisiones disponibles en ese momento",
+      "weighting_changed_winner_both": "Los pesos de voto decidieron el resultado: con pesos iguales el council recomendaría la propuesta {unweighted}; con pesos recomienda la propuesta {weighted}",
+      "weighting_changed_winner_unweighted": "Los pesos de voto decidieron el resultado: con pesos iguales el council recomendaría la propuesta {unweighted}",
+      "weighting_changed_winner_tie": "Los pesos de voto decidieron el resultado: con pesos iguales el council terminaría en empate (con pesos: propuesta {weighted})",
+      "weighting_changed_winner_none": "Los pesos de voto decidieron el resultado: con pesos iguales el council no recomendaría ninguna propuesta (con pesos: propuesta {weighted})",
+      "conflict_of_interest": "La propuesta {blocked} obtuvo más puntos, pero solo la bloquean las comprobaciones del autor de la propuesta {label} – una decisión a su favor, por eso no hay recomendación automática",
+      "evaluation_rejected": "{count, plural, one {# evaluador repitió el título de otra propuesta para la propuesta {label}; se descartó su puntuación} other {# evaluadores repitieron el título de otra propuesta para la propuesta {label}; se descartaron sus puntuaciones}}"
+    }
   }
 }

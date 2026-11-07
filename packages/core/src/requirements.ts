@@ -55,9 +55,15 @@ export interface ExcludedRequirement {
 
 export const REQUIREMENT_LIMITS = { maxItems: 100, maxItemChars: 1_000, maxCandidates: 150, minReasonChars: 3 } as const;
 
-/** Default reason for statements that look like instructions to the models (the user may override it). */
-export const INJECTION_EXCLUSION_REASON = "Reads like an instruction to the AI models, not a product requirement";
-export const META_RULE_EXCLUSION_REASON = "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance";
+export {
+  CONTEXT_EXCLUSION_REASON,
+  DOCUMENT_EXCLUSION_REASON,
+  DUPLICATE_EXCLUSION_REASON,
+  INJECTION_EXCLUSION_REASON,
+  INSTRUCTION_EXCLUSION_REASON,
+  META_RULE_EXCLUSION_REASON,
+  EXCLUSION_REASON_KEYS,
+} from "./exclusion-reasons";
 
 export function normalizeRequirementText(text: string): string {
   return text

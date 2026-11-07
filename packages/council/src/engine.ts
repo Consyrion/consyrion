@@ -1,6 +1,6 @@
 import { COUNCIL_PHASES, DomainError, type CouncilPhase } from "@consyrion/core";
 import { recordAudit, schema, type Database } from "@consyrion/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { CancelledError, type AdapterResolver } from "./call";
 import { assertCanEvaluateSession, sessionGateVersions } from "./decision-format";
 import { SessionContext } from "./context";
@@ -60,6 +60,9 @@ export async function runSession(deps: EngineDeps, sessionId: string): Promise<v
     return;
   }
 
+  // Nothing of this session is in flight now: reservations left by calls a restart interrupted are released, so the
+  // counter equals the recorded usage again (night test 07.11.26: 916,799 counted vs. 789,888 recorded after deploys).
+  await reconcileTokens(db, sessionId);
   await db
     .update(schema.councilSession)
     .set({ status: "running", startedAt: session.startedAt ?? new Date(), error: null })
@@ -100,6 +103,7 @@ export async function runSession(deps: EngineDeps, sessionId: string): Promise<v
       return;
     }
   }
+  await reconcileTokens(db, sessionId);
   await db
     .update(schema.councilSession)
     .set({ status: "awaiting_approval", currentPhase: "final_verdict", finishedAt: new Date() })
@@ -131,4 +135,19 @@ async function runPhase(ctx: SessionContext, deps: EngineDeps, phase: CouncilPha
 
 async function finish(db: Database, sessionId: string, status: "cancelled" | "failed", error: string | null) {
   await db.update(schema.councilSession).set({ status, error, finishedAt: new Date() }).where(eq(schema.councilSession.id, sessionId));
+}
+
+/**
+ * Sets the council's token counter to its recorded usage (council phases; the Execution Council has its own budget).
+ * Only called while no call of the session runs: at the start of a (resumed) run and when the verdict is ready.
+ */
+export async function reconcileTokens(db: Database, sessionId: string) {
+  const [row] = await db
+    .select({ used: sql<number>`coalesce(sum(${schema.usageRecord.inputTokens} + ${schema.usageRecord.outputTokens}), 0)` })
+    .from(schema.usageRecord)
+    .where(and(eq(schema.usageRecord.sessionId, sessionId), sql`coalesce(${schema.usageRecord.phase}::text, '') <> 'execution_council'`));
+  await db
+    .update(schema.councilSession)
+    .set({ tokensUsed: Number(row?.used ?? 0) })
+    .where(eq(schema.councilSession.id, sessionId));
 }

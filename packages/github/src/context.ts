@@ -50,8 +50,8 @@ function terms(text: string): Set<string> {
 }
 
 /**
- * The files proposed for the context, as a deterministic suggestion the user changes: README-like files first, then
- * Markdown documentation ranked by how many brief terms its path contains (unmatched ones last), until `suggestedBytes`.
+ * The files proposed for the context, as a deterministic suggestion the user changes: files the brief names first, then
+ * README-like files, then Markdown documentation ranked by how many brief terms its path contains (unmatched ones last), until `suggestedBytes`.
  */
 export function suggestContextFiles(files: readonly TreeEntry[], brief: string): string[] {
   const words = terms(brief);
@@ -62,7 +62,21 @@ export function suggestContextFiles(files: readonly TreeEntry[], brief: string):
     const hits = pathWords.filter((w) => w.length >= 5 && stems.has(w.slice(0, 5))).length;
     return (DOC.test(f.path) && !f.path.includes("/") ? 100 : DOC.test(f.path) ? 50 : 0) + hits * 10 - f.path.split("/").length;
   };
-  const ranked = files.filter((f) => MARKDOWN.test(f.path) || DOC.test(f.path)).sort((a, b) => score(b) - score(a) || a.path.localeCompare(b.path));
+  // Files the brief names by path or file name ("src/todos.js", "todos.js") come first, whatever their type (night test
+  // 07.11.26: the requirements named src/todos.js, the suggestion was README.md only).
+  const lower = brief.toLowerCase();
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const named = (f: TreeEntry) => {
+    const name = f.path.split("/").at(-1)!.toLowerCase();
+    if (lower.includes(f.path.toLowerCase())) return true;
+    // A bare file name counts only with an extension and as a whole word ("todos.js", not "s.js" inside "todos.js").
+    return name.includes(".") && name.length >= 5 && new RegExp(`(^|[^\\w./-])${escape(name)}($|[^\\w])`).test(lower);
+  };
+  const mentioned = files.filter(named).sort((a, b) => a.path.localeCompare(b.path));
+  const ranked = [
+    ...mentioned,
+    ...files.filter((f) => !named(f) && (MARKDOWN.test(f.path) || DOC.test(f.path))).sort((a, b) => score(b) - score(a) || a.path.localeCompare(b.path)),
+  ];
   const chosen: string[] = [];
   let total = 0;
   for (const f of ranked) {

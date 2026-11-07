@@ -384,7 +384,18 @@
     "readOnly": "Only members who can edit the project can confirm the requirements.",
     "afterImplementation": "only measurable after implementation",
     "afterImplementationText": "Before anything is built, no model can confirm “{text}”, so the council will end with “needs verification”. Keep it as it is, and add how it is measured (method, target value) so the proposals can be compared on it.",
-    "addPlan": "Add a measurement plan as a requirement"
+    "addPlan": "Add a measurement plan as a requirement",
+    "reasons": {
+      "injection": "Reads like an instruction to the AI models, not a product requirement",
+      "metaRule": "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance",
+      "context": "From the idea or goal – context, not a hard requirement. Keep it if it is one.",
+      "document": "From a document, without binding wording (must, only, at most, a limit …) – a description, table row or measured value. Keep it if it is a requirement.",
+      "instruction": "A work instruction to the council for this run, not a product requirement. Keep it if it is one.",
+      "duplicate": "Repeats a requirement from the requirements field, so it is listed once. Keep it if it says more."
+    },
+    "undecidedError": "At least one proposed statement is neither kept nor excluded with a reason. Reload the page and decide every marked statement.",
+    "conflict": "{first} and {second} may contradict each other: deletion within {deleteDays} days, but retention for at least {retainDays} days. No proposal can meet both – change one of them before you start the council.",
+    "reasonMissingError": "At least one statement you did not take over has no reason (at least 3 characters). Add it and confirm again."
   },
   "voteWeights": {
     "noRanking": "No ranking loaded yet – neutral 5",
@@ -447,7 +458,9 @@
       "selected": "{n} / {max} selected",
       "loading": "Loading models from your providers…",
       "noKeys": "No API keys yet. <link>Add a provider key</link> first.",
-      "filter": "Filter models"
+      "filter": "Filter models",
+      "unavailableSince": "404 on {date}",
+      "unavailableHint": "The last call of this model in this workspace was refused by the provider (model not found). It stays selectable: every council start checks it again, and the note disappears as soon as the model answers or after 24 hours."
     },
     "roles": {
       "title": "3. 12 Minds Council perspectives",

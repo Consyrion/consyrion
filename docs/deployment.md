@@ -33,3 +33,9 @@ credential master keys; the worker also needs the GitHub App variables if reposi
 - Rootless Docker (or gVisor `runsc`) for the worker host; the worker itself only runs Consyrion code.
 - Keep the images `node:22-alpine` / `python:3.12-alpine` pre-pulled and updated.
 - Firewall: the worker needs outbound HTTPS (AI providers, GitHub, package registries during install).
+
+### Disk hygiene (07.11.26)
+
+After a healthy deploy, `deploy.sh` removes every `consyrion-web/worker/migrate` image except the running release and
+the previous one (for `rollback.sh`), then prunes dangling images and the build cache and prints the free space. Before
+building it still refuses to start with less than 4 GB free.

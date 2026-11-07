@@ -83,3 +83,18 @@ lives in `apps/web/src/lib/legal.ts` (`OPERATOR`): the hosted service is offered
 contains a `[placeholder]`, every legal page shows a draft notice – fill them in before live Stripe sales.
 Self-hosted operators replace `OPERATOR` with their own data. Container logs are size-limited in
 `deploy/hetzner/compose.yml` (10 MB × 3 per service), as the privacy policy states.
+
+### Stripe customer unknown to the connected account (07.11.26)
+
+After switching from test to live keys, a workspace can still hold a test-mode customer id. "Manage subscription" then
+failed with "No such customer". The portal now recognises Stripe's `resource_missing` (param `customer`), forgets the
+stale customer and subscription ids, marks the subscription as manually assigned – plan and status are unchanged – and
+explains this in the interface language. Checkout does the same and retries once without the customer, so Stripe
+creates a new one from the e-mail address.
+
+### Cancellation at the period end (07.11.26)
+
+The Stripe portal cancels "at period end": a customer who cancels keeps the paid plan until `current_period_end`; only
+`customer.subscription.deleted` moves the workspace to the default plan. The webhook stores `cancel_at_period_end`
+(also `cancel_at`) as `subscription.cancel_at_period_end` (migration 0035), and the billing page then says
+"Cancelled – your plan stays active until …" instead of "Renews on …". Undoing the cancellation in the portal clears it.

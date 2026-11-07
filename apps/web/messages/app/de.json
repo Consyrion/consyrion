@@ -384,7 +384,18 @@
     "readOnly": "Nur Mitglieder, die das Projekt bearbeiten dürfen, können die Anforderungen bestätigen.",
     "afterImplementation": "erst nach der Umsetzung messbar",
     "afterImplementationText": "Bevor etwas gebaut ist, kann kein Modell „{text}“ bestätigen, deshalb endet der Council mit „Prüfung nötig“. Lass die Anforderung, wie sie ist, und ergänze, wie sie gemessen wird (Methode, Zielwert), damit die Vorschläge daran verglichen werden können.",
-    "addPlan": "Messplan als Anforderung hinzufügen"
+    "addPlan": "Messplan als Anforderung hinzufügen",
+    "reasons": {
+      "injection": "Liest sich wie eine Anweisung an die KI-Modelle, keine Produktanforderung",
+      "metaRule": "Legt fest, wann eine Anforderung als erfüllt gilt, statt das Produkt zu beschreiben – der Council beurteilt Vorschläge nach Inhalt",
+      "context": "Aus Idee oder Ziel – Kontext, keine harte Anforderung. Behalte sie, falls sie eine ist.",
+      "document": "Aus einem Dokument, ohne verbindliche Formulierung (muss, nur, höchstens, ein Grenzwert …) – Beschreibung, Tabellenzeile oder Messwert. Behalte sie, falls sie eine Anforderung ist.",
+      "instruction": "Arbeitsauftrag an den Council für diesen Lauf, keine Produktanforderung. Behalte ihn, falls er eine ist.",
+      "duplicate": "Wiederholt eine Anforderung aus dem Anforderungsfeld und steht deshalb nur einmal in der Liste. Behalte sie, falls sie mehr sagt."
+    },
+    "undecidedError": "Mindestens eine vorgeschlagene Aussage ist weder übernommen noch mit Grund ausgeschlossen. Lade die Seite neu und entscheide jede markierte Aussage.",
+    "conflict": "{first} und {second} widersprechen sich womöglich: Löschung spätestens nach {deleteDays} Tagen, aber Aufbewahrung mindestens {retainDays} Tage. Kein Vorschlag kann beides erfüllen – ändere eine der beiden Anforderungen, bevor du den Council startest.",
+    "reasonMissingError": "Für mindestens eine nicht übernommene Aussage fehlt der Grund (mindestens 3 Zeichen). Ergänze ihn und bestätige erneut."
   },
   "voteWeights": {
     "noRanking": "Noch kein Ranking geladen – neutral 5",
@@ -447,7 +458,9 @@
       "selected": "{n} / {max} gewählt",
       "loading": "Modelle werden von deinen Anbietern geladen…",
       "noKeys": "Noch keine API-Keys. <link>Füge zuerst einen Anbieter-Key hinzu</link>.",
-      "filter": "Modelle filtern"
+      "filter": "Modelle filtern",
+      "unavailableSince": "404 am {date}",
+      "unavailableHint": "Der letzte Aufruf dieses Modells in diesem Workspace wurde vom Anbieter abgelehnt (Modell nicht gefunden). Es bleibt wählbar: Jeder Council-Start prüft es erneut, und der Hinweis verschwindet, sobald das Modell wieder antwortet oder nach 24 Stunden."
     },
     "roles": {
       "title": "3. Perspektiven des 12 Minds Council",

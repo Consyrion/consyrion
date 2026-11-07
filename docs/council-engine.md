@@ -49,6 +49,9 @@ switched off. The policy snapshot is stored with the session (`policy`, `policyV
   differences can make the real input count deviate slightly from the estimate. `council_session.tokens_used`
   therefore includes the reservations of running calls and can drop when one finishes; the Council Room shows the
   recorded usage (sum of `usage_record`) as "Tokens used" and the rest as "reserved for running calls" (#173).
+  A call a worker restart interrupts never settles its reservation; `reconcileTokens` therefore resets the counter
+  to the recorded council usage (without Execution Council rows) when a run starts or resumes and when it reaches
+  the approval (night test 07.11.26: 916,799 counted vs. 789,888 recorded).
 - Every call: cancellation check, retries only for transient errors, timeout, usage row with outcome
   (ok/error/refusal/invalid_output/max_tokens) and – for every failed call – the error kind and HTTP status
   (`usage_record.error_kind`, `http_status`, #175), zod validation of the JSON answer.
@@ -255,6 +258,16 @@ tokens (8,192 again if a model rejects the larger limit) and start at 8,000 (`PR
 - A role assignment for a role that is not part of the council is refused.
 - A provider's 404 is the kind `model_not_found`; the model drops out with "<model> is not available for this
   <provider> key (HTTP 404)" (seen with Gemini 2.5 Flash-Lite, which is listed but answers 404).
+- **Start check (07.11.26).** A listed model is not proof that the key may call it: Google lists `gemini-2.5-pro`
+  for new keys but answers 404 ("no longer available to new users"), which cost a real council one of three voices.
+  So the start also calls every selected model once with a tiny request (`ModelCatalog.probe`, 16 output tokens on
+  the user's key, logged in `usage_record` like every call). Only a definite 404 refuses the start ("The provider
+  lists these models but refuses calls with your key …") – before the session exists, so nothing of the council is
+  charged. A timeout, rate limit or provider outage is "unknown" and never blocks.
+- **Hint in the model picker, never a block.** `/api/models` marks a model whose latest call in this workspace
+  within 24 hours ended with `model_not_found` (`recentlyUnavailableModels`) as "404 on <date>": struck through but
+  still selectable. A later successful call (also the next start check) clears it, and it expires after 24 hours –
+  when the provider enables the model again, nobody has to unlock anything.
 
 ## Scores bound to the proposal they name (#93)
 
@@ -287,6 +300,17 @@ If fewer than half of the active models that have a proposal to score deliver us
 `insufficient_evidence` (confidence issue `insufficient_evaluators`) instead of `recommended`. The decision
 screen then offers **Repeat the evaluation** (`repeat_evaluation` approval action): the Final Verdict runs again
 only for the models without a stored vote; scores already given stay.
+
+## One point, one objection (night test 07.11.26)
+
+The Minority Review turns 12 Minds critiques into objections. A model often raises the same point several times –
+from several of its roles and again in the second debate round, slightly reworded (one real council had 68 objections,
+many near-identical). Within one model, one proposal and one category, a critique counts as a repeat when the shorter
+statement's content words (normalised, at least four letters) are at least 60 % contained in an already kept one
+(`sameObjectionPoint`, `packages/core/src/objections.ts`); candidates are taken most severe first, so the strongest
+wording stays. Different models are independent voices and always stay separate. The rule is deliberately
+conservative: a strong rewording (German compounds, inflection) stays a second objection – deciding that would need a
+model call.
 
 ## Objections against a replaced revision (#150)
 
@@ -553,16 +577,16 @@ keep version 1 and finish with the production gate above. The rules of the gate 
 
 The Final Verdict names the main reason before the details:
 
-- **Evaluation incomplete** (a model's Final Verdict was lost, e.g. cut off twice): shown first as *Main reason: the
-  evaluation is incomplete* with the model and the failure, how many proposals could therefore not be confirmed, and
-  that this is a technical gap, not a finding about the proposals. *Repeat the evaluation* is preselected; it asks
+- **Evaluation incomplete** (a model's Final Verdict was lost, e.g. cut off twice): shown first as _Main reason: the
+  evaluation is incomplete_ with the model and the failure, how many proposals could therefore not be confirmed, and
+  that this is a technical gap, not a finding about the proposals. _Repeat the evaluation_ is preselected; it asks
   only the missing model again (BYOK, within the council's budget). Missing single requirement checks of a stored
   evaluation stay open (see `docs/adr/0228-final-verdict-recovery.md`).
 - The gate summary tells **not confirmed** from **not met**: "None of the N evaluated proposals could be confirmed …
   Not confirmed is not the same as not met" when nothing is unmet; "k of N miss a confirmed requirement; m could not
   be confirmed" when both occur; "none meets all confirmed requirements according to these evaluations" only when
   every proposal fails.
-- *No qualifying solution* reads "None of the proposals meets the requirements" – about this council's proposals,
+- _No qualifying solution_ reads "None of the proposals meets the requirements" – about this council's proposals,
   never a claim that no solution exists.
 
 ## Final Verdict size check (#228)
@@ -598,8 +622,10 @@ phase, each proposal kept a single evaluator, and the verdict still read "recomm
   measurement for requirements that can only be measured after implementation.
 
 ## Verdict at a glance (stage 1 result visualisations, 05.11.26)
+
 The Final Verdict tab opens with a dashboard (`apps/web/src/components/session/verdict-dashboard.tsx`) and the PDF
 export starts with a graphical "Decision summary" page (`drawSummary` in `apps/web/src/lib/server/report-documents.ts`):
+
 - **Status:** recommended / tie / needs verification / not approvable with the server's reason and the human decision.
 - **Overall score:** one bar per proposal (0–10, one decimal). Proposals the server does not allow to approve are grey,
   hatched and labelled "not approvable" – a higher score never outranks a failed or unconfirmed requirement.
@@ -608,10 +634,11 @@ export starts with a graphical "Decision summary" page (`drawSummary` in `apps/w
   hovering a cell lists each evaluator's statement.
 - **Open objections:** counts by severity per proposal (obsolete objections excluded) and the top critical/high ones.
 - A table view carries the same numbers (accessibility, copy/paste). The PDF summary is light and print-friendly.
-Data for the PDF comes from `buildDecisionReport` (`requirementMatrix`, `approvableProposals`). Stage 2 (evaluator
-differences, phase timeline, tokens per model) and stage 3 (task graph, findings matrix) follow.
+  Data for the PDF comes from `buildDecisionReport` (`requirementMatrix`, `approvableProposals`). Stage 2 (evaluator
+  differences, phase timeline, tokens per model) and stage 3 (task graph, findings matrix) follow.
 
 ## Key disputes (#267, 05.11.26)
+
 The Final Verdict shows up to three key disputes (`apps/web/src/components/session/cruxes.ts`, deterministic, no model
 call): objections ranked by blocking, status (open/unresolved before upheld before refuted/resolved), severity and
 whether they concern the recommendation; an objection made obsolete by a revision ranks last. Each shows the stored
@@ -620,6 +647,7 @@ whether the proposal was revised afterwards – plus the Consensus Round's remai
 finished session now opens on the Final Verdict tab; a running one on the Council Room.
 
 ## Verdict dashboard (#266, 05.11.26)
+
 Top of the Final Verdict (`apps/web/src/components/session/verdict-dashboard.tsx`), all texts in 5 languages
 (`verdict.dashboard.*`): status hero with approvable yes/no, the human decision and a "Next step" link that jumps to the
 decision form with the first allowed action preselected (only while the owner can decide); a "Review facts" block
@@ -631,6 +659,7 @@ cannot be approved is a calm grey bar with a lock and the words "not approvable"
 PDF page 1 uses the same rules.
 
 ## PDF in three levels (#268, 05.11.26)
+
 `/api/sessions/:id/report?format=pdf&level=brief|report|full` – one report snapshot, three depths: **brief** = the
 graphical decision summary only (1–2 pages for decision makers), **report** (default) = summary + full text report,
 **full** = report + audit appendix (`apps/web/src/lib/server/report-audit.ts`): every stored requirement check
@@ -639,6 +668,7 @@ the reason) and the model calls per model and phase with tokens, plus brief/requ
 nothing recomputed. The Final Verdict offers the three as buttons.
 
 ## Stage-2 charts (05.11.26)
+
 Below the verdict dashboard (`apps/web/src/components/session/process-charts.tsx`), from stored rows only: **evaluator
 agreement** – a dot plot per criterion with every independent evaluator's raw score (0–10) for the chosen proposal, the
 server mean as a tick and a spread warning at ≥ 3 points (rationale on hover); **phase timeline** from the stage
@@ -646,6 +676,7 @@ timestamps; **tokens per model** (input/output, failed calls). Series colours co
 palette, light and dark steps); each dot also shows the model's number, so identity never depends on colour.
 
 ## Suggested perspectives (#269, 05.11.26)
+
 `suggestRoles` (`packages/core/src/role-suggestion.ts`) suggests up to six 12 Minds Council perspectives from the brief
 (idea, goal, requirements) and the confirmed requirement list – deterministic topic words in EN/DE/FR/ES, no model
 call. A security/downside check and an independent critic are always suggested; every other role names the words and
@@ -653,6 +684,7 @@ requirements (R1, R2, …) that led to it, the rest are listed as "not suggested
 each role's core question and applies the suggestion only on the user's click. Roles stay perspectives, not votes.
 
 ## Next steps (#273 MVP, 05.11.26)
+
 `deriveNextSteps` (`apps/web/src/components/session/next-steps.ts`) builds a read-only checklist for the recommended
 proposal – or, when nothing can be approved, for the best-scored one – from stored data only: requirements not
 confirmed for it and its open objections ("settle before any irreversible step"), the author's own assumptions ("test
@@ -673,3 +705,20 @@ never confirms a requirement and nothing starts without the user.
   one falls back to English). German, French and Spanish are translated; Chinese stays English because the PDF standard
   fonts cannot draw CJK characters. Model output is never translated. Reports sent by delivery (Telegram, e-mail,
   Confluence) are still English.
+
+## Night test 07.11.26 – fixes
+
+- Answer language: `briefBlock` adds a line naming the language of the brief (`briefLanguage`, stopword heuristic for
+  en/de/fr/es; no line when unsure), so a model does not switch to the language of other text in the request
+  (`PROMPT_VERSION` 2026-11-08.1).
+- No qualifying solution: the approval form preselects "Request changes", "Select alternative" is disabled, and the
+  verdict hero names the requirements no proposal meets (`verdict.dashboard.unmetByAll`).
+- Conflict of interest: when the recommendation is withheld only because the author of the qualified proposal blocked
+  a better one, the verdict says exactly that (`verdictScreen.reasons.conflictOfInterest`) instead of "could not
+  confirm that a proposal meets every requirement".
+- Repo context: `suggestContextFiles` puts files the brief names (by path or file name) before README/docs.
+- Requirement gate texts (R2-04, 08.11.26): the engine writes the gate summary and causes in English; the interface
+  shows the known sentences in its language (`useGateText`, messages `requirementGate.text.*`). Estimate causes and
+  any new wording stay as sent.
+- Needs verification (R2-02, 08.11.26): when every proposal leaves the same requirement unconfirmed, the verdict hero
+  names it ("Bei keinem Vorschlag bestätigt: R4 …", `verdict.dashboard.openByAll`).

@@ -235,6 +235,19 @@ describe("repository context for Decision councils", () => {
     expect(suggested).not.toContain("src/x.ts");
   });
 
+  it("suggests the files the brief names first, also code (night test 07.11.26)", () => {
+    const files = [
+      { path: "README.md", size: 500, sha: "s" },
+      { path: "src/todos.js", size: 400, sha: "s" },
+      { path: "test/todos.test.js", size: 400, sha: "s" },
+      { path: "src/s.js", size: 100, sha: "s" },
+    ];
+    const suggested = suggestContextFiles(files, "createStore() in src/todos.js um remove(id) erweitern; Tests in todos.test.js ergänzen.");
+    expect(suggested.slice(0, 2)).toEqual(["src/todos.js", "test/todos.test.js"]);
+    expect(suggested).toContain("README.md");
+    expect(suggested).not.toContain("src/s.js");
+  });
+
   it("reads exactly the chosen files of that commit, refuses others, leaves out credential-like content and builds one context document", async () => {
     const gh = fakeGitHub(routes);
     const client = new GitHubClient("t", gh.fetchImpl);

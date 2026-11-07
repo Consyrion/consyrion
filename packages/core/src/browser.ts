@@ -22,3 +22,5 @@ export { countLimits, describeMeasure, detectMeasure, type MeasureUnit, type Req
 export { measurableOnlyAfterImplementation, measurementPlanSuggestion } from "./requirement-testability";
 export type { StrengthSuggestion, VoteWeightWarning } from "./model-strength";
 export { suggestRoles, type RoleSuggestion, type RoleSuggestionResult } from "./role-suggestion";
+export { EXCLUSION_REASON_KEYS } from "./exclusion-reasons";
+export { findRequirementConflicts, type RequirementConflict } from "./requirement-conflicts";

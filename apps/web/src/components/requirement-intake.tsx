@@ -4,6 +4,8 @@ import {
   countLimits,
   describeMeasure,
   detectMeasure,
+  EXCLUSION_REASON_KEYS,
+  findRequirementConflicts,
   measurableOnlyAfterImplementation,
   measurementPlanSuggestion,
   type RequirementMeasure,
@@ -41,8 +43,10 @@ export interface IntakeProposal {
   } | null;
   items: Array<{ text: string; candidateKey: string | null; source: IntakeSource; isNew: boolean; sourceGone: boolean }>;
   excluded: Array<{ candidateKey: string; text: string; source: IntakeSource; reason: string }>;
-  /** #227: statements that read like instructions to the models or rules about the evaluation – the user decides. */
-  toDecide?: Array<{ candidateKey: string; text: string; source: IntakeSource; suspicion: Suspicion; suggestedReason: string }>;
+  /** #227: statements that read like instructions to the models or rules about the evaluation – the user decides.
+   *  Required (night test R2-03, 08.11.26): the page did not pass it, so these statements were invisible and the
+   *  server refused every confirmation. */
+  toDecide: Array<{ candidateKey: string; text: string; source: IntakeSource; suspicion: Suspicion; suggestedReason: string }>;
   unscannedDocuments: Array<{ id: string; name: string }>;
   /** Images without a confirmed description: the list cannot be confirmed yet (docs/documents.md). */
   pendingImages?: string[];
@@ -66,6 +70,12 @@ function sourceLabel(t: Translate, source: IntakeSource) {
   return source.kind === "document" && source.documentName ? t("source.documentNamed", { name: source.documentName }) : t(`source.${source.kind}`);
 }
 
+/** A default reason the server suggested, in the interface language; the user's own wording stays as written. */
+function localReason(t: Translate, reason: string) {
+  const key = EXCLUSION_REASON_KEYS[reason];
+  return key ? t(`reasons.${key}`) : reason;
+}
+
 let counter = 0;
 const uid = () => `row-${++counter}`;
 
@@ -74,8 +84,8 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
   const router = useRouter();
   const [editing, setEditing] = useState(!proposal.current);
   const [rows, setRows] = useState<Row[]>(() => proposal.items.map((i) => ({ ...i, uid: uid() })));
-  const [excluded, setExcluded] = useState(proposal.excluded);
-  const [toDecide, setToDecide] = useState(proposal.toDecide ?? []);
+  const [excluded, setExcluded] = useState(() => proposal.excluded.map((e) => ({ ...e, reason: localReason(t, e.reason) })));
+  const [toDecide, setToDecide] = useState(() => proposal.toDecide.map((e) => ({ ...e, suggestedReason: localReason(t, e.suggestedReason) })));
   const [noHard, setNoHard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -119,7 +129,10 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
       setEditing(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : t("confirmError"));
+      // The server's text is English; the one case a user can reach is said in the interface language.
+      if (err instanceof ApiRequestError && /neither kept nor excluded/.test(err.message)) setError(t("undecidedError"));
+      else if (err instanceof ApiRequestError && /Give a reason for not taking over/.test(err.message)) setError(t("reasonMissingError"));
+      else setError(err instanceof ApiRequestError ? err.message : t("confirmError"));
     } finally {
       setBusy(false);
     }
@@ -173,13 +186,24 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
               ))}
             </ol>
           )}
+          {/* R2-04: the warning stays visible after the confirmation, until the start. */}
+          {findRequirementConflicts(latest.items.map((i) => i.text)).map((c) => (
+            <Alert key={`${c.first}-${c.second}`} tone="warning">
+              {t("conflict", {
+                first: latest.items[c.first]!.id,
+                second: latest.items[c.second]!.id,
+                deleteDays: c.deleteWithinDays,
+                retainDays: c.retainDays,
+              })}
+            </Alert>
+          ))}
           {latest.excluded.length ? (
             <details>
               <summary className="cursor-pointer text-muted">{t("excludedSummary", { n: latest.excluded.length })}</summary>
               <ul className="mt-2 space-y-1">
                 {latest.excluded.map((e, i) => (
                   <li key={i}>
-                    <span className="line-through">{e.text}</span> <span className="text-muted">– {e.reason}</span>
+                    <span className="line-through">{e.text}</span> <span className="text-muted">– {localReason(t, e.reason)}</span>
                   </li>
                 ))}
               </ul>
@@ -229,6 +253,12 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
               </li>
             ))}
           </ol>
+          {/* Night test R2-04: contradicting requirements are pointed out before a paid council finds them. */}
+          {findRequirementConflicts(rows.map((r) => r.text)).map((c) => (
+            <Alert key={`${c.first}-${c.second}`} tone="warning">
+              {t("conflict", { first: `R${c.first + 1}`, second: `R${c.second + 1}`, deleteDays: c.deleteWithinDays, retainDays: c.retainDays })}
+            </Alert>
+          ))}
           {canWrite ? (
             <Button variant="secondary" onClick={() => addRequirement("")}>
               {t("add")}

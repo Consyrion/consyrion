@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Badge, Card } from "../ui/surface";
-import { modelName, proposalLabel, type View } from "./helpers";
+import { modelName, proposalLabel, useGateText, type View } from "./helpers";
 
 /** Shape of the engine's gate result stored in a version-2 matrix (#181, S1); the server computed it, this only shows it. */
 interface GateRequirement {
@@ -76,6 +76,7 @@ const STATUS_TONE: Record<GateRequirement["status"], "success" | "warning" | "da
  */
 export function RequirementGateTable({ view, gate }: { view: View; gate: RequirementGateResult }) {
   const t = useTranslations("requirementGate");
+  const gateText = useGateText();
   const feasibility = useFeasibilityLabel();
   const items = new Map((view.requirementList?.items ?? []).map((item) => [item.id, item.text]));
   const names = (ids: string[]) => ids.map((id) => modelName(view, id)).join(", ");
@@ -98,7 +99,7 @@ export function RequirementGateTable({ view, gate }: { view: View; gate: Require
               {p.causes.length ? (
                 <ul className="mt-1 list-disc pl-5 text-sm text-muted">
                   {p.causes.map((cause) => (
-                    <li key={cause}>{cause}</li>
+                    <li key={cause}>{gateText.cause(cause)}</li>
                   ))}
                 </ul>
               ) : null}

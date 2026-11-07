@@ -398,7 +398,8 @@
       "needsVerification": "Prüfung nötig – der Council konnte nicht bestätigen, dass ein Vorschlag alle Anforderungen erfüllt. Er kann nicht freigegeben oder gebaut werden.",
       "notQualified": "Dieser Vorschlag erfüllt laut den Bewertungen nicht alle bestätigten Anforderungen (oder es ließ sich nicht bestätigen). Er kann nicht freigegeben oder gebaut werden. Ändere den Auftrag oder die Anforderungen und starte einen neuen Council.",
       "limitedReview": "Zu wenige unabhängige Modelle haben diesen Vorschlag geprüft (mindestens 2 sind nötig). Er ist ein vorläufiger Favorit und kann nicht freigegeben oder gebaut werden. Starte einen neuen Council mit mindestens 3 Modellen.",
-      "unknownOutcome": "Dieses Urteil nutzt ein Ergebnis, das diese Version nicht kennt. Es kann hier nicht freigegeben oder gebaut werden."
+      "unknownOutcome": "Dieses Urteil nutzt ein Ergebnis, das diese Version nicht kennt. Es kann hier nicht freigegeben oder gebaut werden.",
+      "conflictOfInterest": "Vorschlag {qualified} erfüllt alle Anforderungen, wird aber nicht automatisch empfohlen: Vorschlag {blocked} lag vorne und wurde nur durch die Anforderungsprüfung des Autors von Vorschlag {qualified} blockiert – eine Entscheidung zu dessen eigenen Gunsten. Starte einen neuen Council (z. B. mit einem anderen Modell), um ohne diesen Interessenkonflikt zu entscheiden."
     }
   },
   "requirementGate": {
@@ -428,6 +429,48 @@
     "evidence": "Belege ({n})",
     "notEveryPart": "(nicht jeder Teil bestätigt)",
     "checkEstimate": "Schätzung {low}–{high}",
-    "didNotCount": "nicht gezählt: {reason}"
+    "didNotCount": "nicht gezählt: {reason}",
+    "text": {
+      "noneMeets": "Keiner der {other, select, yes {anderen } other {}}bewerteten Vorschläge erfüllt laut diesen Bewertungen alle bestätigten Anforderungen.",
+      "noneConfirmed": "Keiner der {n} {other, select, yes {anderen } other {}}bewerteten Vorschläge konnte gegen alle Anforderungen bestätigt werden: Die Bewertungen lassen Anforderungen offen. Nicht bestätigt heißt nicht, dass sie nicht erfüllt sind.",
+      "someMiss": "{unmet} von {n} {other, select, yes {anderen } other {}}bewerteten Vorschlägen verfehlen laut diesen Bewertungen eine bestätigte Anforderung; {open} konnten nicht bestätigt werden (nicht bestätigt heißt nicht, dass sie nicht erfüllt sind).",
+      "notMet": "{id} laut {k} von {n} Bewertern nicht erfüllt (Einschätzung der Modelle).",
+      "disputed": "{id} umstritten: {pass} von {n} Bewertern bestätigen sie, {fail} sehen sie als nicht erfüllt.",
+      "notConfirmed": "{id} nicht bestätigt: {k} von {n} Bewertern konnten sie nicht bestätigen.",
+      "noAnswer": "{id} nicht bestätigt: {k} von {n} Bewertern gaben keine gültige Antwort."
+    }
+  },
+  "engineText": {
+    "noJudgeFailed": "Kein unabhängiger Prüfer verfügbar – {reason} bei jedem infrage kommenden Richter",
+    "noJudge": "Kein unabhängiger Prüfer verfügbar",
+    "partialReviews": "({got} von {needed} nötigen unabhängigen Prüfungen – kein weiterer Richter verfügbar)",
+    "conceded": "Vom Autor zugestanden – als angenommen festgehalten, bis eine Überarbeitung es behebt (Prüfer: {said}).",
+    "changedAfterConcede": "Inhalt nach dem Zugeständnis in {versions} geändert (nicht mit diesem Einwand verknüpft).",
+    "addressed": "Vom Autor in {versions} bearbeitet.",
+    "notReReviewed": "Nicht unabhängig nachgeprüft.",
+    "said": {
+      "unresolved": "ungeklärt",
+      "refuted": "widerlegt",
+      "resolved": "behoben",
+      "accepted": "angenommen"
+    },
+    "issue": {
+      "missing_evaluators": "Vorschlag {label} wurde von {evaluators} von {expected} erwarteten Bewertern bewertet",
+      "vote_disagrees": "Die Mehrheitsabstimmung bevorzugt Vorschlag {label}, nicht die höchste gewichtete Punktzahl",
+      "participant_failed": "{model} ist aus dem Council ausgefallen ({reason}); sein Vorschlag, seine Einwände und Bewertungen fehlen",
+      "unreviewed_objections": "{count, plural, one {# Einwand konnte von keinem unabhängigen Prüfer geprüft werden und bleibt offen} other {# Einwände konnten von keinem unabhängigen Prüfer geprüft werden und bleiben offen}}",
+      "single_evaluator": "Vorschlag {label} wurde nur von einem unabhängigen Bewerter bewertet (nur zwei aktive Modelle)",
+      "requirements_disputed": "{failed} von {total} unabhängigen Bewertern sehen bei Vorschlag {label} eine harte Anforderung verfehlt",
+      "insufficient_evaluators": "Nur {evaluators} von {expected} erwarteten Bewertern lieferten verwertbare Bewertungen – zu wenige für eine Council-Entscheidung; wiederhole die Bewertung",
+      "no_debate_contribution": "{model} hat keine Rollenprüfung zum 12 Minds Council beigetragen (alle Aufrufe fehlgeschlagen); seine Perspektiven fehlen in der Debatte, seine Stimme zählt im Final Verdict aber, wenn es bewertet hat",
+      "undefended_proposal": "Vorschlag {label} wurde nicht verteidigt – {reason}: {count, plural, one {# Einwand dagegen bleibt} other {# Einwände dagegen bleiben}} unbeantwortet, was nicht dasselbe ist wie unwidersprochene Kritik",
+      "phase_shortened": "{phase} wurde gekürzt, um das Token-Budget für das Final Verdict zu sichern; das Urteil beruht auf den bis dahin vorliegenden Fassungen",
+      "weighting_changed_winner_both": "Die Stimmgewichte haben entschieden: Mit gleichen Gewichten würde der Council Vorschlag {unweighted} empfehlen, gewichtet empfiehlt er Vorschlag {weighted}",
+      "weighting_changed_winner_unweighted": "Die Stimmgewichte haben entschieden: Mit gleichen Gewichten würde der Council Vorschlag {unweighted} empfehlen",
+      "weighting_changed_winner_tie": "Die Stimmgewichte haben entschieden: Mit gleichen Gewichten endete der Council unentschieden (gewichtet: Vorschlag {weighted})",
+      "weighting_changed_winner_none": "Die Stimmgewichte haben entschieden: Mit gleichen Gewichten würde der Council keinen Vorschlag empfehlen (gewichtet: Vorschlag {weighted})",
+      "conflict_of_interest": "Vorschlag {blocked} hat mehr Punkte, wird aber nur durch die Anforderungsprüfungen des Autors von Vorschlag {label} blockiert – eine Entscheidung zu eigenen Gunsten, daher keine automatische Empfehlung",
+      "evaluation_rejected": "{count, plural, one {# Bewerter hat bei Vorschlag {label} den Titel eines anderen Vorschlags wiedergegeben; seine Bewertung dafür wurde verworfen} other {# Bewerter haben bei Vorschlag {label} den Titel eines anderen Vorschlags wiedergegeben; ihre Bewertungen dafür wurden verworfen}}"
+    }
   }
 }

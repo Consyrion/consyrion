@@ -84,7 +84,16 @@ fi
 APP_VERSION="$VERSION" "${COMPOSE[@]}" up -d --remove-orphans
 wait_healthy
 echo "$(date -u +%FT%TZ) $VERSION" >>/opt/consyrion/RELEASES
+# Keep only the running release and the one before it (rollback.sh) – the 48 h filter above does not help on days with
+# many deploys (07.11.26: 62 release images, disk at 90 %, the next deploy refused to build).
+previous="$(tail -2 /opt/consyrion/RELEASES | head -1 | cut -d' ' -f2)"
+for image in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^consyrion-(web|worker|migrate):' || true); do
+  tag="${image#*:}"
+  [ "$tag" = "$VERSION" ] || [ "$tag" = "$previous" ] || docker rmi "$image" >/dev/null 2>&1 || true
+done
 docker image prune -f >/dev/null
+docker builder prune -f >/dev/null || true
+df -h / | tail -1
 echo "== running: $VERSION"
 REMOTE
 

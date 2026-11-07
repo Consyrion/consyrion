@@ -996,7 +996,9 @@ describe("council engine", () => {
     // Duplicates are compared case-insensitively after trimming.
     await expect(create([ok, { credentialId, modelId: " GPT-4o-mini " }])).rejects.toThrow(/only once/);
     // #249 review: the same model through a second key of the same provider is no second independent evaluator.
-    const secondKey = (await createCredential(handle.db, actor, keyring, { provider: "anthropic", label: "second key", secret: "sk-ant-test-2222222222222222" })).id;
+    const secondKey = (
+      await createCredential(handle.db, actor, keyring, { provider: "anthropic", label: "second key", secret: "sk-ant-test-2222222222222222" })
+    ).id;
     await expect(create([ok, { credentialId: secondKey, modelId: "gpt-4o-mini" }])).rejects.toThrow(/only once – also with a second API key/);
     await expect(
       create([ok, { credentialId, modelId: "claude-haiku-5-5" }], {
@@ -1028,6 +1030,35 @@ describe("council engine", () => {
         async () => null,
       ),
     ).resolves.toMatchObject({ id: expect.any(String) });
+  });
+
+  it("refuses a listed model that answers 'model not found' to the start check; an unclear check never blocks", async () => {
+    const listed = async () => ["gpt-4o-mini", "claude-haiku-5-5"];
+    const probed: string[] = [];
+    const withProbe = (result: (modelId: string) => "ok" | "not_found" | "unknown") =>
+      Object.assign(listed, {
+        probe: async (_credentialId: string, modelId: string) => {
+          probed.push(modelId);
+          return result(modelId);
+        },
+      });
+    const participants = [
+      { credentialId, modelId: "gpt-4o-mini" },
+      { credentialId, modelId: "claude-haiku-5-5" },
+    ];
+    const start = (catalog: Parameters<typeof createSession>[4]) =>
+      createSession(handle.db, actor, projectId, { mode: "independent_expert", participants, confirmBudget: true }, catalog);
+    const before = (await handle.db.select().from(schema.councilSession)).length;
+    await expect(start(withProbe((m) => (m === "claude-haiku-5-5" ? "not_found" : "ok")))).rejects.toThrow(
+      /refuses calls with your key \(HTTP 404\): claude-haiku-5-5/,
+    );
+    expect(probed).toEqual(["gpt-4o-mini", "claude-haiku-5-5"]);
+    expect(await handle.db.select().from(schema.councilSession)).toHaveLength(before);
+    // Timeout, rate limit or a provider outage say nothing about the model: the start goes ahead.
+    const { id } = await start(withProbe(() => "unknown"));
+    expect(id).toEqual(expect.any(String));
+    // Keeps the concurrent-session limit free for the following tests.
+    await handle.db.delete(schema.councilSession).where(eq(schema.councilSession.id, id));
   });
 
   it("fixes vote weights at the start – the user's value or the catalog suggestion – and uses them in the verdict (#140)", async () => {

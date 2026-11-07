@@ -125,6 +125,23 @@ async function assertModelsAvailable<P extends { credentialId: string; modelId: 
   return participants.map((p) => ({ ...p, modelId: lists.get(p.credentialId)?.get(p.modelId.toLowerCase()) ?? p.modelId }));
 }
 
+/** Refuses the start before any council call is paid when a model answers "model not found" to the start check. */
+async function assertModelsCallable<P extends { credentialId: string; modelId: string }>(
+  participants: P[],
+  credentials: ReadonlyArray<{ id: string; provider: string }>,
+  probe: NonNullable<ModelCatalog["probe"]>,
+) {
+  const results = await Promise.all(participants.map(async (p) => ({ p, result: await probe(p.credentialId, p.modelId).catch(() => "unknown" as const) })));
+  const missing = results.filter((r) => r.result === "not_found").map((r) => r.p);
+  if (missing.length > 0) {
+    const named = missing.map((p) => `${p.modelId} (${credentials.find((c) => c.id === p.credentialId)?.provider ?? "unknown"} key)`).join(", ");
+    throw new DomainError(
+      "VALIDATION",
+      `The provider lists these models but refuses calls with your key (HTTP 404): ${named}. Choose another model – nothing was charged for the council.`,
+    );
+  }
+}
+
 export async function previewSession(db: Database, ctx: ActorContext, projectId: string, input: SessionInput) {
   assertCan(ctx.role, "decision:run");
   const data = parse(sessionInput, input);
@@ -294,7 +311,14 @@ async function latestBrief(db: Database, ctx: ActorContext, projectId: string) {
  * Live model ids a stored key may use (#144), or null when they cannot be listed right now (provider down, no models
  * endpoint). Injected by the app, which can decrypt the key; tests pass a fixed list.
  */
-export type ModelCatalog = (credentialId: string) => Promise<string[] | null>;
+export type ModelCatalog = ((credentialId: string) => Promise<string[] | null>) & {
+  /**
+   * Optional start check: one tiny call per model. Providers sometimes list a model the key may not call (Google lists
+   * gemini-2.5-pro for new keys but answers 404), so the list alone does not prove availability. "unknown" (timeout,
+   * rate limit, provider down) never blocks the start – only a definite "not_found" does.
+   */
+  probe?: (credentialId: string, modelId: string) => Promise<"ok" | "not_found" | "unknown">;
+};
 
 /**
  * What a budget confirmation accepts (#172): the API error and the start screen say the same. When the budget runs
@@ -358,6 +382,7 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
   if (new Set(keys).size !== keys.length)
     throw new DomainError("VALIDATION", "Each model may join a council only once – also with a second API key, since it would not be an independent evaluator");
   if (catalog) data.participants = await assertModelsAvailable(data.participants, credentials, catalog);
+  if (catalog?.probe) await assertModelsCallable(data.participants, credentials, catalog.probe);
 
   // Fixed at the start: the weights and their suggestions cannot change during the run (#140).
   const weights = await voteWeightsFor(db, ctx, data.participants);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dedupeStatements, describeObjection, objectionStatusText } from "./objections";
+import { dedupeStatements, describeObjection, objectionStatusText, sameObjectionPoint } from "./objections";
 
 describe("describeObjection (#169)", () => {
   it("names the objection, its author, the proposal, the reasoning and the decision", () => {
@@ -40,5 +40,41 @@ describe("dedupeStatements (#173)", () => {
         "",
       ]),
     ).toEqual(["0 Minuten Ausfallzeit ist nicht erreichbar.", "Keine CDN erlaubt", "Ein CDN ist ausgeschlossen"]);
+  });
+});
+
+describe("same objection point within one model (night test 07.11.26)", () => {
+  it("treats a slightly reworded repeat as the same point", () => {
+    expect(
+      sameObjectionPoint(
+        "Die gleichzeitige Nennung von SERIALIZABLE, Advisory Locks und pessimistischen Locks ist unscharf, und ohne Retry-Strategie drohen Serialisierungsfehler, Deadlocks und Retry-Stürme unter Last.",
+        "Die gleichzeitige Nennung von SERIALIZABLE, Advisory Locks und pessimistischen Locks ist unscharf und kann Retry-Stürme und Durchsatzverlust verursachen.",
+      ),
+    ).toBe(true);
+    expect(sameObjectionPoint("Same claim, same words.", "same claim same words")).toBe(true);
+  });
+
+  it("keeps different points apart, also when they share a topic", () => {
+    expect(
+      sameObjectionPoint(
+        "Die Kostenschätzung von 900–1.700 EUR überschreitet in der Spanne die Grenze von 1.500 EUR, sodass R6 nicht robust nachgewiesen ist.",
+        "Die Mandantenisolation über SET LOCAL und die Audit-Hash-Kette in derselben DB sind für Worker, Outbox-Relay und privilegierte Insider unterbestimmt.",
+      ),
+    ).toBe(false);
+    expect(
+      sameObjectionPoint(
+        "Das Audit-Konzept protokolliert keine Lesezugriffe auf Patientendaten und schützt nicht gegen privilegierte Datenbankzugriffe.",
+        "Die Worker-Isolation und PVS-Geheimnisse pro Praxis sind unterdefiniert, wodurch Cross-Tenant-Lecks in Hintergrundprozessen möglich bleiben.",
+      ),
+    ).toBe(false);
+    // Conservative on purpose: a strong rewording (compounds, inflection) stays separate – deciding that needs a model.
+    expect(
+      sameObjectionPoint(
+        "Die synchrone PVS-Bestätigung vor Buchungszusage koppelt die Buchungsverfügbarkeit an die PVS und stellt 99,9 % (R3) in Frage.",
+        "Die Forderung nach synchroner PVS-Bestätigung vor finaler Buchungszusage koppelt die Verfügbarkeit der Buchung an die PVS-Verfügbarkeit und widerspricht so R3.",
+      ),
+    ).toBe(false);
+    // Too short to judge by words: only identical statements count.
+    expect(sameObjectionPoint("Costs too high.", "Costs are too high for R6.")).toBe(false);
   });
 });

@@ -398,7 +398,8 @@
       "needsVerification": "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.",
       "notQualified": "This proposal does not meet every confirmed requirement according to the evaluations (or it could not be confirmed). It cannot be approved or built. Change the brief or the requirements and start a new council.",
       "limitedReview": "Too few independent models checked this proposal (at least 2 are needed). It is a provisional favourite and cannot be approved or built. Start a new council with at least 3 models.",
-      "unknownOutcome": "This verdict uses a result this version does not know. It cannot be approved or built here."
+      "unknownOutcome": "This verdict uses a result this version does not know. It cannot be approved or built here.",
+      "conflictOfInterest": "Proposal {qualified} meets every requirement, but there is no automatic recommendation: Proposal {blocked} scored higher and was blocked only by the requirement checks of the author of Proposal {qualified} – a decision in its own favour. Start a new council (e.g. with another model) to decide without this conflict of interest."
     }
   },
   "requirementGate": {
@@ -428,6 +429,48 @@
     "evidence": "Evidence ({n})",
     "notEveryPart": "(not every part confirmed)",
     "checkEstimate": "estimate {low}–{high}",
-    "didNotCount": "did not count: {reason}"
+    "didNotCount": "did not count: {reason}",
+    "text": {
+      "noneMeets": "None of the {other, select, yes {other } other {}}evaluated proposals meets all confirmed requirements according to these evaluations.",
+      "noneConfirmed": "None of the {n} {other, select, yes {other } other {}}evaluated proposals could be confirmed against all requirements: the evaluations leave requirements open. Not confirmed is not the same as not met.",
+      "someMiss": "{unmet} of {n} {other, select, yes {other } other {}}evaluated proposals miss a confirmed requirement according to these evaluations; {open} could not be confirmed (not confirmed is not the same as not met).",
+      "notMet": "{id} not met according to {k} of {n} evaluators (model judgement).",
+      "disputed": "{id} disputed: {pass} of {n} evaluators confirm it, {fail} found it not met.",
+      "notConfirmed": "{id} not confirmed: {k} of {n} evaluators could not confirm this requirement.",
+      "noAnswer": "{id} not confirmed: {k} of {n} evaluators returned no usable answer."
+    }
+  },
+  "engineText": {
+    "noJudgeFailed": "No independent reviewer was available – {reason} for every eligible judge",
+    "noJudge": "No independent reviewer was available",
+    "partialReviews": "({got} of {needed} required independent reviews – no further judge was available)",
+    "conceded": "Conceded by the author – recorded as accepted until a revision fixes it (reviewer said: {said}).",
+    "changedAfterConcede": "Content changed after the author conceded in {versions} (not linked to this objection).",
+    "addressed": "Addressed by the author in {versions}.",
+    "notReReviewed": "Not independently re-reviewed.",
+    "said": {
+      "unresolved": "unresolved",
+      "refuted": "refuted",
+      "resolved": "resolved",
+      "accepted": "accepted"
+    },
+    "issue": {
+      "missing_evaluators": "Proposal {label} was scored by {evaluators} of {expected} expected evaluators",
+      "vote_disagrees": "The majority vote favours Proposal {label}, not the highest weighted score",
+      "participant_failed": "{model} dropped out of the council ({reason}); its proposal, critiques and scores are missing",
+      "unreviewed_objections": "{count, plural, one {# objection could not be checked by an independent reviewer and stays open} other {# objections could not be checked by an independent reviewer and stay open}}",
+      "single_evaluator": "Proposal {label} was scored by a single independent evaluator (only two active models)",
+      "requirements_disputed": "{failed} of {total} independent evaluators found that Proposal {label} misses a hard requirement",
+      "insufficient_evaluators": "Only {evaluators} of {expected} expected evaluators delivered usable scores – too few for a council decision; repeat the evaluation",
+      "no_debate_contribution": "{model} contributed no role review to the 12 Minds Council (every call failed); its perspectives are missing from the debate, but its vote still counts in the Final Verdict if it evaluated",
+      "undefended_proposal": "Proposal {label} was not defended – {reason}: {count, plural, one {# objection against it stays} other {# objections against it stay}} unanswered, which is not the same as uncontested criticism",
+      "phase_shortened": "{phase} was shortened to keep the token budget for the Final Verdict; the verdict is based on the revisions available at that point",
+      "weighting_changed_winner_both": "The vote weights decided the outcome: with equal weights the council would recommend Proposal {unweighted}, weighted it recommends Proposal {weighted}",
+      "weighting_changed_winner_unweighted": "The vote weights decided the outcome: with equal weights the council would recommend Proposal {unweighted}",
+      "weighting_changed_winner_tie": "The vote weights decided the outcome: with equal weights the council would end in a tie (weighted: Proposal {weighted})",
+      "weighting_changed_winner_none": "The vote weights decided the outcome: with equal weights the council would recommend no proposal (weighted: Proposal {weighted})",
+      "conflict_of_interest": "Proposal {blocked} scored higher but is blocked only by the requirement checks of the author of Proposal {label} – a decision in its own favour, so no automatic recommendation",
+      "evaluation_rejected": "{count, plural, one {# evaluator restated another proposal's title for Proposal {label}; its scores for it were dropped} other {# evaluators restated another proposal's title for Proposal {label}; their scores for it were dropped}}"
+    }
   }
 }

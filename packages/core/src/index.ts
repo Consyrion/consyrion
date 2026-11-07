@@ -12,5 +12,6 @@ export * from "./model-strength";
 export * from "./objections";
 export * from "./requirements";
 export * from "./requirement-measure";
+export * from "./requirement-conflicts";
 export * from "./requirement-testability";
 export * from "./role-suggestion";

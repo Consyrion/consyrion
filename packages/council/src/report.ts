@@ -29,6 +29,28 @@ const CONFLICT_TEXT =
  * Final Decision Report, built only from stored session data (no new model output), so it is
  * reproducible and contains exactly what the council produced.
  */
+
+/** R2-01 (night test 08.11.26): the German report showed "Status: awaiting_approval" and "Proposal 1: qualified". */
+const STATUS_LABELS: Record<string, string> = {
+  queued: "queued",
+  running: "running",
+  cancel_requested: "cancellation requested",
+  cancelled: "cancelled",
+  failed: "failed",
+  awaiting_approval: "awaiting approval",
+  approved: "approved",
+  rejected: "rejected",
+  changes_requested: "changes requested",
+};
+const FEASIBILITY_LABELS: Record<string, string> = {
+  qualified: "meets all requirements",
+  needs_verification: "needs verification",
+  fail: "misses a requirement",
+  incomplete: "incomplete",
+};
+const statusLabel = (status: string) => STATUS_LABELS[status] ?? status.replaceAll("_", " ");
+const feasibilityLabel = (feasibility: string) => FEASIBILITY_LABELS[feasibility] ?? feasibility.replaceAll("_", " ");
+
 export function buildDecisionReport(view: SessionView) {
   // Format version and approvability as the server computed them (#181, stage 1). A matrix of a format this version
   // does not know is not interpreted; the report then states the neutral reason instead.
@@ -313,7 +335,7 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
   const lines = [
     `# ${t("Final Decision Report – {project}", { project: report.project })}`,
     "",
-    t("Mode: {mode} · Brief version {version} · Status: {status}", { mode: report.mode, version: report.briefVersion, status: report.status }),
+    t("Mode: {mode} · Brief version {version} · Status: {status}", { mode: report.mode, version: report.briefVersion, status: t(statusLabel(report.status)) }),
     t("Participants: {list}", { list: report.participants.map((p) => `${p.model}${p.status === "failed" ? t(" (failed)") : ""}`).join(", ") }),
     t("Vote weights: {list}", {
       list: report.participants
@@ -334,7 +356,7 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
           ...(report.requirementGate.comparisonNote ? [report.requirementGate.comparisonNote] : []),
           list(
             report.requirementGate.proposals.map(
-              (g) => `${t("Proposal {label}", { label: g.proposal })}: ${g.feasibility.replace("_", " ")}${g.causes.length ? ` – ${g.causes.join(" ")}` : ""}`,
+              (g) => `${t("Proposal {label}", { label: g.proposal })}: ${t(feasibilityLabel(g.feasibility))}${g.causes.length ? ` – ${g.causes.join(" ")}` : ""}`,
             ),
           ),
           "",

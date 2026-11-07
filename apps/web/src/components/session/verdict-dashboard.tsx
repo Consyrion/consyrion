@@ -130,6 +130,22 @@ export function VerdictDashboard({
   const title = decided?.title ?? aiTitle;
   const heroTone = decided?.tone ?? outcome.tone;
   const expectedEvaluators = Math.max(0, view.participants.length - 1);
+  // Requirements that no proposal meets (night test 07.11.26: "all copies stay in CH" vs. "nightly copy in the USA"):
+  // named in the hero so the owner sees which ones to change; only when nothing can be approved.
+  const unmetByAll =
+    !approvableIds.size && gate?.proposals.length
+      ? requirementOrder.filter((r) => gate.proposals.every((g) => g.requirements.find((x) => x.requirementId === r.id)?.status === "FAIL")).map((r) => r.short)
+      : [];
+  // R2-02 (night test 08.11.26): needs verification because every proposal leaves the same requirement unconfirmed –
+  // named so the owner knows what the brief has to state or the proposals have to show.
+  const openByAll =
+    !approvableIds.size && gate?.proposals.length
+      ? requirementOrder
+          .filter((r) => !unmetByAll.includes(r.short))
+          .filter((r) => gate.proposals.every((g) => ["UNKNOWN", "DISPUTED", "FAIL"].includes(g.requirements.find((x) => x.requirementId === r.id)?.status ?? "")))
+          .filter((r) => gate.proposals.some((g) => g.requirements.find((x) => x.requirementId === r.id)?.status !== "FAIL"))
+          .map((r) => r.short)
+      : [];
 
   // Who actually took part per proposal (#266): the author, and the evaluators the gate counted – never roles or personas.
   const participation = (proposalId: string) => {
@@ -163,6 +179,12 @@ export function VerdictDashboard({
           {decided ? <p className="mt-1 text-xs text-muted">{t("decided.aiVerdict", { verdict: aiTitle })}</p> : null}
           <p className="mt-1 text-xs font-medium text-text">{approvableIds.size ? t("approvableYes", { n: approvableIds.size }) : t("approvableNo")}</p>
           {reason ? <p className="mt-2 max-w-3xl text-sm text-text">{reason}</p> : null}
+          {unmetByAll.length ? (
+            <p className="mt-2 max-w-3xl text-sm font-medium text-text">{t("unmetByAll", { list: unmetByAll.join(", "), n: unmetByAll.length })}</p>
+          ) : null}
+          {openByAll.length ? (
+            <p className="mt-2 max-w-3xl text-sm font-medium text-text">{t("openByAll", { list: openByAll.join(", "), n: openByAll.length })}</p>
+          ) : null}
           <p className="mt-2 text-xs text-muted">
             {decision
               ? `${t("yourDecision", { action: t.has(`action.${decision.action}`) ? t(`action.${decision.action}`) : decision.action.replaceAll("_", " ") })}${decision.comment ? ` – “${decision.comment}”` : ""}`

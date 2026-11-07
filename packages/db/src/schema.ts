@@ -1097,6 +1097,8 @@ export const subscription = pgTable("subscription", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  /** Cancelled at Stripe, still paid until currentPeriodEnd (owner request 07.11.26: show "ends on", not "renews on"). */
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   ...timestamps,
 });
 

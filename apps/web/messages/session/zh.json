@@ -398,7 +398,8 @@
       "needsVerification": "需要核实——委员会无法确认有方案满足全部要求。该方案不能被批准或构建。",
       "notQualified": "根据评估，该方案未满足所有已确认的要求（或无法确认）。它不能被批准或构建。请修改需求说明或要求，然后开始新的委员会。",
       "limitedReview": "检查该方案的独立模型太少（至少需要 2 个）。它只是暂定首选，不能被批准或构建。请用至少 3 个模型开始新的委员会。",
-      "unknownOutcome": "该裁决使用了此版本不认识的结果，无法在此批准或构建。"
+      "unknownOutcome": "该裁决使用了此版本不认识的结果，无法在此批准或构建。",
+      "conflictOfInterest": "方案 {qualified} 满足所有要求，但不会被自动推荐：方案 {blocked} 得分更高，仅被方案 {qualified} 作者的要求检查所阻止——这是对其自身有利的判断。请重新开始一个委员会（例如换一个模型），以避免这种利益冲突。"
     }
   },
   "requirementGate": {
@@ -428,6 +429,48 @@
     "evidence": "依据（{n}）",
     "notEveryPart": "（并非每个部分都已确认）",
     "checkEstimate": "估计 {low}–{high}",
-    "didNotCount": "未计入：{reason}"
+    "didNotCount": "未计入：{reason}",
+    "text": {
+      "noneMeets": "根据这些评估，{other, select, yes {其余} other {}}被评估的方案中没有一个满足所有已确认的需求。",
+      "noneConfirmed": "{other, select, yes {其余} other {}}{n} 个被评估的方案都无法针对所有需求得到确认：评估留下了未确定的需求。未确认不等于未满足。",
+      "someMiss": "根据这些评估，{other, select, yes {其余} other {}}{n} 个被评估方案中有 {unmet} 个未满足某项已确认需求；{open} 个无法确认（未确认不等于未满足）。",
+      "notMet": "{id}：{n} 位评估者中有 {k} 位认为未满足（模型判断）。",
+      "disputed": "{id} 有争议：{n} 位评估者中 {pass} 位确认，{fail} 位认为未满足。",
+      "notConfirmed": "{id} 未确认：{n} 位评估者中有 {k} 位无法确认。",
+      "noAnswer": "{id} 未确认：{n} 位评估者中有 {k} 位没有给出有效回答。"
+    }
+  },
+  "engineText": {
+    "noJudgeFailed": "没有可用的独立审查者 – 每位合格评审均出现 {reason}",
+    "noJudge": "没有可用的独立审查者",
+    "partialReviews": "（需要 {needed} 次独立审查，完成 {got} 次 – 没有其他可用评审）",
+    "conceded": "作者已承认 – 在修订解决之前记为已接受（审查者：{said}）。",
+    "changedAfterConcede": "作者承认后内容在 {versions} 中有变更（与此异议无关）。",
+    "addressed": "作者已在 {versions} 中处理。",
+    "notReReviewed": "未经独立复核。",
+    "said": {
+      "unresolved": "未决",
+      "refuted": "已驳回",
+      "resolved": "已解决",
+      "accepted": "已接受"
+    },
+    "issue": {
+      "missing_evaluators": "方案 {label} 由 {expected} 位预期评估者中的 {evaluators} 位评分",
+      "vote_disagrees": "多数投票支持方案 {label}，而不是加权得分最高的方案",
+      "participant_failed": "{model} 退出了 council（{reason}）；其方案、批评和评分缺失",
+      "unreviewed_objections": "{count, plural, one {# 条异议无法由独立审查者核查，仍然未决} other {# 条异议无法由独立审查者核查，仍然未决}}",
+      "single_evaluator": "方案 {label} 仅由一位独立评估者评分（只有两个活跃模型）",
+      "requirements_disputed": "{total} 位独立评估者中有 {failed} 位认为方案 {label} 未满足一项硬性要求",
+      "insufficient_evaluators": "{expected} 位预期评估者中只有 {evaluators} 位给出可用评分 – 不足以作出 council 决策；请重新评估",
+      "no_debate_contribution": "{model} 未向 12 Minds Council 提供任何角色审查（所有调用均失败）；辩论中缺少其视角，但若其参与评估，其投票仍计入 Final Verdict",
+      "undefended_proposal": "方案 {label} 未得到辩护 – {reason}：{count, plural, one {# 条针对它的异议} other {# 条针对它的异议}}仍未回应，这不等于无人反驳的批评",
+      "phase_shortened": "为给 Final Verdict 保留 token 预算，{phase} 被缩短；裁决基于当时已有的修订版本",
+      "weighting_changed_winner_both": "投票权重决定了结果：若权重相同，council 会推荐方案 {unweighted}；加权后推荐方案 {weighted}",
+      "weighting_changed_winner_unweighted": "投票权重决定了结果：若权重相同，council 会推荐方案 {unweighted}",
+      "weighting_changed_winner_tie": "投票权重决定了结果：若权重相同，council 会以平局结束（加权：方案 {weighted}）",
+      "weighting_changed_winner_none": "投票权重决定了结果：若权重相同，council 不会推荐任何方案（加权：方案 {weighted}）",
+      "conflict_of_interest": "方案 {blocked} 得分更高，但仅被方案 {label} 作者的要求核查所阻止 – 这是对自身有利的判断，因此不作自动推荐",
+      "evaluation_rejected": "{count, plural, one {# 位评估者在方案 {label} 中复述了另一方案的标题；其对该方案的评分已被剔除} other {# 位评估者在方案 {label} 中复述了另一方案的标题；其对该方案的评分已被剔除}}"
+    }
   }
 }

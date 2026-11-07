@@ -2,9 +2,13 @@ import { createHash } from "node:crypto";
 import {
   assertCan,
   buildConfirmedRequirements,
+  CONTEXT_EXCLUSION_REASON,
+  DOCUMENT_EXCLUSION_REASON,
+  DUPLICATE_EXCLUSION_REASON,
   detectMeasure,
   DomainError,
   INJECTION_EXCLUSION_REASON,
+  INSTRUCTION_EXCLUSION_REASON,
   META_RULE_EXCLUSION_REASON,
   REQUIREMENT_LIMITS,
   type ExcludedRequirement,
@@ -12,6 +16,8 @@ import {
   type RequirementSource,
   type RequirementSuspicion,
 } from "@consyrion/core";
+
+export { CONTEXT_EXCLUSION_REASON, DOCUMENT_EXCLUSION_REASON };
 import { extractRequirements, withoutQuotes } from "@consyrion/core/engine";
 import { and, asc, desc, eq, max } from "drizzle-orm";
 import { z } from "zod";
@@ -118,20 +124,98 @@ export interface ProposedItem {
 /** Binding wording ("muss", "spätestens", "only", a measurable limit) keeps an idea/goal sentence a requirement. */
 const BINDING =
   /\b(muss|müssen|darf|dürfen|must|shall|required?|only|nur|ausschließlich|mindestens|höchstens|maximal|spätestens|at least|at most|never|niemals|keine?n?)\b/i;
+/** R2-03: a sentence that calls itself background ("nur Hintergrundinformation", "for context only") is context. */
+/**
+ * R2-01/R2-02 (night test 08.11.26): a sentence about the options to choose from ("Änderungen sind bei A sofort, bei
+ * B …", "Alle drei Lösungen speichern …") or about the decision itself ("A logistics SaaS must choose how …") describes
+ * the situation; "must" or "ausschließlich" inside it made it a hard requirement.
+ */
+const OPTION_FACT =
+  /(?<![\p{L}\d])(?:bei|für|von|option|variante|alternative|angebot)\s+[A-H](?![\p{L}\d])|\balle\s+(?:zwei|drei|vier|fünf|\d+)\s+(?:lösungen|angebote|alternativen|optionen|varianten|anbieter|vorschläge)\b|\ball\s+(?:two|three|four|five|\d+)\s+(?:alternatives|options|solutions|offers|vendors|proposals)\b|\b(?:must|has to|needs to)\s+(?:choose|decide|select|pick)\b|\bmuss\s+(?:sich\s+)?(?:entscheiden|wählen|auswählen)\b/iu;
+const SELF_CONTEXT =
+  /\b(?:hintergrund\w*|kontextinformation\w*|nur\s+(?:zur\s+)?(?:info\w*|kontext)|historische\s+angabe|background(?:\s+information)?|for\s+context|context\s+only|historical\s+(?:note|figure|information))\b/i;
+/**
+ * R2-04 (night test 08.11.26): "Benenne bei einem Widerspruch die Anforderungsnummern …", "Gib keine Lösung frei." –
+ * an idea or goal sentence that starts with an imperative tells the council what to do in this run; "keine" inside it
+ * made it binding. It is proposed as excluded with its own reason; one click keeps it.
+ */
+const WORK_INSTRUCTION =
+  /^\s*(?:bitte\s+)?(?:prüfe|vergleiche|benenne|nenne|erkläre|erläutere|zeige|gib|bewerte|empfiehl|beschreibe|begründe|liste|analysiere|ermögliche|dokumentiere|fasse|unterscheide|entscheide|check|compare|name|list|explain|show|give|evaluate|assess|recommend|describe|justify|analy[sz]e|document|summari[sz]e|distinguish|clearly\s+distinguish|do\s+not|don't)\b/i;
+/** R2-02: a rule for the evaluators ("Eine abweichende Bewertung darf nicht allein durch Autorenschaft … entstehen"). */
+const EVALUATION_RULE =
+  /^\s*(?:(?:eine|die|jede|keine)\s+)?(?:\w+e\s+)?(?:bewertung|beurteilung|prüfung|begutachtung)(?:en)?\b|^\s*(?:(?:an?|the|each|every|no)\s+)?(?:\w+\s+)?(?:evaluation|assessment|review|rating)s?\s+(?:must|should|may|shall)\b/i;
+/** R2-01: the language of the council's own texts ("All proposals … must be in English") – the answer-language line
+ *  handles it (#339); it is no product requirement. */
+const OUTPUT_LANGUAGE =
+  /\b(?:proposals?|critiques?|evaluations?|answers?|responses?|reasoning|outputs?|vorschläge|bewertungen|antworten|begründung\w*|ausgaben?)\b.{0,160}?\b(?:in|auf)\s+(?:english|englisch|german|deutsch|french|französisch|spanish|spanisch)\b/i;
+export function isWorkInstruction(text: string): boolean {
+  return WORK_INSTRUCTION.test(text) || EVALUATION_RULE.test(text) || OUTPUT_LANGUAGE.test(text);
+}
+/**
+ * R2-04 (night test 08.11.26): the idea restated R1/R2 in reported speech ("Die Geschäftsführung hat verlangt, dass
+ * sämtliche Audit-Logs spätestens nach sieben Tagen gelöscht werden") and became R7/R8 next to them. An idea or goal
+ * sentence with the same numbers and at least three shared word stems as a requirements-field item repeats it.
+ */
+const NUMBER_WORDS: Record<string, string> = {
+  ein: "1",
+  eine: "1",
+  one: "1",
+  zwei: "2",
+  two: "2",
+  drei: "3",
+  three: "3",
+  vier: "4",
+  four: "4",
+  fünf: "5",
+  five: "5",
+  sechs: "6",
+  six: "6",
+  sieben: "7",
+  seven: "7",
+  acht: "8",
+  eight: "8",
+  neun: "9",
+  nine: "9",
+  zehn: "10",
+  ten: "10",
+  zwölf: "12",
+  twelve: "12",
+  dreißig: "30",
+  thirty: "30",
+};
+function fingerprint(text: string) {
+  const words =
+    withoutQuotes(text)
+      .toLowerCase()
+      .match(/[\p{L}\d]+/gu) ?? [];
+  const numbers = new Set<string>();
+  const stems = new Set<string>();
+  for (const w of words) {
+    if (/^\d+$/.test(w)) numbers.add(w);
+    else if (NUMBER_WORDS[w]) numbers.add(NUMBER_WORDS[w]);
+    else if (w.length >= 5) stems.add(w.slice(0, 5));
+  }
+  return { numbers, stems };
+}
+function repeats(text: string, of: string): boolean {
+  const a = fingerprint(text);
+  const b = fingerprint(of);
+  if (a.numbers.size === 0 || [...a.numbers].some((n) => !b.numbers.has(n))) return false;
+  return [...a.stems].filter((s) => b.stems.has(s)).length >= 3;
+}
+
 function soundsBinding(text: string): boolean {
   const own = withoutQuotes(text);
+  if (SELF_CONTEXT.test(own) || OPTION_FACT.test(own)) return false;
   return BINDING.test(own) || detectMeasure(own) !== null;
 }
 
-export const CONTEXT_EXCLUSION_REASON = "From the idea or goal – context, not a hard requirement. Keep it if it is one.";
 /**
  * #245: a document sentence without binding wording of its own – a table row, a measured value, an observation – is
  * proposed as excluded: shown, and one click keeps it. A measured value alone ("Ping 15–18 ms") is not binding; a limit
  * is ("unter 200 ms", "≥ 99,95 %", "innerhalb von vier Stunden"), and so are "muss", "only", "sind … aufzubewahren",
  * "ohne …", "revisionssicher" … outside quotation marks (external review 31.10.26: recall before precision).
  */
-export const DOCUMENT_EXCLUSION_REASON =
-  "From a document, without binding wording (must, only, at most, a limit …) – a description, table row or measured value. Keep it if it is a requirement.";
 const LIMIT =
   // Letter lookarounds instead of \b: "über" starts with a letter \b does not count as a word character.
   /(?:[≥≤<>]|(?<![\p{L}\d])(?:unter|über|innerhalb|binnen|spätestens|maximal|mindestens|weniger als|mehr als|bis zu|below|under|above|over|within|less than|more than|up to|no more than)(?![\p{L}\d]))\s*(?:von\s+)?(?:\d|(?:ein|eine|einem|einer|zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|zwölf|one|two|three|four|five|six|seven|eight|nine|ten|twelve)(?![\p{L}\d]))/iu;
@@ -182,6 +266,7 @@ export async function proposeRequirementList(db: Database, ctx: ActorContext, pr
   // Test cases 30.10.26: sentences of the idea or goal are usually context ("as cheap as possible"). When the brief has
   // its own requirements (field or documents), they are proposed as excluded – shown, and one click keeps them.
   const hasRequirementSource = proposal.candidates.some((c) => c.source.kind === "requirements" || c.source.kind === "document");
+  const fieldTexts = proposal.candidates.filter((c) => c.source.kind === "requirements").map((c) => c.text);
   for (const candidate of proposal.candidates) {
     if (decided.has(candidate.key)) continue;
     // #227: an instruction to the models, a quoted one or a rule about the evaluation is put to the user – neither
@@ -194,6 +279,10 @@ export async function proposeRequirementList(db: Database, ctx: ActorContext, pr
         suspicion: candidate.suspicion,
         suggestedReason: candidate.suspicion === "meta_rule" ? META_RULE_EXCLUSION_REASON : INJECTION_EXCLUSION_REASON,
       });
+    else if ((candidate.source.kind === "idea" || candidate.source.kind === "goal") && fieldTexts.some((field) => repeats(candidate.text, field)))
+      exclude(candidate, DUPLICATE_EXCLUSION_REASON);
+    else if (hasRequirementSource && (candidate.source.kind === "idea" || candidate.source.kind === "goal") && isWorkInstruction(candidate.text))
+      exclude(candidate, INSTRUCTION_EXCLUSION_REASON);
     else if (hasRequirementSource && (candidate.source.kind === "idea" || candidate.source.kind === "goal") && !soundsBinding(candidate.text))
       exclude(candidate, CONTEXT_EXCLUSION_REASON);
     else if (candidate.source.kind === "document" && !documentSoundsBinding(candidate.text)) exclude(candidate, DOCUMENT_EXCLUSION_REASON);

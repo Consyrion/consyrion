@@ -76,8 +76,11 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
             <Badge tone="accent">{catalog.find((p) => p.key === plan)?.name ?? plan}</Badge>
             {sub.status !== "active" ? <Badge tone="warning">{t.has(statusKey) ? t(statusKey) : sub.status}</Badge> : null}
           </div>
-          {sub.currentPeriodEnd ? (
-            <p className="mt-1 text-sm text-muted">{t("renews", { date: format.dateTime(sub.currentPeriodEnd, { dateStyle: "medium" }) })}</p>
+          {/* Only a Stripe subscription renews; a manual plan (e.g. after a forgotten test-mode customer) shows no date. */}
+          {sub.currentPeriodEnd && sub.provider === "stripe" ? (
+            <p className={`mt-1 text-sm ${sub.cancelAtPeriodEnd ? "text-warning" : "text-muted"}`}>
+              {t(sub.cancelAtPeriodEnd ? "endsOn" : "renews", { date: format.dateTime(sub.currentPeriodEnd, { dateStyle: "medium" }) })}
+            </p>
           ) : null}
           <div className="mt-4 space-y-3">
             {meter(t("meterMembers"), usage.members + usage.pendingInvitations, e.maxMembers)}

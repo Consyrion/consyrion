@@ -70,3 +70,34 @@ export function dedupeStatements(values: Iterable<string>): string[] {
   }
   return out;
 }
+
+/** Content words of a statement: normalised, at least 4 characters (drops articles, "und", "the", short numbers). */
+function contentWords(value: string): Set<string> {
+  return new Set(
+    normalizeStatement(value)
+      .split(" ")
+      .filter((word) => word.length >= 4),
+  );
+}
+
+/** Share of the shorter statement's content words that the other one contains too. */
+export const SAME_POINT_OVERLAP = 0.6;
+
+/**
+ * Night test 07.11.26: one model raised the same point against the same proposal several times – from several of its
+ * roles and again in the second debate round, each time slightly reworded (68 objections, many near-identical). Two
+ * statements count as the same point when the shorter one's content words are at least SAME_POINT_OVERLAP contained
+ * in the other. Only used within one model, one proposal and one category: different models are independent voices
+ * and always stay separate.
+ */
+export function sameObjectionPoint(a: string, b: string): boolean {
+  if (normalizeStatement(a) === normalizeStatement(b)) return true;
+  const wa = contentWords(a);
+  const wb = contentWords(b);
+  const smaller = wa.size <= wb.size ? wa : wb;
+  const larger = smaller === wa ? wb : wa;
+  if (smaller.size < 5) return false;
+  let shared = 0;
+  for (const word of smaller) if (larger.has(word)) shared++;
+  return shared / smaller.size >= SAME_POINT_OVERLAP;
+}

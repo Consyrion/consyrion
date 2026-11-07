@@ -1,5 +1,5 @@
 import { can, DomainError, suggestRoles } from "@consyrion/core";
-import { getEntitlements, getProject, proposeRequirementList } from "@consyrion/db";
+import { getEntitlements, getPlanCatalog, getProject, proposeRequirementList } from "@consyrion/db";
 import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { RequirementIntake, type IntakeProposal } from "@/components/requirement-intake";
@@ -22,7 +22,13 @@ export default async function CouncilSetupPage({ params }: { params: Promise<{ i
     throw error;
   });
   // The plan limit is shown and enforced in the form; the server checks it again when the session starts.
-  const [{ plan, entitlements }, proposal] = await Promise.all([getEntitlements(db, actor.organizationId), proposeRequirementList(db, actor, id)]);
+  const [{ plan, entitlements }, proposal, catalog] = await Promise.all([
+    getEntitlements(db, actor.organizationId),
+    proposeRequirementList(db, actor, id),
+    getPlanCatalog(db),
+  ]);
+  // The plan's display name (billing page: "Free"), not its internal key ("starter") – night test 07.11.26.
+  const planName = catalog.find((p) => p.key === plan)?.name ?? plan;
   // Requirement intake (#190): the server proposes, the user confirms; the start is refused without a current list.
   const intake: IntakeProposal = {
     source: {
@@ -43,6 +49,7 @@ export default async function CouncilSetupPage({ params }: { params: Promise<{ i
       : null,
     items: proposal.items,
     excluded: proposal.excluded,
+    toDecide: proposal.toDecide,
     unscannedDocuments: proposal.unscannedDocuments,
     pendingImages: proposal.pendingImages,
     notProposed: proposal.notProposed,
@@ -69,7 +76,7 @@ export default async function CouncilSetupPage({ params }: { params: Promise<{ i
       <TeamConfig
         projectId={project.id}
         projectName={project.name}
-        planName={plan}
+        planName={planName}
         maxModels={entitlements.maxParticipantsPerSession}
         requirementsConfirmed={proposal.current}
         roleSuggestion={roleSuggestion}

@@ -9,6 +9,16 @@ import type { AssistantTool } from "./assistant";
  * signed-in user's actor – so the assistant sees exactly what the user may see, nothing from other workspaces, and
  * cannot change anything. Results are compact on purpose (tokens on the user's key).
  */
+
+/**
+ * Windows smoke test 08.11.26: `decisionStatus.approvable` only says the outcome type allows an approval at all
+ * (no_qualifying_solution does, for an alternative). MCP and assistant clients read "something can be approved now":
+ * false when no proposal passes, as the web UI says ("Kein Vorschlag kann freigegeben werden").
+ */
+export function approvableNow(status: { approvable: boolean; canApproveRecommendation: boolean; approvableProposalIds: string[] }): boolean {
+  return status.approvable && (status.canApproveRecommendation || status.approvableProposalIds.length > 0);
+}
+
 export function assistantTools(db: Database, actor: ActorContext): AssistantTool[] {
   const sessionLink = (s: { id: string; projectName?: string | null }) => ({ label: s.projectName ?? s.id, href: `/sessions/${s.id}` });
   return [
@@ -79,7 +89,10 @@ export function assistantTools(db: Database, actor: ActorContext): AssistantTool
               ? {
                   outcome: view.decision.outcome,
                   recommended: label(view.decision.recommendedProposalId),
-                  approvable: view.decisionStatus?.approvable ?? null,
+                  // Windows smoke test 08.11.26: `decisionStatus.approvable` only says the outcome type allows an
+                  // approval at all (no_qualifying_solution does, for an alternative). A client must read "something
+                  // can be approved now" – false when no proposal passes, as the web UI says.
+                  approvable: view.decisionStatus ? approvableNow(view.decisionStatus) : null,
                   approvableProposals: (view.decisionStatus?.approvableProposalIds ?? []).map(label),
                   reason: view.decisionStatus?.reason ?? null,
                 }

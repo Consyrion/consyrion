@@ -398,7 +398,8 @@
       "needsVerification": "Vérification nécessaire – le conseil n’a pas pu confirmer qu’une proposition remplit toutes les exigences. Elle ne peut être ni approuvée ni construite.",
       "notQualified": "Selon les évaluations, cette proposition ne remplit pas toutes les exigences confirmées (ou cela n’a pas pu être confirmé). Elle ne peut être ni approuvée ni construite. Modifie le brief ou les exigences et lance un nouveau conseil.",
       "limitedReview": "Trop peu de modèles indépendants ont vérifié cette proposition (au moins 2 sont nécessaires). C’est un favori provisoire qui ne peut être ni approuvé ni construit. Lance un nouveau conseil avec au moins 3 modèles.",
-      "unknownOutcome": "Ce verdict utilise un résultat que cette version ne connaît pas. Il ne peut pas être approuvé ni construit ici."
+      "unknownOutcome": "Ce verdict utilise un résultat que cette version ne connaît pas. Il ne peut pas être approuvé ni construit ici.",
+      "conflictOfInterest": "La proposition {qualified} remplit toutes les exigences, mais n’est pas recommandée automatiquement : la proposition {blocked} était devant et n’a été bloquée que par les vérifications de l’auteur de la proposition {qualified} – une décision en sa propre faveur. Lance un nouveau conseil (p. ex. avec un autre modèle) pour décider sans ce conflit d’intérêts."
     }
   },
   "requirementGate": {
@@ -428,6 +429,48 @@
     "evidence": "Preuves ({n})",
     "notEveryPart": "(toutes les parties ne sont pas confirmées)",
     "checkEstimate": "estimation {low}–{high}",
-    "didNotCount": "non compté : {reason}"
+    "didNotCount": "non compté : {reason}",
+    "text": {
+      "noneMeets": "Aucune des propositions {other, select, yes {restantes } other {}}évaluées ne remplit toutes les exigences confirmées selon ces évaluations.",
+      "noneConfirmed": "Aucune des {n} propositions {other, select, yes {restantes } other {}}évaluées n’a pu être confirmée pour toutes les exigences : les évaluations laissent des exigences ouvertes. Non confirmé ne veut pas dire non rempli.",
+      "someMiss": "{unmet} des {n} propositions {other, select, yes {restantes } other {}}évaluées manquent une exigence confirmée selon ces évaluations ; {open} n’ont pas pu être confirmées (non confirmé ne veut pas dire non rempli).",
+      "notMet": "{id} non remplie selon {k} évaluateurs sur {n} (jugement des modèles).",
+      "disputed": "{id} contestée : {pass} évaluateurs sur {n} la confirment, {fail} la jugent non remplie.",
+      "notConfirmed": "{id} non confirmée : {k} évaluateurs sur {n} n’ont pas pu la confirmer.",
+      "noAnswer": "{id} non confirmée : {k} évaluateurs sur {n} n’ont pas donné de réponse valide."
+    }
+  },
+  "engineText": {
+    "noJudgeFailed": "Aucun relecteur indépendant disponible – {reason} pour chaque juge éligible",
+    "noJudge": "Aucun relecteur indépendant disponible",
+    "partialReviews": "({got} sur {needed} relectures indépendantes requises – aucun autre juge disponible)",
+    "conceded": "Concédé par l'auteur – retenu comme accepté jusqu'à ce qu'une révision le corrige (relecteur : {said}).",
+    "changedAfterConcede": "Contenu modifié après la concession en {versions} (sans lien avec cette objection).",
+    "addressed": "Traité par l'auteur en {versions}.",
+    "notReReviewed": "Pas relu de manière indépendante.",
+    "said": {
+      "unresolved": "non tranché",
+      "refuted": "réfuté",
+      "resolved": "résolu",
+      "accepted": "accepté"
+    },
+    "issue": {
+      "missing_evaluators": "La proposition {label} a été notée par {evaluators} des {expected} évaluateurs attendus",
+      "vote_disagrees": "Le vote majoritaire favorise la proposition {label}, pas le meilleur score pondéré",
+      "participant_failed": "{model} a quitté le council ({reason}) ; sa proposition, ses critiques et ses notes manquent",
+      "unreviewed_objections": "{count, plural, one {# objection n'a pu être vérifiée par aucun relecteur indépendant et reste ouverte} other {# objections n'ont pu être vérifiées par aucun relecteur indépendant et restent ouvertes}}",
+      "single_evaluator": "La proposition {label} a été notée par un seul évaluateur indépendant (seulement deux modèles actifs)",
+      "requirements_disputed": "{failed} des {total} évaluateurs indépendants estiment que la proposition {label} manque une exigence stricte",
+      "insufficient_evaluators": "Seuls {evaluators} des {expected} évaluateurs attendus ont fourni des notes exploitables – trop peu pour une décision du council ; répétez l'évaluation",
+      "no_debate_contribution": "{model} n'a fourni aucune revue de rôle au 12 Minds Council (tous les appels ont échoué) ; ses perspectives manquent au débat, mais son vote compte dans le Final Verdict s'il a évalué",
+      "undefended_proposal": "La proposition {label} n'a pas été défendue – {reason} : {count, plural, one {# objection reste} other {# objections restent}} sans réponse, ce qui n'est pas une critique incontestée",
+      "phase_shortened": "{phase} a été raccourcie pour garder le budget de tokens pour le Final Verdict ; le verdict repose sur les révisions disponibles à ce moment",
+      "weighting_changed_winner_both": "Les poids de vote ont décidé : à poids égaux, le council recommanderait la proposition {unweighted} ; pondéré, il recommande la proposition {weighted}",
+      "weighting_changed_winner_unweighted": "Les poids de vote ont décidé : à poids égaux, le council recommanderait la proposition {unweighted}",
+      "weighting_changed_winner_tie": "Les poids de vote ont décidé : à poids égaux, le council finirait à égalité (pondéré : proposition {weighted})",
+      "weighting_changed_winner_none": "Les poids de vote ont décidé : à poids égaux, le council ne recommanderait aucune proposition (pondéré : proposition {weighted})",
+      "conflict_of_interest": "La proposition {blocked} a un meilleur score mais n'est bloquée que par les vérifications de l'auteur de la proposition {label} – une décision en sa propre faveur, donc pas de recommandation automatique",
+      "evaluation_rejected": "{count, plural, one {# évaluateur a repris le titre d'une autre proposition pour la proposition {label} ; sa note a été écartée} other {# évaluateurs ont repris le titre d'une autre proposition pour la proposition {label} ; leurs notes ont été écartées}}"
+    }
   }
 }

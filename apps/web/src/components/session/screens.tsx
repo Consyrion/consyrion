@@ -1,6 +1,7 @@
 "use client";
 
-import { CRITERIA, dedupeStatements, describeConfidenceIssue, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrion/core/browser";
+import { CRITERIA, dedupeStatements, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrion/core/browser";
+import { EngineText, useConfidenceIssueText } from "./engine-text";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { SendDecision } from "../delivery";
@@ -20,6 +21,7 @@ import {
   STATUS_TONE,
   useEnumText,
   useRoleLabel,
+  useGateText,
   useVerdictReason,
   type ProposalContent,
   type ProposalJson,
@@ -527,7 +529,7 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
                   {o.resolutionReason ? (
                     <p className="mt-2 text-muted">
                       {o.reviewedByParticipantId ? t("minority.reviewBy", { model: modelName(view, o.reviewedByParticipantId) }) : t("minority.review")}{" "}
-                      {o.resolutionReason}
+                      <EngineText text={o.resolutionReason} />
                     </p>
                   ) : null}
                 </li>
@@ -655,6 +657,7 @@ function ConfidenceNotice({ view, matrix, recommendedProposalId }: { view: View;
   const failed = matrix.failedEvaluators ?? [];
   const t = useTranslations("evaluationScreen");
   const failureText = useFailureText();
+  const issueText = useConfidenceIssueText();
   if (issues.length === 0 && failed.length === 0) return null;
   const level = matrix.confidence ?? "low";
   const label = (id: string) => proposalLabel(view, id);
@@ -666,7 +669,7 @@ function ConfidenceNotice({ view, matrix, recommendedProposalId }: { view: View;
           <li key={f.participantId}>{t("couldNotEvaluate", { model: f.modelId, reason: failureText(f.outcome) })}</li>
         ))}
         {issues.map((issue, index) => (
-          <li key={`${issue.kind}-${index}`}>{describeConfidenceIssue(issue, label)}.</li>
+          <li key={`${issue.kind}-${index}`}>{issueText(issue, label)}.</li>
         ))}
       </ul>
       {level === "low" ? <p className="mt-1">{matrix.requirementGate ? t("hintRepeat") : t("hintDebate")}</p> : null}
@@ -903,7 +906,11 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         ? "repeat_evaluation"
         : conflict
           ? "reject"
-          : "select_alternative";
+          : // No proposal can be approved (no qualifying solution, e.g. conflicting requirements – night test 07.11.26):
+            // the way on is a changed brief, not choosing one of the failed proposals.
+            readable && (status?.approvableProposalIds ?? []).length === 0
+            ? "request_changes"
+            : "select_alternative";
   const [action, setAction] = useState(initialAction);
   const [comment, setComment] = useState("");
   const [alternative, setAlternative] = useState("");
@@ -916,6 +923,18 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const feasibility = useFeasibilityLabel();
   const statusText = useEnumText("phaseScreens.objectionStatus");
   const verdictReason = useVerdictReason();
+  const gateText = useGateText();
+  // Night test 07.11.26: "could not confirm that a proposal meets every requirement" was wrong when one did – the
+  // verdict only withheld the recommendation because the author of the qualified proposal alone blocked a better one.
+  const conflictIssue = (
+    (decision?.matrix as { confidenceIssues?: Array<{ kind: string; proposalId?: string; blockedProposalId?: string }> } | undefined)?.confidenceIssues ?? []
+  ).find((issue) => issue.kind === "conflict_of_interest");
+  const conflictReason = conflictIssue
+    ? t("reasons.conflictOfInterest", {
+        qualified: proposalLabel(view, conflictIssue.proposalId),
+        blocked: proposalLabel(view, conflictIssue.blockedProposalId),
+      })
+    : null;
   if (!decision) return <Waiting view={view} phase="final_verdict" text={t("waiting")} />;
   const recommended = view.proposals.find((p) => p.id === decision.recommendedProposalId);
   const content = recommended ? contentOf(recommended) : null;
@@ -951,7 +970,13 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   // (ChatGPT test 06.11.26, Tags session): say what is true.
   const qualified = new Set((matrix?.requirementGate?.proposals ?? []).filter((g) => g.feasibility === "qualified").map((g) => g.proposalId));
   const notApprovableText = (id: string) =>
-    s1 ? (qualified.has(id) ? t("notApprovable.qualifiedBlocked") : t("notApprovable.s1")) : findings.has(id) ? t("notApprovable.finding") : t("notApprovable.other");
+    s1
+      ? qualified.has(id)
+        ? t("notApprovable.qualifiedBlocked")
+        : t("notApprovable.s1")
+      : findings.has(id)
+        ? t("notApprovable.finding")
+        : t("notApprovable.other");
   // The same conflict named by several proposals is listed once (#173).
   const conflicts = dedupeStatements(view.proposals.flatMap((p) => contentOf(p).requirementConflicts ?? []));
   const total = (proposalId: string) => (matrix as { proposals?: MatrixProposal[] } | undefined)?.proposals?.find((p) => p.proposalId === proposalId)?.total;
@@ -981,7 +1006,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
           outcome={outcome}
           outcomeKey={outcomeKey}
           nextAction={view.session.status === "awaiting_approval" && canApprove ? (initialAction as NextAction) : null}
-          reason={notApprovable ? verdictReason(status?.reason) : (matrix.requirementGate?.summary ?? null)}
+          reason={notApprovable ? (conflictReason ?? verdictReason(status?.reason)) : gateText.summary(matrix.requirementGate?.summary)}
           approvableIds={approvableIds}
           recommendedId={notApprovable ? null : (decision.recommendedProposalId ?? null)}
         />
@@ -1023,12 +1048,12 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         {matrix ? <MainReason view={view} matrix={matrix} canRepeat={canApprove} /> : null}
         {notApprovable && status?.reason ? (
           <p className="mt-3 text-sm" data-testid="not-approvable-reason">
-            {verdictReason(status.reason)} {t("notApprovableHint")}
+            {conflictReason ?? verdictReason(status.reason)} {t("notApprovableHint")}
           </p>
         ) : null}
         {s1 && matrix?.requirementGate ? (
           <div className="mt-3 text-sm">
-            {matrix.requirementGate.summary ? <p>{matrix.requirementGate.summary}</p> : null}
+            {matrix.requirementGate.summary ? <p>{gateText.summary(matrix.requirementGate.summary)}</p> : null}
             {(() => {
               // Requirements confirmed, but another gate (security minimum, minimum score, blocking objection) failed –
               // not the same as unmet requirements (#181 review).
@@ -1048,7 +1073,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
               {matrix.requirementGate.proposals.map((g) => (
                 <li key={g.proposalId}>
                   {tp("proposal", { label: proposalLabel(view, g.proposalId) })}: {feasibility(g).text}
-                  {g.causes.length ? ` – ${g.causes[0]}${g.causes.length > 1 ? ` ${t("moreCauses", { n: g.causes.length - 1 })}` : ""}` : ""}
+                  {g.causes.length ? ` – ${gateText.cause(g.causes[0]!)}${g.causes.length > 1 ? ` ${t("moreCauses", { n: g.causes.length - 1 })}` : ""}` : ""}
                 </li>
               ))}
             </ul>
@@ -1135,7 +1160,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
                 ) : null}
                 {o.resolutionReason ? (
                   <span className="block text-muted">
-                    {t("objections.decision")} {o.resolutionReason}
+                    {t("objections.decision")} <EngineText text={o.resolutionReason} />
                   </span>
                 ) : null}
                 {o.undefendedReason && !o.response ? (
@@ -1214,7 +1239,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
                 <option value="approve" disabled={!status?.canApproveRecommendation}>
                   {t("form.approve")}
                 </option>
-                <option value="select_alternative" disabled={conflict || notApprovable}>
+                <option value="select_alternative" disabled={conflict || notApprovable || (readable && (status?.approvableProposalIds ?? []).length === 0)}>
                   {t("form.selectAlternative")}
                 </option>
                 <option value="repeat_evaluation" disabled={missingEvaluators === 0}>

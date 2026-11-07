@@ -58,7 +58,8 @@ export function PortalButton() {
       <Button variant="secondary" disabled={busy} onClick={() => void run(async () => (window.location.href = (await fetchJson<{ url: string }>("/api/billing/portal", { method: "POST" })).url), false)}>
         {t("manageSubscription")}
       </Button>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+      {/* The server forgot a customer Stripe does not know (test mode → live, 07.11.26): explained in the interface language. */}
+      {error ? <p className="mt-1 text-xs text-danger">{error.startsWith("This subscription does not exist in the connected Stripe account") ? t("portalStaleCustomer") : error}</p> : null}
     </div>
   );
 }

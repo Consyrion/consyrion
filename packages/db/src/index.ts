@@ -22,3 +22,4 @@ export * from "./repositories/assistant-actions";
 export * from "./repositories/client-requests";
 export * from "./repositories/telegram";
 export * from "./repositories/feedback";
+export * from "./repositories/model-availability";

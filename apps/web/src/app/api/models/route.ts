@@ -1,7 +1,7 @@
 import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
 import { latestStrengthCatalog } from "@consyrion/council";
 import { strengthSuggestion } from "@consyrion/core";
-import { decryptCredentialForUse, listCredentials } from "@consyrion/db";
+import { decryptCredentialForUse, listCredentials, recentlyUnavailableModels } from "@consyrion/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";
@@ -22,6 +22,8 @@ export const GET = handle(async (request: Request) => {
   const credentials = (await listCredentials(db, actor)).filter((c) => !only || c.id === only);
   // Vote-weight suggestion per model from the latest ranking (#139); "unknown" (tier 5) without one.
   const catalog = await latestStrengthCatalog(db);
+  // Hint only (never a block): the latest call of a listed model ended with "model not found" (HTTP 404) recently.
+  const unavailable = new Map((await recentlyUnavailableModels(db, actor)).map((u) => [`${u.provider}:${u.modelId.toLowerCase()}`, u.at.toISOString()]));
   const results = await Promise.all(
     credentials.map(async (credential) => {
       try {
@@ -31,7 +33,11 @@ export const GET = handle(async (request: Request) => {
           credential.id,
           models.map((m) => m.modelId),
         );
-        const withStrength = models.map((m) => ({ ...m, strength: strengthSuggestion(credential.provider, m.modelId, catalog) }));
+        const withStrength = models.map((m) => ({
+          ...m,
+          strength: strengthSuggestion(credential.provider, m.modelId, catalog),
+          unavailableSince: unavailable.get(`${credential.provider}:${m.modelId.toLowerCase()}`) ?? null,
+        }));
         return { credentialId: credential.id, provider: credential.provider, label: credential.label, models: withStrength, error: null };
       } catch (error) {
         const message = error instanceof ProviderError ? `${error.kind}: ${error.message}` : "Model discovery failed";

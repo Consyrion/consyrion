@@ -94,7 +94,8 @@
       "colOutput": "Output-Tokens",
       "colCost": "≈ Kosten",
       "pricesTitle": "Deine Anbieterpreise (optional, für die Schätzung)",
-      "priceHint": "{provider} · {model}: Input {input} / Output {output} {currency} pro 1 Mio."
+      "priceHint": "{provider} · {model}: Input {input} / Output {output} {currency} pro 1 Mio.",
+      "endsOn": "Gekündigt – dein Plan bleibt bis {date} aktiv, danach wechselt der Workspace auf Free. Es wird nichts mehr abgebucht."
     },
     "providers": {
       "needKey": "Brauchst du einen Key? Erstelle ihn in der Konsole des Anbieters:",
@@ -211,7 +212,8 @@
         "save": "Speichern",
         "connect": "Stripe verbinden",
         "help": "Stripe-Dashboard → Developers → API keys → Secret key. Der Key wird verschlüsselt gespeichert und nie wieder angezeigt. Ein neuer Preis erzeugt einen neuen Stripe-Preis; laufende Abos behalten ihren."
-      }
+      },
+      "portalStaleCustomer": "Dieses Abo gibt es im verbundenen Stripe-Konto nicht (es stammt wahrscheinlich aus dem Stripe-Testmodus). Dein Plan bleibt unverändert; um ihn online zu verwalten, schließe ein neues Abo ab."
     },
     "delivery": {
       "errorSave": "Die Verbindung konnte nicht gespeichert werden",

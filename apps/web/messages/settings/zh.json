@@ -94,7 +94,8 @@
       "colOutput": "输出 Token",
       "colCost": "≈ 费用",
       "pricesTitle": "你的提供商价格（可选，用于估算）",
-      "priceHint": "{provider} · {model}：输入 {input} / 输出 {output} {currency} 每百万"
+      "priceHint": "{provider} · {model}：输入 {input} / 输出 {output} {currency} 每百万",
+      "endsOn": "已取消——你的套餐在 {date} 前保持有效，之后工作区将切换为 Free。不会再扣费。"
     },
     "providers": {
       "needKey": "需要密钥？请在提供商控制台中创建：",
@@ -211,7 +212,8 @@
         "save": "保存",
         "connect": "连接 Stripe",
         "help": "Stripe 控制台 → Developers → API keys → Secret key。密钥加密保存，之后不再显示。新价格会创建新的 Stripe 价格；现有订阅保持原价。"
-      }
+      },
+      "portalStaleCustomer": "已连接的 Stripe 账户中不存在此订阅（可能是在 Stripe 测试模式下创建的）。你的套餐保持不变；如需在线管理，请重新订阅。"
     },
     "delivery": {
       "errorSave": "无法保存连接",

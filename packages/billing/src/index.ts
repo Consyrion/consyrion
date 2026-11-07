@@ -35,11 +35,14 @@ export class StripeClient {
       headers: { Authorization: `Bearer ${this.config.secretKey}`, ...(data ? { "Content-Type": "application/x-www-form-urlencoded" } : {}) },
       body: data ? form(data) : undefined,
     });
-    const json = (await response.json().catch(() => ({}))) as T & { error?: { message?: string } };
+    const json = (await response.json().catch(() => ({}))) as T & { error?: { message?: string; code?: string; param?: string } };
     if (!response.ok) {
       // Stripe's message never contains the secret key; it tells the admin what to fix (e.g. "Invalid API Key").
       const detail = json.error?.message ? `: ${json.error.message.slice(0, 200)}` : "";
-      throw new DomainError("PROVIDER_ERROR", `Stripe request failed (${response.status})${detail}`);
+      throw new DomainError("PROVIDER_ERROR", `Stripe request failed (${response.status})${detail}`, {
+        stripeCode: json.error?.code ?? null,
+        stripeParam: json.error?.param ?? null,
+      });
     }
     return json;
   }
@@ -87,6 +90,10 @@ interface StripeSubscriptionObject {
   customer: string;
   status: string;
   current_period_end?: number;
+  /** Cancelled in the portal ("at period end"): still paid and usable until current_period_end. */
+  cancel_at_period_end?: boolean;
+  /** Set when a cancellation is scheduled (also for "cancel at a date"). */
+  cancel_at?: number | null;
   metadata?: { organizationId?: string; plan?: string };
   items?: { data?: Array<{ price?: { id?: string }; current_period_end?: number }> };
 }
@@ -122,8 +129,20 @@ export async function handleStripeEvent(db: Database, event: { type: string; dat
     stripeCustomerId: sub.customer,
     stripeSubscriptionId: sub.id,
     currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+    // Cancelled but paid until the period end: the plan stays until Stripe sends customer.subscription.deleted.
+    cancelAtPeriodEnd: event.type !== "customer.subscription.deleted" && (sub.cancel_at_period_end === true || Boolean(sub.cancel_at)),
   });
   return { handled: true };
 }
 
 export * from "./setup";
+
+/**
+ * Stripe does not know the stored customer – typically a customer of the test mode after switching to live keys (owner
+ * report 07.11.26: "No such customer: 'cus_…'" on "Manage subscription").
+ */
+export function isMissingStripeCustomer(error: unknown): boolean {
+  if (!(error instanceof DomainError)) return false;
+  const details = (error.details ?? {}) as { stripeCode?: string | null; stripeParam?: string | null };
+  return (details.stripeCode === "resource_missing" && details.stripeParam === "customer") || /No such customer/i.test(error.message);
+}

@@ -255,7 +255,11 @@
         "title": "Votre question devient un cahier des charges",
         "text": "Créez un projet et décrivez la décision. Choisissez les modèles et jusqu’à douze perspectives. Vous connectez vos propres clés et fixez un budget de jetons – CONSYRION AI ne vend aucun crédit IA.",
         "example": "Question : « Quelle architecture de base de données pour notre produit SaaS ? » – trois modèles, douze perspectives, un budget sur vos propres clés.",
-        "points": ["Projet, question et contexte", "Modèles et perspectives au choix", "Vos propres clés API, votre budget"]
+        "points": [
+          "Projet, question et contexte",
+          "Modèles et perspectives au choix",
+          "Vos propres clés API, votre budget"
+        ]
       },
       "independent-thinking": {
         "kicker": "Étape 1",
@@ -444,7 +448,9 @@
         "approved": "Décidé : recommandation approuvée",
         "rejected": "Décidé : rejeté",
         "aiVerdict": "Verdict de l’IA : {verdict}"
-      }
+      },
+      "unmetByAll": "Aucune proposition ne remplit {list}. {n, plural, one {Cette exigence n’est peut-être pas réalisable} other {Ces exigences se contredisent peut-être}} – modifie le brief et lance un nouveau conseil.",
+      "openByAll": "Confirmée pour aucune proposition : {list}. Ajoute au brief ce qui est établi à ce sujet, ou demande des propositions qui {n, plural, one {démontrent explicitement cette exigence} other {démontrent explicitement ces exigences}}."
     },
     "process": {
       "proposal": "Proposition {label}",
@@ -507,65 +513,120 @@
     "models": [
       {
         "role": "Architecte logiciel",
-        "roles": ["Architecture", "Scalabilité", "Fiabilité", "Coût"]
+        "roles": [
+          "Architecture",
+          "Scalabilité",
+          "Fiabilité",
+          "Coût"
+        ]
       },
       {
         "role": "Expert sécurité",
-        "roles": ["Sécurité", "Gouvernance des données", "Performance", "Conformité"]
+        "roles": [
+          "Sécurité",
+          "Gouvernance des données",
+          "Performance",
+          "Conformité"
+        ]
       },
       {
         "role": "Esprit critique",
-        "roles": ["Critique", "Maintenabilité", "Expérience développeur", "Exploitation"]
+        "roles": [
+          "Critique",
+          "Maintenabilité",
+          "Expérience développeur",
+          "Exploitation"
+        ]
       }
     ],
     "apiKey": "Votre clé API",
     "decision": "Décision",
     "proposal": "Proposition {letter}",
-    "proposalLines": ["Multi-tenant géré", "Cluster auto-hébergé", "Architecture hybride"],
+    "proposalLines": [
+      "Multi-tenant géré",
+      "Cluster auto-hébergé",
+      "Architecture hybride"
+    ],
     "evidenceAttached": "Preuves jointes",
     "example": "exemple",
     "optional": "optionnel",
     "brief": {
       "title": "Brief",
-      "lines": ["Quelle architecture de base de données ?", "3 modèles · 12 perspectives", "Budget sur vos propres clés"]
+      "lines": [
+        "Quelle architecture de base de données ?",
+        "3 modèles · 12 perspectives",
+        "Budget sur vos propres clés"
+      ]
     },
     "objection": {
       "title": "Objection · Sécurité",
-      "lines": ["Risque d'isolation des clients", "Vérifiée avec des preuves", "Conservée au dossier"]
+      "lines": [
+        "Risque d'isolation des clients",
+        "Vérifiée avec des preuves",
+        "Conservée au dossier"
+      ]
     },
-    "evidence": ["Preuve : résultats de tests", "Preuve : doc du fournisseur"],
+    "evidence": [
+      "Preuve : résultats de tests",
+      "Preuve : doc du fournisseur"
+    ],
     "hybrid": {
       "title": "Hybride A + C",
-      "lines": ["Révisée face aux objections", "Fusionnée si compatible"]
+      "lines": [
+        "Révisée face aux objections",
+        "Fusionnée si compatible"
+      ]
     },
     "difference": "Divergence documentée",
     "report": {
       "title": "Rapport de décision",
-      "lines": ["Recommandé : Hybride A + C", "Position minoritaire conservée"],
-      "bars": ["Sécurité", "Coût", "Délai de lancement"]
+      "lines": [
+        "Recommandé : Hybride A + C",
+        "Position minoritaire conservée"
+      ],
+      "bars": [
+        "Sécurité",
+        "Coût",
+        "Délai de lancement"
+      ]
     },
     "awaiting": "En attente de votre approbation",
     "approved": "✓ Approuvé par vous",
     "pipeline": [
       {
         "title": "Tâches",
-        "lines": ["Plan validé", "Graphe de tâches"]
+        "lines": [
+          "Plan validé",
+          "Graphe de tâches"
+        ]
       },
       {
         "title": "Code",
-        "lines": ["Sandbox isolée", "Sans accès réseau"]
+        "lines": [
+          "Sandbox isolée",
+          "Sans accès réseau"
+        ]
       },
       {
         "title": "Tests",
-        "lines": ["Exécutés en sandbox", "Résultats joints"]
+        "lines": [
+          "Exécutés en sandbox",
+          "Résultats joints"
+        ]
       },
       {
         "title": "Revues",
-        "lines": ["Modèles indépendants", "Constats visibles"]
+        "lines": [
+          "Modèles indépendants",
+          "Constats visibles"
+        ]
       },
       {
         "title": "PR brouillon",
-        "lines": ["Pull request brouillon GitHub", "Le merge reste votre choix"]
+        "lines": [
+          "Pull request brouillon GitHub",
+          "Le merge reste votre choix"
+        ]
       }
     ]
   },

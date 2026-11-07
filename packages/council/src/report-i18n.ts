@@ -18,6 +18,21 @@ export const reportNumber = (locale: ReportLocale, value: number) => value.toLoc
 type Dictionary = Record<string, string>;
 
 const DE: Dictionary = {
+  // R2-01 (08.11.26): session status and gate result values.
+  "queued": "in der Warteschlange",
+  "running": "läuft",
+  "cancellation requested": "Abbruch angefordert",
+  "cancelled": "abgebrochen",
+  "failed": "fehlgeschlagen",
+  "awaiting approval": "wartet auf Freigabe",
+  "approved": "freigegeben",
+  "rejected": "abgelehnt",
+  "changes requested": "Änderungen angefordert",
+  "meets all requirements": "erfüllt alle Anforderungen",
+  "needs verification": "muss geprüft werden",
+  "misses a requirement": "verfehlt eine Anforderung",
+  "incomplete": "unvollständig",
+  "provisional favourite (limited review)": "vorläufiger Favorit (zu wenige Prüfer)",
   // Markdown report
   "Final Decision Report – {project}": "Abschlussbericht – {project}",
   "Mode: {mode} · Brief version {version} · Status: {status}": "Modus: {mode} · Auftragsversion {version} · Status: {status}",
@@ -161,6 +176,21 @@ const DE: Dictionary = {
 };
 
 const FR: Dictionary = {
+  // R2-01 (08.11.26): session status and gate result values.
+  "queued": "en file d’attente",
+  "running": "en cours",
+  "cancellation requested": "annulation demandée",
+  "cancelled": "annulé",
+  "failed": "échoué",
+  "awaiting approval": "en attente de validation",
+  "approved": "validé",
+  "rejected": "rejeté",
+  "changes requested": "modifications demandées",
+  "meets all requirements": "remplit toutes les exigences",
+  "needs verification": "à vérifier",
+  "misses a requirement": "manque une exigence",
+  "incomplete": "incomplet",
+  "provisional favourite (limited review)": "favori provisoire (examen limité)",
   "Final Decision Report – {project}": "Rapport de décision final – {project}",
   "Mode: {mode} · Brief version {version} · Status: {status}": "Mode : {mode} · Version du brief {version} · Statut : {status}",
   "Participants: {list}": "Participants : {list}",
@@ -283,6 +313,21 @@ const FR: Dictionary = {
 };
 
 const ES: Dictionary = {
+  // R2-01 (08.11.26): session status and gate result values.
+  "queued": "en cola",
+  "running": "en curso",
+  "cancellation requested": "cancelación solicitada",
+  "cancelled": "cancelado",
+  "failed": "fallido",
+  "awaiting approval": "pendiente de aprobación",
+  "approved": "aprobado",
+  "rejected": "rechazado",
+  "changes requested": "cambios solicitados",
+  "meets all requirements": "cumple todos los requisitos",
+  "needs verification": "requiere verificación",
+  "misses a requirement": "incumple un requisito",
+  "incomplete": "incompleto",
+  "provisional favourite (limited review)": "favorito provisional (revisión limitada)",
   "Final Decision Report – {project}": "Informe de decisión final – {project}",
   "Mode: {mode} · Brief version {version} · Status: {status}": "Modo: {mode} · Versión del encargo {version} · Estado: {status}",
   "Participants: {list}": "Participantes: {list}",

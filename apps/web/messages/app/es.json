@@ -384,7 +384,18 @@
     "readOnly": "Solo los miembros que pueden editar el proyecto pueden confirmar los requisitos.",
     "afterImplementation": "solo medible tras la implementación",
     "afterImplementationText": "Antes de construir nada, ningún modelo puede confirmar «{text}», así que el Council terminará con «Requiere verificación». Déjalo como está y añade cómo se mide (método, valor objetivo) para que las propuestas puedan compararse en ese punto.",
-    "addPlan": "Añadir un plan de medición como requisito"
+    "addPlan": "Añadir un plan de medición como requisito",
+    "reasons": {
+      "injection": "Parece una instrucción para los modelos de IA, no un requisito del producto",
+      "metaRule": "Indica cuándo un requisito se considera cumplido en lugar de describir el producto – el council juzga las propuestas por su contenido",
+      "context": "De la idea o el objetivo – contexto, no un requisito estricto. Consérvalo si lo es.",
+      "document": "De un documento, sin redacción vinculante (debe, solo, como máximo, un límite …) – descripción, fila de tabla o valor medido. Consérvalo si es un requisito.",
+      "instruction": "Una instrucción de trabajo para el council en esta ejecución, no un requisito del producto. Consérvala si lo es.",
+      "duplicate": "Repite un requisito del campo de requisitos, por eso aparece una sola vez. Consérvalo si aporta más."
+    },
+    "undecidedError": "Al menos una afirmación propuesta no se ha conservado ni excluido con un motivo. Recarga la página y decide cada afirmación marcada.",
+    "conflict": "{first} y {second} pueden contradecirse: eliminación como máximo a los {deleteDays} días, pero conservación de al menos {retainDays} días. Ninguna propuesta puede cumplir ambas – cambia una de ellas antes de iniciar el council.",
+    "reasonMissingError": "Falta el motivo de al menos una afirmación no incluida (mínimo 3 caracteres). Añádelo y confirma de nuevo."
   },
   "voteWeights": {
     "noRanking": "Aún no se ha cargado ningún ranking – neutral 5",
@@ -447,7 +458,9 @@
       "selected": "{n} / {max} seleccionados",
       "loading": "Cargando modelos de tus proveedores…",
       "noKeys": "Aún no hay claves de API. <link>Añade primero una clave de proveedor</link>.",
-      "filter": "Filtrar modelos"
+      "filter": "Filtrar modelos",
+      "unavailableSince": "404 el {date}",
+      "unavailableHint": "El proveedor rechazó la última llamada a este modelo en este workspace (modelo no encontrado). Sigue siendo seleccionable: cada inicio de un council lo vuelve a comprobar y el aviso desaparece en cuanto el modelo responde o tras 24 horas."
     },
     "roles": {
       "title": "3. Perspectivas del 12 Minds Council",

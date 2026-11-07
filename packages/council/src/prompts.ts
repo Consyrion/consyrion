@@ -5,7 +5,7 @@ import { COUNCIL_PHASE_LABELS, describeMeasure, measureUnitText, type CouncilRol
  * declared as untrusted data, so instructions hidden inside a brief, a repository excerpt or another
  * model's answer are not followed (prompt-injection defence, issue #11).
  */
-export const PROMPT_VERSION = "2026-11-07.1";
+export const PROMPT_VERSION = "2026-11-08.1";
 
 const BASE_SYSTEM = [
   "You are one participant in Consyrion, a structured decision council of several independent AI models.",
@@ -83,9 +83,37 @@ export function briefBlock(brief: {
     // Inside <brief>: the user-confirmed list is still user data, never an instruction channel.
     brief.requirementList ? confirmedRequirementsBlock(brief.requirementList) : "",
     "</brief>",
+    answerLanguageLine([brief.idea, brief.goal, brief.requirements].join("\n")),
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+const LANGUAGE_MARKERS: Record<string, { name: string; words: string[] }> = {
+  en: { name: "English", words: ["the", "and", "must", "with", "should", "which", "options", "requirements", "for", "within", "of"] },
+  de: { name: "German", words: ["der", "die", "das", "und", "muss", "mit", "soll", "nicht", "für", "eine", "ist"] },
+  fr: { name: "French", words: ["le", "la", "les", "et", "doit", "avec", "pour", "une", "des", "est", "pas"] },
+  es: { name: "Spanish", words: ["el", "la", "los", "y", "debe", "con", "para", "una", "del", "que", "es"] },
+};
+
+/** The language the brief is written in, by common words; null when it is not clear (night test 07.11.26). */
+export function briefLanguage(text: string): string | null {
+  const words = text.toLowerCase().match(/\p{L}+/gu) ?? [];
+  const counts = Object.entries(LANGUAGE_MARKERS).map(([code, m]) => [code, words.filter((w) => m.words.includes(w)).length] as const);
+  counts.sort((a, b) => b[1] - a[1]);
+  const [best, second] = counts;
+  return best && best[1] >= 3 && best[1] >= 2 * (second?.[1] ?? 0) ? best[0] : null;
+}
+
+/**
+ * States the answer language outside the brief (night test 07.11.26: gpt-5.4-mini answered an English brief in German,
+ * probably because of German text around it). Only when the brief's language is clear.
+ */
+function answerLanguageLine(text: string): string {
+  const code = briefLanguage(text);
+  return code
+    ? `Answer language: ${LANGUAGE_MARKERS[code]!.name} – the language of the brief. Write every free-text value in ${LANGUAGE_MARKERS[code]!.name}, even if other text in this request is in another language.`
+    : "";
 }
 
 /**

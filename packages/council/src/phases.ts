@@ -1,4 +1,4 @@
-import { aggregateVerdict, CRITERIA, DomainError, severityAtLeast, type CouncilRole } from "@consyrion/core";
+import { aggregateVerdict, CRITERIA, DomainError, sameObjectionPoint, severityAtLeast, type CouncilRole } from "@consyrion/core";
 import { newId, schema } from "@consyrion/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
@@ -438,6 +438,8 @@ export function modelMajority(preferences: Array<{ participantId: string; target
 
 /* ---------- 4. Minority Review ---------- */
 
+const SEVERITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
 export async function minorityReviewPhase(ctx: SessionContext, resolve: AdapterResolver) {
   const proposals = await ctx.proposals();
   const participants = await ctx.participants();
@@ -456,13 +458,21 @@ export async function minorityReviewPhase(ctx: SessionContext, resolve: AdapterR
     if (severityAtLeast(m.severity, ctx.policy.objectionSeverityThreshold)) return true;
     return m.targetProposalId === favored && dissentingRoles.has(`${m.participantId}:${m.role}`) && severityAtLeast(m.severity, "medium");
   });
-  // Several roles of the same model often raise the same point; one model's identical claim is one objection.
-  const norm = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
-  const seen = new Set(existing.map((o) => `${o.raisedByParticipantId}|${o.proposalId}|${norm(o.claim)}`));
-  for (const critique of candidates) {
-    const key = `${critique.participantId}|${critique.targetProposalId}|${norm(critique.body)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+  // Several roles of the same model – and the same model again in a later debate round – often raise the same point,
+  // slightly reworded. Within one model, proposal and category such a repeat is one objection (sameObjectionPoint);
+  // the most severe wording is kept. Different models always stay separate: they are independent voices.
+  const kept = existing.map((o) => ({ by: o.raisedByParticipantId, proposal: o.proposalId, category: o.category, claim: o.claim }));
+  const bySeverity = [...candidates].sort((a, b) => (SEVERITY_RANK[b.severity!] ?? 0) - (SEVERITY_RANK[a.severity!] ?? 0) || a.round - b.round);
+  for (const critique of bySeverity) {
+    const repeat = kept.some(
+      (k) =>
+        k.by === critique.participantId &&
+        k.proposal === critique.targetProposalId &&
+        k.category === critique.category &&
+        sameObjectionPoint(k.claim, critique.body),
+    );
+    if (repeat) continue;
+    kept.push({ by: critique.participantId, proposal: critique.targetProposalId!, category: critique.category!, claim: critique.body });
     await ctx.db.insert(schema.minorityObjection).values({
       id: newId("obj"),
       organizationId: ctx.orgId,

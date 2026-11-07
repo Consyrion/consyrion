@@ -17,7 +17,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 // The report itself is tested in the council package; here a fixed report keeps the tests on delivery.
-vi.mock("@consyrion/council", () => ({
+vi.mock("@consyrion/council", async () => ({
+  // The real report wording (#322); only the session data is mocked.
+  reportTranslator: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).reportTranslator,
   getSessionView: vi.fn(async (_db: unknown, _actor: unknown, id: string) => ({
     session: { id, createdAt: new Date("2026-10-27T12:00:00Z") },
     decision: { outcome: "recommended" },

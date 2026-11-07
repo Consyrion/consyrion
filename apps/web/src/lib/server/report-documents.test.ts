@@ -108,6 +108,22 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
     approvals: [],
   };
 
+  it("draws the summary page in the interface language (#322)", async () => {
+    const meta = { title: "Abschlussbericht – Todo search", sessionId: "ses_test", createdAt: new Date("2026-11-05T12:00:00Z") };
+    const bytes = await reportPdf(markdown, meta, report as never, { locale: "de" });
+    const { extractText } = await import("unpdf");
+    const { text } = await extractText(new Uint8Array(bytes), { mergePages: false });
+    const first = (text as string[])[0]!;
+    expect(first).toContain("Entscheidungsübersicht");
+    expect(first).toContain("Empfohlen: Vorschlag A");
+    expect(first).toContain("Eine Lösung wird empfohlen.");
+    expect(first).toContain("nicht freigebbar");
+    expect(first).toContain("? unbestätigt 1/2");
+    expect(first).toContain("Technische Qualität");
+    expect(first).toContain("Vorschlag B: 1 hoch");
+    expect(first).not.toContain("Decision summary");
+  });
+
   it("adds a summary page with scores, the requirement matrix and 'not approvable' for the blocked proposal", async () => {
     const meta = { title: "Final Decision Report – Todo search", sessionId: "ses_test", createdAt: new Date("2026-11-05T12:00:00Z") };
     const plain = await PDFDocument.load(await reportPdf(markdown, meta));

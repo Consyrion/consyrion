@@ -667,4 +667,9 @@ never confirms a requirement and nothing starts without the user.
 - The server's fixed reasons why a verdict is not approvable (`decision-format.ts`, English) are shown in the interface
   language (`useVerdictReason`, messages `verdictScreen.reasons`); unknown text is shown as sent.
 - "Open objections" on PDF page 1 uses the dashboard's rule: objections made moot by a revision (#150) are not open.
-  The PDF and Word report itself is still English (tracked separately).
+- The report (Markdown, PDF incl. summary page and audit appendix, Word) uses the interface language for its fixed
+  wording (#322): `?lang=` on the report URL, otherwise the locale cookie, otherwise the browser language – the same
+  rule as the UI. Translations live in `packages/council/src/report-i18n.ts` (keys are the English texts; a missing
+  one falls back to English). German, French and Spanish are translated; Chinese stays English because the PDF standard
+  fonts cannot draw CJK characters. Model output is never translated. Reports sent by delivery (Telegram, e-mail,
+  Confluence) are still English.

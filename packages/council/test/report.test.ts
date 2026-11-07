@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDecisionReport, reportToMarkdown, type SessionView } from "../src";
+import { buildDecisionReport, reportLocale, reportToMarkdown, reportTranslator, type SessionView } from "../src";
 
 // Shape of the real run ses_3616f7c9… (#150): B v1 was Go + Redis on one CX22, v2 took over Django + PostgreSQL.
 const revision = (id: string, version: number, content: Record<string, unknown>, createdAt: string) => ({
@@ -194,5 +194,27 @@ describe("readable evaluation matrix (#181 live test)", () => {
     } as unknown as SessionView);
     expect(report.evaluationMatrix!.formula).toContain('{"anthropic/claude-haiku-5-5":5,"par_00000000000000000000000000000000":5}');
     expect(reportToMarkdown(report)).toContain("Majority vote (for information only – it never overrides the requirement check): A");
+  });
+});
+
+describe("decision report in the interface language (#322)", () => {
+  it("translates the fixed wording and keeps model output as written", () => {
+    const report = buildDecisionReport(view);
+    const de = reportToMarkdown(report, "de");
+    expect(de).toContain("# Abschlussbericht – Buchung");
+    expect(de).toContain("**Architekturwechsel:** Fassung v2 ersetzt die Lösung von v1; sie ähnelt Vorschlag A.");
+    expect(de).toContain("### Nach der Überarbeitung nicht mehr zutreffend");
+    expect(de).toContain("Verbrauchte Tokens: 0 von 400'000");
+    expect(de).toContain("Django-PWA mit PostgreSQL-Exclusion-Constraint und Warm-Standby");
+    expect(de).not.toContain("## Remaining risks");
+    // English stays exactly as before.
+    expect(reportToMarkdown(report)).toBe(reportToMarkdown(report, "en"));
+  });
+
+  it("falls back to English for languages without a report translation", () => {
+    expect(reportLocale("zh")).toBe("en");
+    expect(reportLocale("fr")).toBe("fr");
+    expect(reportTranslator("es")("Proposal {label}", { label: "B" })).toBe("Propuesta B");
+    expect(reportTranslator("fr")("A text without translation")).toBe("A text without translation");
   });
 });

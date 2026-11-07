@@ -5,11 +5,13 @@ import {
   dedupeStatements,
   describeConfidenceIssue,
   describeObjection,
+  objectionStatusText,
   splitObjections,
   type VerdictResult,
 } from "@consyrion/core";
 import { decisionStatusOf } from "./decision-format";
 import type { ProposalContent } from "./schemas";
+import { reportNumber, reportTranslator, type ReportLocale, type ReportT } from "./report-i18n";
 import type { SessionView } from "./service";
 
 const OUTCOME_TEXT: Record<string, string> = {
@@ -284,37 +286,55 @@ export function buildDecisionReport(view: SessionView) {
 export type DecisionReport = ReturnType<typeof buildDecisionReport>;
 
 /** "5/6 (83 %); short: google/gemini-x – Open Council" (#182). */
-function participationLine(p: NonNullable<DecisionReport["validParticipation"]>) {
-  const short = p.shortfalls.map((s) => `${s.model}${s.phases.length ? ` – ${s.phases.join(", ")}` : " – no valid contribution"}`);
-  return `${p.valid}/${p.total} (${p.percent} %)${short.length ? `; short: ${short.join("; ")}` : ""}`;
+function participationLine(p: NonNullable<DecisionReport["validParticipation"]>, t: ReportT) {
+  const short = p.shortfalls.map((s) => `${s.model}${s.phases.length ? ` – ${s.phases.join(", ")}` : ` – ${t("no valid contribution")}`}`);
+  return `${p.valid}/${p.total} (${p.percent} %)${short.length ? `; ${t("short: {list}", { list: short.join("; ") })}` : ""}`;
 }
 
-const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join("\n") : "- none");
+/** describeObjection (core) in the report language: who objected against which proposal, why, and how it was decided. */
+function objectionLine(o: DecisionReport["objections"][number], t: ReportT) {
+  const collapse = (value: string) => value.replace(/\s+/g, " ").trim();
+  if (t("Proposal") === "Proposal") return describeObjection(o);
+  return [
+    t("Objection by {by} against Proposal {proposal}: {claim}", { by: o.raisedBy, proposal: o.proposal, claim: collapse(o.claim) }),
+    o.evidence ? t(" Reasoning: {text}", { text: collapse(o.evidence) }) : "",
+    ` – ${t(objectionStatusText(o.status))}`,
+    o.resolution ? ` (${collapse(o.resolution)})` : "",
+    o.blocking ? t(" – blocks approval") : "",
+  ].join("");
+}
 
-export function reportToMarkdown(report: DecisionReport): string {
+/** The Markdown report; fixed wording in `locale` (#322), model output as written. Default English. */
+export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = "en"): string {
+  const t = reportTranslator(locale);
+  const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join("\n") : `- ${t("none")}`);
   const r = report.recommendedSolution;
   const m = report.evaluationMatrix;
   const lines = [
-    `# Final Decision Report – ${report.project}`,
+    `# ${t("Final Decision Report – {project}", { project: report.project })}`,
     "",
-    `Mode: ${report.mode} · Brief version ${report.briefVersion} · Status: ${report.status}`,
-    `Participants: ${report.participants.map((p) => `${p.model}${p.status === "failed" ? " (failed)" : ""}`).join(", ")}`,
-    `Vote weights: ${report.participants.map((p) => `${p.model} ${p.voteWeight}/10${p.suggestedWeight !== null && p.suggestedWeight !== p.voteWeight ? ` (suggested ${p.suggestedWeight})` : ""}`).join(", ")}`,
-    ...(report.validParticipation?.percent != null ? [`Valid participation: ${participationLine(report.validParticipation)}`] : []),
+    t("Mode: {mode} · Brief version {version} · Status: {status}", { mode: report.mode, version: report.briefVersion, status: report.status }),
+    t("Participants: {list}", { list: report.participants.map((p) => `${p.model}${p.status === "failed" ? t(" (failed)") : ""}`).join(", ") }),
+    t("Vote weights: {list}", {
+      list: report.participants
+        .map((p) => `${p.model} ${p.voteWeight}/10${p.suggestedWeight !== null && p.suggestedWeight !== p.voteWeight ? t(" (suggested {n})", { n: p.suggestedWeight }) : ""}`)
+        .join(", "),
+    }),
+    ...(report.validParticipation?.percent != null ? [t("Valid participation: {line}", { line: participationLine(report.validParticipation, t) })] : []),
     "",
-    `## Outcome`,
-    report.outcomeText,
+    `## ${t("Outcome")}`,
+    t(report.outcomeText),
     "",
-    ...(report.decisionFormat && !report.decisionFormat.approvable ? ["**Not approvable:** this verdict cannot be approved or built.", ""] : []),
-    ...(report.requirementsConflict && report.requirementConflicts.length ? ["### Conflicting requirements", list(report.requirementConflicts), ""] : []),
+    ...(report.decisionFormat && !report.decisionFormat.approvable ? [t("**Not approvable:** this verdict cannot be approved or built."), ""] : []),
+    ...(report.requirementsConflict && report.requirementConflicts.length ? [`### ${t("Conflicting requirements")}`, list(report.requirementConflicts), ""] : []),
     ...(report.requirementGate
       ? [
-          "### Requirement check (model judgements with reasons, not a fact check)",
+          `### ${t("Requirement check (model judgements with reasons, not a fact check)")}`,
           ...(report.requirementGate.summary ? [report.requirementGate.summary] : []),
           ...(report.requirementGate.comparisonNote ? [report.requirementGate.comparisonNote] : []),
           list(
             report.requirementGate.proposals.map(
-              (g) => `Proposal ${g.proposal}: ${g.feasibility.replace("_", " ")}${g.causes.length ? ` – ${g.causes.join(" ")}` : ""}`,
+              (g) => `${t("Proposal {label}", { label: g.proposal })}: ${g.feasibility.replace("_", " ")}${g.causes.length ? ` – ${g.causes.join(" ")}` : ""}`,
             ),
           ),
           "",
@@ -322,10 +342,10 @@ export function reportToMarkdown(report: DecisionReport): string {
       : []),
     ...(report.confirmedRequirements
       ? [
-          `## Confirmed requirements (list version ${report.confirmedRequirements.version})`,
+          `## ${t("Confirmed requirements (list version {version})", { version: report.confirmedRequirements.version })}`,
           list(report.confirmedRequirements.items.map((i) => `${i.id}: ${i.text}`)),
           ...(report.confirmedRequirements.excluded.length
-            ? ["", "Not taken over:", list(report.confirmedRequirements.excluded.map((e) => `${e.text} (${e.reason})`))]
+            ? ["", t("Not taken over:"), list(report.confirmedRequirements.excluded.map((e) => `${e.text} (${e.reason})`))]
             : []),
           "",
         ]
@@ -334,102 +354,102 @@ export function reportToMarkdown(report: DecisionReport): string {
   if (r) {
     const changed = r.architectureChange
       ? [
-          `**Architecture change:** revision v${r.architectureChange.toVersion} replaced the solution of v${r.architectureChange.fromVersion}${r.architectureChange.adoptedFrom.length ? `; it resembles Proposal ${r.architectureChange.adoptedFrom.join(", ")}` : ""}.`,
+          `${t("**Architecture change:** revision v{to} replaced the solution of v{from}", { to: r.architectureChange.toVersion, from: r.architectureChange.fromVersion })}${r.architectureChange.adoptedFrom.length ? t("; it resembles Proposal {list}", { list: r.architectureChange.adoptedFrom.join(", ") }) : ""}.`,
           "",
         ]
       : [];
     lines.push(
-      `## ${report.decisionFormat && !report.decisionFormat.approvable ? "Leading proposal (not approvable)" : "Recommended solution"}: Proposal ${r.label} – ${r.title ?? ""}`,
-      `Author: ${r.author}`,
+      `## ${t(report.decisionFormat && !report.decisionFormat.approvable ? "Leading proposal (not approvable)" : "Recommended solution")}: ${t("Proposal {label}", { label: r.label ?? "?" })} – ${r.title ?? ""}`,
+      t("Author: {author}", { author: r.author }),
       "",
       ...changed,
       r.summary ?? "",
       "",
-      "### Architecture",
+      `### ${t("Architecture")}`,
       r.architecture ?? "",
       "",
-      "### Advantages",
+      `### ${t("Advantages")}`,
       list(r.advantages),
       "",
-      "### Disadvantages",
+      `### ${t("Disadvantages")}`,
       list(r.disadvantages),
       "",
-      "### Rationale (independent evaluators)",
+      `### ${t("Rationale (independent evaluators)")}`,
       list(r.rationale.map((x) => `${x.criterion} ${x.score}/10 (${x.evaluator}): ${x.rationale}`)),
       "",
     );
   }
   if (m) {
     lines.push(
-      "## Evaluation matrix",
-      `Formula: ${m.formula}`,
+      `## ${t("Evaluation matrix")}`,
+      t("Formula: {formula}", { formula: m.formula }),
       "",
-      "| Proposal | Total | Implementable | Eligible | Evaluators | Borda | Notes |",
+      `| ${t("Proposal")} | ${t("Total")} | ${t("Implementable")} | ${t("Eligible")} | ${t("Evaluators")} | Borda | ${t("Notes")} |`,
       "|---|---|---|---|---|---|---|",
     );
     for (const p of m.proposals)
       lines.push(
-        `| ${p.label} | ${p.total ?? "–"} | ${p.implementable ? "yes" : "no"} | ${p.eligible ? "yes" : "no"} | ${p.independentEvaluators} | ${p.bordaPoints} | ${p.ineligibleReasons.join("; ")} |`,
+        `| ${p.label} | ${p.total ?? "–"} | ${t(p.implementable ? "yes" : "no")} | ${t(p.eligible ? "yes" : "no")} | ${p.independentEvaluators} | ${p.bordaPoints} | ${p.ineligibleReasons.join("; ")} |`,
       );
-    lines.push("", `Majority vote (for information only – it never overrides the requirement check): ${m.majorityVoteWinner ?? "no clear majority"}`, "");
+    lines.push("", t("Majority vote (for information only – it never overrides the requirement check): {winner}", { winner: m.majorityVoteWinner ?? t("no clear majority") }), "");
     if (m.confidence === "low")
-      lines.push("**Low confidence:**", list([...m.failedEvaluators.map((f) => `Evaluation failed – ${f}`), ...m.confidenceIssues]), "");
-    if (m.confidence === "reduced") lines.push("**Limited review depth:**", list(m.confidenceIssues), "");
+      lines.push(t("**Low confidence:**"), list([...m.failedEvaluators.map((f) => t("Evaluation failed – {name}", { name: f })), ...m.confidenceIssues]), "");
+    if (m.confidence === "reduced") lines.push(t("**Limited review depth:**"), list(m.confidenceIssues), "");
   }
   if (report.debate.length) {
-    lines.push("## Debate", "");
+    lines.push(`## ${t("Debate")}`, "");
     for (const m of report.debate) {
       const meta = [
         m.phase,
-        `round ${m.round}`,
+        t("round {n}", { n: m.round }),
         m.kind,
         m.role,
-        m.proposal ? `Proposal ${m.proposal}` : null,
+        m.proposal ? t("Proposal {label}", { label: m.proposal }) : null,
         m.severity ? `${m.category ?? ""}/${m.severity}` : null,
       ]
         .filter(Boolean)
         .join(" · ");
-      lines.push(`- **${m.by}** (${meta}): ${m.text.replace(/\s+/g, " ").trim()}${m.evidence ? ` _Evidence:_ ${m.evidence.replace(/\s+/g, " ").trim()}` : ""}`);
+      lines.push(`- **${m.by}** (${meta}): ${m.text.replace(/\s+/g, " ").trim()}${m.evidence ? ` _${t("Evidence")}:_ ${m.evidence.replace(/\s+/g, " ").trim()}` : ""}`);
     }
     lines.push("");
   }
-  lines.push("## Remaining risks", list(report.remainingRisks), "");
-  if (report.mootObjections.length) lines.push("### No longer applicable after the revision", list(report.mootObjections), "");
+  lines.push(`## ${t("Remaining risks")}`, list(report.remainingRisks), "");
+  if (report.mootObjections.length) lines.push(`### ${t("No longer applicable after the revision")}`, list(report.mootObjections), "");
   // Objections, not minority opinions (#169): the status says how the objection was decided, not the proposal.
-  lines.push("## Objections (Minority Review)");
+  lines.push(`## ${t("Objections (Minority Review)")}`);
   lines.push(
     report.objections.length
       ? report.objections
-          .map((o) => `- ${describeObjection(o)} [${o.category}/${o.severity}]${o.undefended ? ` – NOT DEFENDED – ${o.undefended}` : ""}`)
+          .map((o) => `- ${objectionLine(o, t)} [${o.category}/${o.severity}]${o.undefended ? ` – ${t("NOT DEFENDED")} – ${o.undefended}` : ""}`)
           .join("\n")
-      : "- none",
+      : `- ${t("none")}`,
   );
-  if (report.consensus?.disagreements.length) lines.push("", "Disagreements that remain between the models are listed under Consensus Round.");
+  if (report.consensus?.disagreements.length) lines.push("", t("Disagreements that remain between the models are listed under Consensus Round."));
   lines.push(
     "",
-    "## Alternatives not chosen",
-    list(report.alternatives.map((a) => `Proposal ${a.label}${a.kind === "hybrid" ? " (hybrid)" : ""}: ${a.title ?? ""} – ${a.summary ?? ""}`)),
+    `## ${t("Alternatives not chosen")}`,
+    list(report.alternatives.map((a) => `${t("Proposal {label}", { label: a.label ?? "?" })}${a.kind === "hybrid" ? t(" (hybrid)") : ""}: ${a.title ?? ""} – ${a.summary ?? ""}`)),
     "",
-    "## Next steps",
+    `## ${t("Next steps")}`,
     list(report.nextSteps),
     "",
   );
   if (report.consensus)
     lines.push(
       "## Consensus Round",
-      `Status: ${report.consensus.status}`,
-      ...(report.consensus.basedOn.length ? [`Based on: ${report.consensus.basedOn.join(", ")}`] : []),
-      "Agreements:",
+      t("Status: {status}", { status: report.consensus.status }),
+      ...(report.consensus.basedOn.length ? [t("Based on: {list}", { list: report.consensus.basedOn.join(", ") })] : []),
+      t("Agreements:"),
       list(report.consensus.agreements),
-      "Disagreements:",
+      t("Disagreements:"),
       list(report.consensus.disagreements),
       "",
     );
   lines.push(
-    "## Human decisions",
+    `## ${t("Human decisions")}`,
     list(report.approvals.map((a) => `${a.action}${a.comment ? `: ${a.comment}` : ""}`)),
     "",
-    `Tokens used: ${report.tokens.used.toLocaleString("en-US")} of ${report.tokens.budget.toLocaleString("en-US")}`,
+    t("Tokens used: {used} of {budget}", { used: reportNumber(locale, report.tokens.used), budget: reportNumber(locale, report.tokens.budget) }),
   );
   return lines.join("\n");
 }

@@ -2,6 +2,7 @@ export * from "./call";
 export * from "./engine";
 export * from "./queue";
 export * from "./report";
+export * from "./report-i18n";
 export * from "./schemas";
 export * from "./service";
 export { modelMajority, computeDecision, ADJUDICATION_BATCH_SIZE, JUDGE_PARALLEL_CALLS } from "./phases";

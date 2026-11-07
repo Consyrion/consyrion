@@ -71,7 +71,7 @@ export interface Script {
 }
 
 const labelsIn = (prompt: string) =>
-  [...prompt.matchAll(/<proposal label="([A-Z])"[^>]*>\n([\s\S]*?)\n<\/proposal>/g)].map((m) => ({
+  [...prompt.matchAll(/<proposal label="([A-Z]|\d{1,2})"[^>]*>\n([\s\S]*?)\n<\/proposal>/g)].map((m) => ({
     label: m[1]!,
     title: (JSON.parse(m[2]!) as { title: string }).title,
   }));

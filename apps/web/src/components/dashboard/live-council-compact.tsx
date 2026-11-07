@@ -4,6 +4,9 @@ import { MarkShapes } from "../brand/consyrion-logo";
 import { Icon } from "../ui/icons";
 import { PROVIDER_COLOR, PROVIDER_NAME, type ActivityNode } from "./activity-network-data";
 
+/** The provider's initial, not A/B/C: those letters belong to the proposals of the verdict (QA 07.11.26). */
+const providerInitial = (provider: string) => (PROVIDER_NAME[provider] ?? provider).charAt(0).toUpperCase();
+
 /** Positions around the brand core in the compact graphic: left and right first, then above and below. */
 const SLOTS = [
   { x: 42, y: 52 },
@@ -56,7 +59,7 @@ export function CompactNetwork({ nodes, className = "" }: { nodes: ActivityNode[
               <circle cx={slot.x} cy={slot.y} r="18" fill={color} opacity="0.35" filter="url(#lcc-glow)" />
               <circle cx={slot.x} cy={slot.y} r="16" fill="#071226" stroke={color} strokeWidth="2.5" strokeDasharray={node.state === "working" ? "20 6" : undefined} />
               <text x={slot.x} y={slot.y + 6} textAnchor="middle" fontSize="16" fontWeight="700" fill="#ffffff">
-                {String.fromCharCode(65 + i)}
+                {providerInitial(node.provider)}
               </text>
             </g>
           );
@@ -92,10 +95,10 @@ export function LiveCouncilCompact(props: { href: string; live: boolean; status:
       </p>
       <CompactNetwork nodes={shown} className="mt-3" />
       <ul className="mt-2 space-y-1 text-sm" aria-label={t("compact.models", { n: nodes.length })}>
-        {shown.map((node, i) => (
+        {shown.map((node) => (
           <li key={node.id} className="flex items-center gap-2">
             <span aria-hidden="true" className="grid size-5 shrink-0 place-items-center rounded-full border-2 text-[10px] font-bold" style={{ borderColor: PROVIDER_COLOR[node.provider] ?? "#22d3ee" }}>
-              {String.fromCharCode(65 + i)}
+              {providerInitial(node.provider)}
             </span>
             <span className="min-w-0 flex-1 truncate">
               {PROVIDER_NAME[node.provider] ?? node.provider} <span className="text-muted">· {node.model}</span>

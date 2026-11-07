@@ -256,6 +256,8 @@ export function buildDecisionReport(view: SessionView) {
       /** The author's model failed, so the objection is unanswered – not uncontested (#175). */
       undefended: !o.response && o.undefendedReason ? o.undefendedReason : null,
       status: o.status,
+      /** Raised against an earlier revision the current one no longer contains (#150) – not counted as open, as on screen. */
+      moot: Boolean(o.moot),
       blocking: o.blocking,
       resolution: o.resolutionReason,
     })),

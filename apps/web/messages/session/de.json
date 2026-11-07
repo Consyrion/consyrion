@@ -393,6 +393,12 @@
       "saving": "Speichere…",
       "record": "Entscheidung speichern",
       "onlyOwners": "Nur Besitzer und Admins können Entscheidungen freigeben."
+    },
+    "reasons": {
+      "needsVerification": "Prüfung nötig – der Council konnte nicht bestätigen, dass ein Vorschlag alle Anforderungen erfüllt. Er kann nicht freigegeben oder gebaut werden.",
+      "notQualified": "Dieser Vorschlag erfüllt laut den Bewertungen nicht alle bestätigten Anforderungen (oder es ließ sich nicht bestätigen). Er kann nicht freigegeben oder gebaut werden. Ändere den Auftrag oder die Anforderungen und starte einen neuen Council.",
+      "limitedReview": "Zu wenige unabhängige Modelle haben diesen Vorschlag geprüft (mindestens 2 sind nötig). Er ist ein vorläufiger Favorit und kann nicht freigegeben oder gebaut werden. Starte einen neuen Council mit mindestens 3 Modellen.",
+      "unknownOutcome": "Dieses Urteil nutzt ein Ergebnis, das diese Version nicht kennt. Es kann hier nicht freigegeben oder gebaut werden."
     }
   },
   "requirementGate": {

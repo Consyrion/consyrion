@@ -5,7 +5,7 @@ import { COUNCIL_PHASE_LABELS, describeMeasure, measureUnitText, type CouncilRol
  * declared as untrusted data, so instructions hidden inside a brief, a repository excerpt or another
  * model's answer are not followed (prompt-injection defence, issue #11).
  */
-export const PROMPT_VERSION = "2026-10-31.1";
+export const PROMPT_VERSION = "2026-11-07.1";
 
 const BASE_SYSTEM = [
   "You are one participant in Consyrion, a structured decision council of several independent AI models.",
@@ -19,6 +19,8 @@ const BASE_SYSTEM = [
   "Hard requirements of the brief are binding. A proposal solves them only if it meets every one as stated, without relaxing, reinterpreting or dropping any. If they cannot be met together, say so: set solvesRequirements to false, list the conflicting requirements in requirementConflicts and do not present a workaround as a solution.",
   // Answers that were cut off at the output limit cost the budget twice (#172); runaway answers repeated themselves (#175).
   "Be concise: keep every text field to a few sentences, state each point once and stop when the JSON object is complete.",
+  // QA live test 07.11.26: a German brief got English objections, answers and verdict texts.
+  "Write every free-text value (titles, summaries, claims, evidence, answers, reasons) in the language the brief is written in – German for a German brief. Keep JSON keys, enum values, proposal labels and quoted text unchanged.",
   "Respond only with JSON that matches the provided schema.",
 ].join("\n");
 

@@ -24,7 +24,7 @@ export interface SummaryContradiction {
 
 const ABSENCE =
   /\b(lacks?|lacking|is missing|are missing|missing|omits?|omitting|without|no mention of|does not (?:include|have|mention|specify|address|cover|provide|detail|describe)|doesn't (?:include|have|mention|specify|address|cover|provide|detail|describe)|fails to (?:include|mention|address|specify|describe|provide))\b/i;
-const LABEL = /\b(?:[Pp]roposal|[Oo]ption|[Ss]olution)\s+([A-Z])\b/g;
+const LABEL = /\b(?:[Pp]roposal|[Oo]ption|[Ss]olution)\s+([A-Z]|\d{1,2})\b/g;
 /** Words that describe the statement itself, not the measures it is about. */
 const GENERIC = new Set(
   "proposal option solution approach emphasiz comprehensive detail detailing specific specifics aspect element measure process more less while whereas both other plan explicit explicitly clear clearly strong stronger weak weaker focus".split(" "),

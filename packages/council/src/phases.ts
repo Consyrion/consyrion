@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import { callStructured, ParticipantCallError, PHASE_FAILURE_LIMIT, PROVIDER_FAILURE_KINDS, settle, type AdapterResolver, type CallErrorKind } from "./call";
 import type { Participant, ProposalWithLatest, SessionContext } from "./context";
+import { nextProposalLabel, proposalLabels } from "./labels";
 import { briefBlock, proposalBlock, roleInstruction, systemPrompt } from "./prompts";
 import { checkBinding, proposalText } from "./binding";
 import { assertCanEvaluateSession, sessionGateVersions } from "./decision-format";
@@ -34,8 +35,6 @@ import {
   roleReviewSchema,
 } from "./schemas";
 
-const LABELS = "ABCDEFGHIJKL".split("");
-
 function shuffle<T>(items: T[], random: () => number): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -51,7 +50,7 @@ async function markFailed(ctx: SessionContext, participant: Participant, reason:
 
 /** Said wherever proposals are listed: their labels are not the options a user may have named A, B, … (#93). */
 const LABEL_NOTE =
-  "Proposal labels (A, B, C, …) are internal identifiers of the model proposals below. They are unrelated to any options, variants or alternatives the brief itself names with letters or numbers.";
+  "Proposal labels (A, B, C, … or 1, 2, 3, …) are internal identifiers of the model proposals below. They are unrelated to any options, variants or alternatives the brief itself names with letters or numbers.";
 
 function proposalsBlock(proposals: ProposalWithLatest[], exclude?: string) {
   const blocks = proposals
@@ -107,7 +106,10 @@ export function withRevisionNote(reason: string | null, kind: "addressed" | "cha
 /* ---------- 1. Independent Thinking ---------- */
 
 export async function independentThinking(ctx: SessionContext, resolve: AdapterResolver, random: () => number) {
-  const brief = briefBlock(await ctx.brief());
+  const briefRow = await ctx.brief();
+  const brief = briefBlock(briefRow);
+  // Numbered labels when the brief names its own options with letters (QA 07.11.26).
+  const labels = proposalLabels([briefRow.idea, briefRow.goal, briefRow.requirements].join("\n"));
   const participants = await ctx.participants();
   const existing = await ctx.db.select().from(schema.proposal).where(eq(schema.proposal.sessionId, ctx.session.id));
   const pending = participants.filter((p) => !existing.some((e) => e.authorParticipantId === p.id && e.kind === "original"));
@@ -145,7 +147,7 @@ export async function independentThinking(ctx: SessionContext, resolve: AdapterR
     // that did arrive become readable – marked in the UI as incomplete, never as a verdict.
     const now = new Date();
     for (const [index, proposal] of proposals.entries()) {
-      if (!proposal.revealedAt) await ctx.db.update(schema.proposal).set({ label: LABELS[index], revealedAt: now }).where(eq(schema.proposal.id, proposal.id));
+      if (!proposal.revealedAt) await ctx.db.update(schema.proposal).set({ label: labels[index], revealedAt: now }).where(eq(schema.proposal.id, proposal.id));
     }
     const all = await ctx.db
       .select({ id: schema.councilParticipant.id })
@@ -164,7 +166,7 @@ export async function independentThinking(ctx: SessionContext, resolve: AdapterR
     const now = new Date();
     await ctx.db.transaction(async (tx) => {
       for (const [index, proposal] of shuffle(proposals, random).entries()) {
-        await tx.update(schema.proposal).set({ label: LABELS[index], revealedAt: now }).where(eq(schema.proposal.id, proposal.id));
+        await tx.update(schema.proposal).set({ label: labels[index], revealedAt: now }).where(eq(schema.proposal.id, proposal.id));
       }
     });
   }
@@ -802,7 +804,7 @@ export async function consensusRound(ctx: SessionContext, resolve: AdapterResolv
       });
       if (value.shouldCreateHybrid) {
         hybridProposalId = newId("pro");
-        const label = LABELS[proposals.length] ?? `H${proposals.length}`;
+        const label = nextProposalLabel(proposals.map((p) => p.proposal.label!));
         await ctx.db.transaction(async (tx) => {
           await tx.insert(schema.proposal).values({
             id: hybridProposalId!,

@@ -74,3 +74,23 @@ export function useEnumText(namespace: string) {
 
 export const SEVERITY_TONE = { low: "neutral", medium: "warning", high: "danger", critical: "danger" } as const;
 export const STATUS_TONE = { open: "warning", refuted: "success", resolved: "success", accepted: "danger", unresolved: "warning" } as const;
+
+/**
+ * The server states why a verdict is not approvable in English (packages/council/src/decision-format.ts). The known
+ * sentences are shown in the interface language (QA 07.11.26: German UI, English reason); anything else stays as sent.
+ */
+const VERDICT_REASONS: ReadonlyArray<readonly [prefix: string, key: string]> = [
+  ["Needs verification – the council could not confirm", "needsVerification"],
+  ["This proposal does not meet every confirmed requirement", "notQualified"],
+  ["Too few independent models checked this proposal", "limitedReview"],
+  ["This verdict uses a result this version does not know", "unknownOutcome"],
+];
+
+export function useVerdictReason() {
+  const t = useTranslations("verdictScreen.reasons");
+  return (reason: string | null | undefined) => {
+    if (!reason) return reason ?? null;
+    const key = VERDICT_REASONS.find(([prefix]) => reason.startsWith(prefix))?.[1];
+    return key ? t(key as never) : reason;
+  };
+}

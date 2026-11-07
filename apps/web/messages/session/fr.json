@@ -393,6 +393,12 @@
       "saving": "Enregistrement…",
       "record": "Enregistrer la décision",
       "onlyOwners": "Seuls les propriétaires et les admins peuvent approuver des décisions."
+    },
+    "reasons": {
+      "needsVerification": "Vérification nécessaire – le conseil n’a pas pu confirmer qu’une proposition remplit toutes les exigences. Elle ne peut être ni approuvée ni construite.",
+      "notQualified": "Selon les évaluations, cette proposition ne remplit pas toutes les exigences confirmées (ou cela n’a pas pu être confirmé). Elle ne peut être ni approuvée ni construite. Modifie le brief ou les exigences et lance un nouveau conseil.",
+      "limitedReview": "Trop peu de modèles indépendants ont vérifié cette proposition (au moins 2 sont nécessaires). C’est un favori provisoire qui ne peut être ni approuvé ni construit. Lance un nouveau conseil avec au moins 3 modèles.",
+      "unknownOutcome": "Ce verdict utilise un résultat que cette version ne connaît pas. Il ne peut pas être approuvé ni construit ici."
     }
   },
   "requirementGate": {

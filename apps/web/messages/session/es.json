@@ -393,6 +393,12 @@
       "saving": "Guardando…",
       "record": "Registrar decisión",
       "onlyOwners": "Solo los propietarios y administradores pueden aprobar decisiones."
+    },
+    "reasons": {
+      "needsVerification": "Requiere verificación: el consejo no pudo confirmar que una propuesta cumpla todos los requisitos. No se puede aprobar ni construir.",
+      "notQualified": "Según las evaluaciones, esta propuesta no cumple todos los requisitos confirmados (o no se pudo confirmar). No se puede aprobar ni construir. Cambia el encargo o los requisitos e inicia un nuevo consejo.",
+      "limitedReview": "Demasiados pocos modelos independientes revisaron esta propuesta (se necesitan al menos 2). Es una favorita provisional y no se puede aprobar ni construir. Inicia un nuevo consejo con al menos 3 modelos.",
+      "unknownOutcome": "Este veredicto usa un resultado que esta versión no conoce. Aquí no se puede aprobar ni construir."
     }
   },
   "requirementGate": {

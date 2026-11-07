@@ -165,3 +165,19 @@ describe("#230: the Final Verdict says first why there is no recommendation", ()
     expect(html).not.toContain("No solution meets the requirements");
   });
 });
+
+describe("the server's English reason in the interface language (QA 07.11.26)", () => {
+  it("shows the known needs_verification reason in German", () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="de" messages={messagesFor("de")}>
+        <VerdictScreen
+          view={view("needs_verification", { approvable: false, reason: "Needs verification – the council could not confirm that a proposal meets every requirement." })}
+          canApprove
+          onChange={async () => {}}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("Prüfung nötig – der Council konnte nicht bestätigen");
+    expect(html).not.toContain("the council could not confirm");
+  });
+});

@@ -20,6 +20,7 @@ import {
   STATUS_TONE,
   useEnumText,
   useRoleLabel,
+  useVerdictReason,
   type ProposalContent,
   type ProposalJson,
   type View,
@@ -914,6 +915,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const format = useFormatter();
   const feasibility = useFeasibilityLabel();
   const statusText = useEnumText("phaseScreens.objectionStatus");
+  const verdictReason = useVerdictReason();
   if (!decision) return <Waiting view={view} phase="final_verdict" text={t("waiting")} />;
   const recommended = view.proposals.find((p) => p.id === decision.recommendedProposalId);
   const content = recommended ? contentOf(recommended) : null;
@@ -979,7 +981,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
           outcome={outcome}
           outcomeKey={outcomeKey}
           nextAction={view.session.status === "awaiting_approval" && canApprove ? (initialAction as NextAction) : null}
-          reason={notApprovable ? (status?.reason ?? null) : (matrix.requirementGate?.summary ?? null)}
+          reason={notApprovable ? verdictReason(status?.reason) : (matrix.requirementGate?.summary ?? null)}
           approvableIds={approvableIds}
           recommendedId={notApprovable ? null : (decision.recommendedProposalId ?? null)}
         />
@@ -1021,7 +1023,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         {matrix ? <MainReason view={view} matrix={matrix} canRepeat={canApprove} /> : null}
         {notApprovable && status?.reason ? (
           <p className="mt-3 text-sm" data-testid="not-approvable-reason">
-            {status.reason} {t("notApprovableHint")}
+            {verdictReason(status.reason)} {t("notApprovableHint")}
           </p>
         ) : null}
         {s1 && matrix?.requirementGate ? (

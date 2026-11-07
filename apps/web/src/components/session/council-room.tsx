@@ -14,6 +14,15 @@ import { Badge } from "../ui/surface";
 import { contentOf, modelName, PROVIDER_LABELS, proposalLabel, SEVERITY_TONE, STATUS_TONE, useEnumText, useRoleLabel, type View } from "./helpers";
 import { Select } from "../ui/select";
 
+/**
+ * Badge of a model card: the label of its proposal once proposals are revealed, so the card matches "Proposal B" in
+ * the verdict; before that the provider's initial. Never a positional A/B/C (QA 07.11.26: card A was proposal C).
+ */
+function participantBadge(view: View, participantId: string, provider: string) {
+  const label = view.proposals.find((x) => x.authorParticipantId === participantId && x.kind !== "hybrid")?.label;
+  return label ?? (PROVIDER_LABELS[provider] ?? provider).charAt(0).toUpperCase();
+}
+
 type VoiceState = "working" | "submitted" | "waiting" | "failed" | "evaluation_failed" | "roles_failed";
 
 /** Translator of this file's namespace; the exported text helpers default to English (used without a provider in tests). */
@@ -355,7 +364,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
       />
       {/* Text version: visible model cards on small screens, screen-reader list on larger ones. */}
       <ul className="mt-3 space-y-2 sm:sr-only" aria-label={t("listAria")}>
-        {view.participants.map((p, i) => {
+        {view.participants.map((p) => {
           const state = states[p.id] ?? "waiting";
           const roles = view.roles.filter((r) => r.participantId === p.id).map((r) => roleLabel(r.role));
           return (
@@ -366,7 +375,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
                   className="grid size-6 place-items-center rounded-full border-2 text-xs font-bold"
                   style={{ borderColor: PROVIDER_COLOR[p.provider] }}
                 >
-                  {String.fromCharCode(65 + i)}
+                  {participantBadge(view, p.id, p.provider)}
                 </span>
                 <span className="min-w-0 flex-1 font-medium break-words">{modelName(view, p.id)}</span>
                 <Badge tone={VOICE_TONE[state]}>{voiceText(state)}</Badge>

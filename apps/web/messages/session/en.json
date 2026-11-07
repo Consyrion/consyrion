@@ -393,6 +393,12 @@
       "saving": "Saving…",
       "record": "Record decision",
       "onlyOwners": "Only owners and admins can approve decisions."
+    },
+    "reasons": {
+      "needsVerification": "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.",
+      "notQualified": "This proposal does not meet every confirmed requirement according to the evaluations (or it could not be confirmed). It cannot be approved or built. Change the brief or the requirements and start a new council.",
+      "limitedReview": "Too few independent models checked this proposal (at least 2 are needed). It is a provisional favourite and cannot be approved or built. Start a new council with at least 3 models.",
+      "unknownOutcome": "This verdict uses a result this version does not know. It cannot be approved or built here."
     }
   },
   "requirementGate": {

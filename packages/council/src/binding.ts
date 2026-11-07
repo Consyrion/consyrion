@@ -97,7 +97,7 @@ export function titleWords(title: string): Set<string> {
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/^\s*(proposal|vorschlag)\s+[a-z]\b\s*[:\-–]?/, "");
+    .replace(/^\s*(proposal|vorschlag)\s+([a-z]|\d{1,2})\b\s*[:\-–]?/, "");
   return new Set(plain.match(/[a-z0-9ß]+/g) ?? []);
 }
 

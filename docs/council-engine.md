@@ -261,6 +261,10 @@ tokens (8,192 again if a model rejects the larger limit) and start at 8,000 (`PR
 Proposal labels (A, B, …) can collide with options a user names in the brief ("Option A = CSV, B = Push"). In a
 real run an evaluator scored the CSV proposal with arguments about push. Since then:
 
+- When the brief itself names lettered options ("A) …, B) …" or "Option A / Variante B", at least two letters), the
+  proposals are numbered 1, 2, 3 instead of A, B, C (`packages/council/src/labels.ts`, QA live test 07.11.26: "Proposal A"
+  recommended option C). A hybrid continues the style of the existing labels. The model cards in the Council Room show
+  the proposal's label once proposals are revealed (before that the provider's initial), never a positional letter.
 - Every prompt that lists proposals says that their labels are unrelated to options named in the brief.
 - The evaluator copies each proposal's title and states its core recommendation (`proposalTitle`,
   `proposalSummary`) before scoring.
@@ -655,3 +659,12 @@ confirmed for it and its open objections ("settle before any irreversible step")
 these first"), high/critical risks with the planned mitigation ("stop and re-check if …") and the points the Consensus
 Round left open ("ask the council again when …"). Empty sections say "not specified"; nothing is generated, a test plan
 never confirms a requirement and nothing starts without the user.
+
+## Answer language and the interface language (QA live test 07.11.26)
+
+- The base system prompt asks every model to write free text (titles, claims, evidence, answers, reasons) in the
+  language of the brief; JSON keys, enum values, labels and quotes stay unchanged (`PROMPT_VERSION` 2026-11-07.1).
+- The server's fixed reasons why a verdict is not approvable (`decision-format.ts`, English) are shown in the interface
+  language (`useVerdictReason`, messages `verdictScreen.reasons`); unknown text is shown as sent.
+- "Open objections" on PDF page 1 uses the dashboard's rule: objections made moot by a revision (#150) are not open.
+  The PDF and Word report itself is still English (tracked separately).

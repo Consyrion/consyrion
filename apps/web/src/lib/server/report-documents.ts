@@ -262,7 +262,8 @@ function drawSummary(
   }
 
   const objections = report.objections ?? [];
-  const open = objections.filter((o) => o.status === "accepted" || o.status === "unresolved" || o.status === "open");
+  // Same rule as the dashboard fact "critical/high objections open": objections made moot by a revision are not open.
+  const open = objections.filter((o) => (o.status === "accepted" || o.status === "unresolved" || o.status === "open") && !o.moot);
   if (objections.length) {
     heading("Open objections");
     const labels = rows.length ? rows.map((r) => r.label) : [...new Set(objections.map((o) => o.proposal))];

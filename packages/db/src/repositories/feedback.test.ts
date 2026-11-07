@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDatabase, type DatabaseHandle } from "../client";
 import { membership, user } from "../schema";
@@ -99,6 +100,11 @@ describe("feedback inbox (#295)", () => {
     await expect(resolvePlatformAdmin(handle.db, "alice", ADMINS)).rejects.toThrow(/not found/i);
     await expect(resolvePlatformAdmin(handle.db, "ghost", ADMINS)).rejects.toThrow(/not found/i);
     await expect(resolvePlatformAdmin(handle.db, "root", [])).rejects.toThrow(/not found/i);
+    // With e-mail verification on, an unverified admin address is not enough (registering an unclaimed address).
+    await expect(resolvePlatformAdmin(handle.db, "root", ADMINS, { requireVerifiedEmail: true })).rejects.toThrow(/not found/i);
+    await handle.db.update(user).set({ emailVerified: true }).where(eq(user.id, "root"));
+    await expect(resolvePlatformAdmin(handle.db, "root", ADMINS, { requireVerifiedEmail: true })).resolves.toMatchObject({ userId: "root" });
+    await handle.db.update(user).set({ emailVerified: false }).where(eq(user.id, "root"));
     // A forged context (cast) is rejected as well.
     const forged = { userId: "alice", email: "root@example.test" } as PlatformAdminContext;
     await expect(listFeedbackForAdmin(handle.db, forged)).rejects.toThrow(/not found/i);

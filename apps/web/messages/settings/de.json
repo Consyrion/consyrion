@@ -429,6 +429,12 @@
     "haveAccount": "Du hast schon ein Konto?",
     "newHere": "Neu bei CONSYRION AI?",
     "createAnAccount": "Konto erstellen",
+    "verifyCheckInbox": "Fast geschafft: Wir haben einen Bestätigungslink an {email} gesendet. Öffne ihn, um dein Konto zu aktivieren.",
+    "verifyNotVerified": "Bitte bestätige zuerst deine E-Mail-Adresse. Wir haben gerade einen neuen Link an {email} gesendet.",
+    "verifyTitle": "E-Mail-Adresse bestätigt",
+    "verifyDoneText": "Deine Adresse ist bestätigt. Melde dich an, um weiterzumachen.",
+    "verifyFailedTitle": "Link ungültig oder abgelaufen",
+    "verifyFailedText": "Dieser Bestätigungslink funktioniert nicht mehr. Melde dich mit E-Mail und Passwort an, dann senden wir dir einen neuen.",
     "shell": {
       "home": "CONSYRION AI Startseite",
       "tagline": "Debattieren. Entscheiden. Umsetzen.",

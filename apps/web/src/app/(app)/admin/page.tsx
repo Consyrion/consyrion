@@ -7,7 +7,7 @@ import { AdminPlanEditor, AdminPlanSelect, AdminStripeSetup } from "@/components
 import { buttonClasses } from "@/components/ui/button";
 import { Badge, Card, PageHeader } from "@/components/ui/surface";
 import { requireUser } from "@/lib/server/actor";
-import { isPlatformAdmin, platformAdminEmails } from "@/lib/server/admin";
+import { isPlatformAdmin, platformAdminEmails, platformAdminOptions } from "@/lib/server/admin";
 import { getDb } from "@/lib/server/db";
 
 export async function generateMetadata() {
@@ -18,12 +18,12 @@ export async function generateMetadata() {
 /** Platform administration (PLATFORM_ADMIN_EMAILS). Hidden (404) for everybody else. */
 export default async function AdminPage() {
   const user = await requireUser();
-  if (!isPlatformAdmin(user.email)) notFound();
+  if (!isPlatformAdmin(user)) notFound();
   const t = await getTranslations("settings.admin");
   const format = await getFormatter();
   const db = await getDb();
   const tf = await getTranslations("feedback.admin");
-  const admin = await resolvePlatformAdmin(db, user.id, platformAdminEmails());
+  const admin = await resolvePlatformAdmin(db, user.id, platformAdminEmails(), platformAdminOptions());
   const [overview, catalog, stripe, newFeedback] = await Promise.all([platformOverview(db), getPlanCatalog(db), stripeStatus(db), countNewFeedback(db, admin)]);
   const organizations = overview.list;
   const plans = await Promise.all(organizations.map((o) => getSubscription(db, o.id)));

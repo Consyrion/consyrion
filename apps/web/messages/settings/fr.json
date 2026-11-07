@@ -429,6 +429,12 @@
     "haveAccount": "Vous avez déjà un compte ?",
     "newHere": "Nouveau sur CONSYRION AI ?",
     "createAnAccount": "Créer un compte",
+    "verifyCheckInbox": "Presque terminé : nous avons envoyé un lien de confirmation à {email}. Ouvrez-le pour activer votre compte.",
+    "verifyNotVerified": "Veuillez d'abord confirmer votre adresse e-mail. Nous venons d'envoyer un nouveau lien à {email}.",
+    "verifyTitle": "Adresse e-mail confirmée",
+    "verifyDoneText": "Votre adresse est confirmée. Connectez-vous pour continuer.",
+    "verifyFailedTitle": "Lien invalide ou expiré",
+    "verifyFailedText": "Ce lien de confirmation ne fonctionne plus. Connectez-vous avec votre e-mail et votre mot de passe et nous vous en enverrons un nouveau.",
     "shell": {
       "home": "Accueil CONSYRION AI",
       "tagline": "Débattre. Décider. Réaliser.",

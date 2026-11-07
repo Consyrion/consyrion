@@ -1,7 +1,7 @@
 {
   "name": "consyrion",
   "displayName": "CONSYRION AI",
-  "description": "Follow Consyrion council decisions, approve verdicts and review generated code inside VS Code.",
+  "description": "Follow CONSYRION AI council decisions, approve verdicts and review generated code inside VS Code.",
   "version": "0.1.0",
   "publisher": "consyrion",
   "private": true,
@@ -23,21 +23,22 @@
       "consyrion": [{ "id": "consyrion.projects", "name": "Projects & decisions" }]
     },
     "viewsWelcome": [
-      { "view": "consyrion.projects", "contents": "Connect to Consyrion with a personal API token (Consyrion → Settings → API tokens).\n[Sign in](command:consyrion.signIn)" }
+      { "view": "consyrion.projects", "contents": "Connect to CONSYRION AI with a personal API token (CONSYRION AI → Settings → API tokens).\n[Sign in](command:consyrion.signIn)" }
     ],
     "commands": [
-      { "command": "consyrion.signIn", "title": "Consyrion: Sign in with API token" },
-      { "command": "consyrion.signOut", "title": "Consyrion: Sign out" },
-      { "command": "consyrion.refresh", "title": "Consyrion: Refresh", "icon": "$(refresh)" },
-      { "command": "consyrion.openSession", "title": "Consyrion: Open decision" },
-      { "command": "consyrion.openChanges", "title": "Consyrion: Open generated changes" }
+      { "command": "consyrion.signIn", "title": "CONSYRION AI: Sign in with API token" },
+      { "command": "consyrion.signOut", "title": "CONSYRION AI: Sign out" },
+      { "command": "consyrion.refresh", "title": "CONSYRION AI: Refresh", "icon": "$(refresh)" },
+      { "command": "consyrion.openSession", "title": "CONSYRION AI: Open decision" },
+      { "command": "consyrion.openChanges", "title": "CONSYRION AI: Open generated changes" }
     ],
     "menus": {
       "view/title": [{ "command": "consyrion.refresh", "when": "view == consyrion.projects", "group": "navigation" }]
     },
     "configuration": {
-      "title": "Consyrion",
+      "title": "CONSYRION AI",
       "properties": {
+        "consyrion.language": { "type": "string", "enum": ["auto", "en", "de", "fr", "es"], "default": "auto", "description": "Language of the extension; auto follows the VS Code display language." },
         "consyrion.serverUrl": { "type": "string", "default": "https://app.consyrion.com", "description": "Base URL of your CONSYRION AI server (hosted: https://app.consyrion.com, or your self-hosted address)." }
       }
     }

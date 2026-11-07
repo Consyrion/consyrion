@@ -28,13 +28,10 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
   // Show the plan limit before the user installs anything, not on the last click.
   const allowed = entitlements.github;
   const canManage = can(actor.role, "org:manage");
-  const platformAdmin = isPlatformAdmin((await getSessionUser())?.email ?? "");
+  const platformAdmin = isPlatformAdmin(await getSessionUser());
   return (
     <>
-      <PageHeader
-        title={t("title")}
-        description={t("description")}
-      />
+      <PageHeader title={t("title")} description={t("description")} />
       {(await searchParams).connected ? (
         <div className="mb-4">
           <Alert tone="success">{t("connected")}</Alert>
@@ -54,11 +51,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         </div>
         {!configured ? (
           <div className="mt-4">
-            <Alert tone="warning">
-              {platformAdmin
-                ? t("notConfiguredAdmin")
-                : t("notConfigured")}
-            </Alert>
+            <Alert tone="warning">{platformAdmin ? t("notConfiguredAdmin") : t("notConfigured")}</Alert>
           </div>
         ) : null}
         {configured && !allowed ? (

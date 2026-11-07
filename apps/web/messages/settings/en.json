@@ -429,6 +429,12 @@
     "haveAccount": "Already have an account?",
     "newHere": "New to CONSYRION AI?",
     "createAnAccount": "Create an account",
+    "verifyCheckInbox": "Almost done: we sent a confirmation link to {email}. Open it to activate your account.",
+    "verifyNotVerified": "Please confirm your e-mail address first. We just sent a new link to {email}.",
+    "verifyTitle": "E-mail address confirmed",
+    "verifyDoneText": "Your address is confirmed. Sign in to continue.",
+    "verifyFailedTitle": "Link invalid or expired",
+    "verifyFailedText": "This confirmation link no longer works. Sign in with your e-mail and password and we will send you a new one.",
     "shell": {
       "home": "CONSYRION AI home",
       "tagline": "Debate. Decide. Deliver.",

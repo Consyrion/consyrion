@@ -2,6 +2,7 @@ import "server-only";
 import { createSession } from "@consyrion/council";
 import { DomainError, type Keyring } from "@consyrion/core";
 import {
+  archiveProject,
   assertEntitlement,
   claimTelegramRequest,
   createProjectForDecisionRequest,
@@ -163,7 +164,11 @@ export async function handleTelegramUpdate(update: Update, deps: { db: Database;
           // The tap on "Start" accepted the budget text, which says phases may be shortened (#148).
           { mode: "independent_expert", participants, tokenBudget: TELEGRAM_TOKEN_BUDGET, confirmBudget: true },
           modelCatalog(db, actor),
-        );
+        ).catch(async (error: unknown) => {
+          // No project without a council (QA 07.11.26): a refused start archives the project it just created.
+          await archiveProject(db, actor, project.id).catch(() => {});
+          throw error;
+        });
         await setTelegramRequestSession(db, request.id, session.id);
         await edit(t.started(`${deps.appUrl}/sessions/${session.id}`));
         return { started: session.id };

@@ -23,3 +23,9 @@ webview rendering).
 The extension declares `capabilities.untrustedWorkspaces: supported`: it only talks to the CONSYRION AI server and never
 runs workspace code, so it also works in folders VS Code opens in Restricted Mode (before, the activity-bar icon was
 missing there). Display name and view container are "CONSYRION AI".
+
+### Language (QA 07.11.26)
+
+Tree, decision view and messages follow the setting `consyrion.language` (`auto` = VS Code display language; `en`,
+`de`, `fr`, `es`). Phase and mode names are product names and stay unchanged; model output is shown as written.
+"Open decision" from the command palette focuses the CONSYRION AI view instead of failing.

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { fileURLToPath } from "node:url";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
@@ -30,12 +31,21 @@ const securityHeaders = [
 ];
 
 const config: NextConfig = {
-  transpilePackages: ["@consyrion/core", "@consyrion/db", "@consyrion/ai", "@consyrion/council", "@consyrion/engine", "@consyrion/build", "@consyrion/github", "@consyrion/billing"],
+  transpilePackages: [
+    "@consyrion/core",
+    "@consyrion/db",
+    "@consyrion/ai",
+    "@consyrion/council",
+    "@consyrion/engine",
+    "@consyrion/build",
+    "@consyrion/github",
+    "@consyrion/billing",
+  ],
   serverExternalPackages: ["@electric-sql/pglite", "pg", "unpdf"],
   poweredByHeader: false,
   // Self-contained server bundle for the Docker image (see Dockerfile).
   output: "standalone",
-  outputFileTracingRoot: new URL("../..", import.meta.url).pathname,
+  outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
   // Agent guidance lives in the repository CLAUDE.md; do not generate a second file.
   agentRules: false,
   // Versioned API (#101): /api/v1/... is the stable contract for integrations and serves the same handlers as /api/...

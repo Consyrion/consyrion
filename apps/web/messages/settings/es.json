@@ -429,6 +429,12 @@
     "haveAccount": "¿Ya tienes una cuenta?",
     "newHere": "¿Nuevo en CONSYRION AI?",
     "createAnAccount": "Crear una cuenta",
+    "verifyCheckInbox": "Casi listo: hemos enviado un enlace de confirmación a {email}. Ábrelo para activar tu cuenta.",
+    "verifyNotVerified": "Primero confirma tu dirección de correo. Acabamos de enviar un nuevo enlace a {email}.",
+    "verifyTitle": "Correo electrónico confirmado",
+    "verifyDoneText": "Tu dirección está confirmada. Inicia sesión para continuar.",
+    "verifyFailedTitle": "Enlace no válido o caducado",
+    "verifyFailedText": "Este enlace de confirmación ya no funciona. Inicia sesión con tu correo y contraseña y te enviaremos uno nuevo.",
     "shell": {
       "home": "Inicio de CONSYRION AI",
       "tagline": "Debatir. Decidir. Entregar.",

@@ -3,6 +3,7 @@ import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
 import { createSession, previewSession, type SessionInput } from "@consyrion/council";
 import { DECISION_MODES, DomainError } from "@consyrion/core";
 import {
+  archiveProject,
   createProjectForDecisionRequest,
   decryptCredentialForUse,
   lastCouncilParticipants,
@@ -238,13 +239,18 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
           { question: String(args.question ?? ""), context: String(args.context ?? ""), options: list(args.options), requirements: list(args.requirements) },
           "mcp",
         );
+        // A refused start (budget not confirmed, unknown model, plan limit) must not leave a project behind that the
+        // next attempt duplicates (QA 07.11.26): it is archived and the error goes back to the client.
         const session = await createSession(
           db,
           actor,
           project.id,
           sessionInput({ ...args, mode: typeof args.mode === "string" ? args.mode : "independent_expert", participants: chosen }),
           modelCatalog(db, actor),
-        );
+        ).catch(async (error: unknown) => {
+          await archiveProject(db, actor, project.id).catch(() => {});
+          throw error;
+        });
         return {
           sessionId: session.id,
           status: "queued",

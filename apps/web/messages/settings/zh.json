@@ -429,6 +429,12 @@
     "haveAccount": "已有账户？",
     "newHere": "初次使用 CONSYRION AI？",
     "createAnAccount": "创建账户",
+    "verifyCheckInbox": "快完成了：我们已向 {email} 发送确认链接。打开链接即可激活你的账户。",
+    "verifyNotVerified": "请先确认你的电子邮件地址。我们刚刚向 {email} 发送了新的链接。",
+    "verifyTitle": "电子邮件地址已确认",
+    "verifyDoneText": "你的地址已确认。请登录以继续。",
+    "verifyFailedTitle": "链接无效或已过期",
+    "verifyFailedText": "此确认链接已失效。请使用电子邮件和密码登录，我们会向你发送新的链接。",
     "shell": {
       "home": "CONSYRION AI 首页",
       "tagline": "辩论。 决策。 交付。",

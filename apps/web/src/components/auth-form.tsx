@@ -13,7 +13,8 @@ import { Alert } from "./ui/surface";
 const SOCIAL_LABELS = { google: "Google", github: "GitHub" } as const;
 
 /** Larger stage controls for the auth card. */
-const INPUT = "h-14 rounded-xl border-glass-line bg-[rgb(4_9_20/0.7)] px-4 text-base focus:border-primary focus:shadow-[0_0_0_3px_rgb(0_216_255/0.14),0_0_24px_-6px_var(--glow-cyan)]";
+const INPUT =
+  "h-14 rounded-xl border-glass-line bg-[rgb(4_9_20/0.7)] px-4 text-base focus:border-primary focus:shadow-[0_0_0_3px_rgb(0_216_255/0.14),0_0_24px_-6px_var(--glow-cyan)]";
 
 function ProviderLogo({ provider }: { provider: keyof typeof SOCIAL_LABELS }) {
   if (provider === "github") {
@@ -36,6 +37,7 @@ function ProviderLogo({ provider }: { provider: keyof typeof SOCIAL_LABELS }) {
 export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up"; socialProviders: Array<keyof typeof SOCIAL_LABELS> }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const t = useTranslations("auth");
 
@@ -46,13 +48,22 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
     const password = String(form.get("password"));
     setPending(true);
     setError(null);
+    setNotice(null);
+    // The verification link (when the server requires one) leads to /verify-email, which signs the user in.
     const result =
       mode === "sign-up"
-        ? await authClient.signUp.email({ email, password, name: String(form.get("name")) })
-        : await authClient.signIn.email({ email, password });
+        ? await authClient.signUp.email({ email, password, name: String(form.get("name")), callbackURL: "/verify-email" })
+        : await authClient.signIn.email({ email, password, callbackURL: "/verify-email" });
     setPending(false);
     if (result.error) {
-      setError(result.error.message ?? t("failed"));
+      // Unverified address: the server has just sent a fresh link.
+      if (result.error.code === "EMAIL_NOT_VERIFIED") setNotice(t("verifyNotVerified", { email }));
+      else setError(result.error.message ?? t("failed"));
+      return;
+    }
+    // Sign-up without a session: the address must be verified first.
+    if (mode === "sign-up" && !result.data?.token) {
+      setNotice(t("verifyCheckInbox", { email }));
       return;
     }
     router.push("/dashboard");
@@ -80,6 +91,7 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
           hint={mode === "sign-up" ? t("passwordHint") : undefined}
         />
         {error ? <Alert>{error}</Alert> : null}
+        {notice ? <Alert tone="success">{notice}</Alert> : null}
         <Button
           type="submit"
           disabled={pending}
@@ -134,11 +146,17 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
       <p className="mt-8 text-center text-base text-muted">
         {mode === "sign-up" ? (
           <>
-            {t("haveAccount")} <Link className="font-semibold text-primary hover:underline" href="/sign-in">{t("signIn")}</Link>
+            {t("haveAccount")}{" "}
+            <Link className="font-semibold text-primary hover:underline" href="/sign-in">
+              {t("signIn")}
+            </Link>
           </>
         ) : (
           <>
-            {t("newHere")} <Link className="font-semibold text-primary hover:underline" href="/sign-up">{t("createAnAccount")}</Link>
+            {t("newHere")}{" "}
+            <Link className="font-semibold text-primary hover:underline" href="/sign-up">
+              {t("createAnAccount")}
+            </Link>
           </>
         )}
       </p>

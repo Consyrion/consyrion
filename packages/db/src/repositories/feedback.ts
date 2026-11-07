@@ -123,13 +123,21 @@ export interface PlatformAdminContext {
 const issued = new WeakSet<PlatformAdminContext>();
 
 /**
- * A platform admin is a user whose stored e-mail is in the configured list (PLATFORM_ADMIN_EMAILS). Unknown users and
- * non-admins get the same "not found" as the hidden /admin page.
+ * A platform admin is a user whose stored e-mail is in the configured list (PLATFORM_ADMIN_EMAILS). With
+ * `requireVerifiedEmail` (set whenever the server verifies e-mail addresses) the address must also be verified, so
+ * registering an unclaimed admin address does not grant admin rights. Unknown users and non-admins get the same
+ * "not found" as the hidden /admin page.
  */
-export async function resolvePlatformAdmin(db: Database, userId: string, adminEmails: readonly string[]): Promise<PlatformAdminContext> {
+export async function resolvePlatformAdmin(
+  db: Database,
+  userId: string,
+  adminEmails: readonly string[],
+  options: { requireVerifiedEmail?: boolean } = {},
+): Promise<PlatformAdminContext> {
   const allowed = new Set(adminEmails.map((e) => e.trim().toLowerCase()).filter(Boolean));
-  const [row] = await db.select({ email: user.email }).from(user).where(eq(user.id, userId)).limit(1);
+  const [row] = await db.select({ email: user.email, emailVerified: user.emailVerified }).from(user).where(eq(user.id, userId)).limit(1);
   if (!row || !allowed.has(row.email.toLowerCase())) throw new DomainError("NOT_FOUND", "Not found");
+  if (options.requireVerifiedEmail && !row.emailVerified) throw new DomainError("NOT_FOUND", "Not found");
   const ctx: PlatformAdminContext = Object.freeze({ userId, email: row.email });
   issued.add(ctx);
   return ctx;

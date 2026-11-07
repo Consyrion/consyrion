@@ -130,4 +130,23 @@ describe("MCP endpoint", () => {
     await expect(ask.run({ question: "Postgres oder SQLite?", context: "Sync-Dienst" })).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(ask.run({ question: "Postgres oder SQLite?", context: "Sync-Dienst", tokenBudget: 100_000 })).rejects.toThrow(/participants/);
   });
+
+  it("a refused ask_consyrion start leaves no active project behind (QA 07.11.26)", async () => {
+    const actor = await resolveActor(handle.db, "u", orgId);
+    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrion")!;
+    const active = async () => (await handle.db.select().from(schema.project)).filter((p) => p.status !== "archived").length;
+    const before = await active();
+    await expect(
+      ask.run({
+        question: "Postgres oder SQLite für den Sync-Dienst?",
+        context: "Kleiner Sync-Dienst",
+        tokenBudget: 100_000,
+        participants: [
+          { credentialId: "cred_missing_a", modelId: "model-a" },
+          { credentialId: "cred_missing_b", modelId: "model-b" },
+        ],
+      }),
+    ).rejects.toBeDefined();
+    expect(await active()).toBe(before);
+  });
 });

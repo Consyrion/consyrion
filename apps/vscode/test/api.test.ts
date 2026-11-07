@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ConsyrionApi, ConsyrionApiError, normalizeServerUrl, type FetchLike } from "../src/api";
 import { escapeHtml, renderSessionHtml } from "../src/html";
+import { translator } from "../src/i18n";
 
 describe("api client", () => {
   it("sends the bearer token and parses responses", async () => {
@@ -102,5 +103,34 @@ describe("server URL (QA 07.11.26)", () => {
       async () => new Response("<!DOCTYPE html><html></html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }),
     );
     await expect(api.projects()).rejects.toThrow(/answered with a web page/);
+  });
+});
+
+describe("display language (QA 07.11.26)", () => {
+  it("renders the decision in German and keeps phase names", () => {
+    const html = renderSessionHtml(
+      {
+        session: { id: "s", status: "awaiting_approval", mode: "independent_expert" },
+        project: { name: "Test" },
+        stages: [{ phase: "twelve_minds_council", status: "skipped" }],
+        proposals: [{ id: "p", label: "2", revisions: [{ content: { title: "T" } }] }],
+        objections: [{ proposalId: "p", status: "open", severity: "high", category: "security", claim: "Zu vage.", blocking: false }],
+        decision: { outcome: "needs_verification", recommendedProposalId: null },
+        decisionStatus: {
+          approvable: false,
+          reason: "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.",
+          canApproveRecommendation: false,
+        },
+      },
+      "n",
+      true,
+      translator("de-ch"),
+    );
+    expect(html).toContain("12 Minds Council – übersprungen");
+    expect(html).toContain("wartet auf Freigabe");
+    expect(html).toContain("Prüfung nötig – der Council");
+    expect(html).toContain("Einwand gegen Vorschlag 2");
+    expect(html).toContain("Änderungen anfordern");
+    expect(translator("ja")("Approve")).toBe("Approve");
   });
 });

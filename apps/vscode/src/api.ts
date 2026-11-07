@@ -51,7 +51,12 @@ export class ConsyrionApi {
   private async request<T>(path: string, init: RequestInit = {}, raw = false): Promise<T> {
     const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
       ...init,
-      headers: { Authorization: `Bearer ${this.token}`, Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...init.headers,
+      },
     });
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
@@ -60,7 +65,10 @@ export class ConsyrionApi {
     if (raw || response.status === 204) return (raw ? await response.text() : undefined) as T;
     // A web page instead of JSON: the server URL points to the website (e.g. a redirecting domain), not the API.
     if ((response.headers.get("content-type") ?? "").includes("text/html"))
-      throw new ConsyrionApiError(response.status, `${this.baseUrl} answered with a web page, not the CONSYRION AI API – check the setting consyrion.serverUrl (e.g. https://app.consyrion.com).`);
+      throw new ConsyrionApiError(
+        response.status,
+        `${this.baseUrl} answered with a web page, not the CONSYRION AI API – check the setting consyrion.serverUrl (e.g. https://app.consyrion.com).`,
+      );
     return (await response.json()) as T;
   }
 
@@ -76,16 +84,23 @@ export class ConsyrionApi {
     return this.request<Record<string, unknown>>(`/api/sessions/${encodeURIComponent(sessionId)}`);
   }
 
-  reportMarkdown(sessionId: string) {
-    return this.request<string>(`/api/sessions/${encodeURIComponent(sessionId)}/report`, {}, true);
+  /** The Markdown report; `language` (en/de/fr/es) sets its fixed wording (#322), model output stays as written. */
+  reportMarkdown(sessionId: string, language?: string) {
+    const lang = language ? `?lang=${encodeURIComponent(language.toLowerCase().split("-")[0]!)}` : "";
+    return this.request<string>(`/api/sessions/${encodeURIComponent(sessionId)}/report${lang}`, {}, true);
   }
 
   approve(sessionId: string, action: ApprovalAction, comment: string, selectedProposalId?: string) {
-    return this.request<{ status: string }>(`/api/sessions/${encodeURIComponent(sessionId)}/approval`, { method: "POST", body: JSON.stringify({ action, comment, selectedProposalId }) });
+    return this.request<{ status: string }>(`/api/sessions/${encodeURIComponent(sessionId)}/approval`, {
+      method: "POST",
+      body: JSON.stringify({ action, comment, selectedProposalId }),
+    });
   }
 
   async executions(sessionId: string) {
-    return (await this.request<{ executions: Array<{ id: string; status: string; createdAt: string }> }>(`/api/sessions/${encodeURIComponent(sessionId)}/executions`)).executions;
+    return (
+      await this.request<{ executions: Array<{ id: string; status: string; createdAt: string }> }>(`/api/sessions/${encodeURIComponent(sessionId)}/executions`)
+    ).executions;
   }
 
   execution(planId: string) {

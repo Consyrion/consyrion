@@ -60,3 +60,5 @@ Only the `requirements` lines the user gave are confirmed as hard requirements. 
 stay context even when they sound binding ("max. 50 users"): this flow confirms without a review screen, so they are
 stored as excluded ("context of the question"). The same applies to `/frage` in Telegram. Invalid tool input names the
 fields (`Invalid session configuration – participants: …`).
+A refused `ask_consyrion` start (budget not confirmed, unknown model, plan limit) archives the project it created, so a
+retry does not leave a duplicate behind; Telegram `/frage` behaves the same.

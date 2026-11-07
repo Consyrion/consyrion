@@ -88,10 +88,24 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
   const status = view.session.status;
   const isLive = LIVE.has(status);
 
+  // Bumped to open a new stream after the browser gave up on the old one.
+  const [reconnects, setReconnects] = useState(0);
+
   useEffect(() => {
     if (!isLive) return;
     const source = new EventSource(`/api/sessions/${view.session.id}/events`);
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    // A stream that hangs silently fires no error; after 30 s without news the stored state is loaded once more.
+    let lastEvent = Date.now();
+    const watchdog = setInterval(() => {
+      if (Date.now() - lastEvent < 30_000) return;
+      lastEvent = Date.now();
+      fetchJson<View>(`/api/sessions/${view.session.id}`)
+        .then((next) => setView(next))
+        .catch(() => {});
+    }, 10_000);
     source.addEventListener("session", (event) => {
+      lastEvent = Date.now();
       const next = JSON.parse((event as MessageEvent).data) as View;
       setView((previous) => {
         // Follow the run to the next phase unless the user picked another tab.
@@ -100,9 +114,25 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
       });
       setConnection("live");
     });
-    source.onerror = () => setConnection("offline");
-    return () => source.close();
-  }, [isLive, view.session.id]);
+    source.onerror = () => {
+      setConnection("offline");
+      // EventSource retries a dropped stream by itself, but stops for good when a reconnect gets an error response.
+      // Then load the stored state once and open a new stream (QA 07.11.26: the verdict only appeared after a reload).
+      if (source.readyState === EventSource.CLOSED && !retry) {
+        retry = setTimeout(() => {
+          fetchJson<View>(`/api/sessions/${view.session.id}`)
+            .then((next) => setView(next))
+            .catch(() => {})
+            .finally(() => setReconnects((n) => n + 1));
+        }, 3_000);
+      }
+    };
+    return () => {
+      if (retry) clearTimeout(retry);
+      clearInterval(watchdog);
+      source.close();
+    };
+  }, [isLive, view.session.id, reconnects]);
 
   async function refresh() {
     setView(await fetchJson<View>(`/api/sessions/${view.session.id}`));

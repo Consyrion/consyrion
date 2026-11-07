@@ -22,9 +22,21 @@ export const GET = handle(async (request: Request, { params }: { params: Promise
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      // A read can fail for a moment (e.g. while the Final Verdict is written); the stream retries instead of ending,
+      // because a browser whose reconnect gets an error response stops listening for good (QA 07.11.26: the page kept
+      // showing "running" after the verdict was stored).
+      let failures = 0;
       try {
         while (!request.signal.aborted) {
-          const view = await getSessionView(db, actor, id);
+          let view: Awaited<ReturnType<typeof getSessionView>>;
+          try {
+            view = await getSessionView(db, actor, id);
+            failures = 0;
+          } catch (error) {
+            if (++failures >= 5) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 1_500));
+            continue;
+          }
           const json = JSON.stringify(view);
           const hash = createHash("sha1").update(json).digest("hex");
           if (hash !== lastHash) {

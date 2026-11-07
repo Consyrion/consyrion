@@ -49,4 +49,7 @@ be attributable to the selected model.
 - Durable job queue and workflow runner for council sessions (#7, #12): candidates are a
   PostgreSQL-backed queue (pg-boss style) to avoid new infrastructure.
 - Server-sent events for live progress (#12).
+  The stream retries a failed read up to five times instead of ending; the session page loads the stored state and
+  opens a new stream when the browser gives up on it, and reloads the state after 30 s without news (QA 07.11.26: the
+  page showed "running" after the verdict was stored).
 - Sandboxed execution for coding agents (#23) – requires an isolation decision before Milestone 4.

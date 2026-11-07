@@ -16,7 +16,8 @@
       "home": "CONSYRION AI 首页",
       "skip": "跳到内容",
       "openSource": "开源",
-      "pricing": "价格"
+      "pricing": "价格",
+      "menu": "菜单"
     },
     "cta": {
       "start": "开始决策",
@@ -195,7 +196,7 @@
         "selfhost": {
           "name": "自托管",
           "price": "0 €",
-          "priceNote": "开源",
+          "priceNote": "软件免费 · 服务器和 AI 费用由你自行承担",
           "p1": "AGPL-3.0 许可证",
           "p2": "运行在你自己的服务器上",
           "p3": "用 Docker Compose 部署",
@@ -206,7 +207,7 @@
         "free": {
           "name": "Free",
           "price": "0 €",
-          "priceNote": "在 app.consyrion.com",
+          "priceNote": "在 app.consyrion.com · AI 费用由提供商另行收取",
           "p1": "1 名成员，3 个项目",
           "p2": "每月 2 次 council",
           "p3": "每次 council 最多 3 个 AI 模型",

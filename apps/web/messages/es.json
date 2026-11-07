@@ -16,7 +16,8 @@
       "home": "Inicio de CONSYRION AI",
       "skip": "Saltar al contenido",
       "openSource": "Código abierto",
-      "pricing": "Precios"
+      "pricing": "Precios",
+      "menu": "Menú"
     },
     "cta": {
       "start": "Iniciar una decisión",
@@ -195,7 +196,7 @@
         "selfhost": {
           "name": "Autoalojado",
           "price": "0 €",
-          "priceNote": "Código abierto",
+          "priceNote": "Software gratuito · el servidor y la IA corren por tu cuenta",
           "p1": "Licencia AGPL-3.0",
           "p2": "En tu propio servidor",
           "p3": "Instalación con Docker Compose",
@@ -206,7 +207,7 @@
         "free": {
           "name": "Free",
           "price": "0 €",
-          "priceNote": "en app.consyrion.com",
+          "priceNote": "en app.consyrion.com · costes de IA cobrados por tu proveedor",
           "p1": "1 miembro, 3 proyectos",
           "p2": "2 councils al mes",
           "p3": "Hasta 3 modelos de IA por council",

@@ -16,7 +16,8 @@
       "home": "CONSYRION AI home",
       "skip": "Skip to content",
       "openSource": "Open source",
-      "pricing": "Pricing"
+      "pricing": "Pricing",
+      "menu": "Menu"
     },
     "cta": {
       "start": "Start a Decision",
@@ -195,7 +196,7 @@
         "selfhost": {
           "name": "Self-hosted",
           "price": "€0",
-          "priceNote": "Open source",
+          "priceNote": "Free software · you cover server and AI costs",
           "p1": "AGPL-3.0 licence",
           "p2": "On your own server",
           "p3": "Docker Compose setup",
@@ -206,7 +207,7 @@
         "free": {
           "name": "Free",
           "price": "€0",
-          "priceNote": "on app.consyrion.com",
+          "priceNote": "on app.consyrion.com · AI costs billed by your provider",
           "p1": "1 member, 3 projects",
           "p2": "2 councils per month",
           "p3": "Up to 3 AI models per council",

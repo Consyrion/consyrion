@@ -14,6 +14,7 @@ const targetKey = (name: string) =>
     .replace(/^_|_$/g, "");
 import { buttonClasses } from "../ui/button";
 import { GlassPanel, NeonBorder } from "../ui/glass";
+import { MobileMenu } from "./mobile-menu";
 import { ProcessStory } from "./process-story";
 
 /** Calls to action of the landing page. Every target is a real route of the app (checked in tests). */
@@ -36,7 +37,8 @@ const CHANNELS = ["mcp", "telegram"] as const;
 const PLANS = [
   { key: "selfhost", points: 5, href: SOURCE_URL, external: true, highlight: false },
   { key: "free", points: 5, href: LANDING_CTAS.signUp.href, external: false, highlight: false },
-  { key: "pro", points: 5, href: LANDING_CTAS.pro.href, external: false, highlight: true },
+  // Signed out, /settings/billing would only bounce to the sign-in page – new visitors create an account first.
+  { key: "pro", points: 5, href: LANDING_CTAS.signUp.href, external: false, highlight: true },
 ] as const;
 
 const PROVIDERS = [
@@ -103,6 +105,22 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
             </a>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {/* Narrow screens: the section links, language and sign-in live in this menu (ChatGPT QA 07.11.26). */}
+            <MobileMenu label={t("nav.menu")} summaryClassName={buttonClasses("secondary", "cursor-pointer list-none px-3 [&::-webkit-details-marker]:hidden")}>
+              {(["how", "overview", "byok", "delivery", "open-source", "pricing"] as const).map((id) => (
+                <a key={id} href={`#${id}`} className="rounded-lg px-3 py-2 text-muted hover:bg-surface-2 hover:text-text">
+                  {t(`nav.${{ how: "how", overview: "overview", byok: "keys", delivery: "delivery", "open-source": "openSource", pricing: "pricing" }[id]}`)}
+                </a>
+              ))}
+              {signedIn ? null : (
+                <Link href="/sign-in" className="rounded-lg px-3 py-2 text-muted hover:bg-surface-2 hover:text-text">
+                  {t("nav.signIn")}
+                </Link>
+              )}
+              <div className="px-3 pt-2">
+                <LanguageSwitcher />
+              </div>
+            </MobileMenu>
             <LanguageSwitcher className="max-sm:hidden" />
             {signedIn ? (
               <Link href="/dashboard" className={buttonClasses("secondary", "whitespace-nowrap max-sm:px-3")}>
@@ -296,7 +314,7 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
           </h2>
           <p className="mt-2 max-w-2xl text-muted">{t("pricing.text")}</p>
           <ul className="mt-8 grid gap-4 md:grid-cols-3">
-            {PLANS.map((plan) => (
+            {PLANS.map((p) => ({ ...p, href: p.key === "pro" && signedIn ? LANDING_CTAS.pro.href : p.href })).map((plan) => (
               <li key={plan.key}>
                 <GlassPanel as="article" glow={plan.highlight ? "violet" : "none"} className="flex h-full flex-col p-6">
                   <h3 className="text-lg font-semibold">{t(`pricing.plans.${plan.key}.name`)}</h3>

@@ -710,7 +710,8 @@ export function createStoryScene(
     const cb = CAMERA_FILLED[b.to]!;
     // Landscape: the chapters cover the left part, so step back until the formation fits the right part.
     // Portrait: step back further so the formation fits the narrow width.
-    const back = options.framing === "center" ? 0.95 * Math.max(1, 1.5 / camera.aspect) : camera.aspect > 1.1 ? 1.4 : Math.min(2.4, Math.max(1.4, 1.1 / camera.aspect));
+    // Phones get a little more distance so the six-planet intro orbit (#315) stays inside the canvas.
+    const back = options.framing === "center" ? 0.95 * Math.max(1, 1.5 / camera.aspect) : camera.aspect > 1.1 ? 1.4 : Math.min(2.4, Math.max(1.4, 1.1 / camera.aspect)) * (options.mobile ? 1.18 : 1);
     camera.position.set(mix(ca.pos[0], cb.pos[0], b.t), mix(ca.pos[1], cb.pos[1], b.t), mix(ca.pos[2], cb.pos[2], b.t) * back);
     target.set(mix(ca.target[0], cb.target[0], b.t), mix(ca.target[1], cb.target[1], b.t), mix(ca.target[2], cb.target[2], b.t));
     camera.lookAt(target);

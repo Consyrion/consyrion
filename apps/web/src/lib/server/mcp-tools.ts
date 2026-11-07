@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
-import { createSession, previewSession, type SessionInput } from "@consyrion/council";
+import { createSession, getSessionView, previewSession, type SessionInput } from "@consyrion/council";
 import { DECISION_MODES, DomainError } from "@consyrion/core";
 import {
   archiveProject,
@@ -15,6 +15,7 @@ import {
   type Database,
 } from "@consyrion/db";
 import { assistantTools } from "./assistant-tools";
+import { decisionBrief } from "./decision-brief";
 import { getKeyring } from "./keyring";
 import type { McpTool } from "./mcp";
 import { modelCatalog, rememberModels } from "./model-catalog";
@@ -108,12 +109,22 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
       name: "get_decision",
       title: "Get a decision",
       description:
-        "One decision in detail: verdict, whether it can be approved and why, proposals with scores, open objections, the human decision and a link.",
+        "One decision in detail: verdict, whether it can be approved and why, proposals with scores, open objections, the human decision and a link. " +
+        "`decided` is the chosen proposal in full (approved by the human, else the recommendation, else the leading one) with architecture, components, risks, " +
+        "assumptions and next steps, the hard requirements with their check status and the open objections; `implementationBrief` is the same as Markdown. " +
+        "Before implementing, respect `decided.basis`: only `approved_by_human` is a human-approved decision – otherwise tell the user first.",
       inputSchema: { type: "object", properties: { sessionId: str("Session id (ses_…)") }, required: ["sessionId"], additionalProperties: false },
       write: false,
       run: async (args) => {
         const data = (await read("get_session", args)) as { href?: string };
-        return { ...data, url: data.href ? abs(data.href) : null };
+        // The full decision (owner request 07.11.26): an editor agent has to know what was decided to act on it.
+        const brief = decisionBrief(await getSessionView(db, actor, String(args.sessionId)));
+        return {
+          ...data,
+          url: data.href ? abs(data.href) : null,
+          decided: brief.chosen ? { ...brief.chosen, requirements: brief.requirements, openObjections: brief.objections } : null,
+          implementationBrief: brief.implementationBrief,
+        };
       },
     },
     {

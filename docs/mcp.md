@@ -62,3 +62,13 @@ stored as excluded ("context of the question"). The same applies to `/frage` in 
 fields (`Invalid session configuration – participants: …`).
 A refused `ask_consyrion` start (budget not confirmed, unknown model, plan limit) archives the project it created, so a
 retry does not leave a duplicate behind; Telegram `/frage` behaves the same.
+
+### What was decided – for the editor agent (07.11.26)
+
+`get_decision` also returns `decided`: the chosen proposal in full – the one the human approved, else the council's
+recommendation, else the best-scored (leading) one – with architecture, components, advantages, disadvantages, risks
+with mitigations, cost estimate, assumptions and next steps, plus the hard requirements with their check status
+(PASS/FAIL/UNKNOWN/DISPUTED) and the open objections against it. `implementationBrief` is the same as Markdown, ready for
+an agent in Cursor or Claude Code to implement in the local project. `decided.basis` says how binding it is:
+`approved_by_human`, `recommended_awaiting_approval` or `leading_not_approvable` – the tool description tells the agent to
+ask the user before implementing anything but an approved decision. Approval itself stays in the app.

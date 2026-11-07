@@ -29,13 +29,14 @@ function createAuth(db: Awaited<ReturnType<typeof getDb>>) {
       schema: { user: schema.user, session: schema.session, account: schema.account, verification: schema.verification },
     }),
     emailAndPassword: { enabled: true, minPasswordLength: 12, requireEmailVerification: emailVerificationRequired },
-    // Unverified accounts cannot sign in; every sign-in attempt sends a fresh link, the link signs the user in.
+    // Unverified accounts cannot sign in; every sign-in attempt sends a fresh link. The link only verifies the address –
+    // it never opens a session (whoever gets hold of the e-mail must still know the password).
     ...(emailVerificationRequired
       ? {
           emailVerification: {
             sendOnSignUp: true,
             sendOnSignIn: true,
-            autoSignInAfterVerification: true,
+            autoSignInAfterVerification: false,
             expiresIn: VERIFICATION_LINK_HOURS * 60 * 60,
             sendVerificationEmail: async ({ user, url }: { user: { email: string; name: string }; url: string }) => {
               await sendVerificationMail({ to: user.email, name: user.name, url });

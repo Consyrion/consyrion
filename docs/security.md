@@ -37,8 +37,9 @@
 On whenever the server can send e-mail (`SMTP_URL`); `REQUIRE_EMAIL_VERIFICATION=false` switches it off explicitly.
 
 - Sign-up sends a link (valid 24 hours) and creates no session; the account cannot sign in until the link is opened.
-  Every sign-in attempt of an unverified account sends a fresh link. The link verifies the address, signs the user in
-  and leads to `/verify-email` (→ dashboard; an invalid or expired link explains how to get a new one).
+  Every sign-in attempt of an unverified account sends a fresh link. The link only verifies the address and leads to
+  `/verify-email` ("address confirmed – sign in"); it never opens a session, so a leaked e-mail alone gives no access.
+  An invalid or expired link explains how to get a new one.
 - Platform admins (`PLATFORM_ADMIN_EMAILS`) need a **verified** address while verification is on, so registering an
   unclaimed admin address grants nothing (`isPlatformAdmin`, `resolvePlatformAdmin(…, { requireVerifiedEmail })`).
 - Accounts created before verification was switched on are unverified: they keep a running session, but the next

@@ -1,5 +1,6 @@
 "use client";
 
+import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -10,6 +11,7 @@ import { Select } from "./ui/select";
 
 function useAction() {
   const router = useRouter();
+  const t = useTranslations("settings.saas");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function run(fn: () => Promise<unknown>, refresh = true) {
@@ -19,7 +21,7 @@ function useAction() {
       await fn();
       if (refresh) router.refresh();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Action failed");
+      setError(err instanceof ApiRequestError ? err.message : t("actionFailed"));
     } finally {
       setBusy(false);
     }
@@ -29,6 +31,7 @@ function useAction() {
 
 export function UpgradeButton({ plan, label, disabled }: { plan: string; label: string; disabled?: boolean }) {
   const { busy, error, run } = useAction();
+  const t = useTranslations("settings.saas");
   return (
     <div>
       <Button
@@ -40,7 +43,7 @@ export function UpgradeButton({ plan, label, disabled }: { plan: string; label: 
           }, false)
         }
       >
-        {busy ? "Redirecting…" : label}
+        {busy ? t("redirecting") : label}
       </Button>
       {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
@@ -49,10 +52,11 @@ export function UpgradeButton({ plan, label, disabled }: { plan: string; label: 
 
 export function PortalButton() {
   const { busy, error, run } = useAction();
+  const t = useTranslations("settings.saas");
   return (
     <div>
       <Button variant="secondary" disabled={busy} onClick={() => void run(async () => (window.location.href = (await fetchJson<{ url: string }>("/api/billing/portal", { method: "POST" })).url), false)}>
-        Manage subscription
+        {t("manageSubscription")}
       </Button>
       {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
@@ -62,11 +66,12 @@ export function PortalButton() {
 export function PriceHintForm() {
   const { busy, error, run } = useAction();
   const [form, setForm] = useState({ provider: "anthropic", modelId: "", inputPerMillion: "", outputPerMillion: "", currency: "USD" });
+  const t = useTranslations("settings.saas");
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
   return (
     <div className="space-y-2">
       <div className="grid gap-3 md:grid-cols-5">
-        <SelectField label="Provider" value={form.provider} onChange={set("provider")}>
+        <SelectField label={t("provider")} value={form.provider} onChange={set("provider")}>
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>
           <option value="google">Google Gemini</option>
@@ -76,13 +81,13 @@ export function PriceHintForm() {
           <option value="qwen">Alibaba (Qwen)</option>
           <option value="xai">xAI (Grok)</option>
         </SelectField>
-        <TextField label="Model id" value={form.modelId} onChange={set("modelId")} />
-        <TextField label="Input / 1M tokens" value={form.inputPerMillion} onChange={set("inputPerMillion")} inputMode="decimal" />
-        <TextField label="Output / 1M tokens" value={form.outputPerMillion} onChange={set("outputPerMillion")} inputMode="decimal" />
-        <TextField label="Currency" value={form.currency} onChange={set("currency")} maxLength={3} />
+        <TextField label={t("modelId")} value={form.modelId} onChange={set("modelId")} />
+        <TextField label={t("inputPrice")} value={form.inputPerMillion} onChange={set("inputPerMillion")} inputMode="decimal" />
+        <TextField label={t("outputPrice")} value={form.outputPerMillion} onChange={set("outputPerMillion")} inputMode="decimal" />
+        <TextField label={t("currency")} value={form.currency} onChange={set("currency")} maxLength={3} />
       </div>
       <Button variant="secondary" disabled={busy || !form.modelId} onClick={() => void run(() => fetchJson("/api/pricing", { method: "POST", body: JSON.stringify(form) }))}>
-        Save price
+        {t("savePrice")}
       </Button>
       {error ? <Alert>{error}</Alert> : null}
     </div>
@@ -91,9 +96,10 @@ export function PriceHintForm() {
 
 export function DeleteHint({ id }: { id: string }) {
   const { busy, run } = useAction();
+  const t = useTranslations("settings.saas");
   return (
     <Button variant="ghost" disabled={busy} onClick={() => void run(() => fetchJson(`/api/pricing/${id}`, { method: "DELETE" }))}>
-      Remove
+      {t("remove")}
     </Button>
   );
 }
@@ -112,6 +118,9 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
   const [role, setRole] = useState("member");
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const t = useTranslations("settings.saas");
+  const format = useFormatter();
+  const roleLabel = (r: string) => (t.has(`roles.${r}`) ? t(`roles.${r}`) : r);
   return (
     <div className="space-y-6">
       <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
@@ -123,7 +132,7 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
             <span className="flex items-center gap-2">
               {canManage && m.userId !== currentUserId ? (
                 <Select
-                  aria-label={`Role of ${m.name}`}
+                  aria-label={t("roleOf", { name: m.name })}
                   value={m.role}
                   disabled={busy}
                   onChange={(e) => void run(() => fetchJson(`/api/team/members/${m.id}`, { method: "PATCH", body: JSON.stringify({ role: e.target.value }) }))}
@@ -131,16 +140,16 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
                 >
                   {["owner", "admin", "member", "viewer"].map((r) => (
                     <option key={r} value={r}>
-                      {r}
+                      {roleLabel(r)}
                     </option>
                   ))}
                 </Select>
               ) : (
-                <Badge>{m.role}</Badge>
+                <Badge>{roleLabel(m.role)}</Badge>
               )}
               {(canManage && m.userId !== currentUserId) || m.userId === currentUserId ? (
                 <Button variant="ghost" disabled={busy} onClick={() => void run(() => fetchJson(`/api/team/members/${m.id}`, { method: "DELETE" }))}>
-                  {m.userId === currentUserId ? "Leave" : "Remove"}
+                  {m.userId === currentUserId ? t("leave") : t("remove")}
                 </Button>
               ) : null}
             </span>
@@ -149,14 +158,14 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
       </ul>
       {canManage ? (
         <div className="space-y-3">
-          <h2 className="font-semibold">Invite someone</h2>
+          <h2 className="font-semibold">{t("inviteTitle")}</h2>
           {/* The address gets the full width; role and button sit next to it (stacked on phones). */}
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto] md:items-end">
-            <TextField label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off" />
-            <SelectField label="Role" value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="admin">admin</option>
-              <option value="member">member</option>
-              <option value="viewer">viewer</option>
+            <TextField label={t("email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off" />
+            <SelectField label={t("role")} value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="admin">{roleLabel("admin")}</option>
+              <option value="member">{roleLabel("member")}</option>
+              <option value="viewer">{roleLabel("viewer")}</option>
             </SelectField>
             <Button
               disabled={busy || !email}
@@ -169,12 +178,12 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
                 })
               }
             >
-              Create invitation link
+              {t("createInvite")}
             </Button>
           </div>
           {link ? (
             <Alert tone="success">
-              <p>Share this link with the invited person (shown only once, valid 7 days):</p>
+              <p>{t("shareLink")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <code className="min-w-0 flex-1 rounded-lg border border-glass-line bg-surface px-3 py-2 break-all">{link}</code>
                 <Button
@@ -183,7 +192,7 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
                     void navigator.clipboard?.writeText(link).then(() => setCopied(true));
                   }}
                 >
-                  {copied ? "Copied" : "Copy link"}
+                  {copied ? t("copied") : t("copyLink")}
                 </Button>
               </div>
             </Alert>
@@ -193,10 +202,10 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
               {invitations.map((i) => (
                 <li key={i.id} className="flex items-center justify-between">
                   <span>
-                    {i.email} · {i.role} · expires {new Date(i.expiresAt).toLocaleDateString("en-GB")}
+                    {i.email} · {roleLabel(i.role)} · {t("expires", { date: format.dateTime(new Date(i.expiresAt), { dateStyle: "medium" }) })}
                   </span>
                   <Button variant="ghost" disabled={busy} onClick={() => void run(() => fetchJson(`/api/team/invitations/${i.id}`, { method: "DELETE" }))}>
-                    Revoke
+                    {t("revoke")}
                   </Button>
                 </li>
               ))}
@@ -212,6 +221,7 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
 export function AcceptInvitation({ token }: { token: string }) {
   const router = useRouter();
   const { busy, error, run } = useAction();
+  const t = useTranslations("settings.saas");
   return (
     <div className="space-y-3">
       <Button
@@ -223,7 +233,7 @@ export function AcceptInvitation({ token }: { token: string }) {
           }, false)
         }
       >
-        Accept invitation
+        {t("acceptInvitation")}
       </Button>
       {error ? <Alert>{error}</Alert> : null}
     </div>
@@ -232,12 +242,13 @@ export function AcceptInvitation({ token }: { token: string }) {
 
 export function WorkspaceSwitcher({ organizations, active }: { organizations: Array<{ id: string; name: string; role: string }>; active: string }) {
   const { busy, error, run } = useAction();
+  const t = useTranslations("settings.saas");
   return (
     <div>
-      <SelectField label="Active workspace" value={active} disabled={busy} onChange={(e) => void run(() => fetchJson("/api/orgs/active", { method: "POST", body: JSON.stringify({ organizationId: e.target.value }) }))}>
+      <SelectField label={t("activeWorkspace")} value={active} disabled={busy} onChange={(e) => void run(() => fetchJson("/api/orgs/active", { method: "POST", body: JSON.stringify({ organizationId: e.target.value }) }))}>
         {organizations.map((o) => (
           <option key={o.id} value={o.id}>
-            {o.name} ({o.role})
+            {o.name} ({t.has(`roles.${o.role}`) ? t(`roles.${o.role}`) : o.role})
           </option>
         ))}
       </SelectField>
@@ -251,9 +262,10 @@ export function DangerDelete({ url, method, name, label, redirectTo }: { url: st
   const router = useRouter();
   const { busy, error, run } = useAction();
   const [confirm, setConfirm] = useState("");
+  const t = useTranslations("settings.saas");
   return (
     <div className="space-y-2">
-      <TextField label={`Type “${name}” to confirm`} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      <TextField label={t("typeToConfirm", { name })} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       <Button
         variant="danger"
         disabled={busy || confirm !== name}
@@ -274,10 +286,11 @@ export function DangerDelete({ url, method, name, label, redirectTo }: { url: st
 
 export function AdminPlanSelect({ organizationId, plan }: { organizationId: string; plan: string }) {
   const { busy, error, run } = useAction();
+  const t = useTranslations("settings.saas");
   return (
     <span>
       <Select
-        aria-label="Plan"
+        aria-label={t("plan")}
         value={plan}
         disabled={busy}
         onChange={(e) => void run(() => fetchJson(`/api/admin/organizations/${organizationId}/plan`, { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }))}
@@ -297,14 +310,15 @@ export function AdminPlanSelect({ organizationId, plan }: { organizationId: stri
 export function AdminPlanEditor({ plan }: { plan: { key: string; name: string; entitlements: Record<string, number | boolean>; priceLabel: string | null; stripePriceId: string | null; active: boolean } }) {
   const { busy, error, run } = useAction();
   const [state, setState] = useState(plan);
+  const t = useTranslations("settings.saas");
   return (
     <div className="space-y-3 rounded-xl border border-line p-4">
       <div className="grid gap-3 md:grid-cols-4">
-        <TextField label="Name" value={state.name} onChange={(e) => setState({ ...state, name: e.target.value })} />
-        <TextField label="Price label" value={state.priceLabel ?? ""} onChange={(e) => setState({ ...state, priceLabel: e.target.value })} placeholder="e.g. CHF 29 / month" />
-        <TextField label="Stripe price id" value={state.stripePriceId ?? ""} onChange={(e) => setState({ ...state, stripePriceId: e.target.value })} />
+        <TextField label={t("name")} value={state.name} onChange={(e) => setState({ ...state, name: e.target.value })} />
+        <TextField label={t("priceLabel")} value={state.priceLabel ?? ""} onChange={(e) => setState({ ...state, priceLabel: e.target.value })} placeholder={t("priceLabelPlaceholder")} />
+        <TextField label={t("stripePriceId")} value={state.stripePriceId ?? ""} onChange={(e) => setState({ ...state, stripePriceId: e.target.value })} />
         <label className="flex items-center gap-2 self-end pb-2 text-sm">
-          <input type="checkbox" checked={state.active} onChange={(e) => setState({ ...state, active: e.target.checked })} /> active
+          <input type="checkbox" checked={state.active} onChange={(e) => setState({ ...state, active: e.target.checked })} /> {t("active")}
         </label>
       </div>
       <div className="grid gap-3 md:grid-cols-4">
@@ -319,7 +333,7 @@ export function AdminPlanEditor({ plan }: { plan: { key: string; name: string; e
         )}
       </div>
       <Button variant="secondary" disabled={busy} onClick={() => void run(() => fetchJson(`/api/admin/plans/${plan.key}`, { method: "PUT", body: JSON.stringify(state) }))}>
-        Save {plan.key}
+        {t("savePlan", { plan: plan.key })}
       </Button>
       {error ? <Alert>{error}</Alert> : null}
     </div>
@@ -330,17 +344,18 @@ export function RotateKey({ id }: { id: string }) {
   const { busy, error, run } = useAction();
   const [open, setOpen] = useState(false);
   const [secret, setSecret] = useState("");
+  const t = useTranslations("settings.saas");
   if (!open)
     return (
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        Rotate
+        {t("rotate")}
       </Button>
     );
   return (
     <span className="flex flex-wrap items-end gap-2">
-      <TextField label="New API key" type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} />
+      <TextField label={t("newApiKey")} type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} />
       <Button disabled={busy || secret.length < 10} onClick={() => void run(async () => (await fetchJson(`/api/credentials/${id}/rotate`, { method: "POST", body: JSON.stringify({ secret }) }), setOpen(false), setSecret("")))}>
-        Save
+        {t("save")}
       </Button>
       {error ? <span className="text-xs text-danger">{error}</span> : null}
     </span>
@@ -353,30 +368,34 @@ export function AdminStripeSetup({ status }: { status: { connected: boolean; fro
   const [secretKey, setSecretKey] = useState("");
   const [amount, setAmount] = useState(((status.amountCents ?? 499) / 100).toFixed(2));
   const [done, setDone] = useState<string | null>(null);
+  const t = useTranslations("settings.saas.stripe");
+  const format = useFormatter();
+  // Prices are shown with two decimals, the way they are entered.
+  const euros = (cents: number) => format.number(cents / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <div className="space-y-3">
       <p className="text-sm">
         {status.connected ? (
           <>
-            <Badge tone={status.mode === "live" ? "success" : "warning"}>{status.mode === "live" ? "live" : "test mode"}</Badge> Connected with key {status.keyHint} · Pro price{" "}
-            {((status.amountCents ?? 0) / 100).toFixed(2)} € / month (VAT incl.) · <code>{status.priceId}</code>
+            <Badge tone={status.mode === "live" ? "success" : "warning"}>{status.mode === "live" ? t("live") : t("testMode")}</Badge>{" "}
+            {t("connected", { key: status.keyHint ?? "", price: euros(status.amountCents ?? 0) })} · <code>{status.priceId}</code>
           </>
         ) : status.fromEnv ? (
-          "Configured through STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET in the environment. Paste a key below to manage it here instead."
+          t("fromEnv")
         ) : (
-          "Not connected – nobody can buy Pro yet."
+          t("notConnected")
         )}
       </p>
       <div className="grid gap-3 md:grid-cols-3">
         <TextField
-          label={status.connected ? "New secret key (optional)" : "Stripe secret key"}
+          label={status.connected ? t("newSecretKey") : t("secretKey")}
           type="password"
           autoComplete="off"
-          placeholder="sk_test_… or sk_live_…"
+          placeholder={t("secretKeyPlaceholder")}
           value={secretKey}
           onChange={(e) => setSecretKey(e.target.value)}
         />
-        <TextField label="Pro price per month in € (VAT incl.)" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <TextField label={t("priceField")} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
         <div className="self-end">
           <Button
             disabled={busy || (!status.connected && secretKey.length < 10)}
@@ -384,17 +403,16 @@ export function AdminStripeSetup({ status }: { status: { connected: boolean; fro
               void run(async () => {
                 const r = await fetchJson<{ mode: string; amountCents: number }>("/api/admin/stripe", { method: "POST", body: JSON.stringify({ secretKey: secretKey || undefined, amount }) });
                 setSecretKey("");
-                setDone(`Saved (${r.mode}): Pro costs ${(r.amountCents / 100).toFixed(2)} € / month.`);
+                setDone(t("saved", { mode: r.mode, price: euros(r.amountCents) }));
               })
             }
           >
-            {busy ? "Talking to Stripe…" : status.connected ? "Save" : "Connect Stripe"}
+            {busy ? t("talking") : status.connected ? t("save") : t("connect")}
           </Button>
         </div>
       </div>
       <p className="text-xs text-muted">
-        Stripe dashboard → Developers → API keys → secret key. The key is stored encrypted and never shown again. A new price creates a new Stripe price; running
-        subscriptions keep theirs.
+        {t("help")}
       </p>
       {done ? <Alert tone="success">{done}</Alert> : null}
       {error ? <Alert>{error}</Alert> : null}

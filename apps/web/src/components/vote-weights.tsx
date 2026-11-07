@@ -1,6 +1,7 @@
 "use client";
 
 import type { StrengthSuggestion, VoteWeightWarning } from "@consyrion/core/browser";
+import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Alert, Badge, Card } from "./ui/surface";
@@ -27,10 +28,21 @@ export function weightShares(weights: ReadonlyArray<number>): number[] {
   return shares;
 }
 
-function sourceLine(s: StrengthSuggestion | null) {
-  if (!s || !s.source) return "No ranking loaded yet – neutral 5";
-  const date = s.fetchedAt ? new Date(s.fetchedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
-  return s.status === "unknown" ? `Not in ${s.source} (${date}) – neutral 5` : `${s.source}: ${s.sourceModel} (${date})`;
+/**
+ * The warning text in the interface language, built from the structured fields of the server's warning (#170);
+ * `names` are the model names in row order (needed for the two-model wording).
+ */
+export function voteWarningText(t: ReturnType<typeof useTranslations>, w: VoteWeightWarning, names: ReadonlyArray<string>) {
+  if (w.kind === "far_from_suggestion") return t("warning.far", { model: w.model, weight: w.weight, suggested: w.suggested });
+  return names.length === 2
+    ? t("warning.dominantTwo", { model: w.model, share: w.sharePercent, other: names[1 - w.index] ?? "" })
+    : t("warning.dominant", { model: w.model, share: w.sharePercent });
+}
+
+function sourceLine(t: ReturnType<typeof useTranslations>, format: ReturnType<typeof useFormatter>, s: StrengthSuggestion | null) {
+  if (!s || !s.source) return t("noRanking");
+  const date = s.fetchedAt ? format.dateTime(new Date(s.fetchedAt), { day: "numeric", month: "short", year: "numeric" }) : "";
+  return s.status === "unknown" ? t("notInRanking", { source: s.source, date }) : t("sourceModel", { source: s.source, model: s.sourceModel ?? "", date });
 }
 
 /**
@@ -51,28 +63,27 @@ export function VoteWeights({
   onSuggest: () => void;
   onEqual: () => void;
 }) {
+  const t = useTranslations("voteWeights");
+  const format = useFormatter();
   const shares = weightShares(rows.map((r) => r.weight));
   const source = rows.find((r) => r.suggestion?.source)?.suggestion;
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Vote weights</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            How much each model&apos;s scores and ranking count in the Final Verdict. Its own proposal is never weighted, and the feasibility check counts every
-            model once. Fixed when the council starts.
-          </p>
+          <h2 className="font-semibold">{t("title")}</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted">{t("intro")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={onSuggest}>
-            Use AI suggestion
+            {t("useSuggestion")}
           </Button>
           <Button variant="ghost" onClick={onEqual}>
-            All equal
+            {t("equal")}
           </Button>
         </div>
       </div>
-      <ul className="mt-4 space-y-3" aria-label="Vote weight per model">
+      <ul className="mt-4 space-y-3" aria-label={t("listLabel")}>
         {rows.map((row, index) => {
           const suggested = row.suggestion?.tier ?? 5;
           const adjusted = row.weight !== suggested;
@@ -81,16 +92,16 @@ export function VoteWeights({
               <div className="min-w-0">
                 <p className="font-medium break-words">{row.name}</p>
                 <p className="text-xs text-muted">
-                  AI suggestion <strong className="text-text">{suggested}/10</strong> · {sourceLine(row.suggestion)}{" "}
-                  {row.suggestion?.status === "stale" ? <Badge tone="warning">ranking older than 7 days</Badge> : null}
-                  {row.suggestion?.status === "unknown" ? <Badge>unknown</Badge> : null}
-                  {adjusted ? <Badge tone="primary">adjusted</Badge> : null}
-                  {warnings.some((w) => w.index === index && w.kind === "dominant_share") ? <Badge tone="warning">dominant vote share</Badge> : null}
-                  {warnings.some((w) => w.index === index && w.kind === "far_from_suggestion") ? <Badge tone="warning">far from suggestion</Badge> : null}
+                  {t.rich("suggestion", { value: suggested, strong: (chunks) => <strong className="text-text">{chunks}</strong> })} · {sourceLine(t, format, row.suggestion)}{" "}
+                  {row.suggestion?.status === "stale" ? <Badge tone="warning">{t("stale")}</Badge> : null}
+                  {row.suggestion?.status === "unknown" ? <Badge>{t("unknown")}</Badge> : null}
+                  {adjusted ? <Badge tone="primary">{t("adjusted")}</Badge> : null}
+                  {warnings.some((w) => w.index === index && w.kind === "dominant_share") ? <Badge tone="warning">{t("dominant")}</Badge> : null}
+                  {warnings.some((w) => w.index === index && w.kind === "far_from_suggestion") ? <Badge tone="warning">{t("far")}</Badge> : null}
                 </p>
               </div>
               <label className="flex items-center gap-3 text-sm">
-                <span className="sr-only">Vote weight of {row.name}</span>
+                <span className="sr-only">{t("weightOf", { name: row.name })}</span>
                 <input
                   type="range"
                   min={1}
@@ -99,7 +110,7 @@ export function VoteWeights({
                   value={row.weight}
                   onChange={(e) => onChange(row.key, Number(e.target.value))}
                   className="w-full accent-[var(--primary)]"
-                  aria-valuetext={`${row.weight} of 10, ${shares[index]} percent of the vote`}
+                  aria-valuetext={t("valueText", { weight: row.weight, share: shares[index] ?? 0 })}
                 />
                 <span className="w-10 text-right font-semibold tabular-nums">{row.weight}/10</span>
               </label>
@@ -118,7 +129,7 @@ export function VoteWeights({
           <Alert tone="warning">
             <ul className="list-disc space-y-1 pl-5">
               {warnings.map((w) => (
-                <li key={`${w.kind}-${w.index}`}>{w.message}</li>
+                <li key={`${w.kind}-${w.index}`}>{voteWarningText(t, w, rows.map((r) => r.name))}</li>
               ))}
             </ul>
           </Alert>
@@ -126,11 +137,14 @@ export function VoteWeights({
       ) : null}
       {source?.sourceUrl ? (
         <p className="mt-3 text-xs text-muted">
-          Suggestions from the{" "}
-          <a className="underline" href={source.sourceUrl} target="_blank" rel="noreferrer">
-            {source.source}
-          </a>{" "}
-          (percentile tier 1–10). A model that is not in the ranking gets the neutral 5.
+          {t.rich("sourceNote", {
+            source: source.source ?? "",
+            link: (chunks) => (
+              <a className="underline" href={source.sourceUrl!} target="_blank" rel="noreferrer">
+                {chunks}
+              </a>
+            ),
+          })}
         </p>
       ) : null}
     </Card>

@@ -592,3 +592,66 @@ phase, each proposal kept a single evaluator, and the verdict still read "recomm
   refuses every proposal with `limitedReview: true` and treats "qualified" together with it as an inconsistent verdict.
 - Not yet built (#249, part 2): a two-stage check that separates the architecture decision from the later acceptance
   measurement for requirements that can only be measured after implementation.
+
+## Verdict at a glance (stage 1 result visualisations, 05.11.26)
+The Final Verdict tab opens with a dashboard (`apps/web/src/components/session/verdict-dashboard.tsx`) and the PDF
+export starts with a graphical "Decision summary" page (`drawSummary` in `apps/web/src/lib/server/report-documents.ts`):
+- **Status:** recommended / tie / needs verification / not approvable with the server's reason and the human decision.
+- **Overall score:** one bar per proposal (0–10, one decimal). Proposals the server does not allow to approve are grey,
+  hatched and labelled "not approvable" – a higher score never outranks a failed or unconfirmed requirement.
+- **Scores per criterion:** small multiples on one scale with the weights.
+- **Hard requirements × proposals:** icon + word + "met n/m" per cell (from the stored gate result, never recomputed);
+  hovering a cell lists each evaluator's statement.
+- **Open objections:** counts by severity per proposal (obsolete objections excluded) and the top critical/high ones.
+- A table view carries the same numbers (accessibility, copy/paste). The PDF summary is light and print-friendly.
+Data for the PDF comes from `buildDecisionReport` (`requirementMatrix`, `approvableProposals`). Stage 2 (evaluator
+differences, phase timeline, tokens per model) and stage 3 (task graph, findings matrix) follow.
+
+## Key disputes (#267, 05.11.26)
+The Final Verdict shows up to three key disputes (`apps/web/src/components/session/cruxes.ts`, deterministic, no model
+call): objections ranked by blocking, status (open/unresolved before upheld before refuted/resolved), severity and
+whether they concern the recommendation; an objection made obsolete by a revision ranks last. Each shows the stored
+claim with raiser and role, the author's answer (or "conceded" / why it is unanswered), the independent review and
+whether the proposal was revised afterwards – plus the Consensus Round's remaining disagreements, as stored. A
+finished session now opens on the Final Verdict tab; a running one on the Council Room.
+
+## Verdict dashboard (#266, 05.11.26)
+Top of the Final Verdict (`apps/web/src/components/session/verdict-dashboard.tsx`), all texts in 5 languages
+(`verdict.dashboard.*`): status hero with approvable yes/no, the human decision and a "Next step" link that jumps to the
+decision form with the first allowed action preselected (only while the owner can decide); a "Review facts" block
+(fewest independent evaluators per proposal, requirement checks not met/open, critical/high objections, models without a
+usable evaluation); overall score bars with author and counted evaluators beside each bar; criteria as one number
+matrix (criteria × proposals, highest approvable value highlighted); requirement × proposal matrix where a click on a cell
+shows every stored evaluator check with its reason. Design review with ChatGPT 05.11.26: no hatching – a proposal that
+cannot be approved is a calm grey bar with a lock and the words "not approvable", never coloured like a contender. The
+PDF page 1 uses the same rules.
+
+## PDF in three levels (#268, 05.11.26)
+`/api/sessions/:id/report?format=pdf&level=brief|report|full` – one report snapshot, three depths: **brief** = the
+graphical decision summary only (1–2 pages for decision makers), **report** (default) = summary + full text report,
+**full** = report + audit appendix (`apps/web/src/lib/server/report-audit.ts`): every stored requirement check
+(requirement × proposal × actual evaluator, status, evidence, estimate exactly as stored, checks that did not count with
+the reason) and the model calls per model and phase with tokens, plus brief/requirement/gate versions. No model call,
+nothing recomputed. The Final Verdict offers the three as buttons.
+
+## Stage-2 charts (05.11.26)
+Below the verdict dashboard (`apps/web/src/components/session/process-charts.tsx`), from stored rows only: **evaluator
+agreement** – a dot plot per criterion with every independent evaluator's raw score (0–10) for the chosen proposal, the
+server mean as a tick and a spread warning at ≥ 3 points (rationale on hover); **phase timeline** from the stage
+timestamps; **tokens per model** (input/output, failed calls). Series colours come from `--viz-1…6` (dataviz reference
+palette, light and dark steps); each dot also shows the model's number, so identity never depends on colour.
+
+## Suggested perspectives (#269, 05.11.26)
+`suggestRoles` (`packages/core/src/role-suggestion.ts`) suggests up to six 12 Minds Council perspectives from the brief
+(idea, goal, requirements) and the confirmed requirement list – deterministic topic words in EN/DE/FR/ES, no model
+call. A security/downside check and an independent critic are always suggested; every other role names the words and
+requirements (R1, R2, …) that led to it, the rest are listed as "not suggested" with the reason. The team setup shows
+each role's core question and applies the suggestion only on the user's click. Roles stay perspectives, not votes.
+
+## Next steps (#273 MVP, 05.11.26)
+`deriveNextSteps` (`apps/web/src/components/session/next-steps.ts`) builds a read-only checklist for the recommended
+proposal – or, when nothing can be approved, for the best-scored one – from stored data only: requirements not
+confirmed for it and its open objections ("settle before any irreversible step"), the author's own assumptions ("test
+these first"), high/critical risks with the planned mitigation ("stop and re-check if …") and the points the Consensus
+Round left open ("ask the council again when …"). Empty sections say "not specified"; nothing is generated, a test plan
+never confirms a requirement and nothing starts without the user.

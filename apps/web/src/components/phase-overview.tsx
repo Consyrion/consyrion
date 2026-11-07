@@ -1,8 +1,10 @@
 import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS } from "@consyrion/core";
+import { useTranslations } from "next-intl";
 import { Badge } from "./ui/surface";
 
 /** Shows the seven canonical phases of a council session. */
 export function PhaseOverview() {
+  const t = useTranslations("projects");
   return (
     <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {COUNCIL_PHASES.map((phase, index) => (
@@ -12,7 +14,7 @@ export function PhaseOverview() {
         </li>
       ))}
       <li className="flex items-center rounded-lg px-3 py-2">
-        <Badge tone="accent">Execution only after your approval</Badge>
+        <Badge tone="accent">{t("executionAfterApproval")}</Badge>
       </li>
     </ol>
   );

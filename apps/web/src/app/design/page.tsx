@@ -5,6 +5,7 @@ import { LiveMetricCard } from "@/components/dashboard/live-metric-card";
 import { stepStatesFor, WorkflowStepper } from "@/components/dashboard/workflow-stepper";
 import { AmbientBackground } from "@/components/fx/ambient-background";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { GlassPanel, NeonBorder } from "@/components/ui/glass";
 import { Alert, Badge, EmptyState } from "@/components/ui/surface";
 import { VoteWeightsDemo } from "@/components/vote-weights";
@@ -79,6 +80,28 @@ export default function DesignGalleryPage() {
               </li>
             ))}
           </ul>
+        </section>
+
+        <section aria-labelledby="g-select" className="space-y-4">
+          <h2 id="g-select" className="font-semibold">
+            Dropdowns
+          </h2>
+          <p className="text-sm text-muted">Every dropdown uses Select – never a native select (guarded by a test). Groups render as header rows.</p>
+          <div className="grid max-w-xl gap-4 sm:grid-cols-2">
+            <Select aria-label="Model" defaultValue="a|haiku">
+              <optgroup label="anthropic · default">
+                <option value="a|haiku">Claude Haiku 5.5</option>
+                <option value="a|sonnet">Claude Sonnet 5.5</option>
+              </optgroup>
+              <optgroup label="openai · default">
+                <option value="o|gpt">gpt-6.1-terra</option>
+              </optgroup>
+            </Select>
+            <Select size="sm" aria-label="Language" defaultValue="de" className="w-fit">
+              <option value="en">English</option>
+              <option value="de">Deutsch</option>
+            </Select>
+          </div>
         </section>
 
         <section aria-labelledby="g-surfaces" className="space-y-4">

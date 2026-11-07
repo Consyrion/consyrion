@@ -1,0 +1,492 @@
+{
+  "shell": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "home": "Start",
+      "projects": "Projekte",
+      "decisions": "Entscheidungen",
+      "providers": "KI-Anbieter",
+      "integrations": "Integrationen",
+      "settings": "Einstellungen",
+      "admin": "Plattform-Admin"
+    },
+    "workspace": "Workspace",
+    "skip": "Zum Inhalt springen",
+    "homeLabel": "CONSYRION AI Dashboard",
+    "menu": "Menü",
+    "mainNav": "Hauptnavigation",
+    "quickNav": "Schnellnavigation",
+    "toggleTheme": "Hell/Dunkel umschalten",
+    "signOut": "Abmelden",
+    "source": "Open Source (AGPL-3.0) · Quellcode"
+  },
+  "dashboard": {
+    "metaTitle": "Dashboard",
+    "title": "Workspace-Überblick",
+    "titleMobile": "Dein Council",
+    "intro": "KI koordinieren. Bessere Entscheidungen treffen. Jede Zahl stammt aus diesem Workspace.",
+    "introMobile": "Mach aus komplexen Fragen klare Entscheidungen.",
+    "ago": {
+      "now": "gerade eben",
+      "minutes": "vor {n} Min.",
+      "hours": "vor {n} Std.",
+      "days": "vor {n} T."
+    },
+    "next": {
+      "awaitingText": "Wartet auf deine Freigabe – vor deiner Entscheidung wird nichts gebaut.",
+      "awaitingAction": "Urteil prüfen",
+      "runningText": "Gerade läuft ein Council.",
+      "runningAction": "Council verfolgen",
+      "keysTitle": "Verbinde deine KI-Keys",
+      "keysText": "Bring deine eigenen Keys mit – du bezahlst die Anbieter direkt.",
+      "keysAction": "Keys verbinden",
+      "firstText": "Dein Projekt ist bereit – starte seinen ersten Council.",
+      "firstAction": "Council starten",
+      "startTitle": "Entscheidung starten",
+      "startText": "Beschreibe eine Idee, eine Architekturfrage oder ein Repository."
+    },
+    "submitted": "{n} von {total} eingereicht",
+    "phasesDone": "{n} von 7 Phasen erledigt",
+    "metrics": {
+      "label": "Workspace-Kennzahlen",
+      "more": "Weitere Workspace-Zahlen",
+      "projects": "Projekte",
+      "sessions": "Council-Sitzungen",
+      "awaiting": "Warten auf Freigabe",
+      "running": "Laufend"
+    },
+    "asideLabel": "Nächster Schritt und Anbieter",
+    "nextAction": "Dein nächster Schritt",
+    "liveCouncil": "Live-Council",
+    "notStarted": "Nicht gestartet",
+    "notStartedLower": "nicht gestartet",
+    "providers": {
+      "title": "Anbieterstatus",
+      "verified": "{n} geprüft",
+      "none": "Noch kein Key verbunden. CONSYRION AI verkauft keine KI-Guthaben – du nutzt deine eigenen Keys.",
+      "checked": "geprüft {when}",
+      "useCheck": "über „Prüfen“ bei KI-Anbieter",
+      "state": {
+        "unchecked": "Nicht geprüft",
+        "failed": "Prüfung fehlgeschlagen",
+        "verified": "Key geprüft"
+      }
+    },
+    "database": {
+      "label": "Datenbank",
+      "ok": "erreichbar",
+      "down": "nicht verfügbar"
+    },
+    "activityTitle": "Council-Aktivität",
+    "independentModels": "{n, plural, one {# unabhängiges Modell} other {# unabhängige Modelle}}",
+    "center": "ENTSCHEIDUNG",
+    "liveNote": "Die Verbindungen bewegen sich nur, während ein Modell arbeitet.",
+    "latestNote": "Kein Council läuft – das ist die letzte Sitzung.",
+    "recent": {
+      "title": "Letzte Council-Sitzungen",
+      "topic": "Entscheidungsthema",
+      "providers": "KI-Anbieter",
+      "stage": "Phase",
+      "status": "Status",
+      "budget": "Token-Budget",
+      "updated": "Aktualisiert"
+    },
+    "process": "Der Entscheidungsprozess",
+    "processLabel": "Phasen der letzten Sitzung",
+    "nodeState": {
+      "idle": "Wartet",
+      "working": "Arbeitet",
+      "done": "Fertig",
+      "failed": "Fehler"
+    },
+    "activity": {
+      "hint": {
+        "idle": "Wartet auf den Start des Councils.",
+        "working": "Anfrage läuft – denkt gerade nach.",
+        "done": "Hat die aktuelle Phase beantwortet.",
+        "failed": "Ist aus diesem Council ausgeschieden."
+      },
+      "requests": "Anfragen",
+      "tokensIn": "Tokens ein",
+      "tokensOut": "Tokens aus",
+      "failed": "{failed} von {calls} Anfragen sind fehlgeschlagen oder waren unbrauchbar.",
+      "perspectives": "Perspektiven",
+      "more": "+{n} weitere",
+      "none": "Keine Modelle."
+    },
+    "compact": {
+      "live": "LIVE-COUNCIL",
+      "latest": "LETZTER COUNCIL",
+      "models": "{n, plural, one {# unabhängiges Modell} other {# unabhängige Modelle}}",
+      "tokens": "Verbrauchte Tokens vom Budget"
+    },
+    "stepper": {
+      "label": "Council-Phasen",
+      "state": {
+        "pending": "ausstehend",
+        "running": "läuft",
+        "completed": "abgeschlossen",
+        "failed": "fehlgeschlagen",
+        "skipped": "übersprungen"
+      }
+    },
+    "metricCard": {
+      "demo": "Demodaten",
+      "live": "Live"
+    },
+    "network": {
+      "label": "Council-Netzwerk. {summary}",
+      "none": "Noch keine Modelle.",
+      "center": "Urteil",
+      "state": {
+        "idle": "wartet",
+        "working": "arbeitet",
+        "done": "fertig",
+        "failed": "fehlgeschlagen"
+      }
+    },
+    "empty": {
+      "title": "Noch kein Council gelaufen",
+      "text": "Ein Council braucht deinen eigenen KI-Key, ein Projekt und eine Frage. Dann denken mehrere Modelle unabhängig nach, debattieren und kommen zu einem Urteil, das du freigibst.",
+      "next": "Nächster Schritt: {title}"
+    }
+  },
+  "decisions": {
+    "metaTitle": "Entscheidungen",
+    "title": "Entscheidungen",
+    "description": "Alle Council-Sitzungen dieses Workspace.",
+    "emptyTitle": "Noch keine Council-Sitzungen",
+    "emptyText": "Öffne ein Projekt und starte einen Council, um eine Entscheidung zu erhalten.",
+    "status": {
+      "queued": "In Warteschlange",
+      "running": "Läuft",
+      "cancel_requested": "Wird gestoppt",
+      "awaiting_approval": "Wartet auf Freigabe",
+      "approved": "Freigegeben",
+      "rejected": "Abgelehnt",
+      "changes_requested": "Änderungen angefordert",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Abgebrochen"
+    }
+  },
+  "projects": {
+    "metaTitle": "Projekte",
+    "title": "Projekte",
+    "description": "Jede Council-Sitzung startet von einem versionierten Projektauftrag.",
+    "new": "Neues Projekt",
+    "emptyTitle": "Noch keine Projekte",
+    "emptyText": "Beschreibe eine Idee oder Architekturfrage, um deine erste Council-Sitzung vorzubereiten.",
+    "type": {
+      "idea": "Idee",
+      "architecture": "Architektur",
+      "repository": "Repository",
+      "business": "Business",
+      "technology_choice": "Technologiewahl"
+    },
+    "status": {
+      "draft": "Entwurf",
+      "ready": "bereit",
+      "archived": "archiviert"
+    },
+    "intent": {
+      "decision": "Nur Entscheidung",
+      "build": "Entwicklung",
+      "both": "Entscheidung und Entwicklung"
+    },
+    "newTitle": "Neues Projekt",
+    "newDescription": "Beschreibe, was der Council entscheiden soll.",
+    "fallbackTitle": "Projekt",
+    "briefLine": "Auftrag Version {version} · {intent}",
+    "startCouncil": "Council starten",
+    "brief": "Projektauftrag",
+    "idea": "Idee oder Frage",
+    "goal": "Gewünschtes Ergebnis",
+    "requirements": "Anforderungen",
+    "confirmed": "Bestätigte harte Anforderungen",
+    "listVersion": "Version {version} · {n, plural, one {# Anforderung} other {# Anforderungen}}",
+    "notTakenOver": "{n} nicht übernommen",
+    "current": "aktuell",
+    "needsAgain": "muss erneut bestätigt werden",
+    "notConfirmed": "noch nicht bestätigt",
+    "reviewConfirm": "Prüfen und bestätigen",
+    "repository": "Repository",
+    "documents": "Dokumente",
+    "documentsText": "Angehängte Dokumente werden Teil des Auftrags für jede neue Council-Sitzung.",
+    "github": "GitHub-Repository",
+    "repoContext": "Repository-Kontext für Councils",
+    "sessions": "Council-Sitzungen",
+    "noSessions": "Noch keine Sitzungen.",
+    "phases": "Phasen",
+    "executionAfterApproval": "Umsetzung erst nach deiner Freigabe",
+    "delete": "Projekt löschen",
+    "deleteText": "Löscht das Projekt endgültig mit allen Council-Sitzungen, Entscheidungen, generiertem Code und Dokumenten.",
+    "deleteButton": "Projekt endgültig löschen"
+  },
+  "councilSetup": {
+    "metaTitle": "KI-Team konfigurieren",
+    "title": "Das KI-Team konfigurieren",
+    "description": "Bestätige die harten Anforderungen und wähle dann Modelle, Rollen und Sitzungsregeln für diesen Council.",
+    "sessionTitle": "Council-Sitzung"
+  },
+  "projectForm": {
+    "example": {
+      "name": "SaaS für Repository-Analyse",
+      "idea": "Entwirf die beste Architektur für eine SaaS-Plattform, die GitHub-Repositories analysiert, Sicherheits- und Qualitätsprobleme findet und Code-Verbesserungen automatisch als Pull Requests vorschlägt.",
+      "goal": "Ein produktionsreifes MVP innert drei Monaten, das ein Team von drei Personen betreiben kann.",
+      "requirements": "Datenhaltung in der EU. Private Repositories dürfen nie für Modelltraining genutzt werden. Infrastrukturbudget zum Start unter 1000 EUR pro Monat."
+    },
+    "saveError": "Das Projekt konnte nicht gespeichert werden",
+    "restored": "Dein ungespeicherter Entwurf aus diesem Browser wurde wiederhergestellt.",
+    "source": "Projektquelle",
+    "sourceIdea": "Idee / Beschreibung",
+    "sourceRepository": "GitHub-Repository",
+    "sourceExample": "Beispiel verwenden",
+    "name": "Projektname",
+    "repositoryHint": "Ist GitHub verbunden und deckt dieses Repository ab, wird es automatisch verknüpft; sonst verknüpfst du es auf der Projektseite.",
+    "idea": "Idee oder Frage",
+    "ideaHint": "Jedes KI-Modell erhält in Independent Thinking genau diesen Auftrag.",
+    "ideaTooShort": "Beschreibe die Idee mit mindestens 20 Zeichen",
+    "type": "Projekttyp",
+    "types": {
+      "idea": "Idee",
+      "architecture": "Softwarearchitektur",
+      "repository": "Bestehendes Repository",
+      "business": "Geschäftsentscheidung",
+      "technology_choice": "Technologiewahl"
+    },
+    "intent": "Ziel",
+    "intentHint": "Die Entwicklung startet erst, nachdem du eine Entscheidung freigegeben hast.",
+    "intents": {
+      "decision": "Nur Entscheidung",
+      "build": "Entwicklung",
+      "both": "Entscheidung und Entwicklung"
+    },
+    "goal": "Gewünschtes Ergebnis",
+    "goalHint": "Wie sieht ein gutes Ergebnis aus?",
+    "requirements": "Weitere Anforderungen",
+    "requirementsHint": "Rahmenbedingungen wie Budget, Compliance oder Tech-Stack.",
+    "saving": "Speichern…",
+    "continue": "Weiter zum KI-Team",
+    "saveDraft": "Als Entwurf speichern",
+    "clear": "Formular leeren"
+  },
+  "documents": {
+    "uploadFailed": "Upload fehlgeschlagen",
+    "deleteError": "Das Dokument konnte nicht gelöscht werden",
+    "none": "Keine Dokumente angehängt.",
+    "status": {
+      "pending": "braucht eine Beschreibung",
+      "draft": "Beschreibung prüfen",
+      "confirmed": "Beschreibung bestätigt"
+    },
+    "size": "{kb} kB Text",
+    "remove": "Entfernen",
+    "removeLabel": "{name} entfernen",
+    "upload": "Dokumente hochladen",
+    "formats": "PDF, Word (.docx) und PowerPoint (.pptx) bis 8 MB, Bilder (PNG, JPEG, WebP, GIF) bis 3,5 MB, Textdateien bis 200 kB; höchstens 10 pro Projekt. Aus PDF, Word und PowerPoint wird nur der Text gelesen. Ein Bild wird zuerst in Text beschrieben – von einem KI-Modell deiner Wahl oder von dir – und du bestätigst die Beschreibung; der Council liest nur diesen Text.",
+    "modelsError": "Deine Modelle konnten nicht geladen werden",
+    "describeError": "Die Beschreibung ist fehlgeschlagen",
+    "confirmError": "Die Beschreibung konnte nicht bestätigt werden",
+    "imageIntro": "Der Council liest dieses Bild nur als Text. Lass es von einem Modell beschreiben (ein Aufruf auf deinem eigenen Key, meist unter 1 Cent) oder schreib die Beschreibung selbst, prüfe sie und bestätige sie.",
+    "describeWith": "Mit einem KI-Modell beschreiben…",
+    "model": "Modell",
+    "chooseModel": "Bildfähiges Modell wählen",
+    "describing": "Beschreibe…",
+    "describe": "Beschreiben",
+    "description": "Beschreibung",
+    "descriptionBy": "Beschreibung (Entwurf von {model} – prüfe und korrigiere sie)",
+    "saveChanged": "Geänderte Beschreibung speichern",
+    "confirm": "Beschreibung bestätigen"
+  },
+  "repoLink": {
+    "loadError": "Repositories konnten nicht geladen werden",
+    "saveError": "Speichern fehlgeschlagen",
+    "linked": "Verknüpft: <strong>{repo}</strong>",
+    "none": "Kein Repository verknüpft. Der Execution Council startet in einem leeren Workspace.",
+    "notLinked": "Der Auftrag nennt {url}, aber es ist nicht verknüpft: Die CONSYRION AI GitHub App hat wahrscheinlich keinen Zugriff darauf. Öffne auf GitHub Settings → Applications → die CONSYRION AI App → Configure, füge das Repository hinzu, klicke dann auf „Repositories laden“ und verknüpfe es hier. Ohne Verknüpfung kann kein Pull Request erstellt werden.",
+    "notConfigured": "GitHub ist auf diesem Server nicht konfiguriert.",
+    "notInPlan": "GitHub ist in deinem Plan nicht enthalten. <link>Siehe Abrechnung & Nutzung</link>.",
+    "connectFirst": "Verbinde zuerst GitHub unter <link>Integrationen</link>.",
+    "account": "GitHub-Konto",
+    "load": "Repositories laden",
+    "repository": "Repository",
+    "link": "Verknüpfen",
+    "unlink": "Verknüpfung lösen"
+  },
+  "repoContext": {
+    "readError": "Das Repository konnte nicht gelesen werden",
+    "savedSkipped": "Gespeichert. Weggelassen: {list}.",
+    "saved": "Gespeichert. Bestätige die Anforderungen vor dem nächsten Council erneut – die Quellen haben sich geändert.",
+    "saveError": "Der Repository-Kontext konnte nicht gespeichert werden",
+    "intro": "Die Modelle eines Decision-Councils lesen die Dateien, die du hier wählst, eingefroren auf einem Commit, als Kontext – nicht als Anforderungen. Jeder Modellaufruf liest sie, sie erhöhen also den Tokenverbrauch eines Councils.",
+    "reading": "Repository wird gelesen…",
+    "choose": "Dateien aus dem Repository wählen",
+    "readable": "{n, plural, one {# lesbare Textdatei} other {# lesbare Textdateien}}",
+    "filterLabel": "Dateien filtern",
+    "filter": "Filtern, z. B. docs/",
+    "files": "Repository-Dateien",
+    "suggested": "vorgeschlagen",
+    "size": "{n, plural, one {# Datei} other {# Dateien}}, {size} ≈ {tokens} Tokens pro Modellaufruf",
+    "limit": "höchstens {files} Dateien und {size}",
+    "readingFiles": "Dateien werden gelesen…",
+    "use": "Als Kontext verwenden"
+  },
+  "requirements": {
+    "suspicion": {
+      "instruction": "Liest sich wie eine Anweisung an die KI-Modelle (z. B. Regeln zu ignorieren oder einen Vorschlag zu bewerten). Die Modelle befolgen sie nie.",
+      "quoted_instruction": "Zitiert Text, der sich wie eine Anweisung an die KI-Modelle liest. Muss das Produkt diesen Text als Daten verarbeiten (speichern, anzeigen, filtern), behalte ihn – die Modelle prüfen ihn als Anforderung und befolgen den zitierten Text nie.",
+      "meta_rule": "Sagt, wann eine Anforderung als erfüllt gilt, statt das Produkt zu beschreiben. Der Council beurteilt jeden Vorschlag nach der Sache; behalte sie nur, wenn sie eine echte Produktregel ist."
+    },
+    "source": {
+      "requirements": "Anforderungen",
+      "goal": "Gewünschtes Ergebnis",
+      "idea": "Idee",
+      "document": "Dokument",
+      "documentNamed": "Dokument: {name}",
+      "user": "Von dir hinzugefügt"
+    },
+    "confirmError": "Die Anforderungen konnten nicht bestätigt werden",
+    "title": "Harte Anforderungen",
+    "intro": "Der Council prüft jeden Vorschlag gegen genau diese Liste. Prüfe sie vor dem Start – die Anzahl der Sätze im Auftrag beweist nicht, dass nichts fehlt.",
+    "versionConfirmed": "Version {version} bestätigt",
+    "needsAgain": "Muss erneut bestätigt werden",
+    "notConfirmed": "Noch nicht bestätigt",
+    "changed": "Der Auftrag oder seine Dokumente haben sich geändert, nachdem Version {version} bestätigt wurde (Auftrag Version {briefVersion}). Prüfe die Liste und bestätige sie erneut, bevor du einen Council startest. Bereits laufende Councils behalten die Liste, mit der sie gestartet wurden.",
+    "confirmedNone": "Bestätigt: Dieser Auftrag hat keine harten Anforderungen.",
+    "estimated": "von den Modellen geschätzt: {measure}",
+    "severalLimits": "mehrere Grenzwerte – nicht als Zahlen geprüft",
+    "splitLimits": "mehrere Grenzwerte in einem Satz – teile ihn auf, damit jeder als Zahl geprüft wird",
+    "excludedSummary": "{n, plural, one {# Aussage bewusst nicht übernommen} other {# Aussagen bewusst nicht übernommen}}",
+    "edit": "Anforderungen bearbeiten",
+    "new": "neu",
+    "sourceGone": "Quelle nicht mehr im Auftrag",
+    "rowLabel": "Anforderung R{n}",
+    "remove": "Entfernen",
+    "removeLabel": "R{n} entfernen",
+    "add": "Anforderung hinzufügen",
+    "toDecideLabel": "Zu entscheidende Aussagen",
+    "toDecide": "Bitte entscheiden ({n})",
+    "toDecideText": "Hier wird nichts von selbst behalten oder entfernt. Entscheide jede Aussage, bevor du bestätigst; der ursprüngliche Wortlaut bleibt unverändert.",
+    "pleaseCheck": "bitte prüfen",
+    "keep": "Als Anforderung behalten",
+    "notRequirement": "Keine Anforderung",
+    "excludedTitle": "Nicht übernommen",
+    "excludedText": "Diese Aussagen aus dem Auftrag oder einem Dokument sind nicht verbindlich. Gib für jede einen Grund an; sie werden dem Council als ausgeschlossen gezeigt, damit sie nicht als Anforderungen zurückkommen.",
+    "reasonLabel": "Grund, warum sie nicht übernommen wird",
+    "reason": "Grund (Pflicht)",
+    "pendingImages": "Bestätige zuerst auf der Projektseite die Beschreibung von {names} – der Council liest ein Bild nur über seine bestätigte Beschreibung, deshalb können die Anforderungen vorher nicht bestätigt werden.",
+    "unscanned": "Nicht nach Anforderungen durchsucht (Format): {names}. Füge ihre harten Anforderungen von Hand hinzu.",
+    "notProposed": "{n, plural, one {# weitere Aussage wurde nicht vorgeschlagen, weil die Liste voll ist. Füge sie von Hand hinzu, wenn sie eine Anforderung ist.} other {# weitere Aussagen wurden nicht vorgeschlagen, weil die Liste voll ist. Füge jene, die Anforderungen sind, von Hand hinzu.}}",
+    "noHard": "Dieser Auftrag hat keine harten Anforderungen.",
+    "confirming": "Bestätige…",
+    "confirm": "Anforderungen bestätigen",
+    "cancel": "Abbrechen",
+    "readOnly": "Nur Mitglieder, die das Projekt bearbeiten dürfen, können die Anforderungen bestätigen.",
+    "afterImplementation": "erst nach der Umsetzung messbar",
+    "afterImplementationText": "Bevor etwas gebaut ist, kann kein Modell „{text}“ bestätigen, deshalb endet der Council mit „Prüfung nötig“. Lass die Anforderung, wie sie ist, und ergänze, wie sie gemessen wird (Methode, Zielwert), damit die Vorschläge daran verglichen werden können.",
+    "addPlan": "Messplan als Anforderung hinzufügen"
+  },
+  "voteWeights": {
+    "noRanking": "Noch kein Ranking geladen – neutral 5",
+    "notInRanking": "Nicht in {source} ({date}) – neutral 5",
+    "sourceModel": "{source}: {model} ({date})",
+    "title": "Stimmgewichte",
+    "intro": "Wie stark die Bewertungen und das Ranking jedes Modells im Final Verdict zählen. Der eigene Vorschlag wird nie gewichtet, und die Machbarkeitsprüfung zählt jedes Modell einmal. Wird beim Start des Councils festgelegt.",
+    "useSuggestion": "KI-Vorschlag verwenden",
+    "equal": "Alle gleich",
+    "listLabel": "Stimmgewicht pro Modell",
+    "suggestion": "KI-Vorschlag <strong>{value}/10</strong>",
+    "stale": "Ranking älter als 7 Tage",
+    "unknown": "unbekannt",
+    "adjusted": "angepasst",
+    "dominant": "dominanter Stimmanteil",
+    "far": "weit vom Vorschlag",
+    "weightOf": "Stimmgewicht von {name}",
+    "valueText": "{weight} von 10, {share} Prozent der Stimmen",
+    "sourceNote": "Vorschläge aus dem <link>{source}</link> (Perzentil-Stufe 1–10). Ein Modell, das nicht im Ranking ist, erhält die neutrale 5.",
+    "warning": {
+      "far": "{model} hat Gewicht {weight}, das Ranking schlägt {suggested} vor.",
+      "dominant": "{model} hält {share} % der Stimmen und überwiegt alle anderen Modelle zusammen.",
+      "dominantTwo": "{model} hält {share} % der Stimmen – mindestens das doppelte Gewicht von {other}, seine Bewertung bestimmt also weitgehend das Ranking."
+    }
+  },
+  "teamConfig": {
+    "mode": {
+      "title": "2. Entscheidungsmodus",
+      "independent_expert": "Blinde Expertenvorschläge mit leichterem strukturiertem Feedback. Architektur, Strategie, Technologiewahl.",
+      "adversarial_review": "Tiefe Prüfung durch den 12 Minds Council, Gegenreden, zwei unabhängige Richter pro Einwand. Sicherheit und Entscheidungen mit hohem Einsatz.",
+      "consensus": "Mehrere Überarbeitungsrunden und ein optionaler Hybridvorschlag. Abweichende Meinungen bleiben dokumentiert."
+    },
+    "weightError": {
+      "enter": "Gib eine Zahl von 0 bis 100 ein.",
+      "negative": "Darf nicht negativ sein.",
+      "max": "Darf höchstens 100 sein."
+    },
+    "weight": {
+      "technicalQuality": "Technische Qualität",
+      "security": "Sicherheit",
+      "maintainability": "Wartbarkeit",
+      "operatingCost": "Betriebskosten",
+      "implementationSpeed": "Umsetzungstempo"
+    },
+    "loadError": "Modelle konnten nicht geladen werden",
+    "startError": "Die Sitzung konnte nicht gestartet werden",
+    "budgetError": "Das Token-Budget muss zwischen {min} und {max} liegen",
+    "problem": {
+      "requirements": "Bestätige vor dem Start die harten Anforderungen oben.",
+      "minModels": "Wähle mindestens zwei Modelle.",
+      "plan": "Dein Plan {plan} erlaubt bis zu {n} Modelle pro Sitzung.",
+      "roles": "Aktiviere mindestens eine Rolle des 12 Minds Council.",
+      "weights": "Korrigiere die markierten Final-Verdict-Gewichte (je 0–100).",
+      "total": "Die Gewichte müssen zusammen 100 ergeben (aktuell {total})."
+    },
+    "models": {
+      "title": "1. KI-Modelle wählen",
+      "intro": "Live von deinen Anbietern geladen. Wähle {min}–{max} Modelle; verschiedene Anbieter geben unabhängigere Sichtweisen.",
+      "introPlan": "Live von deinen Anbietern geladen. Wähle {min}–{max} Modelle (Grenze deines Plans {plan}); verschiedene Anbieter geben unabhängigere Sichtweisen.",
+      "selected": "{n} / {max} gewählt",
+      "loading": "Modelle werden von deinen Anbietern geladen…",
+      "noKeys": "Noch keine API-Keys. <link>Füge zuerst einen Anbieter-Key hinzu</link>.",
+      "filter": "Modelle filtern"
+    },
+    "roles": {
+      "title": "3. Perspektiven des 12 Minds Council",
+      "intro": "{n} aktiv. Perspektiven sind keine unabhängigen Stimmen: Mehrheiten werden pro Modell gezählt. Weniger Rollen kosten weniger.",
+      "modelFor": "Modell für {role}"
+    },
+    "settings": {
+      "title": "4. Sitzungseinstellungen",
+      "debate": "Debattenrunden",
+      "consensus": "Überarbeitungsrunden im Consensus",
+      "hybrid": "Hybridvorschlag erlauben (wird wie jeder andere geprüft)",
+      "weights": "Gewichte im Final Verdict",
+      "total": "(gesamt {total} %)",
+      "budget": "Token-Budget (harte Grenze)",
+      "budgetHint": "{min}–{max} Tokens. Aufrufe stoppen, bevor das Budget überschritten würde. Die Anbieter rechnen über deine eigenen Keys ab.",
+      "rules": "Sitzungsregeln (optional)",
+      "rulesHint": "Z. B. „Fokus auf Betriebskosten“ oder „Muss in der EU laufen“."
+    },
+    "summary": {
+      "title": "Bevor du startest",
+      "project": "Projekt: {name}",
+      "estimate": "Insgesamt etwa <strong>{calls}</strong> Modellaufrufe, höchstens <strong>{tokens}</strong> Tokens (Obergrenze).",
+      "estimateDocs": "Insgesamt etwa <strong>{calls}</strong> Modellaufrufe, höchstens <strong>{tokens}</strong> Tokens (Obergrenze), inklusive {docs, plural, one {# angehängtem Dokument} other {# angehängten Dokumenten}}.",
+      "typical": "Typischerweise etwa {tokens} Tokens (Median deiner letzten {calls} Aufrufe).",
+      "noTypical": "Noch kein typischer Wert: zu wenige frühere Aufrufe in diesem Workspace.",
+      "twoModels": "Mit zwei Modellen hat jeder Vorschlag nur einen unabhängigen Bewerter: Dieser Council kann einen vorläufigen Favoriten nennen, aber nie eine freigebbare Empfehlung. Wähle für eine Empfehlung drei oder mehr Modelle.",
+      "failedOften": "Modelle, die oft fehlgeschlagen sind",
+      "failedRecently": "Zuletzt oft fehlgeschlagen – {model}.",
+      "overBudget": "Die Obergrenze übersteigt dein Budget von {budget} Tokens. Ich akzeptiere, dass Debattenphasen gekürzt werden können, damit genug Budget für das Final Verdict bleibt: Wird das Budget knapp, entfallen Minority Review und Consensus Round, und die Vorschläge werden nicht überarbeitet – das Urteil bewertet dann die ersten Fassungen und wird als gekürzt markiert.",
+      "checkWeights": "Prüfe die Stimmgewichte, bevor du startest:"
+    },
+    "starting": "Starte…",
+    "start": "Council-Sitzung starten",
+    "decrease": "{label} verringern",
+    "increase": "{label} erhöhen",
+    "manual": {
+      "label": "Modell-ID",
+      "placeholder": "Modell-ID von Hand hinzufügen",
+      "add": "Hinzufügen"
+    }
+  }
+}

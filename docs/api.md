@@ -27,6 +27,8 @@ All endpoints are under `/api`. Authentication: browser session cookie **or** `A
 | POST `/billing/checkout`, POST `/billing/portal`, POST `/billing/webhook` | Stripe | billing:manage / signed |
 | GET `/github/install`, GET `/github/setup`, POST `/github/webhook`, GET `/github/repositories` | GitHub App | owner / signed |
 | PUT `/admin/plans/:key`, PUT `/admin/organizations/:id/plan` | Platform admin | PLATFORM_ADMIN_EMAILS |
+| POST `/feedback`, GET `/feedback/mine` | Send feedback (also visitors, 10/day), own reports with replies | anyone / own |
+| GET `/admin/feedback`, GET/PATCH/DELETE `/admin/feedback/:id`, POST `/admin/feedback/:id/reply` | Feedback inbox | PLATFORM_ADMIN_EMAILS |
 
 ## API v1 for integrations (#101)
 

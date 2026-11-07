@@ -29,6 +29,13 @@
   --glow-violet: rgb(139 92 246 / 0.4);
   --electric-core: #e6fbff;
   color-scheme: dark;
+  /* Chart series (dataviz reference palette, dark steps; first three validated all-pairs for dot plots). */
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #d55181;
+  --viz-6: #9085e9;
 }
 
 :root[data-theme="light"] {
@@ -55,6 +62,12 @@
   --glow-violet: rgb(109 40 217 / 0.16);
   --electric-core: #075985;
   color-scheme: light;
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-6: #6250d6;
 }
 
 /* Always-dark brand stage (sign-in, sign-up, invitations): the dark tokens scoped to a subtree, in both themes. */
@@ -226,5 +239,14 @@ body {
   * {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* AI assistant drawer (#279): on wide screens the page moves aside instead of being covered (like the OnJam mixer). */
+@media (min-width: 1400px) {
+  /* #main is w-full in a grid cell: a margin alone would push it past the edge (ChatGPT QA 06.11.26), so shrink it too. */
+  body[data-assistant="open"] #main {
+    width: calc(100% - 456px);
+    margin-right: 456px;
   }
 }

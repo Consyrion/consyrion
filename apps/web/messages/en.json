@@ -1,0 +1,709 @@
+{
+  "common": {
+    "language": "Language"
+  },
+  "landing": {
+    "nav": {
+      "how": "How it works",
+      "overview": "Overview",
+      "keys": "Your AI keys",
+      "delivery": "Delivery",
+      "signIn": "Sign in",
+      "openDashboard": "Open dashboard",
+      "dashboardShort": "Dashboard",
+      "startShort": "Start",
+      "main": "Main",
+      "home": "CONSYRION AI home",
+      "skip": "Skip to content",
+      "openSource": "Open source",
+      "pricing": "Pricing"
+    },
+    "cta": {
+      "start": "Start a Decision",
+      "how": "See How It Works",
+      "keys": "Connect Your AI Keys"
+    },
+    "overview": {
+      "title": "The process at a glance",
+      "text": "Seven canonical stages. Modes – Independent Expert, Adversarial Review, Consensus – change how the council is orchestrated, not just the wording.",
+      "stage": "STAGE {n}",
+      "gateKicker": "HUMAN GATE",
+      "gateText": "Approve, select an alternative, request more debate, request changes or reject. Proposals with a critical security objection cannot be approved."
+    },
+    "phase": {
+      "independent_thinking": "Every model receives the identical brief and answers blind. No model sees another proposal before the reveal.",
+      "open_council": "All proposals are revealed side by side. Models ask each other precise questions and answer them.",
+      "twelve_minds_council": "Up to twelve perspectives – architecture, security, cost, critic and more – review every proposal.",
+      "minority_review": "Dissent is first-class. Substantiated objections are checked by independent models and may stay unresolved.",
+      "consensus_round": "Authors revise their proposals against the objections. Agreements and open disagreements are documented.",
+      "final_verdict": "Independent scores, hard gates and a separate majority vote produce a reproducible verdict – then you decide.",
+      "execution_council": "Optional, with a connected GitHub repository: after your approval a task plan, sandboxed code, tests, reviews and a draft pull request."
+    },
+    "byok": {
+      "title": "Your keys. Your providers.",
+      "text": "CONSYRION AI is bring-your-own-key only. You connect your own API keys and pay the providers directly – CONSYRION AI sells no AI credits and has no fallback key.",
+      "p1": "Keys are encrypted with AES-256-GCM before they are stored and are never shown again.",
+      "p2": "Each key is checked against the provider; model lists come live from the provider.",
+      "p3": "Every session has a hard token budget that is enforced on the server.",
+      "providers": "Supported AI providers",
+      "ownKey": "Your own API key",
+      "models": "{name} models"
+    },
+    "delivery": {
+      "title": "Your decision, where you work",
+      "text": "Most teams need the reasoned decision, not code. Take the verdict as a report or into your tools – a pull request is one option, only with a connected repository.",
+      "status": {
+        "available": "Available",
+        "with_github": "With a connected repository",
+        "planned": "Planned"
+      },
+      "targets": {
+        "decision_report": {
+          "name": "Decision report",
+          "detail": "Recommendation, scores, dissent and evidence in the app"
+        },
+        "markdown_json": {
+          "name": "Markdown & JSON",
+          "detail": "Export for your notes, wiki or own tools"
+        },
+        "pdf_word": {
+          "name": "PDF & Word",
+          "detail": "Print-ready report to share or file"
+        },
+        "e_mail": {
+          "name": "E-mail",
+          "detail": "Summary with the report attached"
+        },
+        "telegram": {
+          "name": "Telegram",
+          "detail": "Short verdict and link to your chat"
+        },
+        "confluence": {
+          "name": "Confluence",
+          "detail": "A page in your team space"
+        },
+        "obsidian": {
+          "name": "Obsidian",
+          "detail": "The report as a note in your vault"
+        },
+        "github_pull_request": {
+          "name": "GitHub pull request",
+          "detail": "Optional build by the Execution Council – reviewed, tested, as a draft"
+        }
+      }
+    },
+    "pipeline": {
+      "title": "Optional: from verdict to pull request",
+      "text": "With a connected GitHub repository the Execution Council can build an approved decision – reviewed, tested and always as a draft for you to merge.",
+      "steps": {
+        "approve": {
+          "title": "Approve",
+          "text": "A human approves the verdict. Nothing is built before that."
+        },
+        "plan": {
+          "title": "Plan",
+          "text": "The Execution Council turns the verdict into a validated task graph."
+        },
+        "code": {
+          "title": "Code & test",
+          "text": "Code only runs isolated – in a sandbox without network access or in your repository's GitHub Actions."
+        },
+        "review": {
+          "title": "Review",
+          "text": "Independent models review the change; findings stay visible."
+        },
+        "pr": {
+          "title": "Pull request",
+          "text": "A draft pull request opens in your repository through the GitHub App."
+        }
+      }
+    },
+    "closing": {
+      "title": "Bring your next hard decision to the council.",
+      "text": "Describe an idea, an architecture question or connect a repository."
+    },
+    "footer": {
+      "signIn": "Sign in",
+      "signUp": "Create an account",
+      "impressum": "Imprint",
+      "agb": "Terms",
+      "datenschutz": "Privacy",
+      "source": "Source code",
+      "feedback": "Contact & feedback"
+    },
+    "why": {
+      "title": "Why CONSYRION AI?",
+      "text": "Several AI models develop solutions, challenge each other and score them. You see the reasoning, open objections and results before you decide.",
+      "points": {
+        "perspectives": {
+          "title": "Different perspectives",
+          "text": "Up to six AI models work on the same decision."
+        },
+        "review": {
+          "title": "Independent review",
+          "text": "Models challenge each other's proposals."
+        },
+        "requirements": {
+          "title": "Clear requirements",
+          "text": "Solutions are measured against your confirmed hard requirements."
+        },
+        "transparent": {
+          "title": "Traceable results",
+          "text": "Scores, reasoning and unresolved objections side by side."
+        },
+        "control": {
+          "title": "You decide",
+          "text": "Final approval always stays with you."
+        }
+      }
+    },
+    "channels": {
+      "title": "CONSYRION AI where you work",
+      "text": "You don't have to open the web app for every question. With Pro you start decisions from your development tool or your private Telegram chat.",
+      "mcp": {
+        "kicker": "MCP server",
+        "title": "In your development workflow",
+        "text": "The built-in MCP server connects CONSYRION AI to Claude Code, Claude Desktop, Cursor and VS Code.",
+        "p1": "Send a question to the council with ask_consyrion, fetch the verdict with get_decision.",
+        "p2": "Access with API tokens, read-only tokens included.",
+        "p3": "Approvals, builds, deleting, keys and billing are never possible over MCP."
+      },
+      "telegram": {
+        "kicker": "Telegram",
+        "title": "Straight from your chat",
+        "text": "Your own bot takes questions and sends the verdict back.",
+        "p1": "Ask with /frage – lines starting with \"- \" become hard requirements.",
+        "p2": "Check models and budget, then confirm with \"Start\".",
+        "p3": "Verdict and PDF arrive in your private chat; /offen shows what is waiting."
+      }
+    },
+    "openSource": {
+      "title": "Open source. Run it on your own server.",
+      "text": "CONSYRION AI is free, open-source software. Download the source code from GitHub and run it yourself with Docker Compose.",
+      "cta": "View on GitHub",
+      "guide": "Self-hosting guide",
+      "p1": "AGPL-3.0 licence – free to download",
+      "p2": "Docker Compose setup on your own server",
+      "p3": "Self-hosted without plan limits",
+      "p4": "Your own AI keys: you pay the providers directly"
+    },
+    "pricing": {
+      "title": "Choose how you use CONSYRION AI",
+      "text": "Host it yourself or start online right away. AI usage always runs on your own API keys – CONSYRION AI does not sell AI credits.",
+      "note": "Cancel Pro any time in the Stripe customer portal. In every option you pay AI API usage directly to your provider.",
+      "plans": {
+        "selfhost": {
+          "name": "Self-hosted",
+          "price": "€0",
+          "priceNote": "Open source",
+          "p1": "AGPL-3.0 licence",
+          "p2": "On your own server",
+          "p3": "Docker Compose setup",
+          "p4": "No plan limits",
+          "p5": "Your own API keys",
+          "cta": "Download on GitHub"
+        },
+        "free": {
+          "name": "Free",
+          "price": "€0",
+          "priceNote": "on app.consyrion.com",
+          "p1": "1 member, 3 projects",
+          "p2": "2 councils per month",
+          "p3": "Up to 3 AI models per council",
+          "p4": "Advice and decision report",
+          "p5": "No GitHub build, MCP or Telegram",
+          "cta": "Start for free"
+        },
+        "pro": {
+          "name": "Pro",
+          "price": "€4.99",
+          "priceNote": "per month incl. VAT · AI costs billed by your provider",
+          "p1": "Up to 3 members",
+          "p2": "Unlimited projects and councils",
+          "p3": "Up to 6 AI models per council",
+          "p4": "GitHub build: one model builds, others review, draft PR",
+          "p5": "MCP server and Telegram included",
+          "cta": "Choose Pro"
+        }
+      }
+    }
+  },
+  "story": {
+    "title": "How CONSYRION AI works – from your question to a reasoned decision",
+    "chaptersLabel": "Chapters",
+    "illustration": "Illustration – not live data",
+    "example": "Example scenario – illustration, not live data.",
+    "exampleLabel": "Example",
+    "play": "Play animation",
+    "pause": "Pause animation",
+    "short": {
+      "top": "Intro",
+      "prepare": "Prepare",
+      "approval": "Approval",
+      "build": "Execution Council",
+      "start": "Start"
+    },
+    "chapters": {
+      "top": {
+        "kicker": "CONSYRION AI",
+        "title": "Debate. Decide. Deliver.",
+        "text": "Claude, OpenAI, Gemini, Grok, DeepSeek, Kimi and other AI models think independently, challenge each other and reach a documented verdict with evidence. You approve – and take the decision where you work: as a report, in your tools or, with a connected GitHub repository, as a reviewed pull request."
+      },
+      "prepare": {
+        "kicker": "Before the council",
+        "title": "Your question becomes a brief",
+        "text": "Create a project and describe the decision. Choose the models and up to twelve perspectives. You connect your own provider keys and set a hard token budget – CONSYRION AI sells no AI credits.",
+        "example": "Question: “Which database architecture should our SaaS product use?” – three models, twelve perspectives, a budget on your own keys.",
+        "points": ["Project, question and context", "Models and perspectives you pick", "Your own API keys, your budget"]
+      },
+      "independent-thinking": {
+        "kicker": "Phase 1",
+        "text": "Every model receives the identical brief and works on its own. Answers stay sealed until all are in – no model can see or copy another.",
+        "example": "Model A drafts a managed multi-tenant database, B a self-hosted cluster, C a hybrid – none of them sees the others."
+      },
+      "open-council": {
+        "kicker": "Phase 2",
+        "text": "All proposals are revealed at once and laid out side by side as equals. You compare the alternatives while the models ask each other precise questions.",
+        "example": "Side by side: A is fastest to launch, B gives the most control, C balances both. B asks A how tenants are kept apart."
+      },
+      "twelve-minds": {
+        "kicker": "Phase 3",
+        "text": "Roles such as architecture, security, cost and critic unfold around the models and test every proposal. Twelve perspectives are roles – not twelve extra models or votes.",
+        "example": "The security role checks tenant isolation, the cost role compares running costs, the critic looks for weak spots."
+      },
+      "minority-review": {
+        "kicker": "Phase 4",
+        "text": "A substantiated objection is highlighted and checked against evidence by independent models. Dissent is recorded – never smoothed away.",
+        "example": "One objection stands out: in A, a misconfiguration could let tenants see each other’s data. Evidence: test results and provider docs."
+      },
+      "consensus-round": {
+        "kicker": "Phase 5",
+        "text": "Authors revise their proposals against the objections; compatible ideas can merge into a hybrid option. Differences that remain stay documented.",
+        "example": "A adds per-tenant keys and merges with C into “Hybrid A + C”. B’s cost concern stays documented."
+      },
+      "final-verdict": {
+        "kicker": "Phase 6",
+        "text": "Recommendation, independent scores, evidence and the minority position come together in one decision report. Nothing is built at this point.",
+        "example": "Recommendation: Hybrid A + C – with scores for security, cost and time to launch, and the security objection on record."
+      },
+      "approval": {
+        "kicker": "Human approval",
+        "title": "You decide",
+        "text": "Approve, choose an alternative, ask for more debate, request changes or reject. A proposal with an open critical security objection cannot be approved. Without your approval nothing is built.",
+        "example": "You approve Hybrid A + C – or ask for one more round on cost first."
+      },
+      "build": {
+        "kicker": "Phase 7 · optional, with GitHub",
+        "text": "Only if you want it and a GitHub repository is connected: after your approval the decision becomes tasks, code, tests and independent reviews – delivered as a draft pull request. Most decisions need no build; merge and deployment stay your separate decisions.",
+        "example": "Tasks: schema, per-tenant keys, migration tests – opened as a draft pull request in your repository."
+      },
+      "start": {
+        "kicker": "From question to decision",
+        "title": "From your question to a reasoned decision – delivered where you work, optionally all the way to reviewed code.",
+        "text": "Your keys, your providers, your approval. Every step leaves evidence you can follow."
+      }
+    }
+  },
+  "verdict": {
+    "cruxes": {
+      "title": "Key disputes",
+      "intro": "The disagreements that decided this verdict or still threaten it – each one from stored council events.",
+      "number": "Dispute {n}",
+      "proposal": "Proposal {label}",
+      "blocking": "blocks approval",
+      "recommended": "concerns the recommendation",
+      "raisedBy": "Raised by",
+      "evidence": "Evidence named",
+      "authorAnswer": "Answer ({model})",
+      "unanswered": "No answer – {reason}",
+      "conceded": "Conceded",
+      "noAnswer": "No answer recorded",
+      "review": "Independent review",
+      "notReviewed": "Not independently reviewed",
+      "changed": "Did the proposal change?",
+      "revised": "Yes – revised to v{version}",
+      "revisedMoot": "Yes – v{version} no longer contains what was criticised",
+      "notRevised": "No later revision",
+      "remaining": "Still open after the Consensus Round",
+      "source": "Shown as stored: claims, answers and reviews are model statements, not a fact check. Full history: tab Minority Review & Consensus Round.",
+      "status": {
+        "open": "open",
+        "unresolved": "unresolved",
+        "accepted": "objection upheld",
+        "refuted": "objection refuted",
+        "resolved": "resolved"
+      },
+      "severity": {
+        "critical": "critical",
+        "high": "high",
+        "medium": "medium",
+        "low": "low"
+      }
+    },
+    "dashboard": {
+      "aria": "Verdict at a glance",
+      "verdict": "Verdict",
+      "proposal": "Proposal {label}",
+      "approvableYes": "{n, plural, one {# proposal can be approved} other {# proposals can be approved}}",
+      "approvableNo": "No proposal can be approved",
+      "yourDecision": "Your decision: {action}",
+      "nothingBuilt": "Nothing is built before you decide. These are model judgements with reasons, not a fact check.",
+      "nextStep": "Next step",
+      "action": {
+        "approve": "approve the recommendation",
+        "select_alternative": "choose an alternative",
+        "repeat_evaluation": "repeat the missing evaluation",
+        "request_changes": "request changes to the brief",
+        "reject": "reject",
+        "request_more_debate": "request more debate"
+      },
+      "outcome": {
+        "recommended": "Recommended solution",
+        "tie": "Tie – please choose",
+        "no_qualifying_solution": "None of the proposals meets the requirements",
+        "insufficient_evidence": "Insufficient independent evidence",
+        "needs_verification": "Needs verification – not approvable",
+        "provisional": "Provisional favourite – limited review, not approvable",
+        "conflict": "No solution can meet these requirements",
+        "not_approvable": "Not approvable"
+      },
+      "facts": {
+        "title": "Review facts",
+        "breadth": "Independent evaluators (fewest per proposal)",
+        "breadthValue": "{n} of {of}",
+        "openRequirements": "Requirement checks not met or open",
+        "criticalObjections": "Critical/high objections open",
+        "modelErrors": "Models without a usable evaluation",
+        "note": "Counted from stored checks; ! marks what limits the verdict."
+      },
+      "showTable": "Show as table",
+      "showCharts": "Show as charts",
+      "overall": {
+        "title": "Overall score",
+        "intro": "Weighted mean of the independent evaluations, 0–10. A proposal that misses a requirement cannot win on points."
+      },
+      "recommended": "recommended",
+      "notApprovable": "not approvable",
+      "approvable": "approvable",
+      "barAria": "Proposal {label}: {score} of 10{blocked, select, yes {, not approvable} other {}}",
+      "by": "by {model}",
+      "evaluatedBy": "evaluated by {models}",
+      "evaluations": "{n, plural, one {# independent evaluation} other {# independent evaluations}}",
+      "criteria": {
+        "technicalQuality": "Technical quality",
+        "security": "Security",
+        "maintainability": "Maintainability",
+        "operatingCost": "Operating cost",
+        "implementationSpeed": "Implementation speed"
+      },
+      "criteriaCard": {
+        "title": "Strengths per criterion",
+        "intro": "Mean score per criterion (0–10) and its weight in the overall score.",
+        "criterion": "Criterion",
+        "best": "highest in this row",
+        "legend": "Highlighted: highest value per criterion among approvable proposals. Lock = not approvable."
+      },
+      "weight": "weight {w} %",
+      "requirements": {
+        "title": "Hard requirements",
+        "intro": "Each requirement against each proposal, as the independent evaluators judged it. Click a cell for every evaluator's reason.",
+        "requirement": "Requirement"
+      },
+      "req": {
+        "PASS": "met",
+        "FAIL": "not met",
+        "DISPUTED": "disputed",
+        "UNKNOWN": "unconfirmed",
+        "noAnswer": "no answer",
+        "noEvaluation": "No evaluation",
+        "count": "{n} of {of} confirm"
+      },
+      "cell": {
+        "aria": "Evaluator reasons for this requirement",
+        "close": "Close",
+        "notCounted": "did not count: {reason}",
+        "noChecks": "No stored check for this cell.",
+        "open": "No answer from: {models}",
+        "note": "Stored model statements, not a fact check."
+      },
+      "objections": {
+        "title": "Open objections",
+        "intro": "Accepted or undecided objections from the Minority Review, by severity. Objections a revision made obsolete are not counted.",
+        "none": "none open"
+      },
+      "table": {
+        "caption": "Scores 0–10 per proposal and criterion (weight in brackets).",
+        "proposal": "Proposal",
+        "overall": "Overall",
+        "status": "Status"
+      },
+      "allBlocked": "All {n} proposals are not approvable – the scores show quality, not a winner.",
+      "decided": {
+        "chosen": "Decided: Proposal {label}",
+        "approved": "Decided: recommendation approved",
+        "rejected": "Decided: rejected",
+        "aiVerdict": "AI verdict: {verdict}"
+      }
+    },
+    "process": {
+      "proposal": "Proposal {label}",
+      "agreement": {
+        "title": "How far the evaluators agree",
+        "intro": "Each dot is one independent evaluator's raw score (0–10) for this proposal; the line is the server's mean. Hover a dot for its reason.",
+        "choose": "Choose a proposal",
+        "legend": "Evaluators",
+        "mean": "mean",
+        "spread": "spread {n}",
+        "note": "A spread of 3 or more points (!) means the models judge this criterion very differently – read their reasons.",
+        "none": "No independent scores are stored for this proposal."
+      },
+      "timeline": {
+        "title": "Phase timeline",
+        "total": "Total {duration}",
+        "running": "running"
+      },
+      "tokens": {
+        "title": "Tokens per model",
+        "intro": "All council calls on your own API keys (build calls: tab Execution Council).",
+        "split": "{input} input · {output} output",
+        "failed": "{n, plural, one {# failed call} other {# failed calls}}",
+        "input": "input",
+        "output": "output"
+      }
+    },
+    "nextSteps": {
+      "title": "Next steps",
+      "introRecommended": "For the recommended Proposal {label}: what to check first, what to test, when to stop and when to ask the council again.",
+      "introLeading": "No proposal can be approved yet. For the best-scored Proposal {label}: what is missing and what to check before deciding.",
+      "verify": {
+        "title": "Settle before any irreversible step",
+        "source": "Unconfirmed requirements and open objections from the council",
+        "empty": "Nothing open – every requirement confirmed, no open objection."
+      },
+      "assumptions": {
+        "title": "Riskiest assumptions – test these first",
+        "source": "The author's own assumptions, as written",
+        "empty": "Not specified by the author."
+      },
+      "stopIf": {
+        "title": "Stop and re-check if …",
+        "source": "High and critical risks the author named",
+        "empty": "Not specified – no high or critical risk named.",
+        "mitigation": "Planned mitigation: {text}"
+      },
+      "revisit": {
+        "title": "Ask the council again when …",
+        "source": "Points the Consensus Round left open",
+        "empty": "Not specified – no open disagreement recorded.",
+        "pointer": "New facts on one of the {n, plural, one {# open point} other {# open points}} listed under “Key disputes”."
+      },
+      "note": "Built from stored council statements only, nothing generated. A test plan stays a plan: it does not confirm a requirement, and nothing is built or started without your decision.",
+      "introChosen": "For Proposal {label}, which you chose: what to check before an irreversible step, what to test, when to stop and when to ask the council again.",
+      "introTie": "There is no single recommendation (the leading proposals are too close). For the best-scored Proposal {label}: what to check before you choose."
+    }
+  },
+  "scene": {
+    "models": [
+      {
+        "role": "Software Architect",
+        "roles": ["Architecture", "Scalability", "Reliability", "Cost"]
+      },
+      {
+        "role": "Security Expert",
+        "roles": ["Security", "Data governance", "Performance", "Compliance"]
+      },
+      {
+        "role": "Critical Thinker",
+        "roles": ["Critic", "Maintainability", "Developer experience", "Operations"]
+      }
+    ],
+    "apiKey": "Your API key",
+    "decision": "Decision",
+    "proposal": "Proposal {letter}",
+    "proposalLines": ["Managed multi-tenant", "Self-hosted cluster", "Hybrid architecture"],
+    "evidenceAttached": "Evidence attached",
+    "example": "example",
+    "optional": "optional",
+    "brief": {
+      "title": "Brief",
+      "lines": ["Which database architecture?", "3 models · 12 perspectives", "Budget on your own keys"]
+    },
+    "objection": {
+      "title": "Objection · Security",
+      "lines": ["Tenant isolation risk", "Checked against evidence", "Kept on record"]
+    },
+    "evidence": ["Evidence: test results", "Evidence: provider docs"],
+    "hybrid": {
+      "title": "Hybrid A + C",
+      "lines": ["Revised against objections", "Merged where compatible"]
+    },
+    "difference": "Difference documented",
+    "report": {
+      "title": "Decision report",
+      "lines": ["Recommended: Hybrid A + C", "Minority position kept"],
+      "bars": ["Security", "Cost", "Time to launch"]
+    },
+    "awaiting": "Awaiting your approval",
+    "approved": "✓ Approved by you",
+    "pipeline": [
+      {
+        "title": "Tasks",
+        "lines": ["Validated plan", "Task graph"]
+      },
+      {
+        "title": "Code",
+        "lines": ["Isolated sandbox", "No network access"]
+      },
+      {
+        "title": "Tests",
+        "lines": ["Run in the sandbox", "Results attached"]
+      },
+      {
+        "title": "Reviews",
+        "lines": ["Independent models", "Findings visible"]
+      },
+      {
+        "title": "Draft PR",
+        "lines": ["GitHub draft pull request", "Merge stays your call"]
+      }
+    ]
+  },
+  "roleSuggestion": {
+    "title": "Suggested perspectives for this project",
+    "intro": "From your brief and confirmed requirements – no model call. Apply it or keep your own choice.",
+    "apply": "Apply {n} perspectives",
+    "applied": "Suggestion applied",
+    "always": {
+      "security": "Always suggested: a security and downside check belongs in every council.",
+      "critic": "Always suggested: an independent critic looks for what the others miss."
+    },
+    "because": {
+      "words": "Topics in your brief: {words}",
+      "requirements": "Requirements: {ids}",
+      "default": "Neutral default perspective"
+    },
+    "notSuggested": "{n} not suggested",
+    "notSuggestedWhy": "no matching topic in the brief or the requirements. You can still activate them below.",
+    "note": "Perspectives are not extra votes: majorities and independent reviews are counted per model.",
+    "names": {
+      "software_architect": "Software Architect",
+      "security_expert": "Security Expert",
+      "performance_engineer": "Performance Engineer",
+      "backend_engineer": "Backend Engineer",
+      "frontend_engineer": "Frontend Engineer",
+      "database_architect": "Database Architect",
+      "devops_engineer": "DevOps Engineer",
+      "cost_analyst": "Cost Analyst",
+      "product_strategist": "Product Strategist",
+      "quality_assurance_expert": "Quality Assurance Expert",
+      "maintainability_reviewer": "Maintainability Reviewer",
+      "independent_critical_thinker": "Independent Critical Thinker"
+    },
+    "questions": {
+      "software_architect": "Does the structure carry the requirements and later growth?",
+      "security_expert": "What can go wrong – data, access, abuse – and how is it prevented?",
+      "performance_engineer": "Is it fast enough under real load, and where is the bottleneck?",
+      "backend_engineer": "Are the server parts, APIs and jobs sound and testable?",
+      "frontend_engineer": "Can users actually work with it, on every screen size?",
+      "database_architect": "Do the data model, queries and migrations hold up?",
+      "devops_engineer": "How is it deployed, monitored, backed up and recovered?",
+      "cost_analyst": "What does it cost to build and to run, and is that within budget?",
+      "product_strategist": "Does it solve the right problem for the users and the market?",
+      "quality_assurance_expert": "How is it proven to work, and what would break unnoticed?",
+      "maintainability_reviewer": "Will the team still understand and change it in a year?",
+      "independent_critical_thinker": "What is everyone else overlooking – is there a simpler or safer way?"
+    }
+  },
+  "assistant": {
+    "tab": "AI assistant",
+    "title": "AI assistant",
+    "subtitle": "Asks your workspace – on your own API key",
+    "close": "Close the assistant",
+    "tabs": {
+      "chat": "Chat",
+      "history": "History",
+      "settings": "Model"
+    },
+    "newChat": "New chat",
+    "empty": "Ask about your projects, open steps and decisions – or have a decision summarised for a customer.",
+    "examples": {
+      "open": "Which steps are open in my workspace?",
+      "waiting": "Which decisions are waiting for my approval?",
+      "summary": "Summarise this decision for a customer in five sentences."
+    },
+    "thinking": "The assistant is looking it up…",
+    "placeholder": "Ask a question … (Enter sends, Shift+Enter new line)",
+    "send": "Send",
+    "footer": "Answers come from your workspace data via read-only tools; model statements are not a fact check.",
+    "chooseModel": "Choose a model first.",
+    "error": "The assistant could not answer.",
+    "noKey": "No model available – add an API key first.",
+    "addKey": "AI providers",
+    "contextSession": "About this decision",
+    "removeContext": "remove",
+    "loading": "Loading…",
+    "noChats": "No chats yet.",
+    "delete": "Delete chat “{title}”",
+    "privacy": "Your chats are stored for you only – no other member and no admin can read them. Deleting removes them for good.",
+    "model": "Model that answers",
+    "modelNote": "Only models of your own keys. Every question costs a few calls on that key; the tokens are shown under each answer.",
+    "readOnly": "The assistant reads your workspace and can suggest actions (draft a project or brief, propose requirements, prepare a council, write a text). Nothing runs until you click – it can never approve, start a council or build, delete or change settings.",
+    "shortcut": "Shortcut: ⌘/Ctrl + J opens and closes the assistant, Esc closes it.",
+    "usedTools": "read: {tools}",
+    "tokens": "{n} tokens",
+    "open": "Open the AI assistant (⌘/Ctrl + J)",
+    "actions": {
+      "types": {
+        "create_project_draft": "New project (draft)",
+        "draft_brief": "New brief version",
+        "propose_requirements": "Propose requirements",
+        "prepare_council": "Prepare council",
+        "draft_customer_summary": "Customer summary",
+        "prepare_delivery": "Message draft"
+      },
+      "fields": {
+        "name": "Name",
+        "type": "Type",
+        "idea": "Idea",
+        "goal": "Desired outcome",
+        "requirements": "Requirements",
+        "projectId": "Project",
+        "sessionId": "Decision",
+        "channel": "Channel",
+        "subject": "Subject",
+        "text": "Text"
+      },
+      "run": "Run",
+      "copy": "Copy text",
+      "openForm": "Open council form",
+      "edit": "Edit",
+      "cancelEdit": "Cancel editing",
+      "dismiss": "Dismiss",
+      "onePerLine": "one per line",
+      "noteRun": "Suggested by the AI assistant – runs with your permissions only when you click.",
+      "noteCouncil": "Opens the form – you check the cost estimate and start the council yourself.",
+      "noteText": "Only copied to your clipboard – nothing is sent.",
+      "done": "Done – confirmed by you",
+      "textDone": "Marked as used",
+      "copiedDone": "Copied to the clipboard",
+      "dismissed": "Dismissed",
+      "edited": "changed by you",
+      "open": "Open",
+      "failed": "The action could not be run.",
+      "values": {
+        "idea": "Idea",
+        "architecture": "Software architecture",
+        "repository": "Existing repository",
+        "business": "Business decision",
+        "technology_choice": "Technology choice",
+        "slack": "Slack",
+        "teams": "Microsoft Teams",
+        "email": "E-mail"
+      },
+      "copyAgain": "Copy again"
+    },
+    "stop": "Stop",
+    "stopped": "Stopped – nothing was saved for this answer.",
+    "readingTool": "Reading {tool} …"
+  }
+}

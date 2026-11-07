@@ -1,5 +1,6 @@
-import { can, DomainError } from "@consyrion/core";
+import { can, DomainError, suggestRoles } from "@consyrion/core";
 import { getEntitlements, getProject, proposeRequirementList } from "@consyrion/db";
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { RequirementIntake, type IntakeProposal } from "@/components/requirement-intake";
 import { TeamConfig } from "@/components/team-config";
@@ -7,7 +8,9 @@ import { PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 
-export const metadata = { title: "Configure AI team" };
+export async function generateMetadata() {
+  return { title: (await getTranslations("councilSetup"))("metaTitle") };
+}
 
 export default async function CouncilSetupPage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requirePageActor();
@@ -44,9 +47,17 @@ export default async function CouncilSetupPage({ params }: { params: Promise<{ i
     pendingImages: proposal.pendingImages,
     notProposed: proposal.notProposed,
   };
+  // #269: suggested perspectives from the brief and the confirmed requirements – deterministic, no model call.
+  const roleSuggestion = suggestRoles({
+    idea: project.brief?.idea,
+    goal: project.brief?.goal,
+    requirements: project.brief?.requirements,
+    confirmed: proposal.latest?.items ?? [],
+  });
+  const t = await getTranslations("councilSetup");
   return (
     <>
-      <PageHeader title="Configure the AI team" description="Confirm the hard requirements, then choose models, roles and session rules for this council." />
+      <PageHeader title={t("title")} description={t("description")} />
       <div className="mb-6">
         <RequirementIntake
           key={`${intake.source.hash}:${intake.latest?.version ?? 0}`}
@@ -61,6 +72,7 @@ export default async function CouncilSetupPage({ params }: { params: Promise<{ i
         planName={plan}
         maxModels={entitlements.maxParticipantsPerSession}
         requirementsConfirmed={proposal.current}
+        roleSuggestion={roleSuggestion}
       />
     </>
   );

@@ -1,12 +1,15 @@
 import { getSessionView } from "@consyrion/council";
 import { can, DomainError } from "@consyrion/core";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { SessionWorkspace } from "@/components/session/workspace";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 import type { SessionViewJson } from "@/lib/types";
 
-export const metadata = { title: "Council session" };
+export async function generateMetadata() {
+  return { title: (await getTranslations("councilSetup"))("sessionTitle") };
+}
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requirePageActor();

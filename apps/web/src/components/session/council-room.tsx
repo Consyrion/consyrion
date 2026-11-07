@@ -1,7 +1,9 @@
 "use client";
 
 import type { CouncilPhase } from "@consyrion/core/browser";
+import { createTranslator, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import sessionEn from "../../../messages/session/en.json";
 import { MarkShapes } from "../brand/consyrion-logo";
 import { PROVIDER_COLOR } from "../dashboard/activity-network-data";
 import { CompactNetwork } from "../dashboard/live-council-compact";
@@ -9,19 +11,14 @@ import { ease, pointerPull, svgPoint } from "../dashboard/pointer-field";
 import { buttonClasses } from "../ui/button";
 import { GlassPanel } from "../ui/glass";
 import { Badge } from "../ui/surface";
-import { contentOf, modelName, PROVIDER_LABELS, proposalLabel, roleLabel, SEVERITY_TONE, STATUS_TONE, type View } from "./helpers";
+import { contentOf, modelName, PROVIDER_LABELS, proposalLabel, SEVERITY_TONE, STATUS_TONE, useEnumText, useRoleLabel, type View } from "./helpers";
 import { Select } from "../ui/select";
 
 type VoiceState = "working" | "submitted" | "waiting" | "failed" | "evaluation_failed" | "roles_failed";
 
-const VOICE_TEXT: Record<VoiceState, string> = {
-  working: "Working",
-  submitted: "Submitted",
-  waiting: "Waiting",
-  failed: "Failed",
-  evaluation_failed: "No evaluation",
-  roles_failed: "Roles failed",
-};
+/** Translator of this file's namespace; the exported text helpers default to English (used without a provider in tests). */
+type RoomT = (key: string, values?: Record<string, string | number>) => string;
+const EN: RoomT = createTranslator({ locale: "en", messages: sessionEn, namespace: "councilRoom" }) as unknown as RoomT;
 const VOICE_TONE: Record<VoiceState, "primary" | "success" | "neutral" | "danger" | "warning"> = {
   working: "primary",
   submitted: "success",
@@ -46,11 +43,11 @@ function roleProgress(view: View, participantId: string) {
 }
 
 /** Failed calls of a model and the kind of the last failure, e.g. "8 failed calls · last: overloaded (HTTP 503)" (#175). */
-export function failureSummary(view: View, participantId: string): string | null {
+export function failureSummary(view: View, participantId: string, t: RoomT = EN): string | null {
   const f = view.callFailures.find((x) => x.participantId === participantId);
   if (!f) return null;
   const kind = f.lastErrorKind.replaceAll("_", " ");
-  return `${f.failed} failed call${f.failed === 1 ? "" : "s"} · last: ${kind}${f.lastHttpStatus ? ` (HTTP ${f.lastHttpStatus})` : ""}`;
+  return f.lastHttpStatus ? t("failuresHttp", { n: f.failed, kind, status: f.lastHttpStatus }) : t("failures", { n: f.failed, kind });
 }
 const LIVE = new Set(["queued", "running", "cancel_requested"]);
 
@@ -58,10 +55,10 @@ const LIVE = new Set(["queued", "running", "cancel_requested"]);
  * Progress of a running Minority Review (#184), e.g. "34 of 87 objections decided": judges answer in batches and each
  * objection is stored as decided as soon as its judges answered. Null outside a running Minority Review.
  */
-export function objectionProgress(view: View): string | null {
+export function objectionProgress(view: View, t: RoomT = EN): string | null {
   if (view.session.currentPhase !== "minority_review" || !LIVE.has(view.session.status) || view.objections.length === 0) return null;
   const decided = view.objections.filter((o) => o.status !== "open").length;
-  return `${decided} of ${view.objections.length} objection${view.objections.length === 1 ? "" : "s"} decided`;
+  return t("objectionProgress", { decided, total: view.objections.length });
 }
 
 /** State of each model in the current phase, from stored usage rows – the same source as the phase screens (#69). */
@@ -104,6 +101,9 @@ function chip(label: string) {
  * compact graphic and model cards with expandable roles; the SVG is decorative, the text lives in the list.
  */
 function VoicesNetwork({ view, states }: { view: View; states: Record<string, VoiceState> }) {
+  const t = useTranslations("councilRoom");
+  const roleLabel = useRoleLabel();
+  const voiceText = (state: VoiceState) => t(`voice.${state}`);
   const W = 900;
   const H = 440;
   const cx = 450;
@@ -185,7 +185,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
         {(["working", "submitted", "waiting"] as const).map((s) => (
           <span key={s} className="flex items-center gap-1.5">
             <span className={`size-2 rounded-full ${s === "working" ? "bg-primary" : s === "submitted" ? "bg-success" : "bg-accent"}`} />
-            {VOICE_TEXT[s]}
+            {voiceText(s)}
           </span>
         ))}
       </div>
@@ -281,7 +281,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
             <MarkShapes stroke="url(#vn-mark)" />
           </g>
           <text x={cx} y={cy + 32} textAnchor="middle" fontSize="18" fontWeight="700" fill="#e8eefc">
-            Decision
+            {t("decisionCore")}
           </text>
         </g>
         {placed.map((p, i) => {
@@ -291,7 +291,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
               : states[p.id] === "evaluation_failed" || states[p.id] === "roles_failed"
                 ? "var(--warning)"
                 : (PROVIDER_COLOR[p.provider] ?? "#22d3ee");
-          const failures = failureSummary(view, p.id);
+          const failures = failureSummary(view, p.id, t as unknown as RoomT);
           const roles = view.roles.filter((r) => r.participantId === p.id).map((r) => roleLabel(r.role));
           const shown = roles.slice(0, maxChips);
           const extra = roles.length - shown.length;
@@ -302,13 +302,13 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
           return (
             <g key={p.id} ref={(el) => void (nodeRefs.current[i] = el)} data-node-state={state}>
               {/* Role chips, connected to their model. */}
-              {[...shown.map((r) => chip(r)), ...(extra > 0 ? [chip(`+${extra} more`)] : [])].map((c, k) => {
+              {[...shown.map((r) => chip(r)), ...(extra > 0 ? [chip(t("moreChip", { n: extra }))] : [])].map((c, k) => {
                 const y = top + k * 34;
                 const x = toLeft ? p.x - 70 - c.width : p.x + 70;
                 const anchorX = toLeft ? x + c.width : x;
                 return (
                   <g key={`${c.text}-${k}`}>
-                    <title>{shown[k] ?? `${extra} more perspectives`}</title>
+                    <title>{shown[k] ?? t("morePerspectives", { n: extra })}</title>
                     <path d={`M${anchorX} ${y + 14} L${toLeft ? p.x - 50 : p.x + 50} ${p.y}`} stroke={color} strokeOpacity="0.4" fill="none" />
                     <rect x={x} y={y} width={c.width} height="28" rx="14" fill="#081226" fillOpacity="0.92" stroke={color} strokeOpacity="0.55" />
                     <text x={x + 14} y={y + 19} fontSize="14" fill="#dbe4f5">
@@ -337,7 +337,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
               {/* Status in words, not only colour. */}
               <rect x={p.x - 56} y={p.y + 54} width="112" height="26" rx="13" fill="#081226" stroke={color} strokeOpacity="0.7" />
               <text x={p.x} y={p.y + 71.5} textAnchor="middle" fontSize="13.5" fill="#e8eefc">
-                {VOICE_TEXT[state]}
+                {voiceText(state)}
               </text>
               {failures ? (
                 <text x={p.x} y={p.y + 96} textAnchor="middle" fontSize="12" fill="var(--warning)">
@@ -354,7 +354,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
         nodes={view.participants.map((p) => ({ id: p.id, provider: p.provider, model: p.modelId, state: NODE_STATE[states[p.id] ?? "waiting"] }))}
       />
       {/* Text version: visible model cards on small screens, screen-reader list on larger ones. */}
-      <ul className="mt-3 space-y-2 sm:sr-only" aria-label="Models and their perspectives">
+      <ul className="mt-3 space-y-2 sm:sr-only" aria-label={t("listAria")}>
         {view.participants.map((p, i) => {
           const state = states[p.id] ?? "waiting";
           const roles = view.roles.filter((r) => r.participantId === p.id).map((r) => roleLabel(r.role));
@@ -369,12 +369,12 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
                   {String.fromCharCode(65 + i)}
                 </span>
                 <span className="min-w-0 flex-1 font-medium break-words">{modelName(view, p.id)}</span>
-                <Badge tone={VOICE_TONE[state]}>{VOICE_TEXT[state]}</Badge>
+                <Badge tone={VOICE_TONE[state]}>{voiceText(state)}</Badge>
               </div>
-              {failureSummary(view, p.id) ? <p className="mt-1 text-xs text-warning">{failureSummary(view, p.id)}</p> : null}
+              {failureSummary(view, p.id) ? <p className="mt-1 text-xs text-warning">{failureSummary(view, p.id, t as unknown as RoomT)}</p> : null}
               {roles.length ? (
                 <details className="mt-2 text-sm">
-                  <summary className="cursor-pointer text-muted">{roles.length} perspectives</summary>
+                  <summary className="cursor-pointer text-muted">{t("perspectives", { n: roles.length })}</summary>
                   <ul className="mt-2 flex flex-wrap gap-1.5">
                     {roles.map((role) => (
                       <li
@@ -398,16 +398,19 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
 
 function Objections({ view }: { view: View }) {
   const [category, setCategory] = useState("all");
+  const t = useTranslations("councilRoom");
+  const severityText = useEnumText("verdict.cruxes.severity");
+  const statusText = useEnumText("councilRoom.objectionStatus");
   const categories = [...new Set(view.objections.map((o) => o.category))];
   const order = { open: 0, accepted: 1, unresolved: 2, resolved: 3, refuted: 4 } as Record<string, number>;
   const list = view.objections
     .filter((o) => category === "all" || o.category === category)
     .sort((a, b) => Number(b.blocking) - Number(a.blocking) || (order[a.status] ?? 9) - (order[b.status] ?? 9));
-  const progress = objectionProgress(view);
+  const progress = objectionProgress(view, t as unknown as RoomT);
   return (
-    <GlassPanel className="p-5" aria-label="Objections and evidence">
+    <GlassPanel className="p-5" aria-label={t("objectionsAria")}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">Objections &amp; evidence</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">{t("objectionsTitle")}</h2>
         {progress ? (
           <p className="text-sm text-muted" role="status">
             {progress}
@@ -415,9 +418,9 @@ function Objections({ view }: { view: View }) {
         ) : null}
         {categories.length > 1 ? (
           <label className="text-sm">
-            <span className="sr-only">Filter objections by topic</span>
+            <span className="sr-only">{t("filterTopic")}</span>
             <Select value={category} onChange={(e) => setCategory(e.target.value)} className="min-w-40">
-              <option value="all">All topics</option>
+              <option value="all">{t("allTopics")}</option>
               {categories.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -430,8 +433,8 @@ function Objections({ view }: { view: View }) {
       {list.length === 0 ? (
         <p className="text-sm text-muted">
           {view.session.currentPhase && ["independent_thinking", "open_council", "twelve_minds_council"].includes(view.session.currentPhase)
-            ? "Objections appear after the 12 Minds Council."
-            : "No objections were raised."}
+            ? t("objectionsLater")
+            : t("noObjections")}
         </p>
       ) : (
         <ul className="grid max-h-[560px] gap-3 overflow-y-auto pr-1 lg:max-[1599px]:grid-cols-2">
@@ -439,37 +442,43 @@ function Objections({ view }: { view: View }) {
             <li key={o.id} className={`glass-quiet rounded-xl p-4 ${o.blocking ? "border-danger/60" : ""}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="font-medium">
-                  Proposal {proposalLabel(view, o.proposalId)}: {o.claim}
+                  {t("proposal", { label: proposalLabel(view, o.proposalId) })}: {o.claim}
                 </p>
                 <span className="flex gap-1.5">
-                  <Badge tone={SEVERITY_TONE[o.severity as keyof typeof SEVERITY_TONE] ?? "neutral"}>{o.severity}</Badge>
-                  <Badge tone={STATUS_TONE[o.status as keyof typeof STATUS_TONE] ?? "neutral"}>{o.status}</Badge>
-                  {o.blocking ? <Badge tone="danger">blocking</Badge> : null}
-                  {o.undefendedReason && !o.response ? <Badge tone="warning">not defended</Badge> : null}
+                  <Badge tone={SEVERITY_TONE[o.severity as keyof typeof SEVERITY_TONE] ?? "neutral"}>{severityText(o.severity)}</Badge>
+                  <Badge tone={STATUS_TONE[o.status as keyof typeof STATUS_TONE] ?? "neutral"}>{statusText(o.status)}</Badge>
+                  {o.blocking ? <Badge tone="danger">{t("blocking")}</Badge> : null}
+                  {o.undefendedReason && !o.response ? <Badge tone="warning">{t("notDefended")}</Badge> : null}
                 </span>
               </div>
               <ul className="mt-2 space-y-1 text-sm">
                 <li>
-                  <span className="text-muted">Raised by</span> {modelName(view, o.raisedByParticipantId)}
-                  {o.evidence ? <span className="block pl-3 text-xs text-muted">Evidence: {o.evidence}</span> : null}
+                  <span className="text-muted">{t("raisedBy")}</span> {modelName(view, o.raisedByParticipantId)}
+                  {o.evidence ? (
+                    <span className="block pl-3 text-xs text-muted">
+                      {t("evidence")} {o.evidence}
+                    </span>
+                  ) : null}
                 </li>
                 {o.response ? (
                   <li>
-                    <span className="text-muted">Author:</span> {o.response}
+                    <span className="text-muted">{t("author")}</span> {o.response}
                   </li>
                 ) : o.undefendedReason ? (
                   // The author's model failed (#175): unanswered, not uncontested.
-                  <li className="text-warning">Not defended – {o.undefendedReason}. The author could not answer; this is not uncontested criticism.</li>
+                  <li className="text-warning">{t("notDefendedText", { reason: o.undefendedReason })}</li>
                 ) : null}
                 {o.resolutionReason ? (
                   <li>
                     <span className="text-muted">
-                      {o.reviewedByParticipantId ? `Independent review (${modelName(view, o.reviewedByParticipantId)}):` : "Independent review:"}
+                      {o.reviewedByParticipantId ? t("reviewBy", { model: modelName(view, o.reviewedByParticipantId) }) : t("review")}
                     </span>{" "}
                     {o.resolutionReason.length > 320 ? (
                       // Long notes of earlier runs stay readable: the start, the rest on request.
                       <details className="inline">
-                        <summary className="inline cursor-pointer">{o.resolutionReason.slice(0, 280)}… more</summary>
+                        <summary className="inline cursor-pointer">
+                          {o.resolutionReason.slice(0, 280)}… {t("more")}
+                        </summary>
                         {o.resolutionReason.slice(280)}
                       </details>
                     ) : (
@@ -489,24 +498,25 @@ function Objections({ view }: { view: View }) {
 function Proposals({ view, onOpen }: { view: View; onOpen: (tab: "open_council" | "evaluation") => void }) {
   const matrix = view.decision?.matrix as { proposals?: Array<{ proposalId: string; total: number | null; independentEvaluators?: number }> } | undefined;
   const recommended = view.decision?.recommendedProposalId;
+  const t = useTranslations("councilRoom");
   return (
-    <GlassPanel className="p-5" aria-label="Proposals from the council">
+    <GlassPanel className="p-5" aria-label={t("proposalsTitle")}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">Proposals from the council</h2>
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">{t("proposalsTitle")}</h2>
         {view.proposals.length > 1 ? (
           <button type="button" onClick={() => onOpen("open_council")} className="text-sm text-primary hover:underline">
-            View comparison
+            {t("viewComparison")}
           </button>
         ) : null}
       </div>
       {!view.decision && view.proposals.length > 0 && (view.session.status === "failed" || view.session.status === "cancelled") ? (
-        <p className="mb-3 text-sm text-warning">Incomplete council: these proposals were not debated, evaluated or approved. They are no verdict.</p>
+        <p className="mb-3 text-sm text-warning">{t("incomplete")}</p>
       ) : null}
       {view.proposals.length === 0 ? (
         <p className="text-sm text-muted">
           {view.session.status === "failed" || view.session.status === "cancelled"
-            ? `${view.submittedCount} of ${view.participants.length} proposals submitted – the council ended before they were revealed.`
-            : `${view.submittedCount} of ${view.participants.length} proposals submitted – contents stay hidden until every model has finished.`}
+            ? t("submittedEnded", { submitted: view.submittedCount, total: view.participants.length })
+            : t("submittedHidden", { submitted: view.submittedCount, total: view.participants.length })}
         </p>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -525,20 +535,17 @@ function Proposals({ view, onOpen }: { view: View; onOpen: (tab: "open_council" 
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-                  <span>{p.revisions.length > 1 ? `revised ${p.revisions.length - 1}×` : "original"}</span>
-                  {p.architectureChange?.changed ? (
-                    <Badge tone="warning">architecture changed</Badge>
-                  ) : null}
+                  <span>{p.revisions.length > 1 ? t("revised", { n: p.revisions.length - 1 }) : t("original")}</span>
+                  {p.architectureChange?.changed ? <Badge tone="warning">{t("architectureChanged")}</Badge> : null}
                   <span>·</span>
                   {total != null ? (
                     <button type="button" onClick={() => onOpen("evaluation")} className="text-text hover:underline">
-                      score {total} / 10
-                      {evaluators != null ? ` · ${evaluators} evaluation${evaluators === 1 ? "" : "s"}` : ""}
+                      {evaluators != null ? t("scoreEvaluations", { total, n: evaluators }) : t("score", { total })}
                     </button>
                   ) : (
-                    <span>not yet evaluated</span>
+                    <span>{t("notEvaluated")}</span>
                   )}
-                  {p.id === recommended ? <Badge tone="success">recommended</Badge> : null}
+                  {p.id === recommended ? <Badge tone="success">{t("recommended")}</Badge> : null}
                 </div>
               </li>
             );
@@ -553,18 +560,17 @@ function Proposals({ view, onOpen }: { view: View; onOpen: (tab: "open_council" 
 export function CouncilRoom({ view, onOpen }: { view: View; onOpen: (tab: "open_council" | "evaluation" | "final_verdict") => void }) {
   const states = voiceStates(view);
   const awaiting = view.session.status === "awaiting_approval";
+  const t = useTranslations("councilRoom");
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-5 min-[1600px]:grid-cols-[minmax(0,1.75fr)_minmax(360px,1fr)]">
         <GlassPanel
           className="flex min-w-0 flex-col border-[#22d3ee]/35 p-5 shadow-[0_0_40px_-18px_rgb(34_211_238/0.55)]"
           glow={LIVE.has(view.session.status) ? "cyan" : "none"}
-          aria-label="Independent voices"
+          aria-label={t("voicesTitle")}
         >
-          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">Independent voices</h2>
-          <p className="text-sm text-muted">
-            {view.participants.length} models · {view.roles.length} perspectives – each model is one independent vote; perspectives are roles, not extra votes.
-          </p>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">{t("voicesTitle")}</h2>
+          <p className="text-sm text-muted">{t("voicesIntro", { models: view.participants.length, perspectives: view.roles.length })}</p>
           <div className="flex flex-1 flex-col justify-center">
             <VoicesNetwork view={view} states={states} />
           </div>
@@ -576,20 +582,20 @@ export function CouncilRoom({ view, onOpen }: { view: View; onOpen: (tab: "open_
         className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4 ${awaiting ? "border-warning/60 bg-warning/10" : "border-glass-line bg-surface/50"}`}
       >
         <p className="text-sm">
-          <strong className={awaiting ? "text-warning" : ""}>{awaiting ? "Your decision is needed." : "You decide."}</strong>{" "}
+          <strong className={awaiting ? "text-warning" : ""}>{awaiting ? t("decisionNeeded") : t("youDecide")}</strong>{" "}
           <span className="text-muted">
             {awaiting
-              ? "The verdict is ready – approve, choose an alternative, ask for more debate or reject. Then send it where you work; building it is optional and needs a GitHub repository."
+              ? t("gateAwaiting")
               : view.session.status === "approved"
-                ? "Approved – send the decision, or with a connected repository start the optional Execution Council."
+                ? t("gateApproved")
                 : view.session.status === "failed" || view.session.status === "cancelled"
-                  ? "The council ended without a verdict – nothing can be approved or built from it."
-                  : "Debate in progress; final approval follows the verdict."}
+                  ? t("gateEnded")
+                  : t("gateDebate")}
           </span>
         </p>
         {view.decision ? (
           <button type="button" onClick={() => onOpen("final_verdict")} className={buttonClasses(awaiting ? "primary" : "secondary")}>
-            {awaiting ? "Review verdict" : "View verdict"}
+            {awaiting ? t("reviewVerdict") : t("viewVerdict")}
           </button>
         ) : null}
       </div>

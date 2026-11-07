@@ -87,11 +87,18 @@ export async function createDeliveryConnection(db: Database, ctx: ActorContext, 
 
 export async function listDeliveryConnections(db: Database, ctx: ActorContext) {
   assertCan(ctx.role, "credential:read");
-  return db
+  const rows = await db
     .select(publicColumns)
     .from(deliveryConnection)
     .where(eq(deliveryConnection.organizationId, ctx.organizationId))
     .orderBy(deliveryConnection.kind, deliveryConnection.label);
+  // The webhook secret's hash and the acting user stay on the server; members see only whether questions are on.
+  return rows.map((r) => {
+    const { inboundSecretHash, inboundUserId, ...config } = r.config;
+    void inboundSecretHash;
+    const visible: Record<string, string> = { ...config, ...(inboundUserId ? { inboundByMe: String(inboundUserId === ctx.userId) } : {}) };
+    return { ...r, config: visible };
+  });
 }
 
 export async function deleteDeliveryConnection(db: Database, ctx: ActorContext, connectionId: string) {

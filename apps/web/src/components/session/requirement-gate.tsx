@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Badge, Card } from "../ui/surface";
 import { modelName, proposalLabel, type View } from "./helpers";
 
@@ -25,8 +26,7 @@ interface GateRequirement {
 /** The number as given (#226): never rounded or cut across a limit – 99.95 % never "100", 150.004 never "150". */
 const fmt = (x: number) => String(Number(x.toPrecision(12)));
 const relationOf = (limit: { direction: "max" | "min"; strict?: boolean }) =>
-  limit.direction === "max" ? (limit.strict ? "below" : "at most") : limit.strict ? "above" : "at least";
-const unitOf = (unit: string) => (unit === "%" ? " %" : unit === "EUR/month" ? " EUR per month" : ` ${unit}`);
+  limit.direction === "max" ? (limit.strict ? "below" : "atMost") : limit.strict ? "above" : "atLeast";
 interface GateProposal {
   proposalId: string;
   feasibility: "qualified" | "needs_verification" | "fail" | "incomplete";
@@ -42,16 +42,26 @@ export interface RequirementGateResult {
   summary: string | null;
 }
 
-export const FEASIBILITY_LABEL: Record<GateProposal["feasibility"], { text: string; tone: "success" | "warning" | "danger" }> = {
-  qualified: { text: "meets all confirmed requirements", tone: "success" },
-  needs_verification: { text: "needs verification", tone: "warning" },
-  fail: { text: "requirement not met", tone: "danger" },
-  incomplete: { text: "incomplete draft", tone: "danger" },
+/** Tone per feasibility; the words are `requirementGate.feasibility.<key>`. */
+export const FEASIBILITY_TONE: Record<GateProposal["feasibility"], "success" | "warning" | "danger"> = {
+  qualified: "success",
+  needs_verification: "warning",
+  fail: "danger",
+  incomplete: "danger",
 };
 
 /** The badge of one proposal: a provisional favourite (#249) is named as such instead of "needs verification". */
 export const feasibilityLabel = (p: Pick<GateProposal, "feasibility" | "limitedReview">) =>
-  p.limitedReview ? { text: "provisional favourite – limited review", tone: "warning" as const } : FEASIBILITY_LABEL[p.feasibility];
+  p.limitedReview ? { key: "provisional", tone: "warning" as const } : { key: p.feasibility, tone: FEASIBILITY_TONE[p.feasibility] };
+
+/** Translated feasibility badge (text + tone) for one proposal. */
+export function useFeasibilityLabel() {
+  const t = useTranslations("requirementGate.feasibility");
+  return (p: Pick<GateProposal, "feasibility" | "limitedReview">) => {
+    const label = feasibilityLabel(p);
+    return { text: t.has(label.key) ? t(label.key) : label.key.replaceAll("_", " "), tone: label.tone };
+  };
+}
 
 const STATUS_TONE: Record<GateRequirement["status"], "success" | "warning" | "danger"> = {
   PASS: "success",
@@ -65,24 +75,24 @@ const STATUS_TONE: Record<GateRequirement["status"], "success" | "warning" | "da
  * visible, also duplicates, contradictions and checks that did not count.
  */
 export function RequirementGateTable({ view, gate }: { view: View; gate: RequirementGateResult }) {
+  const t = useTranslations("requirementGate");
+  const feasibility = useFeasibilityLabel();
   const items = new Map((view.requirementList?.items ?? []).map((item) => [item.id, item.text]));
   const names = (ids: string[]) => ids.map((id) => modelName(view, id)).join(", ");
+  const unitOf = (unit: string) => (unit === "%" ? " %" : unit === "EUR/month" ? ` ${t("eurPerMonth")}` : ` ${unit}`);
   return (
     <Card>
-      <h3 className="font-semibold">Confirmed requirements per proposal</h3>
-      <p className="text-sm text-muted">
-        A requirement counts as met only if every expected evaluator confirmed every part of it with a reason. PASS and FAIL are stored model judgements with
-        reasons, not an independent fact check.
-      </p>
+      <h3 className="font-semibold">{t("title")}</h3>
+      <p className="text-sm text-muted">{t("intro")}</p>
       {gate.comparisonNote ? <p className="mt-2 text-sm text-warning">{gate.comparisonNote}</p> : null}
       <div className="mt-3 space-y-4">
         {gate.proposals.map((p) => {
-          const label = feasibilityLabel(p);
+          const label = feasibility(p);
           const raw = (view.requirementChecks ?? []).filter((c) => c.proposalId === p.proposalId);
           return (
             <section key={p.proposalId} className="rounded-xl border border-line p-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">Proposal {proposalLabel(view, p.proposalId)}</span>
+                <span className="font-medium">{t("proposal", { label: proposalLabel(view, p.proposalId) })}</span>
                 <Badge tone={label.tone}>{label.text}</Badge>
               </div>
               {p.causes.length ? (
@@ -105,28 +115,41 @@ export function RequirementGateTable({ view, gate }: { view: View; gate: Require
                       </div>
                       {r.estimate ? (
                         <p className="mt-1 text-xs">
-                          Estimated by {r.estimate.evaluators} model{r.estimate.evaluators === 1 ? "" : "s"}: {fmt(r.estimate.low)}–{fmt(r.estimate.high)}
-                          {unitOf(r.estimate.limit.unit)} (median {fmt(r.estimate.median)}) · limit {relationOf(r.estimate.limit)} {fmt(r.estimate.limit.value)}
-                          {unitOf(r.estimate.limit.unit)}. Met only if every range keeps the limit.
+                          {t("estimate", {
+                            n: r.estimate.evaluators,
+                            low: fmt(r.estimate.low),
+                            high: fmt(r.estimate.high),
+                            unit: unitOf(r.estimate.limit.unit),
+                            median: fmt(r.estimate.median),
+                            relation: t(`relation.${relationOf(r.estimate.limit)}`),
+                            limit: fmt(r.estimate.limit.value),
+                          })}
                         </p>
                       ) : null}
                       <p className="mt-1 text-xs text-muted">
-                        {r.pass.length ? `PASS: ${names(r.pass)}. ` : ""}
-                        {r.fail.length ? `FAIL: ${names(r.fail)}. ` : ""}
-                        {r.unknown.length ? `Not conclusive: ${names(r.unknown)}. ` : ""}
-                        {r.open.length ? `No answer: ${names(r.open)}. ` : ""}
-                        {r.conflicts.length ? `Contradictory (counted as FAIL): ${names(r.conflicts)}.` : ""}
+                        {[
+                          r.pass.length ? t("pass", { names: names(r.pass) }) : "",
+                          r.fail.length ? t("fail", { names: names(r.fail) }) : "",
+                          r.unknown.length ? t("unknown", { names: names(r.unknown) }) : "",
+                          r.open.length ? t("open", { names: names(r.open) }) : "",
+                          r.conflicts.length ? t("conflicts", { names: names(r.conflicts) }) : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
                       </p>
                       {evidence.length ? (
                         <details className="mt-1 text-xs">
-                          <summary className="cursor-pointer text-muted">Evidence ({evidence.length})</summary>
+                          <summary className="cursor-pointer text-muted">{t("evidence", { n: evidence.length })}</summary>
                           <ul className="mt-1 space-y-1">
                             {evidence.map((c) => (
                               <li key={c.id}>
                                 {modelName(view, c.evaluatorParticipantId)} – {c.status}
-                                {c.status === "PASS" && c.allPartsMet !== true ? " (not every part confirmed)" : ""}
-                                {c.estimateLow != null && c.estimateHigh != null ? `, estimate ${fmt(c.estimateLow)}–${fmt(c.estimateHigh)}` : ""}: {c.evidence}
-                                {c.valid ? "" : ` – did not count: ${c.invalidReason}`}
+                                {c.status === "PASS" && c.allPartsMet !== true ? ` ${t("notEveryPart")}` : ""}
+                                {c.estimateLow != null && c.estimateHigh != null
+                                  ? `, ${t("checkEstimate", { low: fmt(c.estimateLow), high: fmt(c.estimateHigh) })}`
+                                  : ""}
+                                : {c.evidence}
+                                {c.valid ? "" : ` – ${t("didNotCount", { reason: c.invalidReason ?? "" })}`}
                               </li>
                             ))}
                           </ul>

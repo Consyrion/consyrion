@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, type CSSProperties } from "react";
 import { ease, pointerPull, svgPoint } from "./pointer-field";
 
@@ -19,8 +20,6 @@ const NODE_COLOR: Record<NodeState, string> = {
   failed: "var(--danger)",
 };
 
-const STATE_TEXT: Record<NodeState, string> = { idle: "waiting", working: "working", done: "done", failed: "failed" };
-
 /**
  * The council as a network: one luminous node per model around the verdict node. Pulses and flowing
  * links appear only for nodes whose state is "working" – i.e. a real call is in flight – so the picture
@@ -28,7 +27,8 @@ const STATE_TEXT: Record<NodeState, string> = { idle: "waiting", working: "worki
  * and leans towards a nearby mouse pointer, growing under it; the centre swells under the pointer. Reduced
  * motion keeps the static graphic.
  */
-export function CouncilNetwork({ nodes, centerLabel = "Verdict", caption, className = "" }: { nodes: CouncilNode[]; centerLabel?: string; caption?: string; className?: string }) {
+export function CouncilNetwork({ nodes, centerLabel, caption, className = "" }: { nodes: CouncilNode[]; centerLabel?: string; caption?: string; className?: string }) {
+  const t = useTranslations("dashboard.network");
   const size = 320;
   const c = size / 2;
   const radius = nodes.length > 6 ? 120 : 108;
@@ -36,7 +36,7 @@ export function CouncilNetwork({ nodes, centerLabel = "Verdict", caption, classN
     const angle = -Math.PI / 2 + (index / Math.max(nodes.length, 1)) * Math.PI * 2;
     return { ...node, x: c + radius * Math.cos(angle), y: c + radius * Math.sin(angle) };
   });
-  const summary = nodes.map((n) => `${n.label}: ${STATE_TEXT[n.state]}`).join(", ");
+  const summary = nodes.map((n) => `${n.label}: ${t(`state.${n.state}`)}`).join(", ");
   const svgRef = useRef<SVGSVGElement>(null);
   const pointerRef = useRef<{ x: number; y: number } | null>(null);
   const coreRef = useRef<SVGGElement>(null);
@@ -102,7 +102,7 @@ export function CouncilNetwork({ nodes, centerLabel = "Verdict", caption, classN
         viewBox={`0 0 ${size} ${size}`}
         className="mx-auto h-auto w-full max-w-[340px]"
         role="img"
-        aria-label={`Council network. ${summary || "No models yet."}`}
+        aria-label={t("label", { summary: summary || t("none") })}
         onPointerMove={(event) => {
           if (svgRef.current) pointerRef.current = svgPoint(event, svgRef.current, size, size);
         }}
@@ -131,7 +131,7 @@ export function CouncilNetwork({ nodes, centerLabel = "Verdict", caption, classN
           <circle cx={c} cy={c} r={30} fill="var(--surface)" stroke="var(--accent)" strokeOpacity={0.7} />
           <circle cx={c} cy={c} r={36} fill="none" stroke="var(--accent)" strokeOpacity={0.2} />
           <text x={c} y={c + 4} textAnchor="middle" fontSize={11} fill="var(--text)" fontWeight={600}>
-            {centerLabel}
+            {centerLabel ?? t("center")}
           </text>
         </g>
         {placed.map((node, index) => (

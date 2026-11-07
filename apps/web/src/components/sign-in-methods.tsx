@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
@@ -8,17 +9,20 @@ import { Alert, Badge } from "./ui/surface";
 
 type Provider = "google" | "github";
 
-const LABELS: Record<string, string> = { credential: "Email and password", google: "Google", github: "GitHub" };
+// Google and GitHub are product names; the e-mail method is translated (auth.methods.credential).
+const LABELS: Record<string, string> = { google: "Google", github: "GitHub" };
 
 /** Lists the sign-in methods of the current user and lets them connect or remove social logins. */
 export function SignInMethods({ providers }: { providers: Provider[] }) {
   const [accounts, setAccounts] = useState<Array<{ id: string; providerId: string }> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const t = useTranslations("auth.methods");
+  const methodLabel = (method: string) => (method === "credential" ? t("credential") : (LABELS[method] ?? method));
 
   const load = useCallback(async () => {
     const result = await authClient.listAccounts();
-    if (result.error) setError(result.error.message ?? "Could not load sign-in methods");
+    if (result.error) setError(result.error.message ?? t("errorLoad"));
     else setAccounts(result.data.map((a) => ({ id: a.id, providerId: a.providerId })));
   }, []);
 
@@ -26,7 +30,7 @@ export function SignInMethods({ providers }: { providers: Provider[] }) {
     void load();
     // Better Auth returns to this page with ?error=… when linking failed (e.g. already used by another account).
     const failure = new URLSearchParams(window.location.search).get("error");
-    if (failure) setError(failure === "account_already_linked_to_different_user" ? "This login already belongs to another CONSYRION AI account. Delete that account first, then connect it here." : `Connecting failed (${failure}).`);
+    if (failure) setError(failure === "account_already_linked_to_different_user" ? t("alreadyLinked") : t("connectFailedCode", { code: failure }));
   }, [load]);
 
   async function connect(provider: Provider) {
@@ -34,7 +38,7 @@ export function SignInMethods({ providers }: { providers: Provider[] }) {
     setError(null);
     const result = await authClient.linkSocial({ provider, callbackURL: "/settings/account?linked=1" });
     if (result.error) {
-      setError(result.error.message ?? "Connecting failed");
+      setError(result.error.message ?? t("connectFailed"));
       setBusy(null);
     }
   }
@@ -43,7 +47,7 @@ export function SignInMethods({ providers }: { providers: Provider[] }) {
     setBusy(accountId);
     setError(null);
     const result = await authClient.unlinkAccount({ accountId });
-    if (result.error) setError(result.error.message ?? "Could not remove this method");
+    if (result.error) setError(result.error.message ?? t("errorRemove"));
     await load();
     setBusy(null);
   }
@@ -60,19 +64,19 @@ export function SignInMethods({ providers }: { providers: Provider[] }) {
           return (
             <div key={method} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <div>
-                <p className="font-medium">{LABELS[method] ?? method}</p>
-                <p className="text-sm text-muted">{isLinked ? "Signs in to this account." : method === "credential" ? "Not set up for this account." : "Not connected."}</p>
+                <p className="font-medium">{methodLabel(method)}</p>
+                <p className="text-sm text-muted">{isLinked ? t("signsIn") : method === "credential" ? t("notSetUp") : t("notConnected")}</p>
               </div>
               <div className="flex items-center gap-2">
-                {linked === null ? <Badge>loading</Badge> : isLinked ? <Badge tone="success">connected</Badge> : null}
+                {linked === null ? <Badge>{t("loading")}</Badge> : isLinked ? <Badge tone="success">{t("connected")}</Badge> : null}
                 {linked !== null && !isLinked && method !== "credential" ? (
                   <Button variant="secondary" disabled={busy !== null} onClick={() => void connect(method as Provider)}>
-                    {busy === method ? "Redirecting…" : `Connect ${LABELS[method]}`}
+                    {busy === method ? t("redirecting") : t("connect", { provider: methodLabel(method) })}
                   </Button>
                 ) : null}
                 {canRemove ? (
                   <Button variant="ghost" disabled={busy !== null} onClick={() => void remove(accounts!.find((a) => a.providerId === method)!.id)}>
-                    Remove
+                    {t("remove")}
                   </Button>
                 ) : null}
               </div>
@@ -80,7 +84,7 @@ export function SignInMethods({ providers }: { providers: Provider[] }) {
           );
         })}
       </GlassPanel>
-      <p className="text-sm text-muted">The last remaining sign-in method cannot be removed. Connecting a login that already belongs to another CONSYRION AI account is refused.</p>
+      <p className="text-sm text-muted">{t("footer")}</p>
     </div>
   );
 }

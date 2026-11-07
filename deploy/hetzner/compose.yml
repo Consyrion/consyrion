@@ -2,8 +2,17 @@
 # Public: only Caddy on 80/443. Postgres, web and worker sit on internal networks without published ports.
 name: consyrion
 
+# Container logs (IP addresses, request paths) have a fixed maximum size and are overwritten continuously
+# (privacy policy, /datenschutz).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   caddy:
+    logging: *logging
     image: caddy:2.10-alpine
     ports: ["80:80", "443:443"]
     environment:
@@ -21,6 +30,7 @@ services:
     restart: unless-stopped
 
   postgres:
+    logging: *logging
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: consyrion
@@ -37,6 +47,7 @@ services:
     restart: unless-stopped
 
   migrate:
+    logging: *logging
     image: consyrion-worker:${APP_VERSION:-latest}
     command: ["migrate"]
     env_file: [/opt/consyrion/secrets/app.env]
@@ -47,6 +58,7 @@ services:
     restart: "no"
 
   web:
+    logging: *logging
     image: consyrion-web:${APP_VERSION:-latest}
     env_file: [/opt/consyrion/secrets/app.env]
     environment:
@@ -67,6 +79,7 @@ services:
     restart: unless-stopped
 
   worker:
+    logging: *logging
     image: consyrion-worker:${APP_VERSION:-latest}
     env_file: [/opt/consyrion/secrets/app.env]
     environment:

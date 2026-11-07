@@ -21,3 +21,4 @@ export { MAX_TASK_ATTEMPTS, MIN_OVERRIDE_REASON } from "./readiness";
 export { countLimits, describeMeasure, detectMeasure, type MeasureUnit, type RequirementMeasure } from "./requirement-measure";
 export { measurableOnlyAfterImplementation, measurementPlanSuggestion } from "./requirement-testability";
 export type { StrengthSuggestion, VoteWeightWarning } from "./model-strength";
+export { suggestRoles, type RoleSuggestion, type RoleSuggestionResult } from "./role-suggestion";

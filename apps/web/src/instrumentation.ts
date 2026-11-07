@@ -5,6 +5,9 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Verdicts of councils asked over Telegram go back to the chat – in the web process, whatever runs the councils.
+  const { startTelegramNotifier } = await import("./lib/server/telegram-notifier");
+  startTelegramNotifier();
   const mode = process.env.COUNCIL_WORKER ?? (process.env.DATABASE_URL ? "external" : "inline");
   if (mode !== "inline") return;
   const { startInlineWorker } = await import("./lib/server/inline-worker");

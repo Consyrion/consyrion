@@ -157,7 +157,11 @@ describe("OpenAI-compatible providers (GLM, Kimi, Qwen, Grok)", () => {
   it("sends an image as image_url data URL before the text (xAI, Kimi, Qwen, GLM)", async () => {
     const create = vi.fn().mockResolvedValue(completion);
     const adapter = withClients(new OpenAICompatibleAdapter("xai", { apiKey: "k" }), [{ chat: { completions: { create } } }]);
-    await adapter.generate({ model: "m", messages: [{ role: "user", content: "Describe", images: [{ mediaType: "image/jpeg", data: "/9j/" }] }], maxOutputTokens: 10 });
+    await adapter.generate({
+      model: "m",
+      messages: [{ role: "user", content: "Describe", images: [{ mediaType: "image/jpeg", data: "/9j/" }] }],
+      maxOutputTokens: 10,
+    });
     expect(create.mock.calls[0]![0].messages.at(-1).content).toEqual([
       { type: "image_url", image_url: { url: "data:image/jpeg;base64,/9j/" } },
       { type: "text", text: "Describe" },

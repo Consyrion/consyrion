@@ -10,6 +10,11 @@ import { StripeClient, stripeConfigFromEnv, type FetchLike, type StripeConfig } 
  */
 export const STRIPE_SETTING = "stripe";
 const PLAN = "pro" as const;
+/**
+ * Stripe product tax code "Software as a service (SaaS) – personal use". Required by Stripe Tax and by Managed
+ * Payments (Stripe as merchant of record), which refuse checkout for a product without one.
+ */
+export const TAX_CODE = "txcd_10103000";
 const WEBHOOK_EVENTS = ["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"];
 
 export interface StripeSettingValue extends Record<string, unknown> {
@@ -91,7 +96,10 @@ export async function setupStripe(db: Database, keyring: Keyring, adminUserId: s
   let { productId, webhookId, portalConfigurationId } = sameAccount ? existing!.value : ({} as Partial<StripeSettingValue>);
   let webhookSecret = sameAccount ? stored!.webhookSecret : "";
   if (!productId) {
-    productId = (await client.request<{ id: string }>("POST", "/v1/products", { name: "CONSYRION AI Pro", "metadata[consyrion]": PLAN })).id;
+    productId = (await client.request<{ id: string }>("POST", "/v1/products", { name: "CONSYRION AI Pro", tax_code: TAX_CODE, "metadata[consyrion]": PLAN })).id;
+  } else {
+    // Products created before the tax code was set (Managed Payments refuses checkout without one).
+    await client.request("POST", `/v1/products/${productId}`, { tax_code: TAX_CODE });
   }
   if (!webhookId || !webhookSecret) {
     const hook = await client.request<{ id: string; secret: string }>("POST", "/v1/webhook_endpoints", {

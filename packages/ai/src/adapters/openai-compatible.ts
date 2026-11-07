@@ -28,7 +28,11 @@ export const COMPATIBLE_PROVIDERS: Record<CompatibleProviderId, CompatibleProvid
   glm: { name: "Z.ai GLM", baseUrls: ["https://api.z.ai/api/paas/v4", "https://open.bigmodel.cn/api/paas/v4"], maxOutput: 32_768 },
   kimi: { name: "Moonshot Kimi", baseUrls: ["https://api.moonshot.ai/v1", "https://api.moonshot.cn/v1"], maxOutput: 32_768 },
   xai: { name: "xAI Grok", baseUrls: ["https://api.x.ai/v1"], maxOutput: 32_768 },
-  qwen: { name: "Alibaba Qwen", baseUrls: ["https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "https://dashscope.aliyuncs.com/compatible-mode/v1"], maxOutput: 32_768 },
+  qwen: {
+    name: "Alibaba Qwen",
+    baseUrls: ["https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "https://dashscope.aliyuncs.com/compatible-mode/v1"],
+    maxOutput: 32_768,
+  },
 };
 
 /** Endpoint that last accepted a key, keyed by a hash of provider + key (the key itself is never stored). */
@@ -57,7 +61,9 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
     this.config = COMPATIBLE_PROVIDERS[provider];
     this.clients = options.client
       ? [options.client]
-      : this.config.baseUrls.map((baseURL) => new OpenAI({ apiKey: options.apiKey, baseURL, maxRetries: 0, timeout: options.timeoutMs ?? SDK_BACKSTOP_TIMEOUT_MS }));
+      : this.config.baseUrls.map(
+          (baseURL) => new OpenAI({ apiKey: options.apiKey, baseURL, maxRetries: 0, timeout: options.timeoutMs ?? SDK_BACKSTOP_TIMEOUT_MS }),
+        );
     this.cacheKey = createHash("sha256").update(`${provider}:${options.apiKey}`).digest("hex");
   }
 
@@ -90,7 +96,14 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
           for await (const model of client.models.list({ signal })) {
             // These endpoints also list image, video and speech models (Grok Imagine, CogView, Wan, …) (#118).
             if (!isCouncilCapableModel(model.id)) continue;
-            models.push({ provider: this.provider, modelId: model.id, displayName: model.id, contextWindow: null, maxOutputTokens: this.config.maxOutput, supportsStructuredOutput: false });
+            models.push({
+              provider: this.provider,
+              modelId: model.id,
+              displayName: model.id,
+              contextWindow: null,
+              maxOutputTokens: this.config.maxOutput,
+              supportsStructuredOutput: false,
+            });
           }
         } catch (error) {
           // The key was accepted (auth runs before routing) but there is no models endpoint: no list to offer,
@@ -111,41 +124,52 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
       : "";
     try {
       const limit = Math.min(request.maxOutputTokens, this.config.maxOutput);
-      const call = (maxTokens: number) =>
+      const body = (maxTokens: number) => ({
+        model: request.model,
+        max_tokens: maxTokens,
+        messages: [
+          ...(request.system || schemaInstruction ? [{ role: "system" as const, content: `${request.system ?? ""}${schemaInstruction}` }] : []),
+          ...request.messages.map((m) =>
+            m.images?.length && m.role === "user"
+              ? {
+                  role: m.role,
+                  content: [
+                    ...m.images.map((i) => ({ type: "image_url" as const, image_url: { url: `data:${i.mediaType};base64,${i.data}` } })),
+                    { type: "text" as const, text: m.content },
+                  ],
+                }
+              : { role: m.role, content: m.content },
+          ),
+        ],
+        ...(request.jsonSchema ? { response_format: { type: "json_object" as const } } : {}),
+      });
+      const call = (maxTokens: number): Promise<OpenAI.Chat.Completions.ChatCompletion> =>
         this.withEndpoint((client) =>
-        client.chat.completions.create(
-          {
-            model: request.model,
-            max_tokens: maxTokens,
-            messages: [
-              ...(request.system || schemaInstruction ? [{ role: "system" as const, content: `${request.system ?? ""}${schemaInstruction}` }] : []),
-              ...request.messages.map((m) =>
-                m.images?.length && m.role === "user"
-                  ? {
-                      role: m.role,
-                      content: [
-                        ...m.images.map((i) => ({ type: "image_url" as const, image_url: { url: `data:${i.mediaType};base64,${i.data}` } })),
-                        { type: "text" as const, text: m.content },
-                      ],
-                    }
-                  : { role: m.role, content: m.content },
-              ),
-            ],
-            ...(request.jsonSchema ? { response_format: { type: "json_object" as const } } : {}),
-          },
-          { signal: request.signal },
-        ),
-      );
+          request.onText ? this.stream(client, body(maxTokens), request) : client.chat.completions.create(body(maxTokens), { signal: request.signal }),
+        );
       let response;
       try {
         response = await call(limit);
       } catch (error) {
         // An older model with a smaller completion limit answers 400 – ask again within the classic 8K.
-        if (limit > FALLBACK_OUTPUT && error instanceof OpenAI.APIError && error.status === 400 && /max_tokens|max_completion_tokens|output/i.test(error.message)) {
-          console.warn(JSON.stringify({ level: "warn", message: "completion limit rejected, falling back", provider: this.provider, model: request.model, requested: limit, fallback: FALLBACK_OUTPUT }));
+        if (
+          limit > FALLBACK_OUTPUT &&
+          error instanceof OpenAI.APIError &&
+          error.status === 400 &&
+          /max_tokens|max_completion_tokens|output/i.test(error.message)
+        ) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "completion limit rejected, falling back",
+              provider: this.provider,
+              model: request.model,
+              requested: limit,
+              fallback: FALLBACK_OUTPUT,
+            }),
+          );
           response = await call(FALLBACK_OUTPUT);
-        }
-        else throw error;
+        } else throw error;
       }
       const choice = response.choices[0];
       const text = choice?.message?.content ?? "";
@@ -163,6 +187,50 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
     }
   }
 
+  /**
+   * Streaming (#284): content deltas go to `onText`; the usage comes with the last chunk (`stream_options.include_usage`).
+   * The chunks are folded back into one ChatCompletion so the caller handles both paths the same way.
+   */
+  private async stream(
+    client: OpenAI,
+    body: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+    request: GenerateRequest,
+  ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+    const chunks = await client.chat.completions.create({ ...body, stream: true, stream_options: { include_usage: true } }, { signal: request.signal });
+    let content = "";
+    let model = body.model;
+    let finish: OpenAI.Chat.Completions.ChatCompletion.Choice["finish_reason"] | null = null;
+    let usage: OpenAI.Completions.CompletionUsage | undefined;
+    for await (const chunk of chunks) {
+      model = chunk.model || model;
+      const choice = chunk.choices[0];
+      const delta = choice?.delta?.content ?? "";
+      if (delta) {
+        content += delta;
+        request.onText!(delta);
+      }
+      if (choice?.finish_reason) finish = choice.finish_reason;
+      if (chunk.usage) usage = chunk.usage;
+    }
+    // The SDK streams end quietly when the signal aborts (live test 06.11.26) – report it as a cancellation.
+    if (request.signal?.aborted) throw abortError(this.provider, request.signal.reason, request.signal);
+    return {
+      id: "stream",
+      object: "chat.completion",
+      created: 0,
+      model,
+      choices: [
+        {
+          index: 0,
+          finish_reason: finish as OpenAI.Chat.Completions.ChatCompletion.Choice["finish_reason"],
+          logprobs: null,
+          message: { role: "assistant", content, refusal: null },
+        },
+      ],
+      usage,
+    };
+  }
+
   private normalize(error: unknown, signal?: AbortSignal): ProviderError {
     const name = this.config.name;
     if (error instanceof ProviderError) return error;
@@ -172,7 +240,12 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
     if (error instanceof OpenAI.APIError) {
       // 402 = account balance used up (DeepSeek and others).
       const kind = error.status === 402 ? "auth" : kindFromStatus(error.status);
-      return new ProviderError(this.provider, kind, `${name} API error ${error.status ?? ""}${error.status === 402 ? " (insufficient balance)" : ""}`.trim(), error.status);
+      return new ProviderError(
+        this.provider,
+        kind,
+        `${name} API error ${error.status ?? ""}${error.status === 402 ? " (insufficient balance)" : ""}`.trim(),
+        error.status,
+      );
     }
     return new ProviderError(this.provider, "unknown", `Unexpected ${name} adapter error`);
   }

@@ -17,3 +17,8 @@ export * from "./repositories/idempotency";
 export * from "./repositories/delivery";
 export * from "./repositories/requirements";
 export * from "./repositories/platform-settings";
+export * from "./repositories/assistant";
+export * from "./repositories/assistant-actions";
+export * from "./repositories/client-requests";
+export * from "./repositories/telegram";
+export * from "./repositories/feedback";

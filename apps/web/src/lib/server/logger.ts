@@ -5,7 +5,8 @@
 type Level = "debug" | "info" | "warn" | "error";
 
 const SECRET_KEY = /(secret|password|token|api[_-]?key|authorization|cookie)/i;
-const SECRET_VALUE = /\b(sk-[A-Za-z0-9_-]{10,}|sk-ant-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|cns_[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|whsec_[A-Za-z0-9]+)\b/g;
+const SECRET_VALUE =
+  /\b(sk-[A-Za-z0-9_-]{10,}|sk-ant-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}|cns_[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|whsec_[A-Za-z0-9]+)\b/g;
 
 export function redact(value: unknown, depth = 0): unknown {
   if (depth > 5) return "[depth]";

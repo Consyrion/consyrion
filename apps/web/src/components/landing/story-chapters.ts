@@ -26,7 +26,7 @@ export const STORY_CHAPTERS: StoryChapter[] = [
     id: "top",
     kicker: "CONSYRION AI",
     title: "Debate. Decide. Deliver.",
-    text: "Several AI models think independently, challenge each other and reach a documented verdict with evidence. You approve – and take the decision where you work: as a report, in your tools or, with a connected GitHub repository, as a reviewed pull request.",
+    text: "Claude, OpenAI, Gemini, Grok, DeepSeek, Kimi and other AI models think independently, challenge each other and reach a documented verdict with evidence. You approve – and take the decision where you work: as a report, in your tools or, with a connected GitHub repository, as a reviewed pull request.",
   },
   {
     id: "prepare",
@@ -96,7 +96,7 @@ export const STORY_CHAPTERS: StoryChapter[] = [
     phase: "execution_council",
     kicker: "Phase 7 · optional, with GitHub",
     title: "Execution Council",
-    text: "Only if you want it and a GitHub repository is connected: after your approval the decision becomes tasks, code in an isolated sandbox, tests and independent reviews – delivered as a draft pull request. Most decisions need no build; merge and deployment stay your separate decisions.",
+    text: "Only if you want it and a GitHub repository is connected: after your approval the decision becomes tasks, code, tests and independent reviews – delivered as a draft pull request. Most decisions need no build; merge and deployment stay your separate decisions.",
     example: "Tasks: schema, per-tenant keys, migration tests – opened as a draft pull request in your repository.",
   },
   {

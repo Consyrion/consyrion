@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "./ui/button";
@@ -47,9 +48,10 @@ const KEY_PAGES: Record<Provider, string> = {
 };
 
 function KeyPageLinks() {
+  const t = useTranslations("settings.providers");
   return (
     <p className="text-sm text-muted">
-      Need a key? Create one in the provider console:{" "}
+      {t("needKey")}{" "}
       {(Object.keys(KEY_PAGES) as Provider[]).map((provider, index) => (
         <span key={provider}>
           {index > 0 ? " · " : null}
@@ -58,7 +60,7 @@ function KeyPageLinks() {
           </a>
         </span>
       ))}
-      . API usage is billed by the provider, separately from ChatGPT or Claude subscriptions.
+      {t("billedSeparately")}
     </p>
   );
 }
@@ -69,6 +71,7 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [models, setModels] = useState<ModelsResponse | null>(null);
+  const t = useTranslations("settings.providers");
 
   async function reload() {
     const { credentials } = await fetchJson<{ credentials: CredentialView[] }>("/api/credentials");
@@ -89,9 +92,9 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
       });
       formElement.reset();
       await reload();
-      setNotice("Key stored encrypted. Use “Check” to verify it with the provider.");
+      setNotice(t("stored"));
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not store the key");
+      setError(err instanceof ApiRequestError ? err.message : t("errorStore"));
     } finally {
       setBusy(null);
     }
@@ -102,11 +105,11 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
     setError(null);
     try {
       const result = await fetchJson<{ valid: boolean; modelCount?: number; error?: string }>(`/api/credentials/${id}/validate`, { method: "POST" });
-      setNotice(result.valid ? `Key works: the provider reports ${result.modelCount} usable models.` : null);
-      if (!result.valid) setError(`The provider rejected the key (${result.error}).`);
+      setNotice(result.valid ? t("works", { n: result.modelCount ?? 0 }) : null);
+      if (!result.valid) setError(t("rejected", { error: result.error ?? "" }));
       await reload();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Check failed");
+      setError(err instanceof ApiRequestError ? err.message : t("checkFailed"));
     } finally {
       setBusy(null);
     }
@@ -119,7 +122,7 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
       await fetchJson(`/api/credentials/${id}`, { method: "DELETE" });
       await reload();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not delete the key");
+      setError(err instanceof ApiRequestError ? err.message : t("errorDelete"));
     } finally {
       setBusy(null);
     }
@@ -131,7 +134,7 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
     try {
       setModels(await fetchJson<ModelsResponse>("/api/models"));
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not load models");
+      setError(err instanceof ApiRequestError ? err.message : t("errorModels"));
     } finally {
       setBusy(null);
     }
@@ -140,17 +143,17 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
   return (
     <div className="space-y-6">
       {!keysConfigured ? (
-        <Alert tone="warning">The server has no CREDENTIALS_MASTER_KEY configured, so API keys cannot be stored yet. See README → Local development.</Alert>
+        <Alert tone="warning">{t("noMasterKey")}</Alert>
       ) : null}
       {error ? <Alert>{error}</Alert> : null}
       {notice ? <Alert tone="success">{notice}</Alert> : null}
 
       {canWrite && keysConfigured ? (
         <Card>
-          <h2 className="font-semibold">Add an API key</h2>
-          <p className="mt-1 text-sm text-muted">Bring your own key. It is encrypted with AES-256-GCM before it is stored and is never shown again.</p>
+          <h2 className="font-semibold">{t("addTitle")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("addText")}</p>
           <form onSubmit={onAdd} className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_2fr_auto] md:items-end">
-            <SelectField label="Provider" name="provider" defaultValue="anthropic">
+            <SelectField label={t("provider")} name="provider" defaultValue="anthropic">
               <option value="anthropic">Anthropic</option>
               <option value="openai">OpenAI</option>
               <option value="google">Google Gemini</option>
@@ -160,10 +163,10 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
               <option value="qwen">Alibaba (Qwen)</option>
               <option value="xai">xAI (Grok)</option>
             </SelectField>
-            <TextField label="Label" name="label" placeholder="default" maxLength={60} />
-            <TextField label="API key" name="secret" type="password" autoComplete="off" required minLength={10} />
+            <TextField label={t("label")} name="label" placeholder="default" maxLength={60} />
+            <TextField label={t("apiKey")} name="secret" type="password" autoComplete="off" required minLength={10} />
             <Button type="submit" disabled={busy === "add"}>
-              {busy === "add" ? "Saving…" : "Save key"}
+              {busy === "add" ? t("saving") : t("saveKey")}
             </Button>
           </form>
           <div className="mt-4">
@@ -174,7 +177,7 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
 
       {credentials.length === 0 ? (
         <>
-          <EmptyState title="No AI providers connected" description="Add at least one key so CONSYRION AI can discover which models your organization can use." />
+          <EmptyState title={t("emptyTitle")} description={t("emptyText")} />
           {!(canWrite && keysConfigured) ? <KeyPageLinks /> : null}
         </>
       ) : (
@@ -190,17 +193,17 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
                 </div>
                 <div className="flex items-center gap-2">
                   {credential.lastValidatedAt ? (
-                    credential.lastValidationError ? <Badge tone="danger">Check failed</Badge> : <Badge tone="success">Verified</Badge>
+                    credential.lastValidationError ? <Badge tone="danger">{t("checkFailed")}</Badge> : <Badge tone="success">{t("verified")}</Badge>
                   ) : (
-                    <Badge>Not checked</Badge>
+                    <Badge>{t("notChecked")}</Badge>
                   )}
                   <Button variant="secondary" onClick={() => onValidate(credential.id)} disabled={busy === credential.id}>
-                    Check
+                    {t("check")}
                   </Button>
                   {canWrite ? <RotateKey id={credential.id} /> : null}
                   {canWrite ? (
-                    <Button variant="danger" onClick={() => onDelete(credential.id)} disabled={busy === credential.id} aria-label={`Delete ${LABELS[credential.provider]} key ${credential.label}`}>
-                      Delete
+                    <Button variant="danger" onClick={() => onDelete(credential.id)} disabled={busy === credential.id} aria-label={t("deleteAria", { provider: LABELS[credential.provider], label: credential.label })}>
+                      {t("delete")}
                     </Button>
                   ) : null}
                 </div>
@@ -214,11 +217,11 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold">Available models</h2>
-              <p className="text-sm text-muted">Loaded live from each provider. Nothing in this list is hardcoded.</p>
+              <h2 className="font-semibold">{t("modelsTitle")}</h2>
+              <p className="text-sm text-muted">{t("modelsText")}</p>
             </div>
             <Button variant="secondary" onClick={onLoadModels} disabled={busy === "models"}>
-              {busy === "models" ? "Loading…" : "Load models"}
+              {busy === "models" ? t("loading") : t("loadModels")}
             </Button>
           </div>
           {models ? (
@@ -231,13 +234,13 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
                   {entry.error ? (
                     <p className="text-sm text-danger">{entry.error}</p>
                   ) : entry.models.length === 0 ? (
-                    <p className="text-sm text-muted">No models reported.</p>
+                    <p className="text-sm text-muted">{t("noModels")}</p>
                   ) : (
                     <ul className="max-h-64 space-y-1 overflow-auto text-sm">
                       {entry.models.map((model) => (
                         <li key={model.modelId} className="truncate" title={model.modelId}>
                           {model.displayName}
-                          {model.contextWindow ? <span className="text-muted"> · {Math.round(model.contextWindow / 1000)}k ctx</span> : null}
+                          {model.contextWindow ? <span className="text-muted"> · {t("context", { k: Math.round(model.contextWindow / 1000) })}</span> : null}
                         </li>
                       ))}
                     </ul>

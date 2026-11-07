@@ -1,7 +1,17 @@
 import { voteWeightWarnings } from "@consyrion/core";
+import { NextIntlClientProvider } from "next-intl";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { messagesFor } from "../i18n/all-messages";
 import { VoteWeights, weightShares, type VoteWeightRow } from "./vote-weights";
+
+const render = (node: ReactNode) =>
+  renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={messagesFor("en")} timeZone="Europe/Zurich">
+      {node}
+    </NextIntlClientProvider>,
+  );
 
 /** What the server preview returns for these rows (#189: the rule runs on the server, the component only shows it). */
 const serverWarnings = (rows: VoteWeightRow[]) => voteWeightWarnings(rows.map((r) => ({ model: r.name, weight: r.weight, suggestion: r.suggestion })));
@@ -29,10 +39,10 @@ describe("vote weights before the run (#141)", () => {
       { key: "b", name: "Changed model", weight: 3, suggestion: { ...known, tier: 6, status: "stale" } },
       { key: "c", name: "New model", weight: 5, suggestion: { ...known, tier: 5, status: "unknown", sourceModel: null, rawScore: null } },
     ];
-    const html = renderToStaticMarkup(<VoteWeights rows={rows} warnings={serverWarnings(rows)} onChange={() => {}} onSuggest={() => {}} onEqual={() => {}} />);
-    expect(html).toContain('AI suggestion <strong class="text-text">8/10</strong> · Test ranking: Test Model (27 Oct 2026)');
+    const html = render(<VoteWeights rows={rows} warnings={serverWarnings(rows)} onChange={() => {}} onSuggest={() => {}} onEqual={() => {}} />);
+    expect(html).toContain('AI suggestion <strong class="text-text">8/10</strong> · Test ranking: Test Model (Oct 27, 2026)');
     expect(html).toContain("ranking older than 7 days");
-    expect(html).toContain("Not in Test ranking (27 Oct 2026) – neutral 5");
+    expect(html).toContain("Not in Test ranking (Oct 27, 2026) – neutral 5");
     expect(html.match(/>adjusted</g)).toHaveLength(1);
     expect(html).toContain("50 %");
     expect(html).toContain("Use AI suggestion");
@@ -47,7 +57,7 @@ describe("vote weights before the run (#141)", () => {
       { key: "b", name: "Strong model", weight: 1, suggestion: { ...known, tier: 9 } },
       { key: "c", name: "New model", weight: 1, suggestion: { ...known, tier: 5, status: "unknown", sourceModel: null, rawScore: null } },
     ];
-    const html = renderToStaticMarkup(<VoteWeights rows={rows} warnings={serverWarnings(rows)} onChange={() => {}} onSuggest={() => {}} onEqual={() => {}} />);
+    const html = render(<VoteWeights rows={rows} warnings={serverWarnings(rows)} onChange={() => {}} onSuggest={() => {}} onEqual={() => {}} />);
     expect(html).toContain("Weak model holds 83 % of the vote and outweighs all other models together.");
     expect(html).toContain(">dominant vote share<");
     expect(html).toContain("Weak model has weight 10, the ranking suggests 3.");

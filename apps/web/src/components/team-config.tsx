@@ -13,9 +13,11 @@ import {
   type CouncilRole,
   type DecisionMode,
   type EvaluationWeights,
+  type RoleSuggestionResult,
   type StrengthSuggestion,
   type VoteWeightWarning,
 } from "@consyrion/core/browser";
+import { useFormatter, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -24,7 +26,8 @@ import { Button } from "./ui/button";
 import { TextAreaField } from "./ui/field";
 import { Alert, Badge, Card } from "./ui/surface";
 import { Select } from "./ui/select";
-import { VoteWeights, type VoteWeightRow } from "./vote-weights";
+import { RoleSuggestionCard } from "./role-suggestion-card";
+import { VoteWeights, voteWarningText, type VoteWeightRow } from "./vote-weights";
 
 interface CredentialModels {
   credentialId: string;
@@ -58,24 +61,24 @@ const PROVIDER_LABELS = {
   xai: "xAI (Grok)",
 } as const;
 
-const MODE_TEXT: Record<DecisionMode, string> = {
-  independent_expert: "Blind expert proposals with lighter structured feedback. Architecture, strategy, technology choice.",
-  adversarial_review: "Deep 12 Minds scrutiny, rebuttals, two independent judges per objection. Security and high-stakes decisions.",
-  consensus: "Several revision passes and an optional hybrid proposal. Dissent stays documented.",
-};
+/** Mode order on screen; the names stay English (product terms), the descriptions come from `teamConfig.mode`. */
+const MODES: DecisionMode[] = ["independent_expert", "adversarial_review", "consensus"];
 
+/** Fallback when `roleSuggestion.names.<role>` is missing. */
 const ROLE_LABEL = (role: string) => role.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** Core returns English field errors (#97); they map to message keys here, unknown texts stay as they are. */
+const WEIGHT_ERROR_KEYS: Record<string, string> = {
+  "Enter a number from 0 to 100.": "weightError.enter",
+  "Must not be negative.": "weightError.negative",
+  "Must be at most 100.": "weightError.max",
+};
 
 const stringify = (weights: EvaluationWeights) =>
   Object.fromEntries(Object.entries(weights).map(([k, v]) => [k, String(v)])) as Record<keyof EvaluationWeights, string>;
 
-const WEIGHT_LABELS: Record<keyof EvaluationWeights, string> = {
-  technicalQuality: "Technical quality",
-  security: "Security",
-  maintainability: "Maintainability",
-  operatingCost: "Operating cost",
-  implementationSpeed: "Implementation speed",
-};
+/** Final Verdict criteria in display order; labels come from `teamConfig.weight.<key>`. */
+const WEIGHT_KEYS: Array<keyof EvaluationWeights> = ["technicalQuality", "security", "maintainability", "operatingCost", "implementationSpeed"];
 
 interface Preview {
   estimate: { calls: number; upperBound: number; withinBudget: boolean; typical: { tokens: number; basedOnCalls: number } | null };
@@ -97,6 +100,7 @@ export function TeamConfig({
   planName,
   maxModels: planMax,
   requirementsConfirmed,
+  roleSuggestion,
 }: {
   projectId: string;
   projectName: string;
@@ -104,8 +108,15 @@ export function TeamConfig({
   maxModels: number;
   /** A requirement list matching the current brief and documents is confirmed (#190); the server checks it again. */
   requirementsConfirmed: boolean;
+  /** Deterministic perspective suggestion for this project (#269); applied only by the user's click. */
+  roleSuggestion?: RoleSuggestionResult;
 }) {
   const maxModels = Math.max(MIN_PARTICIPANTS, Math.min(MAX_PARTICIPANTS, planMax));
+  const t = useTranslations("teamConfig");
+  const tRoles = useTranslations("roleSuggestion.names");
+  const tVotes = useTranslations("voteWeights");
+  const roleLabel = (role: string) => (tRoles.has(role) ? tRoles(role) : ROLE_LABEL(role));
+  const format = useFormatter();
   const router = useRouter();
   const [registry, setRegistry] = useState<CredentialModels[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -129,7 +140,7 @@ export function TeamConfig({
   useEffect(() => {
     fetchJson<{ credentials: CredentialModels[] }>("/api/models")
       .then((r) => setRegistry(r.credentials))
-      .catch((err) => setLoadError(err instanceof ApiRequestError ? err.message : "Could not load models"));
+      .catch((err) => setLoadError(err instanceof ApiRequestError ? err.message : t("loadError")));
   }, []);
 
   function applyMode(next: DecisionMode) {
@@ -165,7 +176,10 @@ export function TeamConfig({
   }
 
   const weightErrors = Object.fromEntries(
-    (Object.keys(WEIGHT_LABELS) as Array<keyof EvaluationWeights>).map((key) => [key, weightFieldError(weightInputs[key])]),
+    WEIGHT_KEYS.map((key) => {
+      const message = weightFieldError(weightInputs[key]);
+      return [key, message && WEIGHT_ERROR_KEYS[message] ? t(WEIGHT_ERROR_KEYS[message]) : message];
+    }),
   ) as Record<keyof EvaluationWeights, string | null>;
   const weightsValid = Object.values(weightErrors).every((e) => e === null);
   const weightTotal = Object.values(weights).reduce((a, b) => a + b, 0);
@@ -214,7 +228,7 @@ export function TeamConfig({
       router.push(`/sessions/${session.id}`);
     } catch (err) {
       setStarting(false);
-      setError(err instanceof ApiRequestError ? err.message : "Could not start the session");
+      setError(err instanceof ApiRequestError ? err.message : t("startError"));
     }
   }
 
@@ -227,20 +241,16 @@ export function TeamConfig({
   // Not blocking (#170): the weights stay the user's choice, but a dominant or far-off weight is named before the start.
   const voteWarnings = preview?.voteWeightWarnings ?? [];
 
-  const budgetError = tokenBudgetError(tokenBudget);
+  const budgetError = tokenBudgetError(tokenBudget) ? t("budgetError", { min: format.number(MIN_TOKEN_BUDGET), max: format.number(MAX_TOKEN_BUDGET) }) : null;
   const problems = [
-    requirementsConfirmed ? null : "Confirm the hard requirements above before starting.",
-    selected.length < MIN_PARTICIPANTS ? "Select at least two models." : null,
-    selected.length > maxModels ? `Your ${planName} plan allows up to ${maxModels} models per session.` : null,
+    requirementsConfirmed ? null : t("problem.requirements"),
+    selected.length < MIN_PARTICIPANTS ? t("problem.minModels") : null,
+    selected.length > maxModels ? t("problem.plan", { plan: planName, n: maxModels }) : null,
     preview?.planLimit ?? null,
     preview?.finalVerdictSize && !preview.finalVerdictSize.fits ? preview.finalVerdictSize.message : null,
     budgetError,
-    roles.length === 0 ? "Activate at least one 12 Minds Council role." : null,
-    !weightsValid
-      ? "Fix the highlighted Final Verdict weights (each 0–100)."
-      : weightTotal !== 100
-        ? `Weights must add up to 100 (currently ${weightTotal}).`
-        : null,
+    roles.length === 0 ? t("problem.roles") : null,
+    !weightsValid ? t("problem.weights") : weightTotal !== 100 ? t("problem.total", { total: weightTotal }) : null,
   ].filter(Boolean) as string[];
 
   return (
@@ -248,14 +258,15 @@ export function TeamConfig({
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">1. Select AI models</h2>
+            <h2 className="font-semibold">{t("models.title")}</h2>
             <p className="text-sm text-muted">
-              Loaded live from your providers. Choose {MIN_PARTICIPANTS}–{maxModels} models
-              {maxModels < MAX_PARTICIPANTS ? ` (limit of your ${planName} plan)` : ""}; different providers give more independent views.
+              {maxModels < MAX_PARTICIPANTS
+                ? t("models.introPlan", { min: MIN_PARTICIPANTS, max: maxModels, plan: planName })
+                : t("models.intro", { min: MIN_PARTICIPANTS, max: maxModels })}
             </p>
           </div>
           <Badge tone={selected.length >= 2 ? "success" : "warning"}>
-            {selected.length} / {maxModels} selected
+            {t("models.selected", { n: selected.length, max: maxModels })}
           </Badge>
         </div>
         {loadError ? (
@@ -265,17 +276,19 @@ export function TeamConfig({
         ) : null}
         {registry === null && !loadError ? (
           <p className="mt-4 text-sm text-muted" role="status">
-            Loading models from your providers…
+            {t("models.loading")}
           </p>
         ) : null}
         {registry && registry.length === 0 ? (
           <div className="mt-4">
             <Alert tone="warning">
-              No API keys yet.{" "}
-              <Link href="/settings/providers" className="underline">
-                Add a provider key
-              </Link>{" "}
-              first.
+              {t.rich("models.noKeys", {
+                link: (chunks) => (
+                  <Link href="/settings/providers" className="underline">
+                    {chunks}
+                  </Link>
+                ),
+              })}
             </Alert>
           </div>
         ) : null}
@@ -283,10 +296,10 @@ export function TeamConfig({
           <>
             <input
               type="search"
-              placeholder="Filter models"
+              placeholder={t("models.filter")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              aria-label="Filter models"
+              aria-label={t("models.filter")}
               className="mt-4 w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
             />
             <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -327,9 +340,9 @@ export function TeamConfig({
       </Card>
 
       <Card>
-        <h2 className="font-semibold">2. Decision mode</h2>
+        <h2 className="font-semibold">{t("mode.title")}</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          {(Object.keys(MODE_TEXT) as DecisionMode[]).map((m) => (
+          {MODES.map((m) => (
             <button
               key={m}
               type="button"
@@ -338,17 +351,18 @@ export function TeamConfig({
               className="rounded-xl border border-line bg-surface-2 p-4 text-left hover:border-primary aria-pressed:border-primary aria-pressed:bg-primary/10"
             >
               <span className="font-medium">{DECISION_MODE_LABELS[m]}</span>
-              <span className="mt-1 block text-sm text-muted">{MODE_TEXT[m]}</span>
+              <span className="mt-1 block text-sm text-muted">{t(`mode.${m}`)}</span>
             </button>
           ))}
         </div>
       </Card>
 
       <Card>
-        <h2 className="font-semibold">3. 12 Minds Council perspectives</h2>
+        <h2 className="font-semibold">{t("roles.title")}</h2>
         <p className="text-sm text-muted">
-          {roles.length} active. Perspectives are not independent votes: majorities are counted per model. Fewer roles cost less.
+          {t("roles.intro", { n: roles.length })}
         </p>
+        {roleSuggestion ? <RoleSuggestionCard suggestion={roleSuggestion} active={roles} onApply={setRoles} /> : null}
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {COUNCIL_ROLES.map((role) => {
             const active = roles.includes(role);
@@ -357,11 +371,11 @@ export function TeamConfig({
               <div key={role} className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={active} onChange={() => setRoles((r) => (active ? r.filter((x) => x !== role) : [...r, role]))} />
-                  {ROLE_LABEL(role)}
+                  {roleLabel(role)}
                 </label>
                 {active && selected.length > 0 ? (
                   <Select
-                    aria-label={`Model for ${ROLE_LABEL(role)}`}
+                    aria-label={t("roles.modelFor", { role: roleLabel(role) })}
                     value={assignments[role] ?? index % selected.length}
                     onChange={(e) => setAssignments((a) => ({ ...a, [role]: Number(e.target.value) }))}
                     className="w-[45%]"
@@ -380,24 +394,25 @@ export function TeamConfig({
       </Card>
 
       <Card>
-        <h2 className="font-semibold">4. Session settings</h2>
+        <h2 className="font-semibold">{t("settings.title")}</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-3">
-          <NumberSetting label="Debate rounds" value={debateRounds} min={1} max={3} onChange={setDebateRounds} />
-          <NumberSetting label="Consensus revision passes" value={consensusRounds} min={1} max={3} onChange={setConsensusRounds} />
+          <NumberSetting label={t("settings.debate")} value={debateRounds} min={1} max={3} onChange={setDebateRounds} />
+          <NumberSetting label={t("settings.consensus")} value={consensusRounds} min={1} max={3} onChange={setConsensusRounds} />
           <label className="flex items-center gap-2 self-end pb-2 text-sm">
             <input type="checkbox" checked={allowHybrid} onChange={(e) => setAllowHybrid(e.target.checked)} />
-            Allow a hybrid proposal (reviewed like any other)
+            {t("settings.hybrid")}
           </label>
         </div>
         <div className="mt-5">
           <p className="text-sm font-medium">
-            Final Verdict weights <span className={weightsValid && weightTotal === 100 ? "text-muted" : "text-danger"}>(total {weightTotal} %)</span>
+            {t("settings.weights")}{" "}
+            <span className={weightsValid && weightTotal === 100 ? "text-muted" : "text-danger"}>{t("settings.total", { total: weightTotal })}</span>
           </p>
           <div className="mt-2 grid gap-3 md:grid-cols-5">
-            {(Object.keys(WEIGHT_LABELS) as Array<keyof EvaluationWeights>).map((key) => (
+            {WEIGHT_KEYS.map((key) => (
               <div key={key}>
                 <label className="text-sm">
-                  <span className="block text-muted">{WEIGHT_LABELS[key]}</span>
+                  <span className="block text-muted">{t(`weight.${key}`)}</span>
                   <input
                     type="number"
                     min={0}
@@ -424,7 +439,7 @@ export function TeamConfig({
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="text-sm">
-            <span className="block font-medium">Token budget (hard limit)</span>
+            <span className="block font-medium">{t("settings.budget")}</span>
             <input
               type="number"
               min={MIN_TOKEN_BUDGET}
@@ -437,17 +452,16 @@ export function TeamConfig({
               className="mt-1 w-full rounded-lg border border-line bg-surface-2 px-3 py-2 aria-[invalid=true]:border-danger"
             />
             <span id="token-budget-help" className={`mt-1 block ${budgetError ? "text-danger" : "text-muted"}`}>
-              {budgetError ??
-                `${MIN_TOKEN_BUDGET.toLocaleString("en-US")}–${MAX_TOKEN_BUDGET.toLocaleString("en-US")} tokens. Calls stop when the budget would be exceeded. Providers bill your own keys.`}
+              {budgetError ?? t("settings.budgetHint", { min: format.number(MIN_TOKEN_BUDGET), max: format.number(MAX_TOKEN_BUDGET) })}
             </span>
           </label>
           <TextAreaField
-            label="Session rules (optional)"
+            label={t("settings.rules")}
             name="rules"
             value={customRules}
             onChange={(e) => setCustomRules(e.target.value)}
             maxLength={2000}
-            hint="E.g. “Focus on operating cost” or “Must run in the EU”."
+            hint={t("settings.rulesHint")}
           />
         </div>
       </Card>
@@ -465,16 +479,19 @@ export function TeamConfig({
       ) : null}
 
       <Card>
-        <h2 className="font-semibold">Before you start</h2>
-        <p className="mt-1 text-sm text-muted">Project: {projectName}</p>
+        <h2 className="font-semibold">{t("summary.title")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("summary.project", { name: projectName })}</p>
         {preview ? (
           <p className="mt-2 text-sm">
-            About <strong>{preview.estimate.calls}</strong> model calls in total, at most <strong>{preview.estimate.upperBound.toLocaleString("en-US")}</strong>{" "}
-            tokens (upper bound)
-            {preview.documents ? `, including ${preview.documents} attached document(s)` : ""}.{" "}
+            {t.rich(preview.documents ? "summary.estimateDocs" : "summary.estimate", {
+              calls: preview.estimate.calls,
+              tokens: format.number(preview.estimate.upperBound),
+              docs: preview.documents,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}{" "}
             {preview.estimate.typical
-              ? `Typically about ${preview.estimate.typical.tokens.toLocaleString("en-US")} tokens (median of your last ${preview.estimate.typical.basedOnCalls} calls).`
-              : "No typical value yet: too few earlier calls in this workspace."}
+              ? t("summary.typical", { tokens: format.number(preview.estimate.typical.tokens), calls: preview.estimate.typical.basedOnCalls })
+              : t("summary.noTypical")}
           </p>
         ) : null}
         {preview?.finalVerdictSize?.fits && preview.finalVerdictSize.tight && preview.finalVerdictSize.message ? (
@@ -484,14 +501,13 @@ export function TeamConfig({
         ) : null}
         {selected.length === MIN_PARTICIPANTS ? (
           <p className="mt-2 text-sm text-warning" data-testid="review-breadth">
-            With two models each proposal has only one independent evaluator: this council can name a provisional favourite, but never a recommendation you can
-            approve. Choose three or more models for a recommendation.
+            {t("summary.twoModels")}
           </p>
         ) : null}
         {preview?.modelWarnings?.length ? (
-          <ul className="mt-2 list-disc pl-5 text-sm text-warning" aria-label="Models that failed often">
+          <ul className="mt-2 list-disc pl-5 text-sm text-warning" aria-label={t("summary.failedOften")}>
             {preview.modelWarnings.map((w) => (
-              <li key={w}>Often failed recently – {w}.</li>
+              <li key={w}>{t("summary.failedRecently", { model: w })}</li>
             ))}
           </ul>
         ) : null}
@@ -499,9 +515,7 @@ export function TeamConfig({
           <label className="mt-3 flex items-start gap-2 text-sm text-warning">
             <input type="checkbox" className="mt-1" checked={budgetConfirmed} onChange={(e) => setBudgetConfirmed(e.target.checked)} />
             <span>
-              The upper bound exceeds your budget of {tokenBudget.toLocaleString("en-US")} tokens. I accept that debate phases may be shortened to keep enough
-              budget for the Final Verdict: if the budget runs short, Minority Review and Consensus Round are dropped and the proposals are not revised – the
-              verdict then judges the first versions and is marked as shortened.
+              {t("summary.overBudget", { budget: format.number(tokenBudget) })}
             </span>
           </label>
         ) : null}
@@ -515,10 +529,10 @@ export function TeamConfig({
         {voteWarnings.length ? (
           <div className="mt-3">
             <Alert tone="warning">
-              <p className="font-medium">Check the vote weights before you start:</p>
+              <p className="font-medium">{t("summary.checkWeights")}</p>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {voteWarnings.map((w) => (
-                  <li key={`${w.kind}-${w.index}`}>{w.message}</li>
+                  <li key={`${w.kind}-${w.index}`}>{voteWarningText(tVotes, w, voteRows.map((r) => r.name))}</li>
                 ))}
               </ul>
             </Alert>
@@ -530,7 +544,7 @@ export function TeamConfig({
           </div>
         ) : null}
         <Button className="mt-4" onClick={() => void start()} disabled={starting || problems.length > 0 || (overBudget && !budgetConfirmed)}>
-          {starting ? "Starting…" : "Start council session"}
+          {starting ? t("starting") : t("start")}
         </Button>
       </Card>
     </div>
@@ -538,17 +552,18 @@ export function TeamConfig({
 }
 
 function NumberSetting({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  const t = useTranslations("teamConfig");
   return (
     <div className="text-sm">
       <span className="block font-medium">{label}</span>
       <div className="mt-1 flex items-center gap-2">
-        <Button type="button" variant="secondary" className="px-3" onClick={() => onChange(Math.max(min, value - 1))} aria-label={`Decrease ${label}`}>
+        <Button type="button" variant="secondary" className="px-3" onClick={() => onChange(Math.max(min, value - 1))} aria-label={t("decrease", { label })}>
           −
         </Button>
         <span className="w-8 text-center" aria-live="polite">
           {value}
         </span>
-        <Button type="button" variant="secondary" className="px-3" onClick={() => onChange(Math.min(max, value + 1))} aria-label={`Increase ${label}`}>
+        <Button type="button" variant="secondary" className="px-3" onClick={() => onChange(Math.min(max, value + 1))} aria-label={t("increase", { label })}>
           +
         </Button>
       </div>
@@ -558,12 +573,13 @@ function NumberSetting({ label, value, min, max, onChange }: { label: string; va
 
 /** For providers whose model list is unavailable: add a model id from the provider's documentation. */
 function ManualModel({ onAdd }: { onAdd: (modelId: string) => void }) {
+  const t = useTranslations("teamConfig");
   const [value, setValue] = useState("");
   return (
     <div className="mb-2 flex gap-2">
       <input
-        aria-label="Model id"
-        placeholder="Add model id manually"
+        aria-label={t("manual.label")}
+        placeholder={t("manual.placeholder")}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-xs"
@@ -578,7 +594,7 @@ function ManualModel({ onAdd }: { onAdd: (modelId: string) => void }) {
           setValue("");
         }}
       >
-        Add
+        {t("manual.add")}
       </Button>
     </div>
   );

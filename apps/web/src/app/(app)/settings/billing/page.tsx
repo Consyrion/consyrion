@@ -1,16 +1,20 @@
 import { can, isSelfHosted, isUnlimited, type Entitlements } from "@consyrion/core";
 import { approximateCost, getEntitlements, getPlanCatalog, getSubscription, listPriceHints, usageThisMonth } from "@consyrion/db";
+import { getFormatter, getTranslations } from "next-intl/server";
 import { DeleteHint, PortalButton, PriceHintForm, UpgradeButton } from "@/components/saas";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 import { getStripeConfig } from "@/lib/server/stripe";
+import { hasPlaceholders } from "@/lib/legal";
 
-export const metadata = { title: "Billing and usage" };
+export async function generateMetadata() {
+  const t = await getTranslations("settings.pages");
+  return { title: t("billing.title") };
+}
 
-const limitText = (limit: number) => (isUnlimited(limit) ? "unlimited" : String(limit));
-
-function Meter({ label, used, limit }: { label: string; used: number; limit: number }) {
+/** `limitLabel` is the translated limit ("unlimited", "not included" or the number). */
+function Meter({ label, used, limit, limitLabel }: { label: string; used: number; limit: number; limitLabel: string }) {
   const unlimited = isUnlimited(limit);
   const pct = unlimited ? 0 : limit === 0 ? 100 : Math.min(100, (used / limit) * 100);
   return (
@@ -18,7 +22,7 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
       <div className="flex justify-between">
         <span>{label}</span>
         <span className="text-muted">
-          {used} / {unlimited ? "unlimited" : limit === 0 ? "not included" : limit}
+          {used} / {limitLabel}
         </span>
       </div>
       <div className="mt-1 h-2 rounded-full bg-surface-2" role="progressbar" aria-valuenow={used} aria-valuemax={limit} aria-label={label}>
@@ -30,12 +34,14 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
 
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
   const actor = await requirePageActor();
+  const t = await getTranslations("settings.billing");
+  const format = await getFormatter();
   if (isSelfHosted())
     return (
       <>
-        <PageHeader title="Billing and usage" description="This is a self-hosted installation: no plans, no limits, no platform fees." />
+        <PageHeader title={t("title")} description={t("selfHostedDescription")} />
         <Card>
-          <p className="text-sm text-muted">AI usage is billed by your providers directly to your own API keys (BYOK). Manage the keys under Settings → AI providers.</p>
+          <p className="text-sm text-muted">{t("selfHostedText")}</p>
         </Card>
       </>
     );
@@ -47,33 +53,50 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     usageThisMonth(db, actor.organizationId),
     listPriceHints(db, actor),
   ]);
-  const stripe = Boolean(await getStripeConfig());
+  const stripeConfig = await getStripeConfig();
+  // Live checkout stays closed while the legal pages are drafts (same rule as /api/billing/checkout).
+  const stripe = Boolean(stripeConfig) && !(/^(sk|rk)_live_/.test(stripeConfig!.secretKey) && hasPlaceholders());
   const canBill = can(actor.role, "billing:manage");
+  const limitText = (limit: number) => (isUnlimited(limit) ? t("unlimited") : String(limit));
+  const meterLimit = (limit: number) => (isUnlimited(limit) ? t("unlimited") : limit === 0 ? t("notIncluded") : String(limit));
+  const meter = (label: string, used: number, limit: number) => <Meter label={label} used={used} limit={limit} limitLabel={meterLimit(limit)} />;
+  const statusKey = `status.${sub.status}`;
   return (
     <>
-      <PageHeader title="Billing and usage" description="CONSYRION AI charges only for the platform. AI usage is billed by your providers to your own API keys (BYOK)." />
-      {(await searchParams).checkout === "success" ? <div className="mb-4"><Alert tone="success">Thank you. The plan changes as soon as Stripe confirms the payment.</Alert></div> : null}
+      <PageHeader title={t("title")} description={t("description")} />
+      {(await searchParams).checkout === "success" ? (
+        <div className="mb-4">
+          <Alert tone="success">{t("checkoutSuccess")}</Alert>
+        </div>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold">Current plan</h2>
+            <h2 className="font-semibold">{t("currentPlan")}</h2>
             <Badge tone="accent">{catalog.find((p) => p.key === plan)?.name ?? plan}</Badge>
-            {sub.status !== "active" ? <Badge tone="warning">{sub.status}</Badge> : null}
+            {sub.status !== "active" ? <Badge tone="warning">{t.has(statusKey) ? t(statusKey) : sub.status}</Badge> : null}
           </div>
-          {sub.currentPeriodEnd ? <p className="mt-1 text-sm text-muted">Renews {sub.currentPeriodEnd.toLocaleDateString("en-GB")}</p> : null}
+          {sub.currentPeriodEnd ? (
+            <p className="mt-1 text-sm text-muted">{t("renews", { date: format.dateTime(sub.currentPeriodEnd, { dateStyle: "medium" }) })}</p>
+          ) : null}
           <div className="mt-4 space-y-3">
-            <Meter label="Members (incl. open invitations)" used={usage.members + usage.pendingInvitations} limit={e.maxMembers} />
-            <Meter label="Active projects" used={usage.projects} limit={e.maxProjects} />
-            <Meter label="Council sessions this month" used={usage.sessions} limit={e.maxSessionsPerMonth} />
-            <Meter label="Execution Council runs this month" used={usage.executions} limit={e.executionCouncil ? e.maxExecutionsPerMonth : 0} />
-            <Meter label="Sandbox minutes this month" used={usage.sandboxMinutes} limit={e.maxSandboxMinutesPerMonth} />
+            {meter(t("meterMembers"), usage.members + usage.pendingInvitations, e.maxMembers)}
+            {meter(t("meterProjects"), usage.projects, e.maxProjects)}
+            {meter(t("meterSessions"), usage.sessions, e.maxSessionsPerMonth)}
+            {meter(t("meterExecutions"), usage.executions, e.executionCouncil ? e.maxExecutionsPerMonth : 0)}
+            {/* Hosted plans run no sandbox (tests run in the user's GitHub Actions); only show the meter where it applies. */}
+            {e.maxSandboxMinutesPerMonth > 0 ? meter(t("meterSandbox"), usage.sandboxMinutes, e.maxSandboxMinutesPerMonth) : null}
           </div>
-          <p className="mt-3 text-sm text-muted">Up to {e.maxParticipantsPerSession} models per session · GitHub {e.github ? "included" : "not included"}</p>
-          {canBill && sub.provider === "stripe" ? <div className="mt-4"><PortalButton /></div> : null}
+          <p className="mt-3 text-sm text-muted">{t(e.github ? "planSummaryGithub" : "planSummaryNoGithub", { models: e.maxParticipantsPerSession })}</p>
+          {canBill && sub.provider === "stripe" ? (
+            <div className="mt-4">
+              <PortalButton />
+            </div>
+          ) : null}
         </Card>
         <Card>
-          <h2 className="font-semibold">Plans</h2>
-          {!stripe ? <p className="mt-1 text-sm text-muted">Online checkout is not enabled yet; plans are assigned by CONSYRION AI on request.</p> : null}
+          <h2 className="font-semibold">{t("plans")}</h2>
+          {!stripe ? <p className="mt-1 text-sm text-muted">{t("noCheckout")}</p> : null}
           <ul className="mt-3 space-y-3">
             {catalog
               .filter((p) => p.active)
@@ -84,11 +107,21 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <span>
                       <strong>{p.name}</strong> {p.priceLabel ? <span className="text-muted">· {p.priceLabel}</span> : null}
                       <span className="block text-muted">
-                        {ent.maxMembers} {ent.maxMembers === 1 ? "member" : "members"} · {limitText(ent.maxProjects)} projects · {limitText(ent.maxSessionsPerMonth)} councils/month · up
-                        to {ent.maxParticipantsPerSession} models · build on GitHub {ent.executionCouncil && ent.github ? "yes" : "no"}
+                        {t("planLimits", {
+                          members: ent.maxMembers,
+                          projects: limitText(ent.maxProjects),
+                          sessions: limitText(ent.maxSessionsPerMonth),
+                          models: ent.maxParticipantsPerSession,
+                          build: ent.executionCouncil && ent.github ? "yes" : "no",
+                          mcp: ent.mcp ? "yes" : "no",
+                        })}
                       </span>
                     </span>
-                    {p.key === plan ? <Badge tone="success">current</Badge> : canBill && stripe && p.stripePriceId ? <UpgradeButton plan={p.key} label={`Choose ${p.name}`} /> : null}
+                    {p.key === plan ? (
+                      <Badge tone="success">{t("current")}</Badge>
+                    ) : canBill && stripe && p.stripePriceId ? (
+                      <UpgradeButton plan={p.key} label={t("choose", { name: p.name })} />
+                    ) : null}
                   </li>
                 );
               })}
@@ -96,20 +129,20 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         </Card>
       </div>
       <Card className="mt-6">
-        <h2 className="font-semibold">AI usage this month (your provider accounts)</h2>
-        <p className="mt-1 text-sm text-muted">Observed tokens from CONSYRION AI runs. Costs are approximate and only shown where you entered a price; your provider&apos;s invoice is authoritative.</p>
+        <h2 className="font-semibold">{t("usageTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("usageText")}</p>
         {usage.models.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No model calls this month.</p>
+          <p className="mt-3 text-sm text-muted">{t("noCalls")}</p>
         ) : (
           <table className="mt-3 w-full text-left text-sm">
             <thead className="text-muted">
               <tr>
-                <th className="py-2">Model</th>
-                <th>Calls</th>
-                <th>Failed</th>
-                <th>Input tokens</th>
-                <th>Output tokens</th>
-                <th>≈ Cost</th>
+                <th className="py-2">{t("colModel")}</th>
+                <th>{t("colCalls")}</th>
+                <th>{t("colFailed")}</th>
+                <th>{t("colInput")}</th>
+                <th>{t("colOutput")}</th>
+                <th>{t("colCost")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -123,8 +156,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     </td>
                     <td>{m.calls}</td>
                     <td>{m.failed}</td>
-                    <td>{m.inputTokens.toLocaleString("en-US")}</td>
-                    <td>{m.outputTokens.toLocaleString("en-US")}</td>
+                    <td>{format.number(m.inputTokens)}</td>
+                    <td>{format.number(m.outputTokens)}</td>
                     <td>{cost === null ? "–" : `${cost.toFixed(2)} ${hint!.currency}`}</td>
                   </tr>
                 );
@@ -134,11 +167,18 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         )}
         {can(actor.role, "credential:write") ? (
           <div className="mt-5">
-            <h3 className="mb-2 text-sm font-medium">Your provider prices (optional, for the estimate)</h3>
+            <h3 className="mb-2 text-sm font-medium">{t("pricesTitle")}</h3>
             <ul className="mb-3 space-y-1 text-sm">
               {hints.map((h) => (
                 <li key={h.id} className="flex items-center gap-2">
-                  {h.provider} · {h.modelId}: in {h.inputPerMillion} / out {h.outputPerMillion} {h.currency} per 1M <DeleteHint id={h.id} />
+                  {t("priceHint", {
+                    provider: h.provider,
+                    model: h.modelId,
+                    input: String(h.inputPerMillion),
+                    output: String(h.outputPerMillion),
+                    currency: h.currency,
+                  })}{" "}
+                  <DeleteHint id={h.id} />
                 </li>
               ))}
             </ul>

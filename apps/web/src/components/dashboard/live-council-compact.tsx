@@ -1,9 +1,8 @@
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { MarkShapes } from "../brand/consyrion-logo";
 import { Icon } from "../ui/icons";
 import { PROVIDER_COLOR, PROVIDER_NAME, type ActivityNode } from "./activity-network-data";
-
-const STATE_TEXT = { idle: "Queued", working: "Working", done: "Done", failed: "Failed" } as const;
 
 /** Positions around the brand core in the compact graphic: left and right first, then above and below. */
 const SLOTS = [
@@ -74,10 +73,11 @@ export function LiveCouncilCompact(props: { href: string; live: boolean; status:
   const { href, live, status, project, phase, phaseLine, nodes, used, budget } = props;
   const share = budget ? Math.min(100, Math.round((used / budget) * 100)) : 0;
   const shown = nodes.slice(0, SLOTS.length);
+  const t = useTranslations("dashboard");
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold tracking-[0.2em] text-muted">{live ? "LIVE COUNCIL" : "LATEST COUNCIL"}</p>
+        <p className="text-xs font-semibold tracking-[0.2em] text-muted">{live ? t("compact.live") : t("compact.latest")}</p>
         <p className={`flex items-center gap-1.5 text-xs font-semibold tracking-wide ${live ? "text-success" : "text-muted"}`}>
           <span aria-hidden="true" className={`size-2 rounded-full ${live ? "bg-success" : "bg-muted"}`} />
           {status}
@@ -91,7 +91,7 @@ export function LiveCouncilCompact(props: { href: string; live: boolean; status:
         {phaseLine ? ` · ${phaseLine}` : ""}
       </p>
       <CompactNetwork nodes={shown} className="mt-3" />
-      <ul className="mt-2 space-y-1 text-sm" aria-label={`${nodes.length} independent models`}>
+      <ul className="mt-2 space-y-1 text-sm" aria-label={t("compact.models", { n: nodes.length })}>
         {shown.map((node, i) => (
           <li key={node.id} className="flex items-center gap-2">
             <span aria-hidden="true" className="grid size-5 shrink-0 place-items-center rounded-full border-2 text-[10px] font-bold" style={{ borderColor: PROVIDER_COLOR[node.provider] ?? "#22d3ee" }}>
@@ -100,14 +100,14 @@ export function LiveCouncilCompact(props: { href: string; live: boolean; status:
             <span className="min-w-0 flex-1 truncate">
               {PROVIDER_NAME[node.provider] ?? node.provider} <span className="text-muted">· {node.model}</span>
             </span>
-            <span className={`text-xs ${node.state === "done" ? "text-success" : node.state === "failed" ? "text-danger" : "text-muted"}`}>{STATE_TEXT[node.state]}</span>
+            <span className={`text-xs ${node.state === "done" ? "text-success" : node.state === "failed" ? "text-danger" : "text-muted"}`}>{t(`nodeState.${node.state}`)}</span>
           </li>
         ))}
       </ul>
       <div className="mt-3 flex items-center gap-3 border-t border-glass-line pt-3 text-sm">
         <Icon name="database" className="size-5 shrink-0 text-primary" />
         <span className="min-w-0 flex-1">
-          <span className="block text-xs text-muted">Tokens used of budget</span>
+          <span className="block text-xs text-muted">{t("compact.tokens")}</span>
           <span className="font-semibold tabular-nums">
             {compact(used)} <span className="font-normal text-muted">/ {compact(budget)}</span>
           </span>

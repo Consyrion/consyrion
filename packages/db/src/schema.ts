@@ -200,7 +200,14 @@ export const projectDocument = pgTable(
      */
     role: text("role").notNull().default("source"),
     /** Where a generated document came from: the repository, commit and files of a repository context. */
-    origin: jsonb("origin").$type<{ kind: "github"; repository: string; branch: string; commitSha: string; paths: string[]; skipped: Array<{ path: string; reason: string }> }>(),
+    origin: jsonb("origin").$type<{
+      kind: "github";
+      repository: string;
+      branch: string;
+      commitSha: string;
+      paths: string[];
+      skipped: Array<{ path: string; reason: string }>;
+    }>(),
     createdById: text("created_by_id")
       .notNull()
       .references(() => user.id),
@@ -1243,6 +1250,32 @@ export const deliveryConnection = pgTable(
   (t) => [uniqueIndex("delivery_connection_org_label_uq").on(t.organizationId, t.kind, t.label)],
 );
 
+/**
+ * A question sent to the workspace's own Telegram bot (06.11.26): pending until the user taps "Start", then linked to
+ * the council it started; "delivered" once the verdict went back to the chat.
+ */
+export const telegramRequest = pgTable(
+  "telegram_request",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => deliveryConnection.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    requirements: jsonb("requirements").$type<string[]>().notNull(),
+    status: text("status").$type<"pending" | "started" | "cancelled" | "delivered" | "failed">().notNull().default("pending"),
+    sessionId: text("session_id").references(() => councilSession.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [index("telegram_request_status_idx").on(t.status, t.updatedAt)],
+);
+
 /** Every send of a decision, successful or not (#165): what went where, by whom, with the reason of a failure. */
 export const deliveryLog = pgTable(
   "delivery_log",
@@ -1268,4 +1301,121 @@ export const deliveryLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("delivery_log_session_idx").on(t.sessionId)],
+);
+
+/* ---------- AI assistant (#278–#284) ---------- */
+
+/**
+ * A chat with the AI assistant (#280). Private to its user inside one workspace: nobody else – also no admin – reads it.
+ * The model runs on the workspace's own key (BYOK); credential and model are stored per chat, never a key.
+ */
+export const assistantChat = pgTable(
+  "assistant_chat",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    credentialId: text("credential_id").references(() => aiProviderCredential.id, { onDelete: "set null" }),
+    modelId: text("model_id"),
+    /** Optional page context the chat was started from, e.g. a session id. */
+    contextKind: text("context_kind"),
+    contextId: text("context_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("assistant_chat_owner_idx").on(t.organizationId, t.userId, t.updatedAt)],
+);
+
+/**
+ * An action the assistant suggested (#283). `type` is one of the allowed types in repositories/assistant-actions.ts;
+ * status moves from "proposed" to "executed" or "dismissed" only by the user's click.
+ */
+export interface AssistantActionRecord {
+  id: string;
+  type: string;
+  summary: string;
+  params: Record<string, unknown>;
+  status: "proposed" | "executed" | "dismissed";
+  decidedAt?: string;
+  /** The user changed the parameters before running it. */
+  edited?: boolean;
+  /** Link to what the action created or prepared (app-internal path). */
+  result?: { label: string; href: string } | null;
+}
+
+/** One message of an assistant chat; assistant messages carry model, tools used and token usage. */
+export const assistantMessage = pgTable(
+  "assistant_message",
+  {
+    id: text("id").primaryKey(),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => assistantChat.id, { onDelete: "cascade" }),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    content: text("content").notNull(),
+    /** provider/modelId of an assistant answer. */
+    model: text("model"),
+    /** Read-only tools the assistant used for this answer (name + arguments), for transparency. */
+    tools: jsonb("tools").$type<Array<{ name: string; args: Record<string, unknown> }>>(),
+    /** Links to app pages the answer refers to. */
+    links: jsonb("links").$type<Array<{ label: string; href: string }>>(),
+    /** Actions the assistant suggested with this answer (#283); nothing runs until the user confirms one. */
+    actions: jsonb("actions").$type<AssistantActionRecord[]>(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("assistant_message_chat_idx").on(t.chatId, t.createdAt)],
+);
+
+/* ---------- Feedback inbox (#295) ---------- */
+
+/**
+ * A bug report, feature wish or contact request – from a signed-in user (user_id set) or a visitor (only an e-mail).
+ * Platform-wide, read only by the platform admins in /admin; the author sees their own reports and the replies.
+ * Deleting the account deletes the user's reports.
+ */
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: text("id").primaryKey(),
+    /** Workspace the user was acting in, if any (context for the admin, not an access boundary). */
+    organizationId: text("organization_id").references(() => organization.id, { onDelete: "set null" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    kind: text("kind").$type<"bug" | "feature" | "contact">().notNull(),
+    subject: text("subject").notNull(),
+    text: text("text").notNull(),
+    /** Page the report was sent from (path only), interface language, browser and app version – attached automatically. */
+    page: text("page"),
+    locale: text("locale"),
+    agent: text("agent"),
+    appVersion: text("app_version"),
+    /** Reserved for the screenshot upload (follow-up of #295); always null for now. */
+    screenshot: text("screenshot"),
+    state: text("state").$type<"new" | "in_progress" | "done">().notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+  },
+  (t) => [index("feedback_state_idx").on(t.state, t.createdAt), index("feedback_user_idx").on(t.userId, t.createdAt)],
+);
+
+/** An admin's answer to a feedback report; shown to the author under "My reports". */
+export const feedbackReply = pgTable(
+  "feedback_reply",
+  {
+    id: text("id").primaryKey(),
+    feedbackId: text("feedback_id")
+      .notNull()
+      .references(() => feedback.id, { onDelete: "cascade" }),
+    adminId: text("admin_id").references(() => user.id, { onDelete: "set null" }),
+    text: text("text").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("feedback_reply_feedback_idx").on(t.feedbackId, t.createdAt)],
 );

@@ -66,3 +66,10 @@ Workspace switcher under *Workspace*.
 
 ## Platform admin
 `PLATFORM_ADMIN_EMAILS` (comma-separated). `/admin` returns 404 for everybody else.
+
+## Legal pages (05.11.26)
+`/impressum`, `/agb`, `/datenschutz` (German, public, linked in the landing footer and on sign-up). The operator data
+lives in `apps/web/src/lib/legal.ts` (`OPERATOR`): the hosted service is offered by DEVREMOTE. While a value still
+contains a `[placeholder]`, every legal page shows a draft notice – fill them in before live Stripe sales.
+Self-hosted operators replace `OPERATOR` with their own data. Container logs are size-limited in
+`deploy/hetzner/compose.yml` (10 MB × 3 per service), as the privacy policy states.

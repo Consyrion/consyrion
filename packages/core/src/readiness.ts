@@ -33,7 +33,7 @@ export function pullRequestReadiness(tests: ReadonlyArray<ReadinessTest>, review
   const install = last ? tests.find((t) => t.kind === `${last.kind}:install`) : undefined;
   if (install && install.status !== "passed" && install.status !== "not_run") reasons.push(`Installing dependencies ${install.status === "timeout" ? "timed out" : "failed"} in the latest sandbox run.`);
   else if (!last) warnings.push("No sandbox test run exists for this change.");
-  else if (last.status === "not_run") warnings.push("Tests were not executed (no container runtime on the worker).");
+  else if (last.status === "not_run") warnings.push("Tests were not executed by CONSYRION AI (no sandbox on this server) – check the GitHub Actions of the draft pull request.");
   else if (last.status !== "passed") reasons.push(`The latest sandbox test run ${last.status === "timeout" ? "timed out" : last.status === "error" ? "errored" : "failed"}.`);
   const critical = reviews.flatMap((r) => r.findings.filter((f) => f.severity === "critical").map((f) => `${r.focus}: ${f.file} – ${f.issue}`));
   if (critical.length) reasons.push(`${critical.length} critical review finding(s): ${critical.slice(0, 3).join("; ")}${critical.length > 3 ? " …" : ""}`);

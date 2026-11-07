@@ -1,0 +1,492 @@
+{
+  "shell": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "home": "Home",
+      "projects": "Projects",
+      "decisions": "Decisions",
+      "providers": "AI providers",
+      "integrations": "Integrations",
+      "settings": "Settings",
+      "admin": "Platform admin"
+    },
+    "workspace": "Workspace",
+    "skip": "Skip to content",
+    "homeLabel": "CONSYRION AI dashboard",
+    "menu": "Menu",
+    "mainNav": "Main",
+    "quickNav": "Quick navigation",
+    "toggleTheme": "Toggle light/dark",
+    "signOut": "Sign out",
+    "source": "Open source (AGPL-3.0) · Source code"
+  },
+  "dashboard": {
+    "metaTitle": "Dashboard",
+    "title": "Workspace overview",
+    "titleMobile": "Your council",
+    "intro": "Coordinate AI. Make better decisions. Every number comes from this workspace.",
+    "introMobile": "Turn complex questions into clear decisions.",
+    "ago": {
+      "now": "just now",
+      "minutes": "{n}m ago",
+      "hours": "{n}h ago",
+      "days": "{n}d ago"
+    },
+    "next": {
+      "awaitingText": "Awaiting your approval – nothing is built before you decide.",
+      "awaitingAction": "Review verdict",
+      "runningText": "A council is running right now.",
+      "runningAction": "Watch the council",
+      "keysTitle": "Connect your AI keys",
+      "keysText": "Bring your own keys – you pay the providers directly.",
+      "keysAction": "Connect keys",
+      "firstText": "Your project is ready – start its first council.",
+      "firstAction": "Start a council",
+      "startTitle": "Start a decision",
+      "startText": "Describe an idea, an architecture question or a repository."
+    },
+    "submitted": "{n} of {total} submitted",
+    "phasesDone": "{n} of 7 phases done",
+    "metrics": {
+      "label": "Workspace metrics",
+      "more": "More workspace numbers",
+      "projects": "Projects",
+      "sessions": "Council sessions",
+      "awaiting": "Awaiting approval",
+      "running": "Running"
+    },
+    "asideLabel": "Next action and providers",
+    "nextAction": "Your next action",
+    "liveCouncil": "Live council",
+    "notStarted": "Not started",
+    "notStartedLower": "not started",
+    "providers": {
+      "title": "Provider status",
+      "verified": "{n} verified",
+      "none": "No key connected yet. CONSYRION AI sells no AI credits – you use your own keys.",
+      "checked": "checked {when}",
+      "useCheck": "use Check on AI providers",
+      "state": {
+        "unchecked": "Not checked",
+        "failed": "Check failed",
+        "verified": "Key verified"
+      }
+    },
+    "database": {
+      "label": "Database",
+      "ok": "reachable",
+      "down": "unavailable"
+    },
+    "activityTitle": "Council activity",
+    "independentModels": "{n, plural, one {# independent model} other {# independent models}}",
+    "center": "DECISION",
+    "liveNote": "Links move only while a model is working.",
+    "latestNote": "No council is running – this is the latest session.",
+    "recent": {
+      "title": "Recent council sessions",
+      "topic": "Decision topic",
+      "providers": "AI providers",
+      "stage": "Stage",
+      "status": "Status",
+      "budget": "Token budget",
+      "updated": "Updated"
+    },
+    "process": "The decision process",
+    "processLabel": "Phases of the latest session",
+    "nodeState": {
+      "idle": "Queued",
+      "working": "Working",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "activity": {
+      "hint": {
+        "idle": "Waiting for the council to start.",
+        "working": "Request in flight – thinking right now.",
+        "done": "Answered the current phase.",
+        "failed": "Dropped out of this council."
+      },
+      "requests": "Requests",
+      "tokensIn": "Tokens in",
+      "tokensOut": "Tokens out",
+      "failed": "{failed} of {calls} requests failed or were unusable.",
+      "perspectives": "Perspectives",
+      "more": "+{n} more",
+      "none": "No models."
+    },
+    "compact": {
+      "live": "LIVE COUNCIL",
+      "latest": "LATEST COUNCIL",
+      "models": "{n, plural, one {# independent model} other {# independent models}}",
+      "tokens": "Tokens used of budget"
+    },
+    "stepper": {
+      "label": "Council phases",
+      "state": {
+        "pending": "pending",
+        "running": "in progress",
+        "completed": "completed",
+        "failed": "failed",
+        "skipped": "skipped"
+      }
+    },
+    "metricCard": {
+      "demo": "Demo data",
+      "live": "Live"
+    },
+    "network": {
+      "label": "Council network. {summary}",
+      "none": "No models yet.",
+      "center": "Verdict",
+      "state": {
+        "idle": "waiting",
+        "working": "working",
+        "done": "done",
+        "failed": "failed"
+      }
+    },
+    "empty": {
+      "title": "No council has run yet",
+      "text": "A council needs your own AI key, a project and a question. Then several models think independently, debate and reach a verdict you approve.",
+      "next": "Next step: {title}"
+    }
+  },
+  "decisions": {
+    "metaTitle": "Decisions",
+    "title": "Decisions",
+    "description": "All council sessions of this workspace.",
+    "emptyTitle": "No council sessions yet",
+    "emptyText": "Open a project and start a council to get a decision.",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "cancel_requested": "Stopping",
+      "awaiting_approval": "Awaiting approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "changes_requested": "Changes requested",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "projects": {
+    "metaTitle": "Projects",
+    "title": "Projects",
+    "description": "Every council session starts from a versioned project brief.",
+    "new": "New project",
+    "emptyTitle": "No projects yet",
+    "emptyText": "Describe an idea or architecture question to prepare your first council session.",
+    "type": {
+      "idea": "Idea",
+      "architecture": "Architecture",
+      "repository": "Repository",
+      "business": "Business",
+      "technology_choice": "Technology choice"
+    },
+    "status": {
+      "draft": "draft",
+      "ready": "ready",
+      "archived": "archived"
+    },
+    "intent": {
+      "decision": "Decision only",
+      "build": "Development",
+      "both": "Decision and development"
+    },
+    "newTitle": "New project",
+    "newDescription": "Describe what the council should decide.",
+    "fallbackTitle": "Project",
+    "briefLine": "Brief version {version} · {intent}",
+    "startCouncil": "Start a council",
+    "brief": "Project brief",
+    "idea": "Idea or question",
+    "goal": "Desired outcome",
+    "requirements": "Requirements",
+    "confirmed": "Confirmed hard requirements",
+    "listVersion": "Version {version} · {n, plural, one {# requirement} other {# requirements}}",
+    "notTakenOver": "{n} not taken over",
+    "current": "current",
+    "needsAgain": "needs confirmation again",
+    "notConfirmed": "not confirmed yet",
+    "reviewConfirm": "Review and confirm",
+    "repository": "Repository",
+    "documents": "Documents",
+    "documentsText": "Attached documents become part of the brief for every new council session.",
+    "github": "GitHub repository",
+    "repoContext": "Repository context for councils",
+    "sessions": "Council sessions",
+    "noSessions": "No sessions yet.",
+    "phases": "Phases",
+    "executionAfterApproval": "Execution only after your approval",
+    "delete": "Delete project",
+    "deleteText": "Permanently deletes the project with all council sessions, decisions, generated code and documents.",
+    "deleteButton": "Delete project permanently"
+  },
+  "councilSetup": {
+    "metaTitle": "Configure AI team",
+    "title": "Configure the AI team",
+    "description": "Confirm the hard requirements, then choose models, roles and session rules for this council.",
+    "sessionTitle": "Council session"
+  },
+  "projectForm": {
+    "example": {
+      "name": "Repository analysis SaaS",
+      "idea": "Design the best architecture for a SaaS platform that analyzes GitHub repositories, finds security and quality problems and automatically proposes code improvements as pull requests.",
+      "goal": "A production-ready MVP within three months that a team of three can operate.",
+      "requirements": "EU data residency. Private repositories must never be used for model training. Budget for infrastructure below 1,000 EUR per month at launch."
+    },
+    "saveError": "Could not save the project",
+    "restored": "Your unsaved draft from this browser was restored.",
+    "source": "Project source",
+    "sourceIdea": "Idea / description",
+    "sourceRepository": "GitHub repository",
+    "sourceExample": "Use an example",
+    "name": "Project name",
+    "repositoryHint": "If GitHub is connected and covers this repository, it is linked automatically; otherwise link it on the project page.",
+    "idea": "Idea or question",
+    "ideaHint": "Every AI model receives exactly this brief during Independent Thinking.",
+    "ideaTooShort": "Describe the idea in at least 20 characters",
+    "type": "Project type",
+    "types": {
+      "idea": "Idea",
+      "architecture": "Software architecture",
+      "repository": "Existing repository",
+      "business": "Business decision",
+      "technology_choice": "Technology choice"
+    },
+    "intent": "Goal",
+    "intentHint": "Development starts only after you approve a decision.",
+    "intents": {
+      "decision": "Decision only",
+      "build": "Development",
+      "both": "Decision and development"
+    },
+    "goal": "Desired outcome",
+    "goalHint": "What does a good result look like?",
+    "requirements": "Additional requirements",
+    "requirementsHint": "Constraints such as budget, compliance or tech stack.",
+    "saving": "Saving…",
+    "continue": "Continue to AI team",
+    "saveDraft": "Save as draft",
+    "clear": "Clear form"
+  },
+  "documents": {
+    "uploadFailed": "Upload failed",
+    "deleteError": "Could not delete the document",
+    "none": "No documents attached.",
+    "status": {
+      "pending": "needs a description",
+      "draft": "description to review",
+      "confirmed": "description confirmed"
+    },
+    "size": "{kb} kB text",
+    "remove": "Remove",
+    "removeLabel": "Remove {name}",
+    "upload": "Upload documents",
+    "formats": "PDF, Word (.docx) and PowerPoint (.pptx) up to 8 MB, images (PNG, JPEG, WebP, GIF) up to 3.5 MB, text files up to 200 kB; at most 10 per project. From PDF, Word and PowerPoint only the text is read. An image is described in text first – by an AI model of your choice or by you – and you confirm the description; the council reads only that text.",
+    "modelsError": "Could not load your models",
+    "describeError": "The description failed",
+    "confirmError": "Could not confirm the description",
+    "imageIntro": "The council reads this image only as text. Let a model describe it (one call on your own key, usually under 1 cent) or write the description yourself, check it and confirm it.",
+    "describeWith": "Describe with an AI model…",
+    "model": "Model",
+    "chooseModel": "Choose an image-capable model",
+    "describing": "Describing…",
+    "describe": "Describe",
+    "description": "Description",
+    "descriptionBy": "Description (draft by {model} – check and correct it)",
+    "saveChanged": "Save changed description",
+    "confirm": "Confirm description"
+  },
+  "repoLink": {
+    "loadError": "Could not load repositories",
+    "saveError": "Could not save",
+    "linked": "Linked: <strong>{repo}</strong>",
+    "none": "No repository linked. The Execution Council will start from an empty workspace.",
+    "notLinked": "The brief names {url}, but it is not linked: the CONSYRION AI GitHub App probably has no access to it. On GitHub open Settings → Applications → the CONSYRION AI app → Configure, add the repository, then click “Load repositories” and link it here. Without a link no pull request can be created.",
+    "notConfigured": "GitHub is not configured on this server.",
+    "notInPlan": "GitHub is not included in your plan. <link>See Billing & usage</link>.",
+    "connectFirst": "Connect GitHub under <link>Integrations</link> first.",
+    "account": "GitHub account",
+    "load": "Load repositories",
+    "repository": "Repository",
+    "link": "Link",
+    "unlink": "Unlink repository"
+  },
+  "repoContext": {
+    "readError": "Could not read the repository",
+    "savedSkipped": "Saved. Left out: {list}.",
+    "saved": "Saved. Confirm the requirements again before the next council – the sources changed.",
+    "saveError": "Could not save the repository context",
+    "intro": "The models of a Decision council read the files you choose here, frozen at one commit, as context – not as requirements. Every model call reads them, so they add to the token use of a council.",
+    "reading": "Reading the repository…",
+    "choose": "Choose files from the repository",
+    "readable": "{n, plural, one {# readable text file} other {# readable text files}}",
+    "filterLabel": "Filter files",
+    "filter": "Filter, e.g. docs/",
+    "files": "Repository files",
+    "suggested": "suggested",
+    "size": "{n, plural, one {# file} other {# files}}, {size} ≈ {tokens} tokens per model call",
+    "limit": "at most {files} files and {size}",
+    "readingFiles": "Reading files…",
+    "use": "Use as context"
+  },
+  "requirements": {
+    "suspicion": {
+      "instruction": "Reads like an instruction to the AI models (e.g. to ignore rules or to rate a proposal). The models never follow it.",
+      "quoted_instruction": "Quotes text that reads like an instruction to the AI models. If the product must handle this text as data (store, show, filter it), keep it – the models check it as a requirement and never follow the quoted text.",
+      "meta_rule": "Says when a requirement counts as met instead of describing the product. The council judges every proposal on substance; keep it only if it is a real product rule."
+    },
+    "source": {
+      "requirements": "Requirements",
+      "goal": "Desired outcome",
+      "idea": "Idea",
+      "document": "Document",
+      "documentNamed": "Document: {name}",
+      "user": "Added by you"
+    },
+    "confirmError": "Could not confirm the requirements",
+    "title": "Hard requirements",
+    "intro": "The council checks every proposal against exactly this list. Review it before the start – the number of sentences in the brief is no proof that nothing is missing.",
+    "versionConfirmed": "Version {version} confirmed",
+    "needsAgain": "Needs confirmation again",
+    "notConfirmed": "Not confirmed yet",
+    "changed": "The brief or its documents changed after version {version} was confirmed (brief version {briefVersion}). Review the list and confirm it again before starting a council. Councils that already run keep the list they were started with.",
+    "confirmedNone": "Confirmed: this brief has no hard requirements.",
+    "estimated": "estimated by the models: {measure}",
+    "severalLimits": "several limits – not checked as numbers",
+    "splitLimits": "several limits in one sentence – split it to check each as a number",
+    "excludedSummary": "{n, plural, one {# statement deliberately not taken over} other {# statements deliberately not taken over}}",
+    "edit": "Edit requirements",
+    "new": "new",
+    "sourceGone": "source no longer in the brief",
+    "rowLabel": "Requirement R{n}",
+    "remove": "Remove",
+    "removeLabel": "Remove R{n}",
+    "add": "Add requirement",
+    "toDecideLabel": "Statements to decide",
+    "toDecide": "Please decide ({n})",
+    "toDecideText": "Nothing is kept or removed here on its own. Decide each statement before you confirm; the original wording stays unchanged.",
+    "pleaseCheck": "please check",
+    "keep": "Keep as requirement",
+    "notRequirement": "Not a requirement",
+    "excludedTitle": "Not taken over",
+    "excludedText": "These statements from the brief or a document are not binding. Give a reason for each; they are shown to the council as excluded, so they do not come back as requirements.",
+    "reasonLabel": "Reason for not taking it over",
+    "reason": "Reason (required)",
+    "pendingImages": "Confirm the description of {names} on the project page first – the council reads an image only through its confirmed description, so the requirements cannot be confirmed before.",
+    "unscanned": "Not scanned for requirements (format): {names}. Add their hard requirements by hand.",
+    "notProposed": "{n, plural, one {# further statement was not proposed because the list is full. Add it by hand if it is a requirement.} other {# further statements were not proposed because the list is full. Add the ones that are requirements by hand.}}",
+    "noHard": "This brief has no hard requirements.",
+    "confirming": "Confirming…",
+    "confirm": "Confirm requirements",
+    "cancel": "Cancel",
+    "readOnly": "Only members who can edit the project can confirm the requirements.",
+    "afterImplementation": "only measurable after implementation",
+    "afterImplementationText": "Before anything is built, no model can confirm “{text}”, so the council will end with “needs verification”. Keep it as it is, and add how it is measured (method, target value) so the proposals can be compared on it.",
+    "addPlan": "Add a measurement plan as a requirement"
+  },
+  "voteWeights": {
+    "noRanking": "No ranking loaded yet – neutral 5",
+    "notInRanking": "Not in {source} ({date}) – neutral 5",
+    "sourceModel": "{source}: {model} ({date})",
+    "title": "Vote weights",
+    "intro": "How much each model's scores and ranking count in the Final Verdict. Its own proposal is never weighted, and the feasibility check counts every model once. Fixed when the council starts.",
+    "useSuggestion": "Use AI suggestion",
+    "equal": "All equal",
+    "listLabel": "Vote weight per model",
+    "suggestion": "AI suggestion <strong>{value}/10</strong>",
+    "stale": "ranking older than 7 days",
+    "unknown": "unknown",
+    "adjusted": "adjusted",
+    "dominant": "dominant vote share",
+    "far": "far from suggestion",
+    "weightOf": "Vote weight of {name}",
+    "valueText": "{weight} of 10, {share} percent of the vote",
+    "sourceNote": "Suggestions from the <link>{source}</link> (percentile tier 1–10). A model that is not in the ranking gets the neutral 5.",
+    "warning": {
+      "far": "{model} has weight {weight}, the ranking suggests {suggested}.",
+      "dominant": "{model} holds {share} % of the vote and outweighs all other models together.",
+      "dominantTwo": "{model} holds {share} % of the vote – at least twice the weight of {other}, so its evaluation mostly sets the ranking."
+    }
+  },
+  "teamConfig": {
+    "mode": {
+      "title": "2. Decision mode",
+      "independent_expert": "Blind expert proposals with lighter structured feedback. Architecture, strategy, technology choice.",
+      "adversarial_review": "Deep 12 Minds scrutiny, rebuttals, two independent judges per objection. Security and high-stakes decisions.",
+      "consensus": "Several revision passes and an optional hybrid proposal. Dissent stays documented."
+    },
+    "weightError": {
+      "enter": "Enter a number from 0 to 100.",
+      "negative": "Must not be negative.",
+      "max": "Must be at most 100."
+    },
+    "weight": {
+      "technicalQuality": "Technical quality",
+      "security": "Security",
+      "maintainability": "Maintainability",
+      "operatingCost": "Operating cost",
+      "implementationSpeed": "Implementation speed"
+    },
+    "loadError": "Could not load models",
+    "startError": "Could not start the session",
+    "budgetError": "Token budget must be between {min} and {max}",
+    "problem": {
+      "requirements": "Confirm the hard requirements above before starting.",
+      "minModels": "Select at least two models.",
+      "plan": "Your {plan} plan allows up to {n} models per session.",
+      "roles": "Activate at least one 12 Minds Council role.",
+      "weights": "Fix the highlighted Final Verdict weights (each 0–100).",
+      "total": "Weights must add up to 100 (currently {total})."
+    },
+    "models": {
+      "title": "1. Select AI models",
+      "intro": "Loaded live from your providers. Choose {min}–{max} models; different providers give more independent views.",
+      "introPlan": "Loaded live from your providers. Choose {min}–{max} models (limit of your {plan} plan); different providers give more independent views.",
+      "selected": "{n} / {max} selected",
+      "loading": "Loading models from your providers…",
+      "noKeys": "No API keys yet. <link>Add a provider key</link> first.",
+      "filter": "Filter models"
+    },
+    "roles": {
+      "title": "3. 12 Minds Council perspectives",
+      "intro": "{n} active. Perspectives are not independent votes: majorities are counted per model. Fewer roles cost less.",
+      "modelFor": "Model for {role}"
+    },
+    "settings": {
+      "title": "4. Session settings",
+      "debate": "Debate rounds",
+      "consensus": "Consensus revision passes",
+      "hybrid": "Allow a hybrid proposal (reviewed like any other)",
+      "weights": "Final Verdict weights",
+      "total": "(total {total} %)",
+      "budget": "Token budget (hard limit)",
+      "budgetHint": "{min}–{max} tokens. Calls stop when the budget would be exceeded. Providers bill your own keys.",
+      "rules": "Session rules (optional)",
+      "rulesHint": "E.g. “Focus on operating cost” or “Must run in the EU”."
+    },
+    "summary": {
+      "title": "Before you start",
+      "project": "Project: {name}",
+      "estimate": "About <strong>{calls}</strong> model calls in total, at most <strong>{tokens}</strong> tokens (upper bound).",
+      "estimateDocs": "About <strong>{calls}</strong> model calls in total, at most <strong>{tokens}</strong> tokens (upper bound), including {docs, plural, one {# attached document} other {# attached documents}}.",
+      "typical": "Typically about {tokens} tokens (median of your last {calls} calls).",
+      "noTypical": "No typical value yet: too few earlier calls in this workspace.",
+      "twoModels": "With two models each proposal has only one independent evaluator: this council can name a provisional favourite, but never a recommendation you can approve. Choose three or more models for a recommendation.",
+      "failedOften": "Models that failed often",
+      "failedRecently": "Often failed recently – {model}.",
+      "overBudget": "The upper bound exceeds your budget of {budget} tokens. I accept that debate phases may be shortened to keep enough budget for the Final Verdict: if the budget runs short, Minority Review and Consensus Round are dropped and the proposals are not revised – the verdict then judges the first versions and is marked as shortened.",
+      "checkWeights": "Check the vote weights before you start:"
+    },
+    "starting": "Starting…",
+    "start": "Start council session",
+    "decrease": "Decrease {label}",
+    "increase": "Increase {label}",
+    "manual": {
+      "label": "Model id",
+      "placeholder": "Add model id manually",
+      "add": "Add"
+    }
+  }
+}

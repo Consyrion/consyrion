@@ -1,0 +1,492 @@
+{
+  "shell": {
+    "nav": {
+      "dashboard": "Panel",
+      "home": "Inicio",
+      "projects": "Proyectos",
+      "decisions": "Decisiones",
+      "providers": "Proveedores de IA",
+      "integrations": "Integraciones",
+      "settings": "Ajustes",
+      "admin": "Admin de la plataforma"
+    },
+    "workspace": "Espacio de trabajo",
+    "skip": "Saltar al contenido",
+    "homeLabel": "Panel de CONSYRION AI",
+    "menu": "Menú",
+    "mainNav": "Navegación principal",
+    "quickNav": "Navegación rápida",
+    "toggleTheme": "Cambiar claro/oscuro",
+    "signOut": "Cerrar sesión",
+    "source": "Código abierto (AGPL-3.0) · Código fuente"
+  },
+  "dashboard": {
+    "metaTitle": "Panel",
+    "title": "Resumen del espacio de trabajo",
+    "titleMobile": "Tu Council",
+    "intro": "Coordina la IA. Toma mejores decisiones. Cada cifra procede de este espacio de trabajo.",
+    "introMobile": "Convierte preguntas complejas en decisiones claras.",
+    "ago": {
+      "now": "ahora mismo",
+      "minutes": "hace {n} min",
+      "hours": "hace {n} h",
+      "days": "hace {n} d"
+    },
+    "next": {
+      "awaitingText": "Espera tu aprobación – no se construye nada antes de que decidas.",
+      "awaitingAction": "Revisar veredicto",
+      "runningText": "Ahora mismo hay un Council en marcha.",
+      "runningAction": "Seguir el Council",
+      "keysTitle": "Conecta tus claves de IA",
+      "keysText": "Usa tus propias claves – pagas directamente a los proveedores.",
+      "keysAction": "Conectar claves",
+      "firstText": "Tu proyecto está listo – inicia su primer Council.",
+      "firstAction": "Iniciar un Council",
+      "startTitle": "Iniciar una decisión",
+      "startText": "Describe una idea, una pregunta de arquitectura o un repositorio."
+    },
+    "submitted": "{n} de {total} entregadas",
+    "phasesDone": "{n} de 7 fases completadas",
+    "metrics": {
+      "label": "Métricas del espacio de trabajo",
+      "more": "Más cifras del espacio de trabajo",
+      "projects": "Proyectos",
+      "sessions": "Sesiones del Council",
+      "awaiting": "Esperan aprobación",
+      "running": "En curso"
+    },
+    "asideLabel": "Próxima acción y proveedores",
+    "nextAction": "Tu próxima acción",
+    "liveCouncil": "Council en directo",
+    "notStarted": "Sin iniciar",
+    "notStartedLower": "sin iniciar",
+    "providers": {
+      "title": "Estado de los proveedores",
+      "verified": "{n} verificadas",
+      "none": "Aún no hay ninguna clave conectada. CONSYRION AI no vende créditos de IA – usas tus propias claves.",
+      "checked": "verificada {when}",
+      "useCheck": "usa «Verificar» en Proveedores de IA",
+      "state": {
+        "unchecked": "Sin verificar",
+        "failed": "Verificación fallida",
+        "verified": "Clave verificada"
+      }
+    },
+    "database": {
+      "label": "Base de datos",
+      "ok": "accesible",
+      "down": "no disponible"
+    },
+    "activityTitle": "Actividad del Council",
+    "independentModels": "{n, plural, one {# modelo independiente} other {# modelos independientes}}",
+    "center": "DECISIÓN",
+    "liveNote": "Los enlaces solo se mueven mientras un modelo trabaja.",
+    "latestNote": "No hay ningún Council en curso – esta es la última sesión.",
+    "recent": {
+      "title": "Sesiones recientes del Council",
+      "topic": "Tema de decisión",
+      "providers": "Proveedores de IA",
+      "stage": "Etapa",
+      "status": "Estado",
+      "budget": "Presupuesto de tokens",
+      "updated": "Actualizado"
+    },
+    "process": "El proceso de decisión",
+    "processLabel": "Fases de la última sesión",
+    "nodeState": {
+      "idle": "En espera",
+      "working": "Trabajando",
+      "done": "Listo",
+      "failed": "Fallido"
+    },
+    "activity": {
+      "hint": {
+        "idle": "Esperando a que empiece el Council.",
+        "working": "Solicitud en curso – pensando ahora mismo.",
+        "done": "Respondió a la fase actual.",
+        "failed": "Abandonó este Council."
+      },
+      "requests": "Solicitudes",
+      "tokensIn": "Tokens entrada",
+      "tokensOut": "Tokens salida",
+      "failed": "{failed} de {calls} solicitudes fallaron o no se pudieron usar.",
+      "perspectives": "Perspectivas",
+      "more": "+{n} más",
+      "none": "Sin modelos."
+    },
+    "compact": {
+      "live": "CONSEJO EN DIRECTO",
+      "latest": "ÚLTIMO CONSEJO",
+      "models": "{n, plural, one {# modelo independiente} other {# modelos independientes}}",
+      "tokens": "Tokens usados del presupuesto"
+    },
+    "stepper": {
+      "label": "Fases del Council",
+      "state": {
+        "pending": "pendiente",
+        "running": "en curso",
+        "completed": "completada",
+        "failed": "fallida",
+        "skipped": "omitida"
+      }
+    },
+    "metricCard": {
+      "demo": "Datos de demostración",
+      "live": "En directo"
+    },
+    "network": {
+      "label": "Red del Council. {summary}",
+      "none": "Aún no hay modelos.",
+      "center": "Veredicto",
+      "state": {
+        "idle": "en espera",
+        "working": "trabajando",
+        "done": "listo",
+        "failed": "fallido"
+      }
+    },
+    "empty": {
+      "title": "Aún no se ha celebrado ningún Council",
+      "text": "Un Council necesita tu propia clave de IA, un proyecto y una pregunta. Después, varios modelos piensan de forma independiente, debaten y llegan a un veredicto que tú apruebas.",
+      "next": "Próximo paso: {title}"
+    }
+  },
+  "decisions": {
+    "metaTitle": "Decisiones",
+    "title": "Decisiones",
+    "description": "Todas las sesiones del Council de este espacio de trabajo.",
+    "emptyTitle": "Aún no hay sesiones del Council",
+    "emptyText": "Abre un proyecto e inicia un Council para obtener una decisión.",
+    "status": {
+      "queued": "En cola",
+      "running": "En curso",
+      "cancel_requested": "Deteniéndose",
+      "awaiting_approval": "Espera aprobación",
+      "approved": "Aprobada",
+      "rejected": "Rechazada",
+      "changes_requested": "Cambios solicitados",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    }
+  },
+  "projects": {
+    "metaTitle": "Proyectos",
+    "title": "Proyectos",
+    "description": "Cada sesión del Council parte de un encargo de proyecto versionado.",
+    "new": "Nuevo proyecto",
+    "emptyTitle": "Aún no hay proyectos",
+    "emptyText": "Describe una idea o una pregunta de arquitectura para preparar tu primera sesión del Council.",
+    "type": {
+      "idea": "Idea",
+      "architecture": "Arquitectura",
+      "repository": "Repositorio",
+      "business": "Negocio",
+      "technology_choice": "Elección tecnológica"
+    },
+    "status": {
+      "draft": "borrador",
+      "ready": "listo",
+      "archived": "archivado"
+    },
+    "intent": {
+      "decision": "Solo decisión",
+      "build": "Desarrollo",
+      "both": "Decisión y desarrollo"
+    },
+    "newTitle": "Nuevo proyecto",
+    "newDescription": "Describe qué debe decidir el Council.",
+    "fallbackTitle": "Proyecto",
+    "briefLine": "Encargo versión {version} · {intent}",
+    "startCouncil": "Iniciar un Council",
+    "brief": "Encargo del proyecto",
+    "idea": "Idea o pregunta",
+    "goal": "Resultado deseado",
+    "requirements": "Requisitos",
+    "confirmed": "Requisitos estrictos confirmados",
+    "listVersion": "Versión {version} · {n, plural, one {# requisito} other {# requisitos}}",
+    "notTakenOver": "{n} no adoptados",
+    "current": "vigente",
+    "needsAgain": "hay que confirmarlos de nuevo",
+    "notConfirmed": "aún sin confirmar",
+    "reviewConfirm": "Revisar y confirmar",
+    "repository": "Repositorio",
+    "documents": "Documentos",
+    "documentsText": "Los documentos adjuntos pasan a formar parte del encargo de cada nueva sesión del Council.",
+    "github": "Repositorio de GitHub",
+    "repoContext": "Contexto del repositorio para los Councils",
+    "sessions": "Sesiones del Council",
+    "noSessions": "Aún no hay sesiones.",
+    "phases": "Fases",
+    "executionAfterApproval": "Ejecución solo tras tu aprobación",
+    "delete": "Eliminar proyecto",
+    "deleteText": "Elimina definitivamente el proyecto con todas las sesiones del Council, decisiones, código generado y documentos.",
+    "deleteButton": "Eliminar proyecto definitivamente"
+  },
+  "councilSetup": {
+    "metaTitle": "Configurar el equipo de IA",
+    "title": "Configurar el equipo de IA",
+    "description": "Confirma los requisitos estrictos y luego elige modelos, roles y reglas de sesión para este Council.",
+    "sessionTitle": "Sesión del Council"
+  },
+  "projectForm": {
+    "example": {
+      "name": "SaaS de análisis de repositorios",
+      "idea": "Diseña la mejor arquitectura para una plataforma SaaS que analice repositorios de GitHub, encuentre problemas de seguridad y calidad y proponga automáticamente mejoras de código como pull requests.",
+      "goal": "Un MVP listo para producción en tres meses que un equipo de tres personas pueda operar.",
+      "requirements": "Residencia de datos en la UE. Los repositorios privados nunca deben usarse para entrenar modelos. Presupuesto de infraestructura inferior a 1.000 EUR al mes en el lanzamiento."
+    },
+    "saveError": "No se pudo guardar el proyecto",
+    "restored": "Se ha restaurado tu borrador sin guardar de este navegador.",
+    "source": "Origen del proyecto",
+    "sourceIdea": "Idea / descripción",
+    "sourceRepository": "Repositorio de GitHub",
+    "sourceExample": "Usar un ejemplo",
+    "name": "Nombre del proyecto",
+    "repositoryHint": "Si GitHub está conectado y cubre este repositorio, se vincula automáticamente; si no, vincúlalo en la página del proyecto.",
+    "idea": "Idea o pregunta",
+    "ideaHint": "Cada modelo de IA recibe exactamente este encargo durante Independent Thinking.",
+    "ideaTooShort": "Describe la idea con al menos 20 caracteres",
+    "type": "Tipo de proyecto",
+    "types": {
+      "idea": "Idea",
+      "architecture": "Arquitectura de software",
+      "repository": "Repositorio existente",
+      "business": "Decisión de negocio",
+      "technology_choice": "Elección tecnológica"
+    },
+    "intent": "Objetivo",
+    "intentHint": "El desarrollo solo empieza después de que apruebes una decisión.",
+    "intents": {
+      "decision": "Solo decisión",
+      "build": "Desarrollo",
+      "both": "Decisión y desarrollo"
+    },
+    "goal": "Resultado deseado",
+    "goalHint": "¿Cómo es un buen resultado?",
+    "requirements": "Requisitos adicionales",
+    "requirementsHint": "Restricciones como presupuesto, cumplimiento normativo o stack tecnológico.",
+    "saving": "Guardando…",
+    "continue": "Continuar al equipo de IA",
+    "saveDraft": "Guardar como borrador",
+    "clear": "Vaciar formulario"
+  },
+  "documents": {
+    "uploadFailed": "Error al subir",
+    "deleteError": "No se pudo eliminar el documento",
+    "none": "No hay documentos adjuntos.",
+    "status": {
+      "pending": "necesita una descripción",
+      "draft": "descripción por revisar",
+      "confirmed": "descripción confirmada"
+    },
+    "size": "{kb} kB de texto",
+    "remove": "Quitar",
+    "removeLabel": "Quitar {name}",
+    "upload": "Subir documentos",
+    "formats": "PDF, Word (.docx) y PowerPoint (.pptx) hasta 8 MB, imágenes (PNG, JPEG, WebP, GIF) hasta 3,5 MB, archivos de texto hasta 200 kB; como máximo 10 por proyecto. De PDF, Word y PowerPoint solo se lee el texto. Una imagen se describe primero en texto – con un modelo de IA de tu elección o por ti – y tú confirmas la descripción; el Council solo lee ese texto.",
+    "modelsError": "No se pudieron cargar tus modelos",
+    "describeError": "La descripción falló",
+    "confirmError": "No se pudo confirmar la descripción",
+    "imageIntro": "El Council solo lee esta imagen como texto. Deja que un modelo la describa (una llamada con tu propia clave, normalmente menos de 1 céntimo) o escribe tú la descripción, revísala y confírmala.",
+    "describeWith": "Describir con un modelo de IA…",
+    "model": "Modelo",
+    "chooseModel": "Elige un modelo que admita imágenes",
+    "describing": "Describiendo…",
+    "describe": "Describir",
+    "description": "Descripción",
+    "descriptionBy": "Descripción (borrador de {model} – revísala y corrígela)",
+    "saveChanged": "Guardar la descripción modificada",
+    "confirm": "Confirmar descripción"
+  },
+  "repoLink": {
+    "loadError": "No se pudieron cargar los repositorios",
+    "saveError": "No se pudo guardar",
+    "linked": "Vinculado: <strong>{repo}</strong>",
+    "none": "No hay ningún repositorio vinculado. El Execution Council empezará desde un espacio de trabajo vacío.",
+    "notLinked": "El encargo menciona {url}, pero no está vinculado: probablemente la GitHub App de CONSYRION AI no tiene acceso. En GitHub abre Settings → Applications → la app CONSYRION AI → Configure, añade el repositorio, luego haz clic en «Cargar repositorios» y vincúlalo aquí. Sin vínculo no se puede crear ninguna pull request.",
+    "notConfigured": "GitHub no está configurado en este servidor.",
+    "notInPlan": "GitHub no está incluido en tu plan. <link>Ver Facturación y uso</link>.",
+    "connectFirst": "Conecta primero GitHub en <link>Integraciones</link>.",
+    "account": "Cuenta de GitHub",
+    "load": "Cargar repositorios",
+    "repository": "Repositorio",
+    "link": "Vincular",
+    "unlink": "Desvincular repositorio"
+  },
+  "repoContext": {
+    "readError": "No se pudo leer el repositorio",
+    "savedSkipped": "Guardado. Omitidos: {list}.",
+    "saved": "Guardado. Confirma de nuevo los requisitos antes del próximo Council – las fuentes han cambiado.",
+    "saveError": "No se pudo guardar el contexto del repositorio",
+    "intro": "Los modelos de un Council Decision leen los archivos que elijas aquí, congelados en un commit, como contexto – no como requisitos. Cada llamada a un modelo los lee, así que aumentan el consumo de tokens de un Council.",
+    "reading": "Leyendo el repositorio…",
+    "choose": "Elegir archivos del repositorio",
+    "readable": "{n, plural, one {# archivo de texto legible} other {# archivos de texto legibles}}",
+    "filterLabel": "Filtrar archivos",
+    "filter": "Filtrar, p. ej. docs/",
+    "files": "Archivos del repositorio",
+    "suggested": "sugerido",
+    "size": "{n, plural, one {# archivo} other {# archivos}}, {size} ≈ {tokens} tokens por llamada al modelo",
+    "limit": "como máximo {files} archivos y {size}",
+    "readingFiles": "Leyendo archivos…",
+    "use": "Usar como contexto"
+  },
+  "requirements": {
+    "suspicion": {
+      "instruction": "Parece una instrucción a los modelos de IA (p. ej. ignorar reglas o puntuar una propuesta). Los modelos nunca la siguen.",
+      "quoted_instruction": "Cita un texto que parece una instrucción a los modelos de IA. Si el producto debe tratar este texto como datos (guardarlo, mostrarlo, filtrarlo), consérvalo – los modelos lo comprueban como requisito y nunca siguen el texto citado.",
+      "meta_rule": "Dice cuándo un requisito se considera cumplido en lugar de describir el producto. El Council juzga cada propuesta por su contenido; consérvalo solo si es una regla real del producto."
+    },
+    "source": {
+      "requirements": "Requisitos",
+      "goal": "Resultado deseado",
+      "idea": "Idea",
+      "document": "Documento",
+      "documentNamed": "Documento: {name}",
+      "user": "Añadido por ti"
+    },
+    "confirmError": "No se pudieron confirmar los requisitos",
+    "title": "Requisitos estrictos",
+    "intro": "El Council compara cada propuesta con exactamente esta lista. Revísala antes de empezar – el número de frases del encargo no demuestra que no falte nada.",
+    "versionConfirmed": "Versión {version} confirmada",
+    "needsAgain": "Hay que confirmarlos de nuevo",
+    "notConfirmed": "Aún sin confirmar",
+    "changed": "El encargo o sus documentos cambiaron después de confirmar la versión {version} (encargo versión {briefVersion}). Revisa la lista y confírmala de nuevo antes de iniciar un Council. Los Councils que ya están en marcha conservan la lista con la que empezaron.",
+    "confirmedNone": "Confirmado: este encargo no tiene requisitos estrictos.",
+    "estimated": "estimado por los modelos: {measure}",
+    "severalLimits": "varios límites – no se comprueban como números",
+    "splitLimits": "varios límites en una frase – divídela para comprobar cada uno como número",
+    "excludedSummary": "{n, plural, one {# afirmación no adoptada a propósito} other {# afirmaciones no adoptadas a propósito}}",
+    "edit": "Editar requisitos",
+    "new": "nuevo",
+    "sourceGone": "la fuente ya no está en el encargo",
+    "rowLabel": "Requisito R{n}",
+    "remove": "Quitar",
+    "removeLabel": "Quitar R{n}",
+    "add": "Añadir requisito",
+    "toDecideLabel": "Afirmaciones por decidir",
+    "toDecide": "Decide, por favor ({n})",
+    "toDecideText": "Aquí nada se conserva ni se elimina por sí solo. Decide cada afirmación antes de confirmar; la redacción original no cambia.",
+    "pleaseCheck": "revisar",
+    "keep": "Conservar como requisito",
+    "notRequirement": "No es un requisito",
+    "excludedTitle": "No adoptados",
+    "excludedText": "Estas afirmaciones del encargo o de un documento no son vinculantes. Indica un motivo para cada una; se muestran al Council como excluidas para que no vuelvan como requisitos.",
+    "reasonLabel": "Motivo para no adoptarla",
+    "reason": "Motivo (obligatorio)",
+    "pendingImages": "Confirma primero la descripción de {names} en la página del proyecto – el Council solo lee una imagen a través de su descripción confirmada, así que los requisitos no se pueden confirmar antes.",
+    "unscanned": "No analizados en busca de requisitos (formato): {names}. Añade sus requisitos estrictos a mano.",
+    "notProposed": "{n, plural, one {# afirmación más no se propuso porque la lista está llena. Añádela a mano si es un requisito.} other {# afirmaciones más no se propusieron porque la lista está llena. Añade a mano las que sean requisitos.}}",
+    "noHard": "Este encargo no tiene requisitos estrictos.",
+    "confirming": "Confirmando…",
+    "confirm": "Confirmar requisitos",
+    "cancel": "Cancelar",
+    "readOnly": "Solo los miembros que pueden editar el proyecto pueden confirmar los requisitos.",
+    "afterImplementation": "solo medible tras la implementación",
+    "afterImplementationText": "Antes de construir nada, ningún modelo puede confirmar «{text}», así que el Council terminará con «Requiere verificación». Déjalo como está y añade cómo se mide (método, valor objetivo) para que las propuestas puedan compararse en ese punto.",
+    "addPlan": "Añadir un plan de medición como requisito"
+  },
+  "voteWeights": {
+    "noRanking": "Aún no se ha cargado ningún ranking – neutral 5",
+    "notInRanking": "No está en {source} ({date}) – neutral 5",
+    "sourceModel": "{source}: {model} ({date})",
+    "title": "Pesos de voto",
+    "intro": "Cuánto cuentan las puntuaciones y el ranking de cada modelo en el Final Verdict. Su propia propuesta nunca se pondera, y la comprobación de viabilidad cuenta cada modelo una vez. Se fija al iniciar el Council.",
+    "useSuggestion": "Usar sugerencia de IA",
+    "equal": "Todos iguales",
+    "listLabel": "Peso de voto por modelo",
+    "suggestion": "Sugerencia de IA <strong>{value}/10</strong>",
+    "stale": "ranking de hace más de 7 días",
+    "unknown": "desconocido",
+    "adjusted": "ajustado",
+    "dominant": "cuota de voto dominante",
+    "far": "lejos de la sugerencia",
+    "weightOf": "Peso de voto de {name}",
+    "valueText": "{weight} de 10, {share} por ciento del voto",
+    "sourceNote": "Sugerencias del <link>{source}</link> (nivel de percentil 1–10). Un modelo que no está en el ranking recibe el 5 neutral.",
+    "warning": {
+      "far": "{model} tiene peso {weight}, el ranking sugiere {suggested}.",
+      "dominant": "{model} tiene el {share} % del voto y pesa más que todos los demás modelos juntos.",
+      "dominantTwo": "{model} tiene el {share} % del voto – al menos el doble del peso de {other}, así que su evaluación determina en gran parte el ranking."
+    }
+  },
+  "teamConfig": {
+    "mode": {
+      "title": "2. Modo de decisión",
+      "independent_expert": "Propuestas de expertos a ciegas con una retroalimentación estructurada más ligera. Arquitectura, estrategia, elección tecnológica.",
+      "adversarial_review": "Escrutinio profundo del 12 Minds Council, réplicas, dos jueces independientes por objeción. Seguridad y decisiones de alto riesgo.",
+      "consensus": "Varias pasadas de revisión y una propuesta híbrida opcional. La disidencia queda documentada."
+    },
+    "weightError": {
+      "enter": "Introduce un número de 0 a 100.",
+      "negative": "No puede ser negativo.",
+      "max": "Debe ser como máximo 100."
+    },
+    "weight": {
+      "technicalQuality": "Calidad técnica",
+      "security": "Seguridad",
+      "maintainability": "Mantenibilidad",
+      "operatingCost": "Coste operativo",
+      "implementationSpeed": "Rapidez de implementación"
+    },
+    "loadError": "No se pudieron cargar los modelos",
+    "startError": "No se pudo iniciar la sesión",
+    "budgetError": "El presupuesto de tokens debe estar entre {min} y {max}",
+    "problem": {
+      "requirements": "Confirma los requisitos estrictos de arriba antes de empezar.",
+      "minModels": "Selecciona al menos dos modelos.",
+      "plan": "Tu plan {plan} permite hasta {n} modelos por sesión.",
+      "roles": "Activa al menos un rol del 12 Minds Council.",
+      "weights": "Corrige los pesos del Final Verdict marcados (cada uno 0–100).",
+      "total": "Los pesos deben sumar 100 (ahora {total})."
+    },
+    "models": {
+      "title": "1. Seleccionar modelos de IA",
+      "intro": "Cargados en directo desde tus proveedores. Elige {min}–{max} modelos; proveedores distintos aportan puntos de vista más independientes.",
+      "introPlan": "Cargados en directo desde tus proveedores. Elige {min}–{max} modelos (límite de tu plan {plan}); proveedores distintos aportan puntos de vista más independientes.",
+      "selected": "{n} / {max} seleccionados",
+      "loading": "Cargando modelos de tus proveedores…",
+      "noKeys": "Aún no hay claves de API. <link>Añade primero una clave de proveedor</link>.",
+      "filter": "Filtrar modelos"
+    },
+    "roles": {
+      "title": "3. Perspectivas del 12 Minds Council",
+      "intro": "{n} activas. Las perspectivas no son votos independientes: las mayorías se cuentan por modelo. Menos roles cuestan menos.",
+      "modelFor": "Modelo para {role}"
+    },
+    "settings": {
+      "title": "4. Ajustes de la sesión",
+      "debate": "Rondas de debate",
+      "consensus": "Pasadas de revisión del consenso",
+      "hybrid": "Permitir una propuesta híbrida (se revisa como cualquier otra)",
+      "weights": "Pesos del Final Verdict",
+      "total": "(total {total} %)",
+      "budget": "Presupuesto de tokens (límite estricto)",
+      "budgetHint": "{min}–{max} tokens. Las llamadas se detienen antes de que se supere el presupuesto. Los proveedores facturan a tus propias claves.",
+      "rules": "Reglas de la sesión (opcional)",
+      "rulesHint": "P. ej. «Céntrate en el coste operativo» o «Debe funcionar en la UE»."
+    },
+    "summary": {
+      "title": "Antes de empezar",
+      "project": "Proyecto: {name}",
+      "estimate": "Unas <strong>{calls}</strong> llamadas a modelos en total, como máximo <strong>{tokens}</strong> tokens (límite superior).",
+      "estimateDocs": "Unas <strong>{calls}</strong> llamadas a modelos en total, como máximo <strong>{tokens}</strong> tokens (límite superior), incluyendo {docs, plural, one {# documento adjunto} other {# documentos adjuntos}}.",
+      "typical": "Normalmente unos {tokens} tokens (mediana de tus últimas {calls} llamadas).",
+      "noTypical": "Aún no hay un valor típico: muy pocas llamadas anteriores en este espacio de trabajo.",
+      "twoModels": "Con dos modelos, cada propuesta tiene un solo evaluador independiente: este Council puede señalar un favorito provisional, pero nunca una recomendación que puedas aprobar. Elige tres o más modelos para obtener una recomendación.",
+      "failedOften": "Modelos que fallaron a menudo",
+      "failedRecently": "Ha fallado a menudo últimamente – {model}.",
+      "overBudget": "El límite superior supera tu presupuesto de {budget} tokens. Acepto que las fases de debate se acorten para conservar presupuesto suficiente para el Final Verdict: si el presupuesto escasea, se omiten Minority Review y Consensus Round y las propuestas no se revisan – el veredicto juzga entonces las primeras versiones y se marca como acortado.",
+      "checkWeights": "Revisa los pesos de voto antes de empezar:"
+    },
+    "starting": "Iniciando…",
+    "start": "Iniciar sesión del Council",
+    "decrease": "Reducir {label}",
+    "increase": "Aumentar {label}",
+    "manual": {
+      "label": "ID del modelo",
+      "placeholder": "Añadir ID de modelo a mano",
+      "add": "Añadir"
+    }
+  }
+}

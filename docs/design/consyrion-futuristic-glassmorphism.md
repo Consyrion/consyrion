@@ -170,6 +170,10 @@ look live instead, so it stays sharp, loops without a seam and ships no video fi
 - **`RibbonField`** (`components/fx/ribbon-field.tsx`): one fixed full-page canvas – four bundles of 28-strand
   silk ribbons sweeping across the page, 240 particles riding them, a seeded star field. Max 30 fps, stops when
   the tab is hidden, one still frame for reduced motion, calmer below 768 px.
+- **Sign-in/sign-up since 06.11.26: `AuthScene`** (`components/auth-scene.tsx`): the first chapter of the landing page's
+  3D scene (`createStoryScene(canvas, { framing: "center", stars: false })`) – same spheres, model names, plasma core
+  and pointer reaction as the landing page; Pause button; reduced motion = still frame. `ConsyrionOrbitalLogo` below
+  stays as the fallback without WebGL 2.
 - **`ConsyrionOrbitalLogo`** (`components/brand/orbital-logo.tsx`, #84): the original mark as the sun in a glowing
   core; three spheres (cyan, mint, violet) on a slow, continuous, tilted orbit (48 s per turn, `orbitAngle` /
   `orbitState`, tested). On the far side they pass behind the core, on the near side in front of it, and they

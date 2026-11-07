@@ -36,6 +36,17 @@ wait_healthy() {
   docker compose -p consyrion ps; echo "not healthy after 5 minutes" >&2; return 1
 }
 cd /opt/consyrion/build
+# Disk hygiene before building (06.11.26: 82 old images filled the 38 GB disk – the migration then failed with
+# ENOSPC). Unused images older than two days and the build cache go; running containers and recent images stay
+# (rollback.sh needs the previous release).
+docker image prune -a -f --filter "until=48h" >/dev/null || true
+docker builder prune -f --filter "until=48h" >/dev/null || true
+free_kb="$(df --output=avail -k / | tail -1 | tr -d ' ')"
+if [ "${free_kb:-0}" -lt 4000000 ]; then
+  df -h / >&2
+  echo "less than 4 GB free on / – not building; free space first (docker system df)" >&2
+  exit 1
+fi
 docker build -q -f Dockerfile.web -t "consyrion-web:$VERSION" .
 docker build -q -f Dockerfile.worker -t "consyrion-worker:$VERSION" .
 
@@ -49,7 +60,28 @@ rm -rf /opt/consyrion/app.prev
 if [ -d /opt/consyrion/app/deploy ]; then mv /opt/consyrion/app /opt/consyrion/app.prev; else rm -rf /opt/consyrion/app; fi
 mv /opt/consyrion/build /opt/consyrion/app
 cd /opt/consyrion/app
-APP_VERSION="$VERSION" docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml up -d --remove-orphans
+COMPOSE=(docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml)
+# Migrate first with the NEW image while the old web/worker keep serving (06.11.26: a failed migration inside
+# `up -d` left the site at 502 for minutes). Up to three attempts; on failure the old release stays live untouched.
+migrated=0
+# Very first deploy: no database yet – `up -d` starts Postgres and runs the migration as before.
+docker compose -p consyrion ps --status running postgres | grep -q postgres || migrated=1
+for attempt in 1 2 3; do
+  [ "$migrated" = 1 ] && break
+  # -T and </dev/null: this script itself arrives on stdin over SSH – `compose run` would read (and swallow) the rest.
+  if APP_VERSION="$VERSION" "${COMPOSE[@]}" run --rm --no-deps -T migrate </dev/null; then migrated=1; break; fi
+  echo "migration attempt $attempt failed" >&2
+  sleep 5
+done
+if [ "$migrated" != 1 ]; then
+  cd /opt/consyrion
+  rm -rf /opt/consyrion/app.failed && mv /opt/consyrion/app /opt/consyrion/app.failed
+  [ -d /opt/consyrion/app.prev ] && mv /opt/consyrion/app.prev /opt/consyrion/app
+  echo "migration failed – the previous release is still running; files of $VERSION in /opt/consyrion/app.failed" >&2
+  docker image rm "consyrion-web:$VERSION" "consyrion-worker:$VERSION" >/dev/null 2>&1 || true
+  exit 1
+fi
+APP_VERSION="$VERSION" "${COMPOSE[@]}" up -d --remove-orphans
 wait_healthy
 echo "$(date -u +%FT%TZ) $VERSION" >>/opt/consyrion/RELEASES
 docker image prune -f >/dev/null

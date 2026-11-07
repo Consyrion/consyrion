@@ -218,6 +218,34 @@
       "when": 1793869152738,
       "tag": "0030_unique_stephen_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793926847341,
+      "tag": "0031_smart_ben_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793967515981,
+      "tag": "0032_real_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793976120261,
+      "tag": "0033_stale_kid_colt",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793999185283,
+      "tag": "0034_typical_ultimatum",
+      "breakpoints": true
     }
   ]
 }

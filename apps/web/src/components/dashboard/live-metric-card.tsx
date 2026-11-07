@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { GlassPanel } from "../ui/glass";
 import { Badge } from "../ui/surface";
 
@@ -39,16 +40,17 @@ interface LiveMetricCardProps {
 
 /** Metric card for the dashboard. Every number shown must come from the workspace or be marked as demo. */
 export function LiveMetricCard({ label, value, hint, tone = "cyan", series, live = false, demo = false, footer }: LiveMetricCardProps) {
+  const t = useTranslations("dashboard.metricCard");
   return (
     <GlassPanel className="flex flex-col gap-2 p-5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted">{label}</p>
         <span className="flex items-center gap-2">
-          {demo ? <Badge tone="warning">Demo data</Badge> : null}
+          {demo ? <Badge tone="warning">{t("demo")}</Badge> : null}
           {live ? (
             <span className="flex items-center gap-1.5 text-xs text-success" data-live="true">
               <span className="size-2 rounded-full bg-success [animation:consyrion-pulse_1.6s_ease-in-out_infinite]" />
-              Live
+              {t("live")}
             </span>
           ) : null}
         </span>

@@ -39,7 +39,13 @@ export type IdPrefix =
   | "idk"
   | "mss"
   | "dlc"
-  | "dlv";
+  | "ach"
+  | "acm"
+  | "aca"
+  | "tgr"
+  | "dlv"
+  | "fbk"
+  | "fbr";
 
 export function newId(prefix: IdPrefix): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;

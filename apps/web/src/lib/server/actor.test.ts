@@ -18,6 +18,7 @@ const { requireActor } = await import("./actor");
 
 let full: string;
 let integration: string;
+let readOnly: string;
 
 beforeAll(async () => {
   handle = createDatabase("memory://");
@@ -26,6 +27,7 @@ beforeAll(async () => {
   const actor = await resolveActor(handle.db, "u", (await ensurePersonalOrganization(handle.db, "u", "U")).id);
   full = (await createApiToken(handle.db, actor, { name: "VS Code", days: 30, scope: "full" })).token;
   integration = (await createApiToken(handle.db, actor, { name: "Obsidian", days: 30 })).token;
+  readOnly = (await createApiToken(handle.db, actor, { name: "MCP", days: 30, scope: "read" })).token;
 });
 afterAll(async () => {
   await handle.close();
@@ -38,6 +40,13 @@ describe("API token scopes (#101)", () => {
     await expect(requireActor({ integration: true })).resolves.toMatchObject({ userId: "u" });
     authorization = `Bearer ${full}`;
     await expect(requireActor()).resolves.toMatchObject({ userId: "u" });
+  });
+
+  it("a read-only token (cnr_, MCP) reaches no REST endpoint – also not the council endpoints", async () => {
+    expect(readOnly.startsWith("cnr_")).toBe(true);
+    authorization = `Bearer ${readOnly}`;
+    await expect(requireActor()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(requireActor({ integration: true })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("only the council endpoints accept integration tokens – approvals, builds, keys, team, tokens and deletions never do", () => {

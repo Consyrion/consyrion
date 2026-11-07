@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { SessionViewJson } from "@/lib/types";
 
 export type View = SessionViewJson;
@@ -20,14 +21,23 @@ export interface ProposalContent {
   requirementConflicts?: string[];
 }
 
-export const PROVIDER_LABELS: Record<string, string> = { anthropic: "Claude", openai: "OpenAI", google: "Gemini", deepseek: "DeepSeek", glm: "GLM", kimi: "Kimi", qwen: "Qwen", xai: "Grok" };
+export const PROVIDER_LABELS: Record<string, string> = {
+  anthropic: "Claude",
+  openai: "OpenAI",
+  google: "Gemini",
+  deepseek: "DeepSeek",
+  glm: "GLM",
+  kimi: "Kimi",
+  qwen: "Qwen",
+  xai: "Grok",
+};
 
 export function latestRevision(p: ProposalJson) {
   return p.revisions[p.revisions.length - 1]!;
 }
 
 export function contentOf(p: ProposalJson, version?: number): ProposalContent {
-  const revision = version ? p.revisions.find((r) => r.version === version) ?? latestRevision(p) : latestRevision(p);
+  const revision = version ? (p.revisions.find((r) => r.version === version) ?? latestRevision(p)) : latestRevision(p);
   return revision.content as unknown as ProposalContent;
 }
 
@@ -49,6 +59,18 @@ export function proposalLabel(view: View, proposalId: string | null | undefined)
 }
 
 export const roleLabel = (role: string | null | undefined) => (role ? role.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
+
+/** Translated role name (`roleSuggestion.names.<role>`); unknown roles fall back to the English title case. */
+export function useRoleLabel() {
+  const t = useTranslations("roleSuggestion.names");
+  return (role: string | null | undefined) => (role ? (t.has(role) ? t(role) : roleLabel(role)) : "");
+}
+
+/** Translated words for stored enum values (severity, objection status): the English value when no key exists. */
+export function useEnumText(namespace: string) {
+  const t = useTranslations(namespace as never) as unknown as { has: (key: string) => boolean; (key: string): string };
+  return (value: string | null | undefined) => (value ? (t.has(value) ? t(value) : value.replaceAll("_", " ")) : "");
+}
 
 export const SEVERITY_TONE = { low: "neutral", medium: "warning", high: "danger", critical: "danger" } as const;
 export const STATUS_TONE = { open: "warning", refuted: "success", resolved: "success", accepted: "danger", unresolved: "warning" } as const;

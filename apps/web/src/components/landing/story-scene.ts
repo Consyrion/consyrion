@@ -46,11 +46,66 @@ const HIDDEN: Key = { p: [0, 0, 0], s: 0.001, o: 0 };
 
 const COLORS = { cyan: "#22d3ee", mint: "#2ee6a8", violet: "#8b5cf6", blue: "#2f7bff", amber: "#fbbf24", text: "#e8eefc", muted: "#9aa9c6" };
 
-const MODELS = [
-  { color: COLORS.cyan, tint: "#a5f3fc", roles: ["Architecture", "Scalability", "Reliability", "Cost"] },
-  { color: COLORS.violet, tint: "#c4b5fd", roles: ["Security", "Data governance", "Performance", "Compliance"] },
-  { color: COLORS.mint, tint: "#a7f3d0", roles: ["Critic", "Maintainability", "Developer experience", "Operations"] },
+/**
+ * The three example models. Named after real providers the user can connect with their own keys (owner request
+ * 05.11.26: visitors should see at first glance that Claude, OpenAI and DeepSeek debate a decision); the scene is
+ * marked "Illustration – not live data".
+ */
+const MODEL_STYLE = [
+  { name: "Claude", color: COLORS.violet, tint: "#c4b5fd" },
+  { name: "OpenAI", color: COLORS.cyan, tint: "#a5f3fc" },
+  { name: "DeepSeek", color: COLORS.mint, tint: "#a7f3d0" },
 ];
+
+/**
+ * Further providers in the intro orbit (owner request 07.11.26: Gemini, Grok and Kimi were missing). They circle the
+ * core between the three example models in chapter 0 – the first frame of the homepage and the whole sign-in
+ * scene – and sink into the core once the story's formation starts, so the later chapters keep their A/B/C example.
+ */
+const GUEST_STYLE = [
+  { name: "Gemini", color: COLORS.blue, tint: "#bfdbfe" },
+  { name: "Grok", color: "#94a3b8", tint: "#f1f5f9" },
+  { name: "Kimi", color: "#ec4899", tint: "#fbcfe8" },
+];
+/** Orbit slots: the example models and the guests alternate around the core. */
+const ORBIT_SLOTS = MODEL_STYLE.length + GUEST_STYLE.length;
+/** Intro orbit: wider, more tilted and with smaller spheres than with three models, so six names stay readable. */
+const ORBIT = { radius: 3.5, tilt: 0.42, scale: 0.8 };
+
+/**
+ * Every text drawn inside the 3D scene. English is the default; the landing page passes the visitor's language
+ * (messages `scene.*`). Model names are product names and stay as they are.
+ */
+export const SCENE_LABELS_EN = {
+  models: [
+    { role: "Software Architect", roles: ["Architecture", "Scalability", "Reliability", "Cost"] },
+    { role: "Security Expert", roles: ["Security", "Data governance", "Performance", "Compliance"] },
+    { role: "Critical Thinker", roles: ["Critic", "Maintainability", "Developer experience", "Operations"] },
+  ],
+  apiKey: "Your API key",
+  decision: "Decision",
+  proposal: "Proposal {letter}",
+  proposalLines: ["Managed multi-tenant", "Self-hosted cluster", "Hybrid architecture"],
+  evidenceAttached: "Evidence attached",
+  example: "example",
+  optional: "optional",
+  brief: { title: "Brief", lines: ["Which database architecture?", "3 models · 12 perspectives", "Budget on your own keys"] },
+  objection: { title: "Objection · Security", lines: ["Tenant isolation risk", "Checked against evidence", "Kept on record"] },
+  evidence: ["Evidence: test results", "Evidence: provider docs"],
+  hybrid: { title: "Hybrid A + C", lines: ["Revised against objections", "Merged where compatible"] },
+  difference: "Difference documented",
+  report: { title: "Decision report", lines: ["Recommended: Hybrid A + C", "Minority position kept"], bars: ["Security", "Cost", "Time to launch"] },
+  awaiting: "Awaiting your approval",
+  approved: "✓ Approved by you",
+  pipeline: [
+    { title: "Tasks", lines: ["Validated plan", "Task graph"] },
+    { title: "Code", lines: ["Isolated sandbox", "No network access"] },
+    { title: "Tests", lines: ["Run in the sandbox", "Results attached"] },
+    { title: "Reviews", lines: ["Independent models", "Findings visible"] },
+    { title: "Draft PR", lines: ["GitHub draft pull request", "Merge stays your call"] },
+  ],
+};
+export type SceneLabels = typeof SCENE_LABELS_EN;
 
 /** Formation positions of the three models per chapter (chapter 0 orbits instead). */
 const MODEL_KEYS: Array<Array<Key | undefined>> = [
@@ -83,12 +138,12 @@ interface CardSpec {
 }
 
 /** Pipeline of the Execution Council chapter: emerges from the report after the approval gate. */
-const PIPELINE: Array<CardSpec & { at: V3 }> = [
-  { title: "Tasks", lines: ["Validated plan", "Task graph"], accent: COLORS.cyan, at: [-0.4, 1.7, 1.5] },
-  { title: "Code", lines: ["Isolated sandbox", "No network access"], accent: COLORS.blue, at: [1.6, 0.7, 1.8] },
-  { title: "Tests", lines: ["Run in the sandbox", "Results attached"], accent: COLORS.mint, at: [-0.2, -0.4, 2] },
-  { title: "Reviews", lines: ["Independent models", "Findings visible"], accent: COLORS.violet, at: [1.8, -1.5, 1.8] },
-  { title: "Draft PR", lines: ["GitHub draft pull request", "Merge stays your call"], accent: COLORS.violet, badge: "optional", at: [0.5, -2.7, 2.2] },
+const PIPELINE: Array<{ accent: string; optional?: boolean; at: V3 }> = [
+  { accent: COLORS.cyan, at: [-0.4, 1.7, 1.5] },
+  { accent: COLORS.blue, at: [1.6, 0.7, 1.8] },
+  { accent: COLORS.mint, at: [-0.2, -0.4, 2] },
+  { accent: COLORS.violet, at: [1.8, -1.5, 1.8] },
+  { accent: COLORS.violet, optional: true, at: [0.5, -2.7, 2.2] },
 ];
 
 // ---------------------------------------------------------------- textures
@@ -125,19 +180,29 @@ function cardCanvas(spec: CardSpec) {
   ctx.lineWidth = 5;
   ctx.strokeStyle = border;
   ctx.stroke();
-  ctx.fillStyle = COLORS.text;
-  ctx.font = `600 52px ${FONT}`;
-  ctx.fillText(spec.title, 40, 88);
+  // Translated texts are longer (owner: 5 languages): every text shrinks to its space instead of running into the next.
+  const fitFont = (text: string, weight: number, size: number, min: number, max: number) => {
+    let px = size;
+    ctx.font = `${weight} ${px}px ${FONT}`;
+    while (px > min && ctx.measureText(text).width > max) {
+      px -= 2;
+      ctx.font = `${weight} ${px}px ${FONT}`;
+    }
+  };
+  let badgeWidth = 0;
   if (spec.badge) {
     ctx.font = `500 26px ${FONT}`;
-    const bw = ctx.measureText(spec.badge).width + 34;
-    roundRect(ctx, w - bw - 32, 46, bw, 44, 22);
+    badgeWidth = ctx.measureText(spec.badge).width + 34;
+    roundRect(ctx, w - badgeWidth - 32, 46, badgeWidth, 44, 22);
     ctx.strokeStyle = spec.accent;
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.fillStyle = spec.accent;
-    ctx.fillText(spec.badge, w - bw - 15, 77);
+    ctx.fillText(spec.badge, w - badgeWidth - 15, 77);
   }
+  ctx.fillStyle = COLORS.text;
+  fitFont(spec.title, 600, 52, 30, w - 80 - (badgeWidth ? badgeWidth + 24 : 0));
+  ctx.fillText(spec.title, 40, 88);
   spec.lines.forEach((line, i) => {
     const y = 152 + i * 60;
     ctx.fillStyle = spec.accent;
@@ -145,14 +210,15 @@ function cardCanvas(spec: CardSpec) {
     ctx.arc(54, y - 12, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#dbe4f5";
-    ctx.font = `400 37px ${FONT}`;
+    fitFont(line, 400, 37, 24, w - 120);
     ctx.fillText(line, 80, y);
   });
   bars.forEach(([label, value], i) => {
     const y = 140 + spec.lines.length * 60 + i * 50;
     ctx.fillStyle = "#c7d2e8";
-    ctx.font = `400 30px ${FONT}`;
+    fitFont(label, 400, 30, 20, 244);
     ctx.fillText(label, 44, y + 10);
+    ctx.font = `400 30px ${FONT}`;
     roundRect(ctx, 300, y - 8, 250, 18, 9);
     ctx.fillStyle = "rgba(148, 186, 255, 0.18)";
     ctx.fill();
@@ -281,7 +347,19 @@ const sample = (keys: Key[], b: Blend): Key => {
 };
 
 /** Returns null without WebGL 2, so the page shows the static story instead. */
-export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: boolean }): StoryScene | null {
+export function createStoryScene(
+  canvas: HTMLCanvasElement,
+  options: {
+    mobile: boolean;
+    labels?: SceneLabels;
+    /** "center": the scene sits in the middle of its canvas (sign-in page) instead of right of the story text. */
+    framing?: "story" | "center";
+    /** Star field inside the scene (off where the page already draws its own background). */
+    stars?: boolean;
+  },
+): StoryScene | null {
+  const L = options.labels ?? SCENE_LABELS_EN;
+  const MODELS = MODEL_STYLE.map((m, i) => ({ ...m, role: L.models[i]?.role ?? SCENE_LABELS_EN.models[i]!.role, roles: L.models[i]?.roles ?? SCENE_LABELS_EN.models[i]!.roles }));
   const attributes = { alpha: true, antialias: true, powerPreference: "high-performance" as const };
   const context = canvas.getContext("webgl2", attributes) as WebGL2RenderingContext | null;
   if (!context) return null;
@@ -320,9 +398,9 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
     return mesh;
   };
   const card = (spec: CardSpec, width = 2.3) => texturePlane(cardCanvas(spec), width * textScale);
-  const pill = (text: string, color: string, height = 0.34) => {
+  const pill = (text: string, color: string, height = 0.34, onTop = true) => {
     const source = pillCanvas(text, color);
-    return texturePlane(source, (height * textScale * source.width) / source.height);
+    return texturePlane(source, (height * textScale * source.width) / source.height, onTop);
   };
   const place = (mesh: Mesh, key: Key) => {
     const [w, h] = mesh.userData.size as [number, number];
@@ -357,7 +435,7 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
   }
   const starGeometry = track(new BufferGeometry());
   starGeometry.setAttribute("position", new Float32BufferAttribute(starPositions, 3));
-  scene.add(new Points(starGeometry, track(new PointsMaterial({ color: "#cfe8ff", size: 0.09, transparent: true, opacity: 0.75 }))));
+  if (options.stars !== false) scene.add(new Points(starGeometry, track(new PointsMaterial({ color: "#cfe8ff", size: 0.09, transparent: true, opacity: 0.75 }))));
 
   // Core with the original mark (from the shipped SVG asset) on a camera-facing plane in front of it.
   const coreMaterial = track(
@@ -426,19 +504,48 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
       bubble,
       bubbleMaterial,
       keys: fillForward(MODEL_KEYS[index]!, CHAPTERS, HIDDEN),
-      keyChip: pill("Your API key", m.color, 0.3),
-      proposal: card({ title: `Proposal ${letter}`, lines: [["Managed multi-tenant", "Self-hosted cluster", "Hybrid architecture"][index]!, "Evidence attached"], accent: m.color }),
+      keyChip: pill(L.apiKey, m.color, 0.3),
+      // Depth-tested, so a model orbiting behind the core hides its labels with it.
+      nameChip: pill(m.name, m.color, 0.42, false),
+      roleChip: pill(m.role, m.color, 0.32, false),
+      proposal: card({ title: L.proposal.replace("{letter}", letter), lines: [L.proposalLines[index] ?? "", L.evidenceAttached], accent: m.color }),
       satellites: m.roles.map((role) => {
         const dot = new Mesh(smallSphere, track(new MeshBasicMaterial({ color: m.tint, transparent: true, opacity: 0 })));
         scene.add(dot);
         return { role, dot, label: pill(role, m.color, 0.28) };
       }),
       position: new Vector3(),
+      /** Pointer reaction state: proximity (0–1), extra spin and lean towards the cursor in screen space. */
+      hover: 0,
+      spin: 0,
+      lean: new Vector3(),
     };
+  });
+  // Intro guests: sphere, halo and name only (no keys, roles or proposals).
+  const guests = GUEST_STYLE.map((g, index) => {
+    const material = track(
+      new ShaderMaterial({
+        vertexShader: SPHERE_VERTEX,
+        fragmentShader: SPHERE_FRAGMENT,
+        uniforms: {
+          uColor: { value: new Color(g.color) },
+          uTint: { value: new Color(g.tint) },
+          uLight: { value: new Vector3(-0.5, 0.6, 0.6).normalize() },
+          uAngle: { value: 0 },
+          uSeed: { value: 11 + index * 3.7 },
+        },
+      }),
+    );
+    const mesh = new Mesh(sphereGeometry, material);
+    scene.add(mesh);
+    return { ...g, mesh, material, halo: halo(g.color, 0.5), nameChip: pill(g.name, g.color, 0.42, false), position: new Vector3(), hover: 0, spin: 0, lean: new Vector3() };
   });
   const FORMATION = fillForward<number>([0, 1], CHAPTERS, 0);
   const BUBBLE = fillForward<number>([0, 0, 1, 0], CHAPTERS, 0);
   const KEY_CHIP = fillForward<number>([0, 1, 0], CHAPTERS, 0);
+  const ROLE_CHIP = fillForward<number>([1, 0, 1, 1, 0], CHAPTERS, 0);
+  const DECISION_CHIP = fillForward<number>([1, 1, 1, 1, 1, 1, 1, 0], CHAPTERS, 0);
+  const decisionChip = pill(L.decision, COLORS.cyan, 0.4);
   const SATELLITES = fillForward<number>([0, 0, 0, 0, 1, 0.9, 0], CHAPTERS, 0);
   const HIGHLIGHT = fillForward<number>([0, 0, 0, 0, 0, 1, 0], CHAPTERS, 0);
   const QUESTIONS = fillForward<number>([0, 0, 0, 1, 0.7, 0.25, 0], CHAPTERS, 0);
@@ -449,29 +556,29 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
   ];
 
   // Brief, objection, evidence, hybrid, difference note, report, gate, pipeline.
-  const brief = card({ title: "Brief", lines: ["Which database architecture?", "3 models · 12 perspectives", "Budget on your own keys"], accent: COLORS.cyan, badge: "example" }, 2.6);
+  const brief = card({ title: L.brief.title, lines: L.brief.lines, accent: COLORS.cyan, badge: L.example }, 2.6);
   const BRIEF = fillForward<Key>([HIDDEN, { p: [0, -0.2, 2.4], s: 1, o: 1 }, { p: [0, -0.2, 2.4], s: 0.4, o: 0 }], CHAPTERS, HIDDEN);
-  const objection = card({ title: "Objection · Security", lines: ["Tenant isolation risk", "Checked against evidence", "Kept on record"], accent: COLORS.amber }, 2.3);
+  const objection = card({ title: L.objection.title, lines: L.objection.lines, accent: COLORS.amber }, 2.3);
   const OBJECTION = fillForward<Key>([HIDDEN, undefined, undefined, undefined, undefined, { p: [2.4, -1.9, 2.4], s: 0.95, o: 1 }, { p: [2.4, -1.9, 2.4], s: 0.5, o: 0 }], CHAPTERS, HIDDEN);
-  const evidence = [pill("Evidence: test results", COLORS.amber, 0.3), pill("Evidence: provider docs", COLORS.amber, 0.3)];
+  const evidence = L.evidence.slice(0, 2).map((e) => pill(e, COLORS.amber, 0.3));
   const EVIDENCE: V3[] = [
     [0.4, -3.1, 2.2],
     [4.3, -3.1, 2.0],
   ];
-  const hybrid = card({ title: "Hybrid A + C", lines: ["Revised against objections", "Merged where compatible"], accent: COLORS.mint }, 2.4);
+  const hybrid = card({ title: L.hybrid.title, lines: L.hybrid.lines, accent: COLORS.mint }, 2.4);
   const HYBRID = fillForward<Key>([HIDDEN, undefined, undefined, undefined, undefined, { p: [-0.4, -1.2, 3.0], s: 0.4, o: 0 }, { p: [-0.4, -1.2, 3.0], s: 1, o: 1 }, { p: [0, 0.1, 2.8], s: 0.6, o: 0 }], CHAPTERS, HIDDEN);
-  const difference = pill("Difference documented", COLORS.violet, 0.3);
+  const difference = pill(L.difference, COLORS.violet, 0.3);
   const DIFFERENCE = fillForward<Key>([HIDDEN, undefined, undefined, undefined, undefined, undefined, { p: [2.5, -2.45, 1.7], s: 1, o: 1 }, HIDDEN], CHAPTERS, HIDDEN);
   const report = card(
     {
-      title: "Decision report",
-      lines: ["Recommended: Hybrid A + C", "Minority position kept"],
+      title: L.report.title,
+      lines: L.report.lines,
       accent: COLORS.cyan,
-      badge: "example",
+      badge: L.example,
       bars: [
-        ["Security", 8.5],
-        ["Cost", 7],
-        ["Time to launch", 7.5],
+        [L.report.bars[0] ?? "", 8.5],
+        [L.report.bars[1] ?? "", 7],
+        [L.report.bars[2] ?? "", 7.5],
       ],
     },
     2.7,
@@ -482,9 +589,9 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
   scene.add(gate);
   const gateGlow = halo(COLORS.amber, 0.25);
   const GATE = fillForward<Key>([HIDDEN, undefined, undefined, undefined, undefined, undefined, undefined, { p: [0, 0.2, 2.6], s: 1.4, o: 0 }, { p: [0, 0.2, 2.6], s: 1, o: 1 }, { p: [0, 0.2, 2.6], s: 1.6, o: 0 }], CHAPTERS, HIDDEN);
-  const awaiting = pill("Awaiting your approval", COLORS.amber, 0.36);
-  const approved = pill("✓ Approved by you", COLORS.mint, 0.36);
-  const pipeline = PIPELINE.map((step) => card(step, 1.9));
+  const awaiting = pill(L.awaiting, COLORS.amber, 0.36);
+  const approved = pill(L.approved, COLORS.mint, 0.36);
+  const pipeline = PIPELINE.map((step, i) => card({ title: L.pipeline[i]?.title ?? "", lines: L.pipeline[i]?.lines ?? [], accent: step.accent, badge: step.optional ? L.optional : undefined }, 1.9));
   const PIPE_ON = fillForward<number>([0, 0, 0, 0, 0, 0, 0, 0, 0, 1], CHAPTERS, 0);
 
   // Lines: questions between the models, objection links, pipeline path.
@@ -578,7 +685,8 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     // Desktop: the chapters cover the left part, so the scene's centre moves right. Portrait: up.
-    if (width / height > 1.1) camera.setViewOffset(width, height, -width * 0.17, 0, width, height);
+    if (options.framing === "center") camera.clearViewOffset();
+    else if (width / height > 1.1) camera.setViewOffset(width, height, -width * 0.17, 0, width, height);
     else camera.setViewOffset(width, height, 0, height * 0.2, width, height);
     camera.updateProjectionMatrix();
   };
@@ -602,7 +710,7 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
     const cb = CAMERA_FILLED[b.to]!;
     // Landscape: the chapters cover the left part, so step back until the formation fits the right part.
     // Portrait: step back further so the formation fits the narrow width.
-    const back = camera.aspect > 1.1 ? 1.4 : Math.min(2.4, Math.max(1.4, 1.1 / camera.aspect));
+    const back = options.framing === "center" ? 0.95 * Math.max(1, 1.5 / camera.aspect) : camera.aspect > 1.1 ? 1.4 : Math.min(2.4, Math.max(1.4, 1.1 / camera.aspect));
     camera.position.set(mix(ca.pos[0], cb.pos[0], b.t), mix(ca.pos[1], cb.pos[1], b.t), mix(ca.pos[2], cb.pos[2], b.t) * back);
     target.set(mix(ca.target[0], cb.target[0], b.t), mix(ca.target[1], cb.target[1], b.t), mix(ca.target[2], cb.target[2], b.t));
     camera.lookAt(target);
@@ -612,6 +720,7 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
     const c = sample(CORE_KEYS, b);
     core.position.set(...c.p);
     core.scale.setScalar(c.s);
+    place(decisionChip, { p: [core.position.x, core.position.y - c.s * 1.25, core.position.z + c.s + 0.2], s: 1, o: c.o * at(DECISION_CHIP) });
     coreHalo.position.copy(core.position);
     coreHalo.scale.setScalar(c.s * 4.2 * (1 + 0.04 * Math.sin(time * 1.4)));
     tmp.copy(camera.position).sub(core.position).normalize().multiplyScalar(c.s * 1.02);
@@ -648,19 +757,35 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
     // Models: orbit in the intro, formation afterwards.
     const formation = at(FORMATION);
     models.forEach((m, index) => {
-      const angle = time * 0.13 + (index * Math.PI * 2) / 3;
-      const orbit = new Vector3(3.1 * Math.cos(angle), 0, 3.1 * Math.sin(angle)).applyAxisAngle(new Vector3(1, 0, 0), 0.32);
+      const angle = time * 0.13 + (index * 2 * Math.PI * 2) / ORBIT_SLOTS;
+      const orbit = new Vector3(ORBIT.radius * Math.cos(angle), 0, ORBIT.radius * Math.sin(angle)).applyAxisAngle(new Vector3(1, 0, 0), ORBIT.tilt);
       const k = sample(m.keys, b);
       m.position.set(mix(orbit.x, k.p[0], formation), mix(orbit.y, k.p[1], formation), mix(orbit.z, k.p[2], formation));
-      const s = 0.62 * mix(1, k.s, formation);
+      // Pointer (owner request 06.11.26: the model spheres should react like the core): a nearby cursor makes a sphere
+      // glow, grow a little, spin faster and lean towards the cursor. Reduced motion never runs this loop.
+      ndcA.copy(m.position).project(camera);
+      let near = 0;
+      if (pointer) {
+        const dx = pointer.x - ndcA.x;
+        const dy = (pointer.y - ndcA.y) / camera.aspect;
+        near = Math.max(0, Math.min(1, (0.32 - Math.hypot(dx, dy)) / 0.2));
+        tmp.set(dx, pointer.y - ndcA.y, 0).normalize();
+        m.lean.lerp(new Vector3(tmp.x, tmp.y, 0).multiplyScalar(0.28 * near), 0.12);
+      } else m.lean.multiplyScalar(0.9);
+      m.hover += (near - m.hover) * 0.12;
+      m.spin += 0.004 + 0.03 * m.hover;
+      m.position
+        .add(tmp.set(1, 0, 0).applyQuaternion(camera.quaternion).multiplyScalar(m.lean.x))
+        .add(tmp.set(0, 1, 0).applyQuaternion(camera.quaternion).multiplyScalar(m.lean.y));
+      const s = 0.62 * mix(ORBIT.scale, k.s, formation) * (1 + 0.12 * m.hover);
       m.mesh.position.copy(m.position);
       m.mesh.scale.setScalar(s);
-      m.material.uniforms.uAngle!.value = time * (0.25 + index * 0.04);
+      m.material.uniforms.uAngle!.value = time * (0.25 + index * 0.04) + m.spin;
       lightFor(m.position, m.material);
       m.halo.position.copy(m.position);
       // Open Council: each sealed bubble bursts and its model flares up.
       const reveal = Math.min(1, Math.max(0, (progress - 2.5) / 0.75));
-      m.halo.scale.setScalar(s * 2.6 * (1 + 1.4 * Math.sin(Math.PI * reveal)));
+      m.halo.scale.setScalar(s * 2.6 * (1 + 1.4 * Math.sin(Math.PI * reveal)) * (1 + 0.5 * m.hover));
       setBurst(revealBursts[index]!, m.position, reveal, 0.8, 3.2);
       m.bubble.position.copy(m.position);
       const bubble = at(BUBBLE);
@@ -668,6 +793,42 @@ export function createStoryScene(canvas: HTMLCanvasElement, options: { mobile: b
       m.bubbleMaterial.uniforms.uOpacity!.value = bubble;
       m.bubble.visible = bubble > 0.01;
       place(m.keyChip, { p: [m.position.x, m.position.y - 1.05, m.position.z + 0.4], s: 1, o: at(KEY_CHIP) });
+      // Model name above the sphere in every chapter; its role below it until the 12 Minds satellites take over.
+      place(m.nameChip, { p: [m.position.x, m.position.y + s * 1.55, m.position.z + 0.4], s: 1, o: 1 });
+      place(m.roleChip, { p: [m.position.x, m.position.y - s * 1.55, m.position.z + 0.4], s: 1, o: at(ROLE_CHIP) });
+    });
+
+    // Intro guests: same orbit, odd slots; they shrink into the core as the formation starts.
+    guests.forEach((g, index) => {
+      const angle = time * 0.13 + ((index * 2 + 1) * Math.PI * 2) / ORBIT_SLOTS;
+      const orbit = new Vector3(ORBIT.radius * Math.cos(angle), 0, ORBIT.radius * Math.sin(angle)).applyAxisAngle(new Vector3(1, 0, 0), ORBIT.tilt);
+      const away = Math.min(1, formation * 1.6);
+      g.position.set(mix(orbit.x, core.position.x, away), mix(orbit.y, core.position.y, away), mix(orbit.z, core.position.z, away));
+      ndcA.copy(g.position).project(camera);
+      let near = 0;
+      if (pointer) {
+        const dx = pointer.x - ndcA.x;
+        const dy = (pointer.y - ndcA.y) / camera.aspect;
+        near = Math.max(0, Math.min(1, (0.32 - Math.hypot(dx, dy)) / 0.2));
+        tmp.set(dx, pointer.y - ndcA.y, 0).normalize();
+        g.lean.lerp(new Vector3(tmp.x, tmp.y, 0).multiplyScalar(0.28 * near), 0.12);
+      } else g.lean.multiplyScalar(0.9);
+      g.hover += (near - g.hover) * 0.12;
+      g.spin += 0.004 + 0.03 * g.hover;
+      g.position
+        .add(tmp.set(1, 0, 0).applyQuaternion(camera.quaternion).multiplyScalar(g.lean.x))
+        .add(tmp.set(0, 1, 0).applyQuaternion(camera.quaternion).multiplyScalar(g.lean.y));
+      const s = 0.62 * ORBIT.scale * (1 - away) * (1 + 0.12 * g.hover);
+      const shown = s > 0.01;
+      g.mesh.visible = shown;
+      g.halo.visible = shown;
+      g.mesh.position.copy(g.position);
+      g.mesh.scale.setScalar(Math.max(s, 0.001));
+      g.material.uniforms.uAngle!.value = time * (0.27 + index * 0.04) + g.spin;
+      lightFor(g.position, g.material);
+      g.halo.position.copy(g.position);
+      g.halo.scale.setScalar(s * 2.6 * (1 + 0.5 * g.hover));
+      place(g.nameChip, { p: [g.position.x, g.position.y + s * 1.55, g.position.z + 0.4], s: 1, o: 1 - away });
     });
 
     // Proposals: sealed with their model → revealed side by side → back to the model → merged.

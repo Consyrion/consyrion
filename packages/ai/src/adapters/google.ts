@@ -54,7 +54,7 @@ export class GoogleAdapter implements ProviderAdapter {
 
   async generate(request: GenerateRequest): Promise<GenerateResult> {
     try {
-      const response = await this.client.models.generateContent({
+      const params = {
         model: request.model,
         contents: request.messages.map((message) => ({
           role: message.role === "assistant" ? "model" : "user",
@@ -67,12 +67,38 @@ export class GoogleAdapter implements ProviderAdapter {
           ...(request.system ? { systemInstruction: request.system } : {}),
           ...(request.jsonSchema ? { responseMimeType: "application/json", responseJsonSchema: request.jsonSchema.schema } : {}),
         },
-      });
+      };
+      let response;
+      let text: string;
+      let blockedInStream = false;
+      if (request.onText) {
+        // Streaming (#284): every chunk is a partial response; finish reason and usage arrive with the last one.
+        text = "";
+        for await (const chunk of await this.client.models.generateContentStream(params)) {
+          const delta = chunk.text ?? "";
+          if (delta) {
+            text += delta;
+            request.onText(delta);
+          }
+          if (chunk.promptFeedback?.blockReason) blockedInStream = true;
+          response = chunk;
+        }
+        if (request.signal?.aborted) throw abortError(this.provider, request.signal.reason, request.signal);
+        if (!response) throw new ProviderError(this.provider, "unknown", "Gemini stream ended without a response");
+      } else {
+        response = await this.client.models.generateContent(params);
+        text = response.text ?? "";
+      }
       const finish = response.candidates?.[0]?.finishReason;
-      const promptBlocked = Boolean(response.promptFeedback?.blockReason);
+      const promptBlocked = blockedInStream || Boolean(response.promptFeedback?.blockReason);
       const stopReason: StopReason =
-        promptBlocked || (finish && BLOCKED.has(finish)) ? "refusal" : finish === FinishReason.MAX_TOKENS ? "max_tokens" : finish === FinishReason.STOP ? "completed" : "other";
-      const text = response.text ?? "";
+        promptBlocked || (finish && BLOCKED.has(finish))
+          ? "refusal"
+          : finish === FinishReason.MAX_TOKENS
+            ? "max_tokens"
+            : finish === FinishReason.STOP
+              ? "completed"
+              : "other";
       return {
         provider: this.provider,
         model: response.modelVersion ?? request.model,

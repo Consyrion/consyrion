@@ -150,6 +150,30 @@ export function buildDecisionReport(view: SessionView) {
           }
         : null;
     })(),
+    /**
+     * Requirement × proposal statuses for the summary charts (owner request 05.11.26): the engine's stored gate result,
+     * relabelled R1…Rn in the confirmed order; counts only, never recomputed here.
+     */
+    requirementMatrix: (() => {
+      const gate = (matrix as { requirementGate?: { proposals: Array<{ proposalId: string; requirements: Array<{ requirementId: string; status: string; pass: string[]; fail: string[]; unknown: string[]; open: string[] }> }> } } | null)
+        ?.requirementGate;
+      const items = view.requirementList?.items ?? [];
+      if (!gate || !items.length) return null;
+      return {
+        requirements: items.map((item, index) => ({ id: `R${index + 1}`, text: item.text })),
+        proposals: gate.proposals.map((g) => ({
+          proposal: label(g.proposalId),
+          cells: items.map((item) => {
+            const req = g.requirements.find((r) => r.requirementId === item.id);
+            return req
+              ? { status: req.status, met: req.pass.length, expected: req.pass.length + req.fail.length + req.unknown.length + req.open.length }
+              : { status: "UNKNOWN", met: 0, expected: 0 };
+          }),
+        })),
+      };
+    })(),
+    /** Proposals the server allows to be approved (#181); everything else is shown as not approvable. */
+    approvableProposals: (status?.approvableProposalIds ?? []).map((id) => label(id)),
     /** Same status for every client: true means "confirmed finding, no build" (#121). */
     requirementsConflict: matrix?.requirementsConflict ?? false,
     // Several proposals often name the same conflict; exact and normalised duplicates are listed once (#173).

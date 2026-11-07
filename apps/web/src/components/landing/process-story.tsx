@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useMessages, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { usePageVisible, usePrefersReducedMotion } from "@/lib/motion";
 import { buttonClasses } from "../ui/button";
-import { STORY_CHAPTERS } from "./story-chapters";
-import type { StoryScene } from "./story-scene";
+import { STORY_CHAPTERS, type StoryChapter } from "./story-chapters";
+import type { SceneLabels, StoryScene } from "./story-scene";
 import { progressFromRects } from "./story-timeline";
 
 /** Stage colour mood per chapter: reveal, objection, verdict, approval and build each read differently. */
@@ -19,13 +20,8 @@ const MOOD: Record<string, string> = {
   build: "radial-gradient(60% 60% at 66% 50%, rgb(139 92 246 / 0.2), transparent 72%)",
 };
 
-const SHORT: Record<string, string> = {
-  top: "Intro",
-  prepare: "Prepare",
-  approval: "Approval",
-  build: "Execution Council",
-  start: "Start",
-};
+/** Chapters with a short navigation label (the others use their title). */
+const SHORT_IDS = new Set(["top", "prepare", "approval", "build", "start"]);
 
 interface Cta {
   label: string;
@@ -38,6 +34,19 @@ interface Cta {
  * WebGL 2 or a load error show the same chapters as a static process story.
  */
 export function ProcessStory({ start, secondary, signIn }: { start: Cta; secondary: Cta; signIn: Cta }) {
+  const t = useTranslations("story");
+  // Texts inside the 3D scene follow the visitor's language (messages `scene.*`, English fallback in the scene).
+  const sceneLabels = (useMessages() as { scene?: SceneLabels }).scene;
+  // Structure (ids, phases, order) from STORY_CHAPTERS; the words from the interface language. Phase titles stay the
+  // canonical product names in every language (CLAUDE.md).
+  const chapters: StoryChapter[] = STORY_CHAPTERS.map((c) => ({
+    ...c,
+    kicker: t(`chapters.${c.id}.kicker`),
+    title: c.phase ? c.title : t(`chapters.${c.id}.title`),
+    text: t(`chapters.${c.id}.text`),
+    example: c.example ? t(`chapters.${c.id}.example`) : undefined,
+    points: c.points ? (t.raw(`chapters.${c.id}.points`) as string[]) : undefined,
+  }));
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
   // Static until the client knows motion is fine (the server assumes reduced motion); static for good on failure.
@@ -69,7 +78,7 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
     import("./story-scene")
       .then(({ createStoryScene }) => {
         if (cancelled) return;
-        const scene = createStoryScene(canvas, { mobile: window.matchMedia("(max-width: 767px)").matches });
+        const scene = createStoryScene(canvas, { mobile: window.matchMedia("(max-width: 767px)").matches, labels: sceneLabels });
         if (!scene) {
           setFailed(true);
           return;
@@ -85,7 +94,7 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
       sceneRef.current?.dispose();
       sceneRef.current = null;
     };
-  }, [mode]);
+  }, [mode, sceneLabels]);
 
   // Scroll → progress → render loop (only while the story is on screen and the tab is visible).
   useEffect(() => {
@@ -153,25 +162,25 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
   }, [mode, visible]);
 
   const stage = mode === "stage";
-  const last = STORY_CHAPTERS.length - 1;
+  const last = chapters.length - 1;
 
   const chapterNav = (
     <nav
-      aria-label="Chapters"
+      aria-label={t("chaptersLabel")}
       className={
         stage
           ? "pointer-events-auto absolute inset-x-0 top-[64px] flex gap-2 overflow-x-auto px-4 py-2 md:inset-x-auto md:top-1/2 md:right-6 md:-translate-y-1/2 md:flex-col md:gap-1 md:overflow-visible md:p-0"
           : "mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pt-10 md:px-8"
       }
     >
-      {STORY_CHAPTERS.map((chapter, index) => (
+      {chapters.map((chapter, index) => (
         <a
           key={chapter.id}
           href={`#${chapter.id}`}
           aria-current={stage && active === index ? "step" : undefined}
           className="group flex shrink-0 items-center gap-2 rounded-full border border-glass-line bg-bg/70 px-3 py-1.5 text-xs text-muted backdrop-blur hover:text-text aria-[current=step]:border-[#22d3ee]/70 aria-[current=step]:text-text md:justify-end md:border-transparent md:bg-transparent md:px-1 md:py-0.5 md:backdrop-blur-none"
         >
-          <span className={stage ? "md:sr-only md:group-hover:not-sr-only md:group-focus-visible:not-sr-only md:group-aria-[current=step]:not-sr-only" : ""}>{SHORT[chapter.id] ?? chapter.title}</span>
+          <span className={stage ? "md:sr-only md:group-hover:not-sr-only md:group-focus-visible:not-sr-only md:group-aria-[current=step]:not-sr-only" : ""}>{SHORT_IDS.has(chapter.id) ? t(`short.${chapter.id}`) : chapter.title}</span>
           <span aria-hidden="true" className={`${stage ? "md:block" : ""} hidden size-2.5 rounded-full border border-[#9fc4ff]/60 group-aria-[current=step]:border-[#22d3ee] group-aria-[current=step]:bg-[#22d3ee] group-aria-[current=step]:shadow-[0_0_10px_#22d3ee]`} />
         </a>
       ))}
@@ -182,7 +191,7 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
   return (
     <section id="how" ref={sectionRef} aria-labelledby="story-title" className="relative" data-story={mode}>
       <h2 id="story-title" className="sr-only">
-        How CONSYRION AI works – from your question to a reasoned decision
+        {t("title")}
       </h2>
 
       {stage ? (
@@ -192,7 +201,7 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
             <div aria-hidden="true" className="absolute inset-0 transition-[background] duration-700" style={{ background: MOOD[STORY_CHAPTERS[active]?.id ?? ""] ?? "transparent" }} />
             <canvas ref={canvasRef} aria-hidden="true" className="relative size-full" />
             <p className="absolute top-[116px] left-4 rounded-full border border-glass-line bg-bg/70 px-3 py-1 text-xs text-muted backdrop-blur md:top-auto md:bottom-6 md:left-10">
-              Illustration – not live data
+              {t("illustration")}
             </p>
             <button
               type="button"
@@ -200,7 +209,7 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
               aria-pressed={paused}
               className="pointer-events-auto absolute top-[108px] right-4 min-h-11 rounded-lg border border-glass-line bg-bg/70 px-3 py-2 text-xs text-muted backdrop-blur hover:text-text md:top-auto md:right-6 md:bottom-6"
             >
-              {paused ? "Play animation" : "Pause animation"}
+              {paused ? t("play") : t("pause")}
             </button>
             {chapterNav}
           </div>
@@ -208,12 +217,12 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
       ) : (
         <>
           {chapterNav}
-          <p className="mx-auto max-w-6xl px-4 pt-3 text-xs text-muted md:px-8">Example scenario – illustration, not live data.</p>
+          <p className="mx-auto max-w-6xl px-4 pt-3 text-xs text-muted md:px-8">{t("example")}</p>
         </>
       )}
 
       <ol className={stage ? "pointer-events-none relative" : "relative mx-auto max-w-3xl space-y-4 px-4 py-10 md:px-8"}>
-        {STORY_CHAPTERS.map((chapter, index) => {
+        {chapters.map((chapter, index) => {
           const intro = index === 0;
           const closing = index === last;
           return (
@@ -252,7 +261,7 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
                 <p className={`mt-3 text-muted ${intro ? "md:text-lg" : "text-sm md:text-base"}`}>{chapter.text}</p>
                 {chapter.example ? (
                   <p className="mt-4 rounded-xl border border-[#22d3ee]/30 bg-[#22d3ee]/[0.07] px-3.5 py-2.5 text-sm">
-                    <span className="mr-1.5 text-xs font-semibold tracking-[0.18em] text-primary">EXAMPLE</span>
+                    <span className="mr-1.5 text-xs font-semibold tracking-[0.18em] text-primary">{t("exampleLabel").toUpperCase()}</span>
                     {chapter.example}
                   </p>
                 ) : null}

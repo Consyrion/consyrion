@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -36,6 +37,7 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = useTranslations("auth");
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,7 +52,7 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
         : await authClient.signIn.email({ email, password });
     setPending(false);
     if (result.error) {
-      setError(result.error.message ?? "Authentication failed");
+      setError(result.error.message ?? t("failed"));
       return;
     }
     router.push("/dashboard");
@@ -61,21 +63,21 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
     <div>
       <div className="text-center">
         <h1 className="font-[family-name:var(--font-display)] text-[clamp(30px,3vw,42px)] leading-tight font-semibold tracking-[-0.02em]">
-          {mode === "sign-up" ? "Create your account" : "Welcome back"}
+          {mode === "sign-up" ? t("signUpTitle") : t("signInTitle")}
         </h1>
-        <p className="mt-2 text-base text-muted sm:text-lg">{mode === "sign-up" ? "Start your CONSYRION AI workspace – with your own AI keys." : "Sign in to your CONSYRION AI workspace."}</p>
+        <p className="mt-2 text-base text-muted sm:text-lg">{mode === "sign-up" ? t("signUpText") : t("signInText")}</p>
       </div>
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
-        {mode === "sign-up" ? <TextField label="Name" name="name" autoComplete="name" required minLength={2} className={INPUT} /> : null}
-        <TextField label="Email" name="email" type="email" autoComplete="email" required className={INPUT} />
+        {mode === "sign-up" ? <TextField label={t("name")} name="name" autoComplete="name" required minLength={2} className={INPUT} /> : null}
+        <TextField label={t("email")} name="email" type="email" autoComplete="email" required className={INPUT} />
         <PasswordField
-          label="Password"
+          label={t("password")}
           name="password"
           className={INPUT}
           autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
           required
           minLength={12}
-          hint={mode === "sign-up" ? "At least 12 characters." : undefined}
+          hint={mode === "sign-up" ? t("passwordHint") : undefined}
         />
         {error ? <Alert>{error}</Alert> : null}
         <Button
@@ -83,14 +85,14 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
           disabled={pending}
           className="mt-2 h-14 w-full rounded-xl bg-[linear-gradient(90deg,#1cc8ff,#5ef0c8)] text-base font-semibold text-[#03121c] shadow-[0_0_32px_-8px_rgb(34_211_238/0.7)] hover:brightness-110"
         >
-          {pending ? "Please wait…" : mode === "sign-up" ? "Create account" : "Sign in"}
+          {pending ? t("pleaseWait") : mode === "sign-up" ? t("createAccount") : t("signIn")}
         </Button>
       </form>
       {socialProviders.length > 0 ? (
         <div className="mt-6 space-y-3">
           <p className="flex items-center gap-4 text-sm text-muted">
             <span aria-hidden="true" className="h-px flex-1 bg-glass-line" />
-            or continue with
+            {t("orContinue")}
             <span aria-hidden="true" className="h-px flex-1 bg-glass-line" />
           </p>
           {socialProviders.map((provider) => (
@@ -101,26 +103,42 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
               onClick={async () => {
                 setError(null);
                 const result = await authClient.signIn.social({ provider, callbackURL: "/dashboard" });
-                if (result.error) setError(result.error.message ?? "Sign-in failed");
+                if (result.error) setError(result.error.message ?? t("socialFailed"));
               }}
             >
               <ProviderLogo provider={provider} />
               <span>
-                <span className="sr-only">Continue with </span>
+                <span className="sr-only">{t("continueWith")} </span>
                 {SOCIAL_LABELS[provider]}
               </span>
             </Button>
           ))}
         </div>
       ) : null}
+      {mode === "sign-up" ? (
+        <p className="mt-6 text-center text-sm text-muted">
+          {t.rich("acceptTerms", {
+            terms: (chunks) => (
+              <Link className="underline hover:text-text" href="/agb">
+                {chunks}
+              </Link>
+            ),
+            privacy: (chunks) => (
+              <Link className="underline hover:text-text" href="/datenschutz">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
+      ) : null}
       <p className="mt-8 text-center text-base text-muted">
         {mode === "sign-up" ? (
           <>
-            Already have an account? <Link className="font-semibold text-primary hover:underline" href="/sign-in">Sign in</Link>
+            {t("haveAccount")} <Link className="font-semibold text-primary hover:underline" href="/sign-in">{t("signIn")}</Link>
           </>
         ) : (
           <>
-            New to CONSYRION AI? <Link className="font-semibold text-primary hover:underline" href="/sign-up">Create an account</Link>
+            {t("newHere")} <Link className="font-semibold text-primary hover:underline" href="/sign-up">{t("createAnAccount")}</Link>
           </>
         )}
       </p>

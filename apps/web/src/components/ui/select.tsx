@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactElement, type ReactNode, type SelectHTMLAttributes } from "react";
+import { Children, Fragment, isValidElement, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactElement, type ReactNode, type SelectHTMLAttributes } from "react";
 import { Icon } from "./icons";
 
 interface Option {
@@ -8,6 +8,8 @@ interface Option {
   label: ReactNode;
   text: string;
   disabled: boolean;
+  /** Label of the surrounding `<optgroup>`, shown as a non-selectable header row. */
+  group?: string;
 }
 
 function textOf(node: ReactNode): string {
@@ -18,30 +20,39 @@ function textOf(node: ReactNode): string {
 }
 
 /** Reads `<option>` children (also inside fragments and arrays) like a native select would. */
-function readOptions(children: ReactNode): Option[] {
+function readOptions(children: ReactNode, group?: string): Option[] {
   const out: Option[] = [];
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) return;
-    const element = child as ReactElement<{ value?: string | number; disabled?: boolean; children?: ReactNode }>;
+    const element = child as ReactElement<{ value?: string | number; disabled?: boolean; label?: string; children?: ReactNode }>;
     if (element.type === "option") {
       const text = textOf(element.props.children);
-      out.push({ value: String(element.props.value ?? text), label: element.props.children, text, disabled: Boolean(element.props.disabled) });
+      out.push({ value: String(element.props.value ?? text), label: element.props.children, text, disabled: Boolean(element.props.disabled), group });
+    } else if (element.type === "optgroup") {
+      out.push(...readOptions(element.props.children, element.props.label ?? ""));
     } else if (element.props.children) {
-      out.push(...readOptions(element.props.children));
+      out.push(...readOptions(element.props.children, group));
     }
   });
   return out;
 }
 
-export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "children"> & { children: ReactNode };
+export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "children" | "size"> & {
+  children: ReactNode;
+  /** "sm": compact trigger for toolbars (e.g. the language switcher). */
+  size?: "md" | "sm";
+  /** Open the list aligned to the trigger's right edge (for controls at the right side of the screen). */
+  align?: "start" | "end";
+};
 
 /**
  * Styled replacement for `<select>` (all dropdowns of the app): a button with a glass listbox instead of the
  * grey native menu. Same props as a native select – `value`/`defaultValue`, `onChange` (receives an event with
- * `target.value`), `name` (a hidden input carries the value into forms), `disabled`, `<option>` children.
+ * `target.value`), `name` (a hidden input carries the value into forms), `disabled`, `<option>` children,
+ * `<optgroup label>` (rendered as a header row). Native `<select>` is not used anywhere else (select-guard test).
  * Keyboard: arrows, Home/End, Enter/Space, Escape, Tab and type-ahead; ARIA listbox pattern.
  */
-export function Select({ children, value, defaultValue, onChange, name, disabled, className = "", id, required, ...rest }: SelectProps) {
+export function Select({ children, value, defaultValue, onChange, name, disabled, className = "", id, required, size = "md", align = "start", tabIndex, ...rest }: SelectProps) {
   const options = useMemo(() => readOptions(children), [children]);
   const controlled = value !== undefined;
   const [inner, setInner] = useState(String(defaultValue ?? options.find((o) => !o.disabled)?.value ?? ""));
@@ -108,7 +119,11 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
     else if (key === "Home") setActive(move(-1, 1));
     else if (key === "End") setActive(move(options.length, -1));
     else if (key === "Enter" || key === " ") choose(active);
-    else if (key === "Escape") setOpen(false);
+    else if (key === "Escape") {
+      // Only the list closes – surrounding dialogs/drawers must not react to the same key (ChatGPT QA 06.11.26).
+      event.stopPropagation();
+      setOpen(false);
+    }
     else if (key === "Tab") {
       setOpen(false);
       return;
@@ -122,7 +137,7 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
   };
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div ref={rootRef} className={`relative min-w-0 ${className}`}>
       {name ? <input type="hidden" name={name} value={current} required={required} /> : null}
       <button
         type="button"
@@ -135,12 +150,16 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
         aria-describedby={rest["aria-describedby"]}
         aria-invalid={rest["aria-invalid"]}
         aria-label={rest["aria-label"]}
+        aria-labelledby={rest["aria-labelledby"] ? `${rest["aria-labelledby"]} ${buttonId}` : undefined}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
-        className="flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-glass-line bg-[color-mix(in_oklab,var(--surface)_70%,transparent)] px-3 py-2 text-left text-sm text-text shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur transition-colors hover:border-primary/50 focus-visible:border-primary aria-expanded:border-primary aria-expanded:shadow-[0_0_0_3px_rgb(0_216_255/0.12)] disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-danger"
+        tabIndex={tabIndex}
+        className={size === "sm"
+          ? "flex w-full items-center justify-between gap-1 rounded-md border border-glass-line bg-transparent px-1.5 py-1 text-left text-xs text-muted transition-colors hover:text-text focus-visible:border-primary aria-expanded:border-primary aria-expanded:text-text disabled:cursor-not-allowed disabled:opacity-50"
+          : "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-glass-line bg-[color-mix(in_oklab,var(--surface)_70%,transparent)] px-3 py-2 text-left text-sm text-text shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur transition-colors hover:border-primary/50 focus-visible:border-primary aria-expanded:border-primary aria-expanded:shadow-[0_0_0_3px_rgb(0_216_255/0.12)] disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-danger"}
       >
         <span className="min-w-0 truncate">{selected?.label ?? " "}</span>
-        <Icon name="chevron" className={`size-4 shrink-0 text-muted transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
+        <Icon name="chevron" className={`${size === "sm" ? "size-3" : "size-4"} shrink-0 text-muted transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
       </button>
       {open ? (
         <ul
@@ -148,13 +167,19 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
           id={listId}
           role="listbox"
           aria-labelledby={buttonId}
-          className={`absolute z-50 max-h-72 w-full min-w-max overflow-auto rounded-xl border border-glass-line bg-[color-mix(in_oklab,var(--surface)_92%,transparent)] p-1.5 shadow-[0_18px_50px_-12px_rgb(0_0_0/0.6),0_0_30px_-14px_var(--glow-cyan)] backdrop-blur-xl ${upward ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}
+          className={`absolute z-50 max-h-72 w-full min-w-full max-w-[calc(100vw-2rem)] overflow-auto sm:min-w-max rounded-xl border border-glass-line bg-[color-mix(in_oklab,var(--surface)_92%,transparent)] p-1.5 shadow-[0_18px_50px_-12px_rgb(0_0_0/0.6),0_0_30px_-14px_var(--glow-cyan)] backdrop-blur-xl ${upward ? "bottom-full mb-1.5" : "top-full mt-1.5"} ${align === "end" ? "right-0" : "left-0"}`}
         >
           {options.map((option, index) => {
             const isSelected = option.value === current;
+            const header = option.group !== undefined && option.group !== options[index - 1]?.group ? option.group : null;
             return (
+              <Fragment key={`${option.value}-${index}`}>
+              {header !== null ? (
+                <li role="presentation" className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted/80 first:pt-1">
+                  {header}
+                </li>
+              ) : null}
               <li
-                key={`${option.value}-${index}`}
                 id={`${listId}-${index}`}
                 data-index={index}
                 role="option"
@@ -164,9 +189,10 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
                 onClick={() => choose(index)}
                 className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm ${index === active ? "bg-primary/12 text-text" : "text-muted"} ${isSelected ? "font-medium text-text" : ""} ${option.disabled ? "cursor-not-allowed opacity-40" : ""}`}
               >
-                <span className="min-w-0">{option.label}</span>
+                <span className="min-w-0 break-words">{option.label}</span>
                 {isSelected ? <Icon name="check" className="size-4 shrink-0 text-primary" /> : <span className="size-4 shrink-0" />}
               </li>
+              </Fragment>
             );
           })}
         </ul>

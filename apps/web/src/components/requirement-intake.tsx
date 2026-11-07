@@ -8,6 +8,7 @@ import {
   measurementPlanSuggestion,
   type RequirementMeasure,
 } from "@consyrion/core/browser";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -50,14 +51,6 @@ export interface IntakeProposal {
 
 type Suspicion = "instruction" | "quoted_instruction" | "meta_rule";
 
-const SUSPICION_TEXT: Record<Suspicion, string> = {
-  instruction: "Reads like an instruction to the AI models (e.g. to ignore rules or to rate a proposal). The models never follow it.",
-  quoted_instruction:
-    "Quotes text that reads like an instruction to the AI models. If the product must handle this text as data (store, show, filter it), keep it – the models check it as a requirement and never follow the quoted text.",
-  meta_rule:
-    "Says when a requirement counts as met instead of describing the product. The council judges every proposal on substance; keep it only if it is a real product rule.",
-};
-
 interface Row {
   uid: string;
   text: string;
@@ -67,22 +60,17 @@ interface Row {
   sourceGone: boolean;
 }
 
-const SOURCE_LABELS: Record<IntakeSource["kind"], string> = {
-  requirements: "Requirements",
-  goal: "Desired outcome",
-  idea: "Idea",
-  document: "Document",
-  user: "Added by you",
-};
+type Translate = ReturnType<typeof useTranslations>;
 
-function sourceLabel(source: IntakeSource) {
-  return source.kind === "document" && source.documentName ? `Document: ${source.documentName}` : SOURCE_LABELS[source.kind];
+function sourceLabel(t: Translate, source: IntakeSource) {
+  return source.kind === "document" && source.documentName ? t("source.documentNamed", { name: source.documentName }) : t(`source.${source.kind}`);
 }
 
 let counter = 0;
 const uid = () => `row-${++counter}`;
 
 export function RequirementIntake({ projectId, proposal, canWrite }: { projectId: string; proposal: IntakeProposal; canWrite: boolean }) {
+  const t = useTranslations("requirements");
   const router = useRouter();
   const [editing, setEditing] = useState(!proposal.current);
   const [rows, setRows] = useState<Row[]>(() => proposal.items.map((i) => ({ ...i, uid: uid() })));
@@ -131,7 +119,7 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
       setEditing(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not confirm the requirements");
+      setError(err instanceof ApiRequestError ? err.message : t("confirmError"));
     } finally {
       setBusy(false);
     }
@@ -142,24 +130,20 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-semibold">Hard requirements</h2>
-          <p className="mt-1 text-sm text-muted">
-            The council checks every proposal against exactly this list. Review it before the start – the number of sentences in the brief is no proof that
-            nothing is missing.
-          </p>
+          <h2 className="font-semibold">{t("title")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("intro")}</p>
         </div>
         {proposal.current && latest ? (
-          <Badge tone="success">Version {latest.version} confirmed</Badge>
+          <Badge tone="success">{t("versionConfirmed", { version: latest.version })}</Badge>
         ) : (
-          <Badge tone="warning">{latest ? "Needs confirmation again" : "Not confirmed yet"}</Badge>
+          <Badge tone="warning">{latest ? t("needsAgain") : t("notConfirmed")}</Badge>
         )}
       </div>
 
       {!proposal.current && latest ? (
         <div className="mt-3">
           <Alert tone="warning">
-            The brief or its documents changed after version {latest.version} was confirmed (brief version {latest.briefVersion}). Review the list and confirm
-            it again before starting a council. Councils that already run keep the list they were started with.
+            {t("changed", { version: latest.version, briefVersion: latest.briefVersion })}
           </Alert>
         </div>
       ) : null}
@@ -167,7 +151,7 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
       {!editing && latest ? (
         <div className="mt-4 space-y-3 text-sm">
           {latest.items.length === 0 ? (
-            <p className="text-muted">Confirmed: this brief has no hard requirements.</p>
+            <p className="text-muted">{t("confirmedNone")}</p>
           ) : (
             <ol className="space-y-1">
               {latest.items.map((item) => (
@@ -177,11 +161,11 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
                     {item.text}
                     {item.measure ? (
                       <span className="ml-2 inline-block">
-                        <Badge tone="accent">estimated by the models: {describeMeasure(item.measure)}</Badge>
+                        <Badge tone="accent">{t("estimated", { measure: describeMeasure(item.measure) })}</Badge>
                       </span>
                     ) : countLimits(item.text) > 1 ? (
                       <span className="ml-2 inline-block">
-                        <Badge tone="warning">several limits – not checked as numbers</Badge>
+                        <Badge tone="warning">{t("severalLimits")}</Badge>
                       </span>
                     ) : null}
                   </span>
@@ -191,7 +175,7 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
           )}
           {latest.excluded.length ? (
             <details>
-              <summary className="cursor-pointer text-muted">{latest.excluded.length} statement(s) deliberately not taken over</summary>
+              <summary className="cursor-pointer text-muted">{t("excludedSummary", { n: latest.excluded.length })}</summary>
               <ul className="mt-2 space-y-1">
                 {latest.excluded.map((e, i) => (
                   <li key={i}>
@@ -203,7 +187,7 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
           ) : null}
           {canWrite ? (
             <Button variant="secondary" onClick={() => setEditing(true)}>
-              Edit requirements
+              {t("edit")}
             </Button>
           ) : null}
         </div>
@@ -216,9 +200,9 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
               <li key={row.uid} className="rounded-lg border border-line bg-surface-2 p-3">
                 <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted">
                   <span className="font-mono">R{index + 1}</span>
-                  <span>{sourceLabel(row.source)}</span>
-                  {row.isNew ? <Badge tone="primary">new</Badge> : null}
-                  {row.sourceGone ? <Badge tone="warning">source no longer in the brief</Badge> : null}
+                  <span>{sourceLabel(t, row.source)}</span>
+                  {row.isNew ? <Badge tone="primary">{t("new")}</Badge> : null}
+                  {row.sourceGone ? <Badge tone="warning">{t("sourceGone")}</Badge> : null}
                   <MeasureHint text={row.text} />
                 </div>
                 {measurableOnlyAfterImplementation(row.text) ? (
@@ -230,15 +214,15 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
                 ) : null}
                 <div className="flex gap-2">
                   <textarea
-                    aria-label={`Requirement R${index + 1}`}
+                    aria-label={t("rowLabel", { n: index + 1 })}
                     value={row.text}
                     disabled={!canWrite}
                     onChange={(e) => update(row.uid, e.target.value)}
                     className={`${control} min-h-12`}
                   />
                   {canWrite ? (
-                    <Button variant="ghost" className="px-2" onClick={() => remove(row)} aria-label={`Remove R${index + 1}`}>
-                      Remove
+                    <Button variant="ghost" className="px-2" onClick={() => remove(row)} aria-label={t("removeLabel", { n: index + 1 })}>
+                      {t("remove")}
                     </Button>
                   ) : null}
                 </div>
@@ -247,32 +231,32 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
           </ol>
           {canWrite ? (
             <Button variant="secondary" onClick={() => addRequirement("")}>
-              Add requirement
+              {t("add")}
             </Button>
           ) : null}
 
           {toDecide.length ? (
-            <div role="region" aria-label="Statements to decide">
-              <h3 className="text-sm font-medium">Please decide ({toDecide.length})</h3>
+            <div role="region" aria-label={t("toDecideLabel")}>
+              <h3 className="text-sm font-medium">{t("toDecide", { n: toDecide.length })}</h3>
               <p className="mt-1 text-xs text-muted">
-                Nothing is kept or removed here on its own. Decide each statement before you confirm; the original wording stays unchanged.
+                {t("toDecideText")}
               </p>
               <ul className="mt-2 space-y-2">
                 {toDecide.map((entry) => (
                   <li key={entry.candidateKey} className="rounded-lg border border-warning/50 p-3 text-sm">
                     <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                      <span>{sourceLabel(entry.source)}</span>
-                      <Badge tone="warning">please check</Badge>
+                      <span>{sourceLabel(t, entry.source)}</span>
+                      <Badge tone="warning">{t("pleaseCheck")}</Badge>
                     </div>
                     <p>{entry.text}</p>
-                    <p className="mt-1 text-xs text-muted">{SUSPICION_TEXT[entry.suspicion]}</p>
+                    <p className="mt-1 text-xs text-muted">{t(`suspicion.${entry.suspicion}`)}</p>
                     {canWrite ? (
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => decide(entry.candidateKey, true)}>
-                          Keep as requirement
+                          {t("keep")}
                         </Button>
                         <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => decide(entry.candidateKey, false)}>
-                          Not a requirement
+                          {t("notRequirement")}
                         </Button>
                       </div>
                     ) : null}
@@ -284,26 +268,25 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
 
           {excluded.length ? (
             <div>
-              <h3 className="text-sm font-medium">Not taken over</h3>
+              <h3 className="text-sm font-medium">{t("excludedTitle")}</h3>
               <p className="mt-1 text-xs text-muted">
-                These statements from the brief or a document are not binding. Give a reason for each; they are shown to the council as excluded, so they do not
-                come back as requirements.
+                {t("excludedText")}
               </p>
               <ul className="mt-2 space-y-2">
                 {excluded.map((entry) => (
                   <li key={entry.candidateKey} className="rounded-lg border border-line p-3 text-sm">
                     <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs text-muted">{sourceLabel(entry.source)}</span>
+                      <span className="text-xs text-muted">{sourceLabel(t, entry.source)}</span>
                       {canWrite ? (
                         <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => keep(entry.candidateKey)}>
-                          Keep as requirement
+                          {t("keep")}
                         </Button>
                       ) : null}
                     </div>
                     <p className="line-through">{entry.text}</p>
                     <input
-                      aria-label="Reason for not taking it over"
-                      placeholder="Reason (required)"
+                      aria-label={t("reasonLabel")}
+                      placeholder={t("reason")}
                       value={entry.reason}
                       disabled={!canWrite}
                       onChange={(e) => setExcluded((all) => all.map((x) => (x.candidateKey === entry.candidateKey ? { ...x, reason: e.target.value } : x)))}
@@ -317,41 +300,40 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
 
           {proposal.pendingImages?.length ? (
             <Alert tone="warning">
-              Confirm the description of {proposal.pendingImages.map((n) => `"${n}"`).join(", ")} on the project page first – the council reads an image only
-              through its confirmed description, so the requirements cannot be confirmed before.
+              {t("pendingImages", { names: proposal.pendingImages.map((n) => `"${n}"`).join(", ") })}
             </Alert>
           ) : null}
           {proposal.unscannedDocuments.length ? (
             <Alert tone="warning">
-              Not scanned for requirements (format): {proposal.unscannedDocuments.map((d) => d.name).join(", ")}. Add their hard requirements by hand.
+              {t("unscanned", { names: proposal.unscannedDocuments.map((d) => d.name).join(", ") })}
             </Alert>
           ) : null}
           {proposal.notProposed > 0 ? (
             <Alert tone="warning">
-              {proposal.notProposed} further statement(s) were not proposed because the list is full. Add the ones that are requirements by hand.
+              {t("notProposed", { n: proposal.notProposed })}
             </Alert>
           ) : null}
 
           {rows.length === 0 && canWrite ? (
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={noHard} onChange={(e) => setNoHard(e.target.checked)} />
-              This brief has no hard requirements.
+              {t("noHard")}
             </label>
           ) : null}
           {error ? <Alert>{error}</Alert> : null}
           {canWrite ? (
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => void confirm()} disabled={busy || toDecide.length > 0 || (rows.length === 0 && !noHard)}>
-                {busy ? "Confirming…" : "Confirm requirements"}
+                {busy ? t("confirming") : t("confirm")}
               </Button>
               {proposal.current ? (
                 <Button variant="ghost" onClick={() => setEditing(false)}>
-                  Cancel
+                  {t("cancel")}
                 </Button>
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-muted">Only members who can edit the project can confirm the requirements.</p>
+            <p className="text-sm text-muted">{t("readOnly")}</p>
           )}
         </div>
       ) : null}
@@ -364,9 +346,10 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
  * estimated by the models; several limits in one sentence are not checked as numbers until the sentence is split.
  */
 function MeasureHint({ text }: { text: string }) {
+  const t = useTranslations("requirements");
   const measure = detectMeasure(text);
-  if (measure) return <Badge tone="accent">estimated by the models: {describeMeasure(measure)}</Badge>;
-  if (countLimits(text) > 1) return <Badge tone="warning">several limits in one sentence – split it to check each as a number</Badge>;
+  if (measure) return <Badge tone="accent">{t("estimated", { measure: describeMeasure(measure) })}</Badge>;
+  if (countLimits(text) > 1) return <Badge tone="warning">{t("splitLimits")}</Badge>;
   return null;
 }
 
@@ -375,14 +358,13 @@ function MeasureHint({ text }: { text: string }) {
  * verdict. The requirement stays as written; the user may add a measurement plan as an extra requirement.
  */
 function AfterImplementationHint({ text, planned, onAdd }: { text: string; planned: boolean; onAdd?: () => void }) {
+  const t = useTranslations("requirements");
   return (
     <div className="mb-2 rounded-md border border-line bg-surface p-2 text-xs text-muted" data-testid="after-implementation-hint">
-      <Badge tone="warning">only measurable after implementation</Badge> Before anything is built, no model can confirm “
-      {text.length > 80 ? `${text.slice(0, 80)}…` : text}”, so the council will end with “needs verification”. Keep it as it is, and add how it is measured
-      (method, target value) so the proposals can be compared on it.
+      <Badge tone="warning">{t("afterImplementation")}</Badge> {t("afterImplementationText", { text: text.length > 80 ? `${text.slice(0, 80)}…` : text })}
       {onAdd && !planned ? (
         <Button variant="ghost" className="ml-1 px-2 py-0.5 text-xs" onClick={onAdd}>
-          Add a measurement plan as a requirement
+          {t("addPlan")}
         </Button>
       ) : null}
     </div>

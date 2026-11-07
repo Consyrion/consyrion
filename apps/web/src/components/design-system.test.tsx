@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { COUNCIL_PHASE_LABELS } from "@consyrion/core";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { NextIntlClientProvider } from "next-intl";
+import { describe, expect, it, vi } from "vitest";
+import enMessages from "../../messages/en.json";
+import { messagesFor } from "../i18n/all-messages";
 import { ICON_SVG, LOGO_SVG, MARK_SVG } from "../../scripts/brand-assets";
 import { AuthShell } from "./auth-shell";
 import { PasswordField } from "./ui/password-field";
@@ -19,6 +22,28 @@ import { CouncilNetwork } from "./dashboard/council-network";
 import { LiveMetricCard } from "./dashboard/live-metric-card";
 import { stepStatesFor, WorkflowStepper } from "./dashboard/workflow-stepper";
 import { LANDING_CTAS, LandingPage } from "./landing/landing-page";
+
+// The landing page is a server component with translations; render it with the English messages as in production.
+vi.mock("next-intl/server", async () => {
+  const { createTranslator } = await import("next-intl");
+  const messages = (await import("../../messages/en.json")).default;
+  return { getTranslations: async (namespace: string) => createTranslator({ locale: "en", messages, namespace: namespace as never }) };
+});
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {}, push() {} }), usePathname: () => "/" }));
+const renderLanding = async (signedIn: boolean) =>
+  renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {await LandingPage({ signedIn })}
+    </NextIntlClientProvider>,
+  );
+
+// Translated app components (dashboard graphics, cards) render inside the provider with all English messages.
+const renderIntl = (node: React.ReactNode) =>
+  renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={messagesFor("en")} timeZone="Europe/Zurich">
+      {node}
+    </NextIntlClientProvider>,
+  );
 
 const appDir = fileURLToPath(new URL("../app/", import.meta.url));
 
@@ -74,8 +99,8 @@ describe("Consyrion logo", () => {
   });
 });
 
-describe("landing page", () => {
-  const html = renderToStaticMarkup(<LandingPage signedIn={false} />);
+describe("landing page", async () => {
+  const html = await renderLanding(false);
 
   it("shows the brand, tagline and all seven canonical stages", () => {
     expect(html).toContain("CONSYRION");
@@ -106,8 +131,8 @@ describe("landing page", () => {
     expect(html).toContain("not live data");
   });
 
-  it("offers the dashboard instead of sign-in to signed-in users", () => {
-    const signedIn = renderToStaticMarkup(<LandingPage signedIn />);
+  it("offers the dashboard instead of sign-in to signed-in users", async () => {
+    const signedIn = await renderLanding(true);
     expect(signedIn).toContain('href="/dashboard"');
     expect(signedIn).not.toContain(">Sign in</a></div>");
   });
@@ -122,14 +147,14 @@ describe("workflow stepper", () => {
   });
 
   it("announces each phase and its state to screen readers", () => {
-    const html = renderToStaticMarkup(<WorkflowStepper compact states={stepStatesFor("open_council", "running")} />);
+    const html = renderIntl(<WorkflowStepper compact states={stepStatesFor("open_council", "running")} />);
     expect(html).toContain('Open Council<span class="sr-only"> – in progress</span>');
   });
 });
 
 describe("council network", () => {
   it("pulses only nodes with a request in flight", () => {
-    const html = renderToStaticMarkup(
+    const html = renderIntl(
       <CouncilNetwork
         nodes={[
           { id: "a", label: "Anthropic", state: "working" },
@@ -143,7 +168,7 @@ describe("council network", () => {
   });
 
   it("shows no motion at all for an idle council", () => {
-    const html = renderToStaticMarkup(<CouncilNetwork nodes={[{ id: "a", label: "Architect", state: "idle" }]} />);
+    const html = renderIntl(<CouncilNetwork nodes={[{ id: "a", label: "Architect", state: "idle" }]} />);
     expect(html).not.toContain("data-pulse");
     expect(html).not.toContain("consyrion-flow");
   });
@@ -151,26 +176,28 @@ describe("council network", () => {
 
 describe("live metric card", () => {
   it("labels fixture numbers as demo data and shows the live dot only when live", () => {
-    const demo = renderToStaticMarkup(<LiveMetricCard demo label="Sessions" value={3} />);
+    const demo = renderIntl(<LiveMetricCard demo label="Sessions" value={3} />);
     expect(demo).toContain("Demo data");
     expect(demo).not.toContain('data-live="true"');
-    const live = renderToStaticMarkup(<LiveMetricCard live label="Running now" value={1} />);
+    const live = renderIntl(<LiveMetricCard live label="Running now" value={1} />);
     expect(live).toContain('data-live="true"');
     expect(live).not.toContain("Demo data");
   });
 
   it("draws a sparkline only from at least two real values", () => {
-    expect(renderToStaticMarkup(<LiveMetricCard label="x" value={1} series={{ values: [5], label: "one" }} />)).not.toContain("<polyline");
-    expect(renderToStaticMarkup(<LiveMetricCard label="x" value={1} series={{ values: [5, 9], label: "two" }} />)).toContain("<polyline");
+    expect(renderIntl(<LiveMetricCard label="x" value={1} series={{ values: [5], label: "one" }} />)).not.toContain("<polyline");
+    expect(renderIntl(<LiveMetricCard label="x" value={1} series={{ values: [5, 9], label: "two" }} />)).toContain("<polyline");
   });
 });
 
 describe("auth shell", () => {
   it("frames sign-in, sign-up and invitations with the brand and keeps the form content", () => {
     const html = renderToStaticMarkup(
-      <AuthShell>
-        <form aria-label="Sign in form" />
-      </AuthShell>,
+      <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+        <AuthShell>
+          <form aria-label="Sign in form" />
+        </AuthShell>
+      </NextIntlClientProvider>,
     );
     expect(html).toContain('aria-label="CONSYRION AI home"');
     expect(html).toContain("Debate. Decide. Deliver.");
@@ -206,7 +233,11 @@ describe("orbital sign-in logo (#67)", () => {
     expect(near.scale).toBeGreaterThan(far.scale);
   });
   it("keeps the brand name outside the decorative SVG on the sign-in page", () => {
-    const shell = renderToStaticMarkup(<AuthShell>x</AuthShell>);
+    const shell = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+        <AuthShell>x</AuthShell>
+      </NextIntlClientProvider>,
+    );
     expect(shell).toContain("CONSYRION");
     expect(shell).toContain('aria-label="CONSYRION AI home"');
   });
@@ -223,7 +254,7 @@ describe("password field", () => {
 
 describe("dashboard activity network", () => {
   it("animates only links of working models and names every model", () => {
-    const html = renderToStaticMarkup(
+    const html = renderIntl(
       <ActivityNetwork
         centerTitle="DECISION"
         centerSubtitle="Running"
@@ -321,7 +352,7 @@ describe("routes", () => {
 describe("design follow-ups #79–#83", () => {
   it("shows a designed empty state without any model activity and links the real next step", async () => {
     const { EmptyCouncil } = await import("./dashboard/empty-council");
-    const html = renderToStaticMarkup(
+    const html = renderIntl(
       <EmptyCouncil next={{ href: "/settings/providers", icon: "key", title: "Connect your AI keys", text: "x", action: "Connect keys" }} />,
     );
     expect(html).toContain("No council has run yet");
@@ -332,7 +363,7 @@ describe("design follow-ups #79–#83", () => {
 
   it("names every model and its state in text on the compact mobile council card", async () => {
     const { LiveCouncilCompact } = await import("./dashboard/live-council-compact");
-    const html = renderToStaticMarkup(
+    const html = renderIntl(
       <LiveCouncilCompact
         href="/sessions/s"
         live
@@ -384,7 +415,7 @@ describe("styled select (all dropdowns)", () => {
 
 describe("dashboard activity network interaction", () => {
   it("makes every model a focusable control with a readable label", () => {
-    const html = renderToStaticMarkup(
+    const html = renderIntl(
       <ActivityNetwork
         centerTitle="DECISION"
         centerSubtitle="Running"

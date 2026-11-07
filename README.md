@@ -11,6 +11,7 @@ and connect your own API keys from Anthropic, OpenAI, Google, DeepSeek and other
 providers directly to you; there is no hosted service, no account with us and no fee.
 
 ## Quick start (Docker)
+
 Requirements: Docker with Compose, `openssl`.
 
 ```bash
@@ -23,6 +24,7 @@ Open http://localhost:3000, create an account and add your provider keys under
 **AI providers**. Details, updates, backups and running it on a server: [docs/self-hosting.md](docs/self-hosting.md).
 
 ## What works today
+
 - Sign-up / sign-in (email + password, optional GitHub OAuth), sessions via Better Auth
 - Personal workspace per user, organizations with roles owner / admin / member / viewer
 - Projects with versioned, immutable briefs; tenant isolation; audit log
@@ -54,12 +56,12 @@ Open http://localhost:3000, create an account and add your provider keys under
 - **VS Code extension** and personal API tokens (`docs/vscode.md`); Docker images, health endpoint, redacted logs,
   CSP and rate limits (`docs/deployment.md`, `docs/operations.md`, `docs/security-review.md`)
 
-
 To look at every screen without provider keys, sign up locally and run
 `pnpm --filter @consyrion/council seed:demo -- <your email>` while the dev server is stopped. It creates a
 session from scripted test models, clearly labelled as demo data.
 
 ## Local development
+
 Requirements: Node.js 24, pnpm 10 (`corepack enable pnpm`). Docker is optional.
 
 ```bash
@@ -75,9 +77,11 @@ and migrates it automatically. Only one process may open that directory at a tim
 `pnpm db:migrate`. Production refuses to start on PGlite.
 
 ## Quality
+
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
+
 CI runs the same steps plus a check that the committed migrations match the schema.
 
 Formatting: Prettier (`.prettierrc.json`, 160 columns, double quotes, semicolons, trailing commas). Format the files
@@ -85,14 +89,50 @@ you change – `pnpm format <files>` / `pnpm format:check <files>`. The existing
 (that would touch over 100 files); files converge as they are edited.
 
 ## Documentation
+
 - [Concept](docs/KONZEPT.md) · [Architecture](docs/architecture.md) · [Data model](docs/data-model.md)
 - [Security: credentials & tenancy](docs/security.md) · [Testing](docs/testing.md) · [Roadmap](docs/roadmap.md)
 - [Council engine](docs/council-engine.md) · [Engine](docs/engine.md) · [Requirement intake](docs/requirements-intake.md) · [Execution Council](docs/execution-council.md) · [GitHub App](docs/github-app.md) · [SaaS](docs/saas.md)
 - [Design system](docs/design/consyrion-futuristic-glassmorphism.md) · [API](docs/api.md) · [VS Code](docs/vscode.md) · [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Security review](docs/security-review.md) · [Release checklist](docs/release-checklist.md)
-- [Self-hosting](docs/self-hosting.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
+- [Self-hosting](docs/self-hosting.md) · [Feedback inbox](docs/feedback.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
 - Contributor and agent rules: [CLAUDE.md](CLAUDE.md)
 
 ## License
+
 CONSYRION AI is free software under the [GNU Affero General Public License v3.0](LICENSE). You may use, change and
 share it; if you offer a modified version to others over a network, you must make its source code available to them
 under the same license.
+
+## Languages
+
+The interface is available in English, German, French, Spanish and Chinese (`apps/web/messages/*.json`, next-intl,
+no locale in the URL): the user's choice is stored in the `consyrion-locale` cookie, otherwise the browser language
+is used. Adding a language = one messages file plus an entry in `apps/web/src/i18n/locales.ts`; a test checks that
+every file has the same keys, placeholders and list lengths as English. The seven phase names stay the canonical
+product names in every language. The language the models write in is a separate per-council setting (planned).
+
+## AI assistant
+
+A collapsible chat panel on every page answers questions about your workspace (open steps, decisions waiting
+for approval, customer summaries) on your own API key, with read-only tools and stored private chats. It can also
+suggest actions (draft a project or brief, propose requirements, prepare a council, write a customer or Slack/Teams/e-mail
+text) as cards you run, edit or dismiss – nothing happens without your click, and it can never approve, start, delete or
+change settings – see `docs/assistant.md`.
+
+## MCP server
+
+Use CONSYRION AI from Claude Code, Claude Desktop, Cursor or VS Code: `POST /api/mcp` with an API token (Pro and up on
+the hosted app, always when self-hosted). Read decisions, prepare projects and requirements, start councils on your own
+keys with a budget limit – approving, building and deleting stay in the app. See `docs/mcp.md`.
+
+## Questions over Telegram
+
+Your own Telegram bot can take decision questions: `/frage …` with `- ` requirement lines → tap Start → council on your
+keys → the verdict comes back to the chat. Private chat only, Pro on the hosted app – see `docs/telegram.md`.
+
+## Feedback inbox
+
+Users report bugs, wish features or get in touch from the sidebar ("Feedback & bugs") or, without an account, from
+the landing page footer (`/feedback`, e-mail required, honeypot, 10 messages per day). Reports land in the platform
+admins' inbox under `/admin/feedback` (filter, details, status, reply, delete) and – with `ADMIN_EMAILS` and SMTP
+configured – also by e-mail. Users read the answers under Settings → My reports – see `docs/feedback.md`.

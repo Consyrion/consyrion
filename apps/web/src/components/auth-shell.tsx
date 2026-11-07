@@ -1,14 +1,16 @@
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConsyrionMark } from "./brand/consyrion-logo";
-import { ConsyrionOrbitalLogo } from "./brand/orbital-logo";
+import { AuthScene } from "./auth-scene";
 import { RibbonField } from "./fx/ribbon-field";
 import { Icon, type IconName } from "./ui/icons";
 
-const FEATURES: Array<{ icon: IconName; text: [string, string]; color: string }> = [
-  { icon: "layers", text: ["Independent", "AI perspectives"], color: "text-primary" },
-  { icon: "lock", text: ["Your keys.", "Your control."], color: "text-success" },
-  { icon: "cube", text: ["Build only", "after approval"], color: "text-accent-text" },
+// Each feature has two lines in messages: auth.shell.features.<key>.{line1,line2}.
+const FEATURES: Array<{ icon: IconName; key: "perspectives" | "keys" | "build"; color: string }> = [
+  { icon: "layers", key: "perspectives", color: "text-primary" },
+  { icon: "lock", key: "keys", color: "text-success" },
+  { icon: "cube", key: "build", color: "text-accent-text" },
 ];
 
 /**
@@ -16,6 +18,7 @@ const FEATURES: Array<{ icon: IconName; text: [string, string]; color: string }>
  * ribbons, headline and orbital illustration on the left, the glass form card on the right.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
+  const t = useTranslations("auth.shell");
   return (
     <div className="stage-dark relative isolate min-h-svh overflow-x-clip bg-bg text-text">
       <RibbonField />
@@ -24,30 +27,30 @@ export function AuthShell({ children }: { children: ReactNode }) {
         className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_30%_55%,rgb(34_211_238/0.08),transparent_55%),radial-gradient(ellipse_at_85%_45%,rgb(139_92_246/0.1),transparent_50%)]"
       />
       <div className="mx-auto flex min-h-svh w-full max-w-[1440px] flex-col px-4 py-6 md:px-10 lg:py-8">
-        <Link href="/" className="flex w-fit items-center gap-4" aria-label="CONSYRION AI home">
+        <Link href="/" className="flex w-fit items-center gap-4" aria-label={t("home")}>
           <ConsyrionMark size={52} title="" className="drop-shadow-[0_0_14px_rgb(34_211_238/0.45)]" />
           <span>
             <span className="block font-[family-name:var(--font-display)] text-xl tracking-[0.32em]">CONSYRION AI</span>
-            <span className="block text-xs tracking-[0.18em] text-muted">Debate. Decide. Deliver.</span>
+            <span className="block text-xs tracking-[0.18em] text-muted">{t("tagline")}</span>
           </span>
         </Link>
         <div className="grid flex-1 items-center gap-4 py-4 lg:py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(400px,0.9fr)] lg:gap-[clamp(32px,5vw,96px)]">
-          <section aria-label="About CONSYRION AI">
+          <section aria-label={t("about")}>
             <p className="hidden font-[family-name:var(--font-display)] text-[clamp(44px,4.6vw,76px)] lg:block leading-[1.02] font-semibold tracking-[-0.035em]">
-              Many perspectives.
-              <span className="block bg-[linear-gradient(90deg,#22d3ee,#2ee6a8)] bg-clip-text text-transparent">One clear decision.</span>
+              {t("headline1")}
+              <span className="block bg-[linear-gradient(90deg,#22d3ee,#2ee6a8)] bg-clip-text text-transparent">{t("headline2")}</span>
             </p>
-            <p className="mt-4 hidden text-[clamp(16px,1.5vw,22px)] tracking-[0.3em] text-muted lg:block">Debate. Decide. Deliver.</p>
-            {/* One scene for all sizes (one WebGL setup): compact above the form on mobile. */}
-            <ConsyrionOrbitalLogo className="mx-auto max-w-[360px] lg:mt-2 lg:max-w-[560px]" />
+            <p className="mt-4 hidden text-[clamp(16px,1.5vw,22px)] tracking-[0.3em] text-muted lg:block">{t("tagline")}</p>
+            {/* The landing page's 3D scene (first chapter), compact above the form on mobile. */}
+            <AuthScene className="mx-auto max-w-[420px] lg:mt-2 lg:max-w-[640px]" />
             <ul className="mt-6 hidden grid-cols-3 divide-x divide-glass-line lg:grid">
               {FEATURES.map((feature) => (
                 <li key={feature.icon} className="flex items-center gap-4 px-6 first:pl-0">
                   <Icon name={feature.icon} className={`size-9 shrink-0 ${feature.color} drop-shadow-[0_0_8px_currentColor]`} />
                   <span className="text-[15px] leading-snug">
-                    {feature.text[0]}
+                    {t(`features.${feature.key}.line1`)}
                     <br />
-                    {feature.text[1]}
+                    {t(`features.${feature.key}.line2`)}
                   </span>
                 </li>
               ))}

@@ -1,0 +1,709 @@
+{
+  "common": {
+    "language": "Sprache"
+  },
+  "landing": {
+    "nav": {
+      "how": "So funktioniert’s",
+      "overview": "Überblick",
+      "keys": "Deine KI-Keys",
+      "delivery": "Ergebnis nutzen",
+      "signIn": "Anmelden",
+      "openDashboard": "Zum Dashboard",
+      "dashboardShort": "Dashboard",
+      "startShort": "Start",
+      "main": "Hauptnavigation",
+      "home": "CONSYRION AI Startseite",
+      "skip": "Zum Inhalt springen",
+      "openSource": "Open Source",
+      "pricing": "Preise"
+    },
+    "cta": {
+      "start": "Entscheidung starten",
+      "how": "So funktioniert’s",
+      "keys": "KI-Keys verbinden"
+    },
+    "overview": {
+      "title": "Der Ablauf auf einen Blick",
+      "text": "Sieben feste Phasen. Die Modi – Independent Expert, Adversarial Review, Consensus – ändern, wie der Council arbeitet, nicht nur die Formulierung.",
+      "stage": "PHASE {n}",
+      "gateKicker": "MENSCHLICHE FREIGABE",
+      "gateText": "Freigeben, eine Alternative wählen, weitere Debatte, Änderungen anfordern oder ablehnen. Vorschläge mit einem kritischen Sicherheitseinwand können nicht freigegeben werden."
+    },
+    "phase": {
+      "independent_thinking": "Jedes Modell erhält denselben Auftrag und antwortet blind. Kein Modell sieht einen anderen Vorschlag vor der Aufdeckung.",
+      "open_council": "Alle Vorschläge werden nebeneinander aufgedeckt. Die Modelle stellen einander präzise Fragen und beantworten sie.",
+      "twelve_minds_council": "Bis zu zwölf Perspektiven – Architektur, Sicherheit, Kosten, Kritik und mehr – prüfen jeden Vorschlag.",
+      "minority_review": "Widerspruch zählt. Begründete Einwände werden von unabhängigen Modellen geprüft und dürfen offen bleiben.",
+      "consensus_round": "Die Autoren überarbeiten ihre Vorschläge gegen die Einwände. Einigkeit und offene Differenzen werden dokumentiert.",
+      "final_verdict": "Unabhängige Bewertungen, harte Prüfungen und eine separate Mehrheitsabstimmung ergeben ein reproduzierbares Urteil – dann entscheidest du.",
+      "execution_council": "Optional, mit verbundenem GitHub-Repository: nach deiner Freigabe Aufgabenplan, Code in einer Sandbox, Tests, Reviews und ein Draft-Pull-Request."
+    },
+    "byok": {
+      "title": "Deine Keys. Deine Anbieter.",
+      "text": "CONSYRION AI arbeitet nur mit deinen eigenen API-Keys. Du verbindest sie selbst und bezahlst die Anbieter direkt – CONSYRION AI verkauft keine KI-Guthaben und hat keinen Ersatz-Key.",
+      "p1": "Keys werden vor dem Speichern mit AES-256-GCM verschlüsselt und nie wieder angezeigt.",
+      "p2": "Jeder Key wird beim Anbieter geprüft; die Modelllisten kommen live vom Anbieter.",
+      "p3": "Jede Session hat ein festes Token-Budget, das der Server durchsetzt.",
+      "providers": "Unterstützte KI-Anbieter",
+      "ownKey": "Dein eigener API-Key",
+      "models": "{name}-Modelle"
+    },
+    "delivery": {
+      "title": "Deine Entscheidung, dort wo du arbeitest",
+      "text": "Die meisten Teams brauchen die begründete Entscheidung, keinen Code. Nimm das Urteil als Bericht oder in deine Werkzeuge mit – ein Pull Request ist eine Option, nur mit verbundenem Repository.",
+      "status": {
+        "available": "Verfügbar",
+        "with_github": "Mit verbundenem Repository",
+        "planned": "Geplant"
+      },
+      "targets": {
+        "decision_report": {
+          "name": "Entscheidungsbericht",
+          "detail": "Empfehlung, Bewertungen, Gegenstimmen und Belege in der App"
+        },
+        "markdown_json": {
+          "name": "Markdown & JSON",
+          "detail": "Export für Notizen, Wiki oder eigene Tools"
+        },
+        "pdf_word": {
+          "name": "PDF & Word",
+          "detail": "Druckfertiger Bericht zum Teilen oder Ablegen"
+        },
+        "e_mail": {
+          "name": "E-Mail",
+          "detail": "Zusammenfassung mit dem Bericht im Anhang"
+        },
+        "telegram": {
+          "name": "Telegram",
+          "detail": "Kurzes Urteil und Link in deinen Chat"
+        },
+        "confluence": {
+          "name": "Confluence",
+          "detail": "Eine Seite in deinem Team-Bereich"
+        },
+        "obsidian": {
+          "name": "Obsidian",
+          "detail": "Der Bericht als Notiz in deinem Vault"
+        },
+        "github_pull_request": {
+          "name": "GitHub Pull Request",
+          "detail": "Optionaler Bau durch den Execution Council – geprüft, getestet, als Entwurf"
+        }
+      }
+    },
+    "pipeline": {
+      "title": "Optional: vom Urteil zum Pull Request",
+      "text": "Mit verbundenem GitHub-Repository kann der Execution Council eine freigegebene Entscheidung umsetzen – geprüft, getestet und immer als Entwurf, den du selbst mergst.",
+      "steps": {
+        "approve": {
+          "title": "Freigeben",
+          "text": "Ein Mensch gibt das Urteil frei. Vorher wird nichts gebaut."
+        },
+        "plan": {
+          "title": "Planen",
+          "text": "Der Execution Council macht aus dem Urteil einen geprüften Aufgabenplan."
+        },
+        "code": {
+          "title": "Code & Tests",
+          "text": "Code läuft nur isoliert – in einer Sandbox ohne Netzwerk oder in den GitHub Actions deines Repos."
+        },
+        "review": {
+          "title": "Review",
+          "text": "Unabhängige Modelle prüfen die Änderung; Befunde bleiben sichtbar."
+        },
+        "pr": {
+          "title": "Pull Request",
+          "text": "Ein Draft-Pull-Request öffnet sich in deinem Repository über die GitHub-App."
+        }
+      }
+    },
+    "closing": {
+      "title": "Bring deine nächste schwierige Entscheidung vor den Council.",
+      "text": "Beschreibe eine Idee, eine Architekturfrage oder verbinde ein Repository."
+    },
+    "footer": {
+      "signIn": "Anmelden",
+      "signUp": "Konto erstellen",
+      "impressum": "Impressum",
+      "agb": "AGB",
+      "datenschutz": "Datenschutz",
+      "source": "Quellcode",
+      "feedback": "Kontakt & Feedback"
+    },
+    "why": {
+      "title": "Warum CONSYRION AI?",
+      "text": "Mehrere KI-Modelle erarbeiten Lösungen, prüfen sich gegenseitig und bewerten sie. Du siehst Argumente, offene Einwände und Ergebnisse, bevor du selbst entscheidest.",
+      "points": {
+        "perspectives": {
+          "title": "Mehrere Perspektiven",
+          "text": "Bis zu sechs KI-Modelle arbeiten an derselben Entscheidung."
+        },
+        "review": {
+          "title": "Gegenseitige Prüfung",
+          "text": "Die Modelle hinterfragen die Vorschläge der anderen."
+        },
+        "requirements": {
+          "title": "Klare Anforderungen",
+          "text": "Lösungen werden an deinen bestätigten Pflichtanforderungen gemessen."
+        },
+        "transparent": {
+          "title": "Nachvollziehbar",
+          "text": "Bewertungen, Begründungen und offene Einwände stehen nebeneinander."
+        },
+        "control": {
+          "title": "Du entscheidest",
+          "text": "Die endgültige Freigabe bleibt immer bei dir."
+        }
+      }
+    },
+    "channels": {
+      "title": "CONSYRION AI dort nutzen, wo du arbeitest",
+      "text": "Du musst nicht für jede Frage die Web-App öffnen. Mit Pro stößt du Entscheidungen aus deinem Entwicklungswerkzeug oder deinem privaten Telegram-Chat an.",
+      "mcp": {
+        "kicker": "MCP-Server",
+        "title": "Im Entwicklungs-Workflow",
+        "text": "Der eingebaute MCP-Server verbindet CONSYRION AI mit Claude Code, Claude Desktop, Cursor und VS Code.",
+        "p1": "Mit ask_consyrion eine Frage an den Council geben, mit get_decision das Urteil abholen.",
+        "p2": "Zugriff per API-Token, auch nur lesend.",
+        "p3": "Freigaben, Builds, Löschen, Keys und Abrechnung sind über MCP ausgeschlossen."
+      },
+      "telegram": {
+        "kicker": "Telegram",
+        "title": "Direkt aus dem Chat",
+        "text": "Dein eigener Bot nimmt Fragen entgegen und schickt das Urteil zurück.",
+        "p1": "/frage stellen – Zeilen mit „- “ werden harte Anforderungen.",
+        "p2": "Modelle und Budget prüfen, dann mit „Start“ bestätigen.",
+        "p3": "Urteil und PDF kommen in deinen privaten Chat; /offen zeigt, was wartet."
+      }
+    },
+    "openSource": {
+      "title": "Open Source. Auch auf deinem eigenen Server.",
+      "text": "CONSYRION AI ist kostenlos als Open-Source-Software verfügbar. Lade den Quellcode von GitHub und betreibe ihn selbst mit Docker Compose.",
+      "cta": "Auf GitHub ansehen",
+      "guide": "Anleitung zum Selbst-Hosten",
+      "p1": "Lizenz AGPL-3.0 – kostenlos herunterladen",
+      "p2": "Einrichtung mit Docker Compose auf deinem Server",
+      "p3": "Selbst gehostet ohne Planlimits",
+      "p4": "Eigene KI-Keys: du bezahlst die Anbieter direkt"
+    },
+    "pricing": {
+      "title": "Wähle, wie du CONSYRION AI nutzt",
+      "text": "Selbst hosten oder direkt online starten. Die KI-Nutzung läuft immer über deine eigenen API-Keys – CONSYRION AI verkauft keine KI-Guthaben.",
+      "note": "Pro ist jederzeit über das Stripe-Kundenportal kündbar. In allen Varianten zahlst du die KI-API-Kosten direkt beim jeweiligen Anbieter.",
+      "plans": {
+        "selfhost": {
+          "name": "Selbst hosten",
+          "price": "0 €",
+          "priceNote": "Open Source",
+          "p1": "Lizenz AGPL-3.0",
+          "p2": "Auf deinem eigenen Server",
+          "p3": "Einrichtung mit Docker Compose",
+          "p4": "Ohne Planlimits",
+          "p5": "Eigene API-Keys",
+          "cta": "Auf GitHub herunterladen"
+        },
+        "free": {
+          "name": "Free",
+          "price": "0 €",
+          "priceNote": "auf app.consyrion.com",
+          "p1": "1 Mitglied, 3 Projekte",
+          "p2": "2 Councils pro Monat",
+          "p3": "Bis zu 3 KI-Modelle pro Council",
+          "p4": "Beratung und Entscheidungsbericht",
+          "p5": "Ohne GitHub-Bau, MCP und Telegram",
+          "cta": "Kostenlos starten"
+        },
+        "pro": {
+          "name": "Pro",
+          "price": "4,99 €",
+          "priceNote": "pro Monat inkl. MwSt. · KI-Kosten separat beim Anbieter",
+          "p1": "Bis zu 3 Mitglieder",
+          "p2": "Unbegrenzt Projekte und Councils",
+          "p3": "Bis zu 6 KI-Modelle pro Council",
+          "p4": "GitHub-Bau: ein Modell baut, andere prüfen, Entwurfs-PR",
+          "p5": "MCP-Server und Telegram inklusive",
+          "cta": "Pro wählen"
+        }
+      }
+    }
+  },
+  "story": {
+    "title": "So funktioniert CONSYRION AI – von deiner Frage zur begründeten Entscheidung",
+    "chaptersLabel": "Kapitel",
+    "illustration": "Illustration – keine Live-Daten",
+    "example": "Beispielszenario – Illustration, keine Live-Daten.",
+    "exampleLabel": "Beispiel",
+    "play": "Animation abspielen",
+    "pause": "Animation pausieren",
+    "short": {
+      "top": "Intro",
+      "prepare": "Vorbereitung",
+      "approval": "Freigabe",
+      "build": "Execution Council",
+      "start": "Start"
+    },
+    "chapters": {
+      "top": {
+        "kicker": "CONSYRION AI",
+        "title": "Debattieren. Entscheiden. Umsetzen.",
+        "text": "Claude, OpenAI, Gemini, Grok, DeepSeek, Kimi und weitere KI-Modelle denken unabhängig, prüfen sich gegenseitig und kommen zu einem dokumentierten Urteil mit Belegen. Du gibst frei – und nimmst die Entscheidung dorthin mit, wo du arbeitest: als Bericht, in deine Tools oder, mit verbundenem GitHub-Repository, als geprüften Pull Request."
+      },
+      "prepare": {
+        "kicker": "Vor dem Council",
+        "title": "Deine Frage wird zum Auftrag",
+        "text": "Lege ein Projekt an und beschreibe die Entscheidung. Wähle die Modelle und bis zu zwölf Perspektiven. Du verbindest deine eigenen Anbieter-Keys und setzt ein festes Token-Budget – CONSYRION AI verkauft keine KI-Guthaben.",
+        "example": "Frage: „Welche Datenbankarchitektur soll unser SaaS-Produkt nutzen?“ – drei Modelle, zwölf Perspektiven, ein Budget auf deinen eigenen Keys.",
+        "points": ["Projekt, Frage und Kontext", "Modelle und Perspektiven nach Wahl", "Deine eigenen API-Keys, dein Budget"]
+      },
+      "independent-thinking": {
+        "kicker": "Phase 1",
+        "text": "Jedes Modell erhält denselben Auftrag und arbeitet für sich. Die Antworten bleiben versiegelt, bis alle da sind – kein Modell kann ein anderes sehen oder abschreiben.",
+        "example": "Modell A entwirft eine verwaltete Multi-Tenant-Datenbank, B einen selbst betriebenen Cluster, C eine Hybridlösung – keines sieht die anderen."
+      },
+      "open-council": {
+        "kicker": "Phase 2",
+        "text": "Alle Vorschläge werden gleichzeitig aufgedeckt und gleichberechtigt nebeneinander gezeigt. Du vergleichst die Alternativen, während die Modelle einander präzise Fragen stellen.",
+        "example": "Nebeneinander: A ist am schnellsten startklar, B bietet die meiste Kontrolle, C verbindet beides. B fragt A, wie Mandanten getrennt werden."
+      },
+      "twelve-minds": {
+        "kicker": "Phase 3",
+        "text": "Rollen wie Architektur, Sicherheit, Kosten und Kritik entfalten sich um die Modelle und prüfen jeden Vorschlag. Zwölf Perspektiven sind Rollen – keine zwölf zusätzlichen Modelle oder Stimmen.",
+        "example": "Die Sicherheitsrolle prüft die Mandantentrennung, die Kostenrolle vergleicht Betriebskosten, die Kritik sucht Schwachstellen."
+      },
+      "minority-review": {
+        "kicker": "Phase 4",
+        "text": "Ein begründeter Einwand wird hervorgehoben und von unabhängigen Modellen anhand von Belegen geprüft. Widerspruch wird festgehalten – nie geglättet.",
+        "example": "Ein Einwand sticht heraus: Bei A könnte eine Fehlkonfiguration Mandanten gegenseitig ihre Daten zeigen. Belege: Testergebnisse und Anbieterdoku."
+      },
+      "consensus-round": {
+        "kicker": "Phase 5",
+        "text": "Die Autoren überarbeiten ihre Vorschläge gegen die Einwände; vereinbare Ideen können zu einer Hybridoption verschmelzen. Verbleibende Unterschiede bleiben dokumentiert.",
+        "example": "A ergänzt Schlüssel pro Mandant und verschmilzt mit C zu „Hybrid A + C“. Bs Kostenbedenken bleiben dokumentiert."
+      },
+      "final-verdict": {
+        "kicker": "Phase 6",
+        "text": "Empfehlung, unabhängige Bewertungen, Belege und die Minderheitsposition kommen in einem Entscheidungsbericht zusammen. Gebaut wird zu diesem Zeitpunkt nichts.",
+        "example": "Empfehlung: Hybrid A + C – mit Bewertungen für Sicherheit, Kosten und Zeit bis zum Start, und dem Sicherheitseinwand im Protokoll."
+      },
+      "approval": {
+        "kicker": "Menschliche Freigabe",
+        "title": "Du entscheidest",
+        "text": "Freigeben, eine Alternative wählen, mehr Debatte, Änderungen anfordern oder ablehnen. Ein Vorschlag mit offenem kritischem Sicherheitseinwand kann nicht freigegeben werden. Ohne deine Freigabe wird nichts gebaut.",
+        "example": "Du gibst Hybrid A + C frei – oder bittest zuerst um eine weitere Runde zu den Kosten."
+      },
+      "build": {
+        "kicker": "Phase 7 · optional, mit GitHub",
+        "text": "Nur wenn du willst und ein GitHub-Repository verbunden ist: Nach deiner Freigabe wird die Entscheidung zu Aufgaben, Code, Tests und unabhängigen Reviews – geliefert als Draft-Pull-Request. Die meisten Entscheidungen brauchen keinen Bau; Merge und Deployment bleiben deine eigenen Entscheidungen.",
+        "example": "Aufgaben: Schema, Schlüssel pro Mandant, Migrationstests – als Draft-Pull-Request in deinem Repository."
+      },
+      "start": {
+        "kicker": "Von der Frage zur Entscheidung",
+        "title": "Von deiner Frage zur begründeten Entscheidung – dort, wo du arbeitest, auf Wunsch bis zum geprüften Code.",
+        "text": "Deine Keys, deine Anbieter, deine Freigabe. Jeder Schritt hinterlässt Belege, die du nachvollziehen kannst."
+      }
+    }
+  },
+  "verdict": {
+    "cruxes": {
+      "title": "Entscheidende Streitpunkte",
+      "intro": "Die Meinungsverschiedenheiten, die dieses Urteil entschieden haben oder es noch gefährden – jede aus gespeicherten Council-Ereignissen.",
+      "number": "Streitpunkt {n}",
+      "proposal": "Vorschlag {label}",
+      "blocking": "blockiert die Freigabe",
+      "recommended": "betrifft die Empfehlung",
+      "raisedBy": "Erhoben von",
+      "evidence": "Genannter Beleg",
+      "authorAnswer": "Antwort ({model})",
+      "unanswered": "Keine Antwort – {reason}",
+      "conceded": "Zugestanden",
+      "noAnswer": "Keine Antwort gespeichert",
+      "review": "Unabhängige Prüfung",
+      "notReviewed": "Nicht unabhängig geprüft",
+      "changed": "Wurde der Vorschlag geändert?",
+      "revised": "Ja – überarbeitet zu v{version}",
+      "revisedMoot": "Ja – v{version} enthält das Kritisierte nicht mehr",
+      "notRevised": "Keine spätere Überarbeitung",
+      "remaining": "Nach der Consensus Round noch offen",
+      "source": "Wie gespeichert angezeigt: Behauptungen, Antworten und Prüfungen sind Aussagen der Modelle, keine Faktenprüfung. Vollständiger Verlauf: Tab Minority Review & Consensus Round.",
+      "status": {
+        "open": "offen",
+        "unresolved": "ungeklärt",
+        "accepted": "Einwand bestätigt",
+        "refuted": "Einwand widerlegt",
+        "resolved": "geklärt"
+      },
+      "severity": {
+        "critical": "kritisch",
+        "high": "hoch",
+        "medium": "mittel",
+        "low": "niedrig"
+      }
+    },
+    "dashboard": {
+      "aria": "Urteil auf einen Blick",
+      "verdict": "Urteil",
+      "proposal": "Vorschlag {label}",
+      "approvableYes": "{n, plural, one {# Vorschlag kann freigegeben werden} other {# Vorschläge können freigegeben werden}}",
+      "approvableNo": "Kein Vorschlag kann freigegeben werden",
+      "yourDecision": "Deine Entscheidung: {action}",
+      "nothingBuilt": "Nichts wird gebaut, bevor du entscheidest. Das sind begründete Einschätzungen der Modelle, keine Faktenprüfung.",
+      "nextStep": "Nächster Schritt",
+      "action": {
+        "approve": "Empfehlung freigeben",
+        "select_alternative": "Alternative wählen",
+        "repeat_evaluation": "fehlende Bewertung wiederholen",
+        "request_changes": "Änderungen am Auftrag anfordern",
+        "reject": "ablehnen",
+        "request_more_debate": "weitere Debatte anfordern"
+      },
+      "outcome": {
+        "recommended": "Empfohlene Lösung",
+        "tie": "Gleichstand – bitte wählen",
+        "no_qualifying_solution": "Keiner der Vorschläge erfüllt die Anforderungen",
+        "insufficient_evidence": "Zu wenig unabhängige Belege",
+        "needs_verification": "Prüfung nötig – nicht freigebbar",
+        "provisional": "Vorläufiger Favorit – eingeschränkte Prüfung, nicht freigebbar",
+        "conflict": "Keine Lösung kann diese Anforderungen erfüllen",
+        "not_approvable": "Nicht freigebbar"
+      },
+      "facts": {
+        "title": "Prüf-Fakten",
+        "breadth": "Unabhängige Bewerter (wenigste je Vorschlag)",
+        "breadthValue": "{n} von {of}",
+        "openRequirements": "Anforderungsprüfungen nicht erfüllt oder offen",
+        "criticalObjections": "Kritische/hohe Einwände offen",
+        "modelErrors": "Modelle ohne verwertbare Bewertung",
+        "note": "Aus gespeicherten Prüfungen gezählt; ! markiert, was das Urteil einschränkt."
+      },
+      "showTable": "Als Tabelle zeigen",
+      "showCharts": "Als Diagramme zeigen",
+      "overall": {
+        "title": "Gesamtpunktzahl",
+        "intro": "Gewichteter Mittelwert der unabhängigen Bewertungen, 0–10. Ein Vorschlag, der eine Anforderung verfehlt, kann nicht nach Punkten gewinnen."
+      },
+      "recommended": "empfohlen",
+      "notApprovable": "nicht freigebbar",
+      "approvable": "freigebbar",
+      "barAria": "Vorschlag {label}: {score} von 10{blocked, select, yes {, nicht freigebbar} other {}}",
+      "by": "von {model}",
+      "evaluatedBy": "bewertet von {models}",
+      "evaluations": "{n, plural, one {# unabhängige Bewertung} other {# unabhängige Bewertungen}}",
+      "criteria": {
+        "technicalQuality": "Technische Qualität",
+        "security": "Sicherheit",
+        "maintainability": "Wartbarkeit",
+        "operatingCost": "Betriebskosten",
+        "implementationSpeed": "Umsetzungstempo"
+      },
+      "criteriaCard": {
+        "title": "Stärken je Kriterium",
+        "intro": "Mittlere Punktzahl je Kriterium (0–10) und sein Gewicht in der Gesamtpunktzahl.",
+        "criterion": "Kriterium",
+        "best": "höchster Wert dieser Zeile",
+        "legend": "Hervorgehoben: höchster Wert je Kriterium unter den freigebbaren Vorschlägen. Schloss = nicht freigebbar."
+      },
+      "weight": "Gewicht {w} %",
+      "requirements": {
+        "title": "Harte Anforderungen",
+        "intro": "Jede Anforderung gegen jeden Vorschlag, wie die unabhängigen Bewerter sie beurteilt haben. Klick auf eine Zelle zeigt die Begründung jedes Bewerters.",
+        "requirement": "Anforderung"
+      },
+      "req": {
+        "PASS": "erfüllt",
+        "FAIL": "nicht erfüllt",
+        "DISPUTED": "umstritten",
+        "UNKNOWN": "unbestätigt",
+        "noAnswer": "keine Antwort",
+        "noEvaluation": "Keine Bewertung",
+        "count": "{n} von {of} bestätigen"
+      },
+      "cell": {
+        "aria": "Begründungen der Bewerter zu dieser Anforderung",
+        "close": "Schliessen",
+        "notCounted": "nicht gezählt: {reason}",
+        "noChecks": "Keine gespeicherte Prüfung für diese Zelle.",
+        "open": "Keine Antwort von: {models}",
+        "note": "Gespeicherte Aussagen der Modelle, keine Faktenprüfung."
+      },
+      "objections": {
+        "title": "Offene Einwände",
+        "intro": "Angenommene oder unentschiedene Einwände aus dem Minority Review, nach Schwere. Einwände, die eine Überarbeitung gegenstandslos gemacht hat, zählen nicht.",
+        "none": "keine offen"
+      },
+      "table": {
+        "caption": "Punkte 0–10 je Vorschlag und Kriterium (Gewicht in Klammern).",
+        "proposal": "Vorschlag",
+        "overall": "Gesamt",
+        "status": "Status"
+      },
+      "allBlocked": "Alle {n} Vorschläge sind nicht freigebbar – die Punkte zeigen Qualität, keinen Sieger.",
+      "decided": {
+        "chosen": "Entschieden: Vorschlag {label}",
+        "approved": "Entschieden: Empfehlung freigegeben",
+        "rejected": "Entschieden: abgelehnt",
+        "aiVerdict": "KI-Urteil: {verdict}"
+      }
+    },
+    "process": {
+      "proposal": "Vorschlag {label}",
+      "agreement": {
+        "title": "Wie einig sich die Bewerter sind",
+        "intro": "Jeder Punkt ist die Rohbewertung (0–10) eines unabhängigen Bewerters für diesen Vorschlag; der Strich ist der Mittelwert des Servers. Über einem Punkt steht die Begründung.",
+        "choose": "Vorschlag wählen",
+        "legend": "Bewerter",
+        "mean": "Mittelwert",
+        "spread": "Spanne {n}",
+        "note": "Eine Spanne von 3 Punkten oder mehr (!) heisst: Die Modelle beurteilen dieses Kriterium sehr unterschiedlich – lies ihre Begründungen.",
+        "none": "Für diesen Vorschlag sind keine unabhängigen Bewertungen gespeichert."
+      },
+      "timeline": {
+        "title": "Ablauf der Phasen",
+        "total": "Gesamt {duration}",
+        "running": "läuft"
+      },
+      "tokens": {
+        "title": "Tokens je Modell",
+        "intro": "Alle Council-Aufrufe auf deinen eigenen API-Keys (Build-Aufrufe: Tab Execution Council).",
+        "split": "{input} Eingabe · {output} Ausgabe",
+        "failed": "{n, plural, one {# fehlgeschlagener Aufruf} other {# fehlgeschlagene Aufrufe}}",
+        "input": "Eingabe",
+        "output": "Ausgabe"
+      }
+    },
+    "nextSteps": {
+      "title": "Nächste Schritte",
+      "introRecommended": "Für den empfohlenen Vorschlag {label}: was du zuerst prüfst, was du testest, wann du stoppst und wann du den Council erneut fragst.",
+      "introLeading": "Noch kann kein Vorschlag freigegeben werden. Für den am besten bewerteten Vorschlag {label}: was fehlt und was du vor der Entscheidung prüfst.",
+      "verify": {
+        "title": "Vor jedem unumkehrbaren Schritt klären",
+        "source": "Unbestätigte Anforderungen und offene Einwände aus dem Council",
+        "empty": "Nichts offen – jede Anforderung bestätigt, kein offener Einwand."
+      },
+      "assumptions": {
+        "title": "Riskanteste Annahmen – zuerst testen",
+        "source": "Die eigenen Annahmen des Autors, wörtlich",
+        "empty": "Vom Autor nicht angegeben."
+      },
+      "stopIf": {
+        "title": "Stoppen und neu prüfen, wenn …",
+        "source": "Hohe und kritische Risiken, die der Autor genannt hat",
+        "empty": "Nicht angegeben – kein hohes oder kritisches Risiko genannt.",
+        "mitigation": "Geplante Gegenmassnahme: {text}"
+      },
+      "revisit": {
+        "title": "Council erneut fragen, wenn …",
+        "source": "Punkte, die nach der Consensus Round offen blieben",
+        "empty": "Nicht angegeben – keine offene Meinungsverschiedenheit gespeichert.",
+        "pointer": "Neue Fakten zu {n, plural, one {dem # offenen Punkt} other {einem der # offenen Punkte}} unter „Entscheidende Streitpunkte“."
+      },
+      "note": "Nur aus gespeicherten Aussagen des Councils, nichts generiert. Ein Testplan bleibt ein Plan: Er bestätigt keine Anforderung, und ohne deine Entscheidung wird nichts gebaut oder gestartet.",
+      "introChosen": "Für den von dir gewählten Vorschlag {label}: was du vor einem unumkehrbaren Schritt prüfst, was du testest, wann du stoppst und wann du den Council erneut fragst.",
+      "introTie": "Es gibt keine eindeutige Empfehlung (die führenden Vorschläge liegen zu nah beieinander). Für den am besten bewerteten Vorschlag {label}: was du vor deiner Wahl prüfst."
+    }
+  },
+  "scene": {
+    "models": [
+      {
+        "role": "Software-Architekt",
+        "roles": ["Architektur", "Skalierbarkeit", "Zuverlässigkeit", "Kosten"]
+      },
+      {
+        "role": "Sicherheitsexperte",
+        "roles": ["Sicherheit", "Data Governance", "Performance", "Compliance"]
+      },
+      {
+        "role": "Kritischer Denker",
+        "roles": ["Kritiker", "Wartbarkeit", "Entwicklererlebnis", "Betrieb"]
+      }
+    ],
+    "apiKey": "Dein API-Key",
+    "decision": "Entscheidung",
+    "proposal": "Vorschlag {letter}",
+    "proposalLines": ["Managed Multi-Tenant", "Self-hosted Cluster", "Hybride Architektur"],
+    "evidenceAttached": "Belege angehängt",
+    "example": "Beispiel",
+    "optional": "optional",
+    "brief": {
+      "title": "Auftrag",
+      "lines": ["Welche Datenbank-Architektur?", "3 Modelle · 12 Perspektiven", "Budget auf deinen Keys"]
+    },
+    "objection": {
+      "title": "Einwand · Sicherheit",
+      "lines": ["Risiko Mandantentrennung", "Gegen Belege geprüft", "Bleibt dokumentiert"]
+    },
+    "evidence": ["Beleg: Testergebnisse", "Beleg: Anbieter-Doku"],
+    "hybrid": {
+      "title": "Hybrid A + C",
+      "lines": ["Gegen Einwände überarbeitet", "Wo vereinbar zusammengeführt"]
+    },
+    "difference": "Differenz dokumentiert",
+    "report": {
+      "title": "Entscheidungsbericht",
+      "lines": ["Empfohlen: Hybrid A + C", "Minderheitsposition bleibt"],
+      "bars": ["Sicherheit", "Kosten", "Zeit bis Start"]
+    },
+    "awaiting": "Wartet auf deine Freigabe",
+    "approved": "✓ Von dir freigegeben",
+    "pipeline": [
+      {
+        "title": "Aufgaben",
+        "lines": ["Geprüfter Plan", "Aufgabengraph"]
+      },
+      {
+        "title": "Code",
+        "lines": ["Isolierte Sandbox", "Kein Netzwerkzugriff"]
+      },
+      {
+        "title": "Tests",
+        "lines": ["Laufen in der Sandbox", "Ergebnisse angehängt"]
+      },
+      {
+        "title": "Reviews",
+        "lines": ["Unabhängige Modelle", "Befunde sichtbar"]
+      },
+      {
+        "title": "Draft-PR",
+        "lines": ["GitHub Draft Pull Request", "Merge bleibt deine Wahl"]
+      }
+    ]
+  },
+  "roleSuggestion": {
+    "title": "Empfohlene Perspektiven für dieses Projekt",
+    "intro": "Aus deinem Auftrag und den bestätigten Anforderungen – ohne KI-Aufruf. Übernehmen oder eigene Auswahl behalten.",
+    "apply": "{n} Perspektiven übernehmen",
+    "applied": "Vorschlag übernommen",
+    "always": {
+      "security": "Immer dabei: Eine Sicherheits- und Risikoprüfung gehört in jeden Council.",
+      "critic": "Immer dabei: Ein unabhängiger Kritiker sucht, was die anderen übersehen."
+    },
+    "because": {
+      "words": "Themen in deinem Auftrag: {words}",
+      "requirements": "Anforderungen: {ids}",
+      "default": "Neutrale Standardperspektive"
+    },
+    "notSuggested": "{n} nicht vorgeschlagen",
+    "notSuggestedWhy": "kein passendes Thema im Auftrag oder in den Anforderungen. Du kannst sie unten trotzdem aktivieren.",
+    "note": "Perspektiven sind keine zusätzlichen Stimmen: Mehrheiten und unabhängige Prüfungen zählen pro Modell.",
+    "names": {
+      "software_architect": "Software-Architekt",
+      "security_expert": "Sicherheitsexperte",
+      "performance_engineer": "Performance-Ingenieur",
+      "backend_engineer": "Backend-Entwickler",
+      "frontend_engineer": "Frontend-Entwickler",
+      "database_architect": "Datenbank-Architekt",
+      "devops_engineer": "DevOps-Ingenieur",
+      "cost_analyst": "Kostenanalyst",
+      "product_strategist": "Produktstratege",
+      "quality_assurance_expert": "Qualitätssicherung",
+      "maintainability_reviewer": "Wartbarkeitsprüfer",
+      "independent_critical_thinker": "Unabhängiger kritischer Denker"
+    },
+    "questions": {
+      "software_architect": "Trägt die Struktur die Anforderungen und späteres Wachstum?",
+      "security_expert": "Was kann schiefgehen – Daten, Zugriff, Missbrauch – und wie wird es verhindert?",
+      "performance_engineer": "Ist es unter echter Last schnell genug, und wo ist der Engpass?",
+      "backend_engineer": "Sind Serverteile, APIs und Jobs solide und testbar?",
+      "frontend_engineer": "Können Nutzer damit wirklich arbeiten, auf jeder Bildschirmgrösse?",
+      "database_architect": "Halten Datenmodell, Abfragen und Migrationen?",
+      "devops_engineer": "Wie wird es ausgeliefert, überwacht, gesichert und wiederhergestellt?",
+      "cost_analyst": "Was kostet Bau und Betrieb, und passt das ins Budget?",
+      "product_strategist": "Löst es das richtige Problem für Nutzer und Markt?",
+      "quality_assurance_expert": "Wie wird bewiesen, dass es funktioniert, und was bricht unbemerkt?",
+      "maintainability_reviewer": "Versteht und ändert das Team es auch in einem Jahr noch?",
+      "independent_critical_thinker": "Was übersehen alle anderen – gibt es einen einfacheren oder sichereren Weg?"
+    }
+  },
+  "assistant": {
+    "tab": "KI-Assistent",
+    "title": "KI-Assistent",
+    "subtitle": "Fragt deinen Workspace – auf deinem eigenen API-Key",
+    "close": "Assistent schliessen",
+    "tabs": {
+      "chat": "Chat",
+      "history": "Verläufe",
+      "settings": "Modell"
+    },
+    "newChat": "Neuer Chat",
+    "empty": "Frag nach deinen Projekten, offenen Schritten und Entscheidungen – oder lass eine Entscheidung für einen Kunden zusammenfassen.",
+    "examples": {
+      "open": "Welche Schritte sind in meinem Workspace offen?",
+      "waiting": "Welche Entscheidungen warten auf meine Freigabe?",
+      "summary": "Fasse diese Entscheidung für einen Kunden in fünf Sätzen zusammen."
+    },
+    "thinking": "Der Assistent schaut nach…",
+    "placeholder": "Frage stellen … (Enter sendet, Shift+Enter neue Zeile)",
+    "send": "Senden",
+    "footer": "Antworten stammen aus deinen Workspace-Daten über reine Lese-Werkzeuge; Aussagen der Modelle sind keine Faktenprüfung.",
+    "chooseModel": "Wähle zuerst ein Modell.",
+    "error": "Der Assistent konnte nicht antworten.",
+    "noKey": "Kein Modell verfügbar – hinterlege zuerst einen API-Key.",
+    "addKey": "KI-Anbieter",
+    "contextSession": "Zu dieser Entscheidung",
+    "removeContext": "entfernen",
+    "loading": "Lädt…",
+    "noChats": "Noch keine Chats.",
+    "delete": "Chat „{title}“ löschen",
+    "privacy": "Deine Chats sind nur für dich gespeichert – kein anderes Mitglied und kein Admin kann sie lesen. Löschen entfernt sie endgültig.",
+    "model": "Modell, das antwortet",
+    "modelNote": "Nur Modelle deiner eigenen Keys. Jede Frage kostet ein paar Aufrufe auf diesem Key; die Tokens stehen unter jeder Antwort.",
+    "readOnly": "Der Assistent liest deinen Workspace und kann Aktionen vorschlagen (Projekt oder Brief entwerfen, Anforderungen vorschlagen, Council vorbereiten, Text schreiben). Ohne deinen Klick passiert nichts – freigeben, Council oder Build starten, löschen oder Einstellungen ändern kann er nie.",
+    "shortcut": "Kürzel: ⌘/Ctrl + J öffnet und schliesst den Assistenten, Esc schliesst ihn.",
+    "usedTools": "gelesen: {tools}",
+    "tokens": "{n} Tokens",
+    "open": "KI-Assistent öffnen (⌘/Ctrl + J)",
+    "actions": {
+      "types": {
+        "create_project_draft": "Neues Projekt (Entwurf)",
+        "draft_brief": "Neue Brief-Version",
+        "propose_requirements": "Anforderungen vorschlagen",
+        "prepare_council": "Council vorbereiten",
+        "draft_customer_summary": "Kunden-Zusammenfassung",
+        "prepare_delivery": "Nachrichtenentwurf"
+      },
+      "fields": {
+        "name": "Name",
+        "type": "Art",
+        "idea": "Idee",
+        "goal": "Gewünschtes Ergebnis",
+        "requirements": "Anforderungen",
+        "projectId": "Projekt",
+        "sessionId": "Entscheidung",
+        "channel": "Kanal",
+        "subject": "Betreff",
+        "text": "Text"
+      },
+      "run": "Ausführen",
+      "copy": "Text kopieren",
+      "openForm": "Council-Formular öffnen",
+      "edit": "Ändern",
+      "cancelEdit": "Ändern abbrechen",
+      "dismiss": "Verwerfen",
+      "onePerLine": "eine pro Zeile",
+      "noteRun": "Vorgeschlagen vom KI-Assistenten – läuft mit deinen Rechten erst nach deinem Klick.",
+      "noteCouncil": "Öffnet das Formular – du prüfst die Kostenschätzung und startest den Council selbst.",
+      "noteText": "Wird nur in deine Zwischenablage kopiert – nichts wird gesendet.",
+      "done": "Ausgeführt – von dir bestätigt",
+      "textDone": "Als verwendet markiert",
+      "copiedDone": "In die Zwischenablage kopiert",
+      "dismissed": "Verworfen",
+      "edited": "von dir geändert",
+      "open": "Öffnen",
+      "failed": "Die Aktion konnte nicht ausgeführt werden.",
+      "values": {
+        "idea": "Idee",
+        "architecture": "Softwarearchitektur",
+        "repository": "Bestehendes Repository",
+        "business": "Geschäftsentscheidung",
+        "technology_choice": "Technologiewahl",
+        "slack": "Slack",
+        "teams": "Microsoft Teams",
+        "email": "E-Mail"
+      },
+      "copyAgain": "Nochmals kopieren"
+    },
+    "stop": "Stopp",
+    "stopped": "Gestoppt – für diese Antwort wurde nichts gespeichert.",
+    "readingTool": "Liest {tool} …"
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "./ui/button";
@@ -40,6 +41,21 @@ export function DeliveryConnections({
   const [kind, setKind] = useState<"telegram" | "confluence">("telegram");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const t = useTranslations("settings.delivery");
+
+  /** Questions over Telegram on/off; the server registers or removes the bot's webhook. */
+  async function toggleInbound(c: DeliveryConnectionView) {
+    setBusy(true);
+    setError(null);
+    try {
+      await fetchJson(`/api/delivery-connections/${c.id}/inbound`, { method: c.config.inboundEnabledAt ? "DELETE" : "POST" });
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("inbound.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function reload() {
     setConnections((await fetchJson<{ connections: DeliveryConnectionView[] }>("/api/delivery-connections")).connections);
@@ -56,7 +72,7 @@ export function DeliveryConnections({
       formElement.reset();
       await reload();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not save the connection");
+      setError(err instanceof ApiRequestError ? err.message : t("errorSave"));
     } finally {
       setBusy(false);
     }
@@ -68,20 +84,16 @@ export function DeliveryConnections({
       await fetchJson(`/api/delivery-connections/${id}`, { method: "DELETE" });
       await reload();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not delete the connection");
+      setError(err instanceof ApiRequestError ? err.message : t("errorDelete"));
     }
   }
 
   return (
     <Card>
-      <h2 className="font-semibold">Send decisions</h2>
-      <p className="text-sm text-muted">
-        Where a verdict can go besides the PDF and Word download. Tokens are encrypted like your AI keys and never shown again. Obsidian follows with its own
-        plugin (planned).
-      </p>
+      <h2 className="font-semibold">{t("title")}</h2>
+      <p className="text-sm text-muted">{t("text")}</p>
       <p className="mt-2 text-sm">
-        E-mail to workspace members:{" "}
-        {emailConfigured ? <Badge tone="success">available</Badge> : <Badge tone="warning">not configured on this server (SMTP)</Badge>}
+        {t("emailToMembers")} {emailConfigured ? <Badge tone="success">{t("available")}</Badge> : <Badge tone="warning">{t("smtpMissing")}</Badge>}
       </p>
       {error ? (
         <div className="mt-3">
@@ -94,46 +106,57 @@ export function DeliveryConnections({
             <span>
               <Badge>{c.kind === "telegram" ? "Telegram" : "Confluence"}</Badge> <strong>{c.label}</strong>{" "}
               <span className="text-muted">
-                {c.kind === "telegram" ? `chat ${c.config.chatId}` : `${c.config.baseUrl} · space ${c.config.spaceKey}`} · {c.secretHint}
+                {c.kind === "telegram" ? t("chat", { id: c.config.chatId ?? "" }) : t("space", { url: c.config.baseUrl ?? "", key: c.config.spaceKey ?? "" })} ·{" "}
+                {c.secretHint}
               </span>
             </span>
             {canWrite ? (
-              <Button variant="ghost" onClick={() => void onDelete(c.id)}>
-                Delete
-              </Button>
+              <span className="flex items-center gap-2">
+                {c.kind === "telegram" ? (
+                  <Button variant="ghost" disabled={busy} onClick={() => void toggleInbound(c)}>
+                    {c.config.inboundEnabledAt ? t("inbound.disable") : t("inbound.enable")}
+                  </Button>
+                ) : null}
+                <Button variant="ghost" onClick={() => void onDelete(c.id)}>
+                  {t("delete")}
+                </Button>
+              </span>
             ) : null}
+            {/* Questions over Telegram (06.11.26): the workspace's own bot answers in this private chat. */}
+            {c.kind === "telegram" && c.config.inboundEnabledAt ? <p className="w-full text-xs text-success">{t("inbound.on")}</p> : null}
           </li>
         ))}
-        {connections.length === 0 ? <li className="py-3 text-sm text-muted">No connection yet.</li> : null}
+        {connections.length === 0 ? <li className="py-3 text-sm text-muted">{t("none")}</li> : null}
       </ul>
       {canWrite ? (
         <form onSubmit={(e) => void onAdd(e)} className="mt-4 grid gap-3 md:grid-cols-2">
-          <SelectField label="Type" value={kind} onChange={(e) => setKind(e.target.value as "telegram" | "confluence")}>
+          <SelectField label={t("type")} value={kind} onChange={(e) => setKind(e.target.value as "telegram" | "confluence")}>
             <option value="telegram">Telegram</option>
             <option value="confluence">Confluence (Atlassian Cloud)</option>
           </SelectField>
-          <TextField label="Name" name="label" required maxLength={60} placeholder={kind === "telegram" ? "Team chat" : "Decisions space"} />
+          <TextField
+            label={t("name")}
+            name="label"
+            required
+            maxLength={60}
+            placeholder={kind === "telegram" ? t("namePlaceholderTelegram") : t("namePlaceholderConfluence")}
+          />
           {kind === "telegram" ? (
             <>
-              <TextField
-                label="Chat id"
-                name="chatId"
-                required
-                hint="The chat, group or channel the bot posts to, e.g. 123456789 or -100…; add the bot to it first."
-              />
-              <PasswordField label="Bot token" name="secret" required autoComplete="off" hint="From @BotFather – it stays encrypted on the server." />
+              <TextField label={t("chatId")} name="chatId" required hint={t("chatIdHint")} />
+              <PasswordField label={t("botToken")} name="secret" required autoComplete="off" hint={t("botTokenHint")} />
             </>
           ) : (
             <>
-              <TextField label="Site URL" name="baseUrl" required placeholder="https://your-team.atlassian.net" />
-              <TextField label="Space key" name="spaceKey" required placeholder="DEC" />
-              <TextField label="Account e-mail" name="email" type="email" required />
-              <PasswordField label="API token" name="secret" required autoComplete="off" hint="id.atlassian.com → Security → API tokens." />
+              <TextField label={t("siteUrl")} name="baseUrl" required placeholder="https://your-team.atlassian.net" />
+              <TextField label={t("spaceKey")} name="spaceKey" required placeholder="DEC" />
+              <TextField label={t("accountEmail")} name="email" type="email" required />
+              <PasswordField label={t("apiToken")} name="secret" required autoComplete="off" hint={t("apiTokenHint")} />
             </>
           )}
           <div className="md:col-span-2">
             <Button type="submit" disabled={busy}>
-              {busy ? "Saving…" : "Save connection"}
+              {busy ? t("saving") : t("saveConnection")}
             </Button>
           </div>
         </form>
@@ -142,7 +165,8 @@ export function DeliveryConnections({
   );
 }
 
-const TARGET_LABEL = { email: "E-mail", telegram: "Telegram", confluence: "Confluence" } as const;
+// Telegram and Confluence are product names; only "E-mail" is translated (settings.delivery.targetEmail).
+const TARGET_LABEL = { telegram: "Telegram", confluence: "Confluence" } as const;
 
 /**
  * Final Verdict → "Send to …" (#165): e-mail to members, Telegram or Confluence, with the project's default
@@ -165,6 +189,9 @@ export function SendDecision({
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const t = useTranslations("settings.delivery");
+  const format = useFormatter();
+  const targetLabel = (to: "email" | "telegram" | "confluence") => (to === "email" ? t("targetEmail") : TARGET_LABEL[to]);
 
   async function reload() {
     const [c, d, m] = await Promise.all([
@@ -194,12 +221,12 @@ export function SendDecision({
       });
       setMessage(
         result.status === "sent"
-          ? { tone: "success", text: result.externalUrl ? `Sent – ${result.externalUrl}` : "Sent." }
-          : { tone: "danger", text: `Not sent: ${result.error}` },
+          ? { tone: "success", text: result.externalUrl ? t("sentTo", { url: result.externalUrl }) : t("sent") }
+          : { tone: "danger", text: t("notSent", { error: result.error ?? "" }) },
       );
       await reload();
     } catch (err) {
-      setMessage({ tone: "danger", text: err instanceof ApiRequestError ? err.message : "Could not send" });
+      setMessage({ tone: "danger", text: err instanceof ApiRequestError ? err.message : t("errorSend") });
     } finally {
       setBusy(false);
     }
@@ -207,17 +234,17 @@ export function SendDecision({
 
   return (
     <Card>
-      <h3 className="font-semibold">Send to …</h3>
-      <p className="text-sm text-muted">Take the decision where you work. The full report goes along as PDF (Confluence: as a page).</p>
+      <h3 className="font-semibold">{t("sendTitle")}</h3>
+      <p className="text-sm text-muted">{t("sendText")}</p>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <SelectField label="Target" value={target} onChange={(e) => setTarget(e.target.value as typeof target)}>
-          <option value="email">E-mail to workspace members{emailConfigured ? "" : " (not configured)"}</option>
+        <SelectField label={t("target")} value={target} onChange={(e) => setTarget(e.target.value as typeof target)}>
+          <option value="email">{emailConfigured ? t("emailOption") : t("emailOptionMissing")}</option>
           <option value="telegram">Telegram</option>
           <option value="confluence">Confluence</option>
         </SelectField>
         {target === "email" ? (
           <fieldset className="text-sm">
-            <legend className="mb-1 font-medium">Recipients</legend>
+            <legend className="mb-1 font-medium">{t("recipients")}</legend>
             {members.map((m) => (
               <label key={m.email} className="flex items-center gap-2">
                 <input
@@ -230,8 +257,8 @@ export function SendDecision({
             ))}
           </fieldset>
         ) : (
-          <SelectField label="Connection" value={connectionId} onChange={(e) => setConnectionId(e.target.value)}>
-            <option value="">{ofKind.length ? "Choose …" : "None yet – add one under Settings → Integrations"}</option>
+          <SelectField label={t("connection")} value={connectionId} onChange={(e) => setConnectionId(e.target.value)}>
+            <option value="">{ofKind.length ? t("choose") : t("noneYet")}</option>
             {ofKind.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
@@ -241,11 +268,11 @@ export function SendDecision({
         )}
       </div>
       <label className="mt-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Use this as the default for this project
+        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> {t("remember")}
       </label>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button disabled={busy || !ready} onClick={() => void send(target === "email" ? { target, recipients, remember } : { target, connectionId, remember })}>
-          {busy ? "Sending…" : `Send via ${TARGET_LABEL[target]}`}
+          {busy ? t("sending") : t("sendVia", { target: targetLabel(target) })}
         </Button>
         {message ? (
           <span role="status" className={message.tone === "success" ? "text-sm text-success" : "text-sm text-danger"}>
@@ -254,17 +281,17 @@ export function SendDecision({
         ) : null}
       </div>
       {deliveries.length ? (
-        <ul className="mt-4 space-y-2 text-sm" aria-label="Sent so far">
+        <ul className="mt-4 space-y-2 text-sm" aria-label={t("history")}>
           {deliveries.map((d) => (
             <li key={d.id} className="flex flex-wrap items-center gap-2">
-              <Badge tone={d.status === "sent" ? "success" : "danger"}>{d.status === "sent" ? "sent" : "failed"}</Badge>
+              <Badge tone={d.status === "sent" ? "success" : "danger"}>{d.status === "sent" ? t("statusSent") : t("statusFailed")}</Badge>
               <span>
-                {TARGET_LABEL[d.target]} – {d.recipient}
+                {targetLabel(d.target)} – {d.recipient}
               </span>
-              <span className="text-muted">{new Date(d.createdAt).toLocaleString("en-GB")}</span>
+              <span className="text-muted">{format.dateTime(new Date(d.createdAt), { dateStyle: "medium", timeStyle: "short" })}</span>
               {d.externalUrl ? (
                 <a className="text-primary underline" href={d.externalUrl} target="_blank" rel="noreferrer">
-                  open
+                  {t("open")}
                 </a>
               ) : null}
               {d.status === "failed" ? (
@@ -279,7 +306,7 @@ export function SendDecision({
                       )
                     }
                   >
-                    Retry
+                    {t("retry")}
                   </Button>
                 </>
               ) : null}

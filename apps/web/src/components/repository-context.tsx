@@ -1,5 +1,6 @@
 "use client";
 
+import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -18,13 +19,15 @@ interface Listing {
 
 const kB = (bytes: number) => `${Math.max(1, Math.round(bytes / 1000))} kB`;
 /** About four characters per token – the same rough rate as the cost preview. */
-const tokens = (bytes: number) => Math.round(bytes / 4).toLocaleString("en-US");
+const tokens = (bytes: number) => Math.round(bytes / 4);
 
 /**
  * Repository context for Decision councils (docs/documents.md): the user chooses which files of the linked repository
  * the models read. A suggestion is preselected; nothing is read before "Use as context".
  */
 export function RepositoryContext({ projectId, canWrite }: { projectId: string; canWrite: boolean }) {
+  const t = useTranslations("repoContext");
+  const format = useFormatter();
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
@@ -42,7 +45,7 @@ export function RepositoryContext({ projectId, canWrite }: { projectId: string; 
       setListing(data);
       setChosen(new Set(data.current?.origin && data.current.origin.commitSha === data.commitSha ? data.current.origin.paths : data.suggested));
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not read the repository");
+      setError(err instanceof ApiRequestError ? err.message : t("readError"));
     } finally {
       setBusy(false);
     }
@@ -59,12 +62,12 @@ export function RepositoryContext({ projectId, canWrite }: { projectId: string; 
       });
       setNotice(
         result.skipped.length
-          ? `Saved. Left out: ${result.skipped.map((s) => `${s.path} (${s.reason})`).join(", ")}.`
-          : "Saved. Confirm the requirements again before the next council – the sources changed.",
+          ? t("savedSkipped", { list: result.skipped.map((s) => `${s.path} (${s.reason})`).join(", ") })
+          : t("saved"),
       );
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not save the repository context");
+      setError(err instanceof ApiRequestError ? err.message : t("saveError"));
     } finally {
       setBusy(false);
     }
@@ -76,28 +79,25 @@ export function RepositoryContext({ projectId, canWrite }: { projectId: string; 
 
   return (
     <div className="space-y-3 text-sm">
-      <p className="text-muted">
-        The models of a Decision council read the files you choose here, frozen at one commit, as context – not as requirements. Every model call reads them, so
-        they add to the token use of a council.
-      </p>
+      <p className="text-muted">{t("intro")}</p>
       {!listing ? (
         <Button variant="ghost" onClick={() => void load()} disabled={busy || !canWrite}>
-          {busy ? "Reading the repository…" : "Choose files from the repository"}
+          {busy ? t("reading") : t("choose")}
         </Button>
       ) : (
         <>
           <p>
             <span className="font-medium">{listing.repository}</span> · {listing.branch} @ <span className="font-mono">{listing.commitSha.slice(0, 7)}</span> ·{" "}
-            {listing.files.length} readable text files
+            {t("readable", { n: listing.files.length })}
           </p>
           <input
-            aria-label="Filter files"
-            placeholder="Filter, e.g. docs/"
+            aria-label={t("filterLabel")}
+            placeholder={t("filter")}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2"
           />
-          <ul className="max-h-72 space-y-1 overflow-auto rounded-lg border border-line p-2" aria-label="Repository files">
+          <ul className="max-h-72 space-y-1 overflow-auto rounded-lg border border-line p-2" aria-label={t("files")}>
             {visible.map((f) => (
               <li key={f.path}>
                 <label className="flex items-center gap-2">
@@ -116,18 +116,18 @@ export function RepositoryContext({ projectId, canWrite }: { projectId: string; 
                   />
                   <span className="min-w-0 break-all font-mono text-xs">{f.path}</span>
                   <span className="ml-auto shrink-0 text-xs text-muted">{kB(f.size)}</span>
-                  {listing.suggested.includes(f.path) ? <Badge tone="accent">suggested</Badge> : null}
+                  {listing.suggested.includes(f.path) ? <Badge tone="accent">{t("suggested")}</Badge> : null}
                 </label>
               </li>
             ))}
           </ul>
           <p className={tooMuch ? "text-danger" : "text-muted"} data-testid="context-size">
-            {chosen.size} file{chosen.size === 1 ? "" : "s"}, {kB(size)} ≈ {tokens(size)} tokens per model call
-            {tooMuch ? ` – at most ${listing.limits.maxFiles} files and ${kB(listing.limits.maxTotalBytes)}` : ""}.
+            {t("size", { n: chosen.size, size: kB(size), tokens: format.number(tokens(size)) })}
+            {tooMuch ? ` – ${t("limit", { files: listing.limits.maxFiles, size: kB(listing.limits.maxTotalBytes) })}` : ""}.
           </p>
           {canWrite ? (
             <Button onClick={() => void use()} disabled={busy || chosen.size === 0 || tooMuch}>
-              {busy ? "Reading files…" : "Use as context"}
+              {busy ? t("readingFiles") : t("use")}
             </Button>
           ) : null}
         </>

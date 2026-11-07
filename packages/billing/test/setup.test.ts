@@ -45,6 +45,7 @@ describe("Stripe setup from /admin", () => {
     expect(price.body.get("currency")).toBe("eur");
     expect(price.body.get("recurring[interval]")).toBe("month");
     expect(price.body.get("tax_behavior")).toBe("inclusive");
+    expect(stripe.calls.find((c) => c.path === "/v1/products")!.body.get("tax_code")).toBe("txcd_10103000");
     expect(stripe.calls.find((c) => c.path === "/v1/webhook_endpoints")!.body.get("url")).toBe(input.webhookUrl);
 
     const [row] = await handle.db.select().from(schema.platformSetting);
@@ -64,8 +65,11 @@ describe("Stripe setup from /admin", () => {
     const old = (await stripeStatus(handle.db)).priceId;
     const second = fakeStripe();
     await setupStripe(handle.db, keyring, "admin", { ...input, amountCents: 599 }, second.fetchImpl);
-    expect(second.calls.map((c) => c.path)).toEqual(["/v1/account", "/v1/prices", `/v1/prices/${old}`]);
-    expect(second.calls[2]!.body.get("active")).toBe("false");
+    const product = second.calls[1]!.path;
+    expect(product).toMatch(/^\/v1\/products\/products_/);
+    expect(second.calls[1]!.body.get("tax_code")).toBe("txcd_10103000");
+    expect(second.calls.map((c) => c.path)).toEqual(["/v1/account", product, "/v1/prices", `/v1/prices/${old}`]);
+    expect(second.calls[3]!.body.get("active")).toBe("false");
     expect((await getPlanCatalog(handle.db)).find((p) => p.key === "pro")!.priceLabel).toBe("5.99 € / month");
   });
 

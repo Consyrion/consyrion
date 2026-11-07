@@ -182,4 +182,25 @@ describe("requirement intake: confirmation (#190)", () => {
     // Same list id but different wording (tampered or reused id): no match either.
     expect(checkBelongsToRequirement({ ...check, requirement: "Hosting in der EU" }, v1, "R1")).toBe(false);
   });
+
+  it("never proposes the question or the lettered options of an idea as requirements (live case 06.11.26)", () => {
+    const idea =
+      "Ist unsere Strategie richtig, CONSYRION AI als Open Source kostenlos anzubieten und Geld nur mit der gehosteten Version zu verdienen? " +
+      "Welche Teile sollen offen und kostenlos sein, welche nur bezahlt?\n\nDie Engine liegt in einem privaten Repo und darf nicht offen sein.\n\nOptionen:\n" +
+      "A) So lassen: offener Kern, private Engine.\nB) Mehr schließen: MCP und Telegram nur noch bezahlt.\nC) Alles öffnen, Einnahmen nur über Hosting.\n" +
+      "D) Kein Open Source mehr: Repo privat.\nOption E: nur noch Support verkaufen\nAußerdem: Ist 4,99 € als Pro-Preis richtig?";
+    const texts = extractRequirements({
+      idea,
+      goal: "Welche Option? Höchstens 5 Stunden Aufwand pro Woche.",
+      requirements: "Muss solo umsetzbar sein",
+      documents: [],
+    }).candidates.map((c) => c.text);
+    expect(texts).toEqual([
+      "Muss solo umsetzbar sein",
+      "Höchstens 5 Stunden Aufwand pro Woche.",
+      "Die Engine liegt in einem privaten Repo und darf nicht offen sein.",
+    ]);
+    // In the requirements field the user's own wording stays, even as a question or a lettered line.
+    expect(extractRequirements({ idea: "", goal: "", requirements: "A) nur in der EU hosten\nGeht das offline?", documents: [] }).candidates).toHaveLength(2);
+  });
 });

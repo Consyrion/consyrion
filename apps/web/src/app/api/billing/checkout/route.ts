@@ -7,12 +7,16 @@ import { handle, readJson } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
 import { publicOrigin } from "@/lib/server/origin";
 import { getStripeConfig } from "@/lib/server/stripe";
+import { hasPlaceholders } from "@/lib/legal";
 
 export const POST = handle(async (request: Request) => {
   const actor = await requireActor();
   assertCan(actor.role, "billing:manage");
   const user = await requireUser();
   const config = await getStripeConfig();
+  // No live sale while Impressum/AGB still show placeholders (owner decision 05.11.26); test keys stay usable.
+  if (config && /^(sk|rk)_live_/.test(config.secretKey) && hasPlaceholders())
+    throw new DomainError("CONFLICT", "Online checkout opens once the legal pages are complete");
   if (!config) throw new DomainError("CONFIGURATION", "Online checkout is not configured; contact us to change your plan");
   const { plan } = (await readJson(request)) as { plan?: string };
   if (!PLAN_KEYS.includes(plan as PlanKey)) throw new DomainError("VALIDATION", "Unknown plan");

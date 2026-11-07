@@ -4,7 +4,9 @@ import { rateLimit } from "./rate-limit";
 
 describe("log redaction", () => {
   it("removes secrets by key and by value pattern", () => {
-    const out = JSON.stringify(redact({ apiKey: "x", nested: { authorization: "Bearer y" }, message: "failed with sk-ant-abcdefghijklmnop and cns_" + "a".repeat(30), safe: "hello" }));
+    const out = JSON.stringify(
+      redact({ apiKey: "x", nested: { authorization: "Bearer y" }, message: "failed with sk-ant-abcdefghijklmnop and cns_" + "a".repeat(30), safe: "hello" }),
+    );
     expect(out).not.toContain("sk-ant-abcdefghijklmnop");
     expect(out).not.toContain("Bearer y");
     expect(out).not.toContain("a".repeat(30));

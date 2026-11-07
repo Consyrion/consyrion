@@ -71,7 +71,7 @@ AI usage is **not** part of these costs – customers pay their providers direct
    `/opt/consyrion/secrets/{app.env,postgres_password,deploy.env}` (mode 600, never printed).
    **Copy `CREDENTIALS_MASTER_KEY_V1` and `BETTER_AUTH_SECRET` from `app.env` into your password manager** –
    without the master key, stored provider keys cannot be decrypted after a restore.
-6. Optional values in `/opt/consyrion/secrets/app.env`: `PLATFORM_ADMIN_EMAILS`, Google/GitHub OAuth, GitHub App
+6. Optional values in `/opt/consyrion/secrets/app.env`: `PLATFORM_ADMIN_EMAILS`, `ADMIN_EMAILS` (feedback e-mails, docs/feedback.md), Google/GitHub OAuth, GitHub App
    (callback URLs `https://app.consyrion.com/api/auth/callback/google` and `…/github`, see docs/github-app.md; the
    sign-in and sign-up pages render per request, so the buttons appear after a web restart, no rebuild needed), `ARTIFICIAL_ANALYSIS_API_KEY` for the
    model ranking (docs/model-weighting.md). Stripe stays off (postponed).
@@ -86,7 +86,7 @@ AI usage is **not** part of these costs – customers pay their providers direct
 | Roll back to the previous version | `./deploy/hetzner/rollback.sh <IP>` – refused below the running release's minimum (rollback guard)   |
 | Status / logs                     | `ssh … 'cd /opt/consyrion/app && docker compose -p consyrion ps'` · `docker logs consyrion-worker-1` |
 | Restart the worker                | `docker restart consyrion-worker-1` (running councils resume from their checkpoint)                  |
-| Backup now                        | `/opt/consyrion/app/deploy/hetzner/backup.sh manual` (daily 03:15 by cron, 14 days kept)             |
+| Backup now                        | `/opt/consyrion/app/deploy/hetzner/backup.sh manual` (daily 03:15 by cron, 30 days kept, Storage Box mirrored)             |
 | Prove a restore                   | `/opt/consyrion/app/deploy/hetzner/restore-test.sh` → `/opt/consyrion/restore-tests.log`             |
 | Releases                          | `/opt/consyrion/RELEASES` (time + git version)                                                       |
 
@@ -135,3 +135,15 @@ The reference installation ran on one Hetzner CX23 server. Alerts: set `ALERT_WE
 | Public release considers #93, #94, #96                                          | All three are closed (fixed and tested)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 Remaining before a public launch: docs/release-checklist.md (legal pages, trademark, Stripe later).
+
+## Migrations before the switch (06.11.26)
+`deploy.sh` runs the migration with the new image (`docker compose run --rm --no-deps migrate`, up to three
+attempts) while the previous release keeps serving. Only after it succeeds does `up -d` replace web and worker. If it
+fails, the previous release stays live and untouched, the new files move to `/opt/consyrion/app.failed`, and the script
+exits with an error. (A migration that failed inside `up -d` once left the site at 502 for about two minutes.)
+
+## Disk hygiene (06.11.26)
+Each deploy builds two images; failed deploys used to leave them behind, and 82 images filled the 38 GB disk (the
+migration then failed with `ENOSPC`). `deploy.sh` now prunes unused images and build cache older than 48 h before
+building, refuses to build with less than 4 GB free, and removes the images of a release whose migration failed.
+Check by hand: `docker system df`, `df -h /`.

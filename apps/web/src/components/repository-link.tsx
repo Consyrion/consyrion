@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -20,6 +21,7 @@ export function RepositoryLink({
   canWrite,
   githubConfigured,
   githubAllowed = true,
+  requestedUrl = null,
 }: {
   projectId: string;
   linked: string | null;
@@ -28,7 +30,10 @@ export function RepositoryLink({
   githubConfigured: boolean;
   /** False when the workspace plan does not include GitHub; shown before anything is loaded. */
   githubAllowed?: boolean;
+  /** Repository URL from the brief; when it is set but not linked, the GitHub App usually cannot see it. */
+  requestedUrl?: string | null;
 }) {
+  const t = useTranslations("repoLink");
   const router = useRouter();
   const [integrationId, setIntegrationId] = useState(integrations[0]?.id ?? "");
   const [repos, setRepos] = useState<Array<{ fullName: string; defaultBranch: string; private: boolean }> | null>(null);
@@ -43,7 +48,7 @@ export function RepositoryLink({
       setRepos(result.repositories);
       setRepo(result.repositories[0]?.fullName ?? "");
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not load repositories");
+      setError(err instanceof ApiRequestError ? err.message : t("loadError"));
     }
   }
 
@@ -55,7 +60,7 @@ export function RepositoryLink({
       router.refresh();
       setRepos(null);
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not save");
+      setError(err instanceof ApiRequestError ? err.message : t("saveError"));
     } finally {
       setBusy(false);
     }
@@ -64,31 +69,42 @@ export function RepositoryLink({
   return (
     <div className="space-y-3 text-sm">
       {linked ? (
-        <p>
-          Linked: <strong>{linked}</strong>
-        </p>
+        <p>{t.rich("linked", { repo: linked, strong: (chunks) => <strong>{chunks}</strong> })}</p>
       ) : (
-        <p className="text-muted">No repository linked. The Execution Council will start from an empty workspace.</p>
+        <p className="text-muted">{t("none")}</p>
       )}
-      {!githubConfigured ? <p className="text-muted">GitHub is not configured on this server.</p> : null}
+      {!linked && requestedUrl && githubConfigured && githubAllowed ? (
+        <p role="status" className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-warning">
+          {t("notLinked", { url: requestedUrl })}
+        </p>
+      ) : null}
+      {!githubConfigured ? <p className="text-muted">{t("notConfigured")}</p> : null}
       {githubConfigured && !githubAllowed ? (
         <p className="text-muted">
-          GitHub is not included in your plan.{" "}
-          <a className="text-primary underline" href="/settings/billing">
-            See Billing &amp; usage
-          </a>
-          .
+          {t.rich("notInPlan", {
+            link: (chunks) => (
+              <a className="text-primary underline" href="/settings/billing">
+                {chunks}
+              </a>
+            ),
+          })}
         </p>
       ) : null}
       {githubConfigured && githubAllowed && integrations.length === 0 ? (
         <p className="text-muted">
-          Connect GitHub under <a className="text-primary underline" href="/settings/integrations">Integrations</a> first.
+          {t.rich("connectFirst", {
+            link: (chunks) => (
+              <a className="text-primary underline" href="/settings/integrations">
+                {chunks}
+              </a>
+            ),
+          })}
         </p>
       ) : null}
       {canWrite && githubConfigured && githubAllowed && integrations.length > 0 ? (
         <div className="space-y-2">
           <div className="flex flex-wrap items-end gap-2">
-            <SelectField label="GitHub account" value={integrationId} onChange={(e) => setIntegrationId(e.target.value)}>
+            <SelectField label={t("account")} value={integrationId} onChange={(e) => setIntegrationId(e.target.value)}>
               {integrations.map((i) => (
                 <option key={i.id} value={i.id}>
                   {i.accountLogin}
@@ -96,12 +112,12 @@ export function RepositoryLink({
               ))}
             </SelectField>
             <Button variant="secondary" onClick={() => void load()}>
-              Load repositories
+              {t("load")}
             </Button>
           </div>
           {repos ? (
             <div className="flex flex-wrap items-end gap-2">
-              <SelectField label="Repository" value={repo} onChange={(e) => setRepo(e.target.value)}>
+              <SelectField label={t("repository")} value={repo} onChange={(e) => setRepo(e.target.value)}>
                 {repos.map((r) => (
                   <option key={r.fullName} value={r.fullName}>
                     {r.fullName} ({r.defaultBranch})
@@ -109,13 +125,13 @@ export function RepositoryLink({
                 ))}
               </SelectField>
               <Button onClick={() => void save()} disabled={busy || !repo}>
-                Link
+                {t("link")}
               </Button>
             </div>
           ) : null}
           {linked ? (
             <Button variant="ghost" onClick={() => void save(true)} disabled={busy}>
-              Unlink repository
+              {t("unlink")}
             </Button>
           ) : null}
         </div>

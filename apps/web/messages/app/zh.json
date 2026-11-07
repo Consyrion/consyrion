@@ -1,0 +1,492 @@
+{
+  "shell": {
+    "nav": {
+      "dashboard": "控制台",
+      "home": "首页",
+      "projects": "项目",
+      "decisions": "决策",
+      "providers": "AI 提供商",
+      "integrations": "集成",
+      "settings": "设置",
+      "admin": "平台管理"
+    },
+    "workspace": "工作区",
+    "skip": "跳到内容",
+    "homeLabel": "CONSYRION AI 控制台",
+    "menu": "菜单",
+    "mainNav": "主导航",
+    "quickNav": "快速导航",
+    "toggleTheme": "切换浅色/深色",
+    "signOut": "退出登录",
+    "source": "开源（AGPL-3.0）· 源代码"
+  },
+  "dashboard": {
+    "metaTitle": "控制台",
+    "title": "工作区概览",
+    "titleMobile": "你的 Council",
+    "intro": "协调 AI，做出更好的决策。每个数字都来自这个工作区。",
+    "introMobile": "把复杂问题变成清晰的决策。",
+    "ago": {
+      "now": "刚刚",
+      "minutes": "{n} 分钟前",
+      "hours": "{n} 小时前",
+      "days": "{n} 天前"
+    },
+    "next": {
+      "awaitingText": "等待你的批准——在你决定之前不会构建任何内容。",
+      "awaitingAction": "查看裁决",
+      "runningText": "现在有一个 Council 正在运行。",
+      "runningAction": "观看 Council",
+      "keysTitle": "连接你的 AI 密钥",
+      "keysText": "使用你自己的密钥——你直接向提供商付费。",
+      "keysAction": "连接密钥",
+      "firstText": "你的项目已准备就绪——开始它的第一个 Council。",
+      "firstAction": "开始 Council",
+      "startTitle": "开始决策",
+      "startText": "描述一个想法、一个架构问题或一个代码仓库。"
+    },
+    "submitted": "已提交 {n}/{total}",
+    "phasesDone": "已完成 {n}/7 个阶段",
+    "metrics": {
+      "label": "工作区指标",
+      "more": "更多工作区数据",
+      "projects": "项目",
+      "sessions": "Council 会话",
+      "awaiting": "等待批准",
+      "running": "运行中"
+    },
+    "asideLabel": "下一步和提供商",
+    "nextAction": "你的下一步",
+    "liveCouncil": "实时 Council",
+    "notStarted": "未开始",
+    "notStartedLower": "未开始",
+    "providers": {
+      "title": "提供商状态",
+      "verified": "已验证 {n} 个",
+      "none": "尚未连接密钥。CONSYRION AI 不出售 AI 额度——你使用自己的密钥。",
+      "checked": "{when}已检查",
+      "useCheck": "请在 AI 提供商页面点击“检查”",
+      "state": {
+        "unchecked": "未检查",
+        "failed": "检查失败",
+        "verified": "密钥已验证"
+      }
+    },
+    "database": {
+      "label": "数据库",
+      "ok": "可访问",
+      "down": "不可用"
+    },
+    "activityTitle": "Council 动态",
+    "independentModels": "{n, plural, other {# 个独立模型}}",
+    "center": "决策",
+    "liveNote": "只有在模型工作时连线才会流动。",
+    "latestNote": "没有正在运行的 Council——这是最近一次会话。",
+    "recent": {
+      "title": "最近的 Council 会话",
+      "topic": "决策主题",
+      "providers": "AI 提供商",
+      "stage": "阶段",
+      "status": "状态",
+      "budget": "Token 预算",
+      "updated": "更新时间"
+    },
+    "process": "决策流程",
+    "processLabel": "最近一次会话的阶段",
+    "nodeState": {
+      "idle": "排队中",
+      "working": "工作中",
+      "done": "完成",
+      "failed": "失败"
+    },
+    "activity": {
+      "hint": {
+        "idle": "等待 Council 开始。",
+        "working": "请求进行中——正在思考。",
+        "done": "已回答当前阶段。",
+        "failed": "已退出本次 Council。"
+      },
+      "requests": "请求",
+      "tokensIn": "输入 Token",
+      "tokensOut": "输出 Token",
+      "failed": "{calls} 个请求中有 {failed} 个失败或无法使用。",
+      "perspectives": "视角",
+      "more": "另有 {n} 个",
+      "none": "没有模型。"
+    },
+    "compact": {
+      "live": "实时 Council",
+      "latest": "最近的 Council",
+      "models": "{n, plural, other {# 个独立模型}}",
+      "tokens": "已用 Token / 预算"
+    },
+    "stepper": {
+      "label": "Council 阶段",
+      "state": {
+        "pending": "待进行",
+        "running": "进行中",
+        "completed": "已完成",
+        "failed": "失败",
+        "skipped": "已跳过"
+      }
+    },
+    "metricCard": {
+      "demo": "演示数据",
+      "live": "实时"
+    },
+    "network": {
+      "label": "Council 网络。{summary}",
+      "none": "还没有模型。",
+      "center": "裁决",
+      "state": {
+        "idle": "等待中",
+        "working": "工作中",
+        "done": "完成",
+        "failed": "失败"
+      }
+    },
+    "empty": {
+      "title": "还没有运行过 Council",
+      "text": "Council 需要你自己的 AI 密钥、一个项目和一个问题。随后多个模型独立思考、展开辩论，并得出由你批准的裁决。",
+      "next": "下一步：{title}"
+    }
+  },
+  "decisions": {
+    "metaTitle": "决策",
+    "title": "决策",
+    "description": "本工作区的所有 Council 会话。",
+    "emptyTitle": "还没有 Council 会话",
+    "emptyText": "打开一个项目并开始 Council，以获得决策。",
+    "status": {
+      "queued": "排队中",
+      "running": "运行中",
+      "cancel_requested": "正在停止",
+      "awaiting_approval": "等待批准",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "changes_requested": "已要求修改",
+      "failed": "失败",
+      "cancelled": "已取消"
+    }
+  },
+  "projects": {
+    "metaTitle": "项目",
+    "title": "项目",
+    "description": "每个 Council 会话都从一份有版本的项目需求说明开始。",
+    "new": "新建项目",
+    "emptyTitle": "还没有项目",
+    "emptyText": "描述一个想法或架构问题，为你的第一个 Council 会话做准备。",
+    "type": {
+      "idea": "想法",
+      "architecture": "架构",
+      "repository": "代码仓库",
+      "business": "业务",
+      "technology_choice": "技术选型"
+    },
+    "status": {
+      "draft": "草稿",
+      "ready": "就绪",
+      "archived": "已归档"
+    },
+    "intent": {
+      "decision": "仅决策",
+      "build": "开发",
+      "both": "决策和开发"
+    },
+    "newTitle": "新建项目",
+    "newDescription": "描述 Council 需要决定什么。",
+    "fallbackTitle": "项目",
+    "briefLine": "需求说明版本 {version} · {intent}",
+    "startCouncil": "开始 Council",
+    "brief": "项目需求说明",
+    "idea": "想法或问题",
+    "goal": "期望结果",
+    "requirements": "需求",
+    "confirmed": "已确认的硬性需求",
+    "listVersion": "版本 {version} · {n, plural, other {# 条需求}}",
+    "notTakenOver": "{n} 条未采纳",
+    "current": "最新",
+    "needsAgain": "需要重新确认",
+    "notConfirmed": "尚未确认",
+    "reviewConfirm": "审阅并确认",
+    "repository": "代码仓库",
+    "documents": "文档",
+    "documentsText": "附加的文档会成为每个新 Council 会话需求说明的一部分。",
+    "github": "GitHub 代码仓库",
+    "repoContext": "Council 使用的仓库上下文",
+    "sessions": "Council 会话",
+    "noSessions": "还没有会话。",
+    "phases": "阶段",
+    "executionAfterApproval": "仅在你批准后执行",
+    "delete": "删除项目",
+    "deleteText": "永久删除该项目及其所有 Council 会话、决策、生成的代码和文档。",
+    "deleteButton": "永久删除项目"
+  },
+  "councilSetup": {
+    "metaTitle": "配置 AI 团队",
+    "title": "配置 AI 团队",
+    "description": "先确认硬性需求，再为本次 Council 选择模型、角色和会话规则。",
+    "sessionTitle": "Council 会话"
+  },
+  "projectForm": {
+    "example": {
+      "name": "代码仓库分析 SaaS",
+      "idea": "为一个 SaaS 平台设计最佳架构：它分析 GitHub 代码仓库，发现安全和质量问题，并自动以 pull request 的形式提出代码改进。",
+      "goal": "三个月内交付一个可上线的 MVP，由三人团队即可运维。",
+      "requirements": "数据存放在欧盟境内。私有仓库绝不能用于模型训练。上线时基础设施预算低于每月 1,000 欧元。"
+    },
+    "saveError": "无法保存项目",
+    "restored": "已恢复你在此浏览器中未保存的草稿。",
+    "source": "项目来源",
+    "sourceIdea": "想法 / 描述",
+    "sourceRepository": "GitHub 代码仓库",
+    "sourceExample": "使用示例",
+    "name": "项目名称",
+    "repositoryHint": "如果已连接 GitHub 且覆盖此仓库，会自动关联；否则请在项目页面关联。",
+    "idea": "想法或问题",
+    "ideaHint": "在 Independent Thinking 阶段，每个 AI 模型都会收到完全相同的需求说明。",
+    "ideaTooShort": "请用至少 20 个字符描述想法",
+    "type": "项目类型",
+    "types": {
+      "idea": "想法",
+      "architecture": "软件架构",
+      "repository": "现有代码仓库",
+      "business": "业务决策",
+      "technology_choice": "技术选型"
+    },
+    "intent": "目标",
+    "intentHint": "只有在你批准决策后才会开始开发。",
+    "intents": {
+      "decision": "仅决策",
+      "build": "开发",
+      "both": "决策和开发"
+    },
+    "goal": "期望结果",
+    "goalHint": "好的结果是什么样的？",
+    "requirements": "其他需求",
+    "requirementsHint": "预算、合规或技术栈等约束。",
+    "saving": "正在保存…",
+    "continue": "继续配置 AI 团队",
+    "saveDraft": "保存为草稿",
+    "clear": "清空表单"
+  },
+  "documents": {
+    "uploadFailed": "上传失败",
+    "deleteError": "无法删除文档",
+    "none": "没有附加文档。",
+    "status": {
+      "pending": "需要描述",
+      "draft": "描述待审阅",
+      "confirmed": "描述已确认"
+    },
+    "size": "{kb} kB 文本",
+    "remove": "移除",
+    "removeLabel": "移除 {name}",
+    "upload": "上传文档",
+    "formats": "PDF、Word（.docx）和 PowerPoint（.pptx）最大 8 MB，图片（PNG、JPEG、WebP、GIF）最大 3.5 MB，文本文件最大 200 kB；每个项目最多 10 个。PDF、Word 和 PowerPoint 只读取文本。图片会先被描述成文字——由你选择的 AI 模型或由你自己完成——并由你确认描述；Council 只读取这段文字。",
+    "modelsError": "无法加载你的模型",
+    "describeError": "描述失败",
+    "confirmError": "无法确认描述",
+    "imageIntro": "Council 只以文字形式读取这张图片。让模型来描述它（使用你自己的密钥调用一次，通常不到 1 美分），或自己撰写描述，检查后确认。",
+    "describeWith": "用 AI 模型描述…",
+    "model": "模型",
+    "chooseModel": "选择支持图像的模型",
+    "describing": "正在描述…",
+    "describe": "描述",
+    "description": "描述",
+    "descriptionBy": "描述（{model} 起草——请检查并修正）",
+    "saveChanged": "保存修改后的描述",
+    "confirm": "确认描述"
+  },
+  "repoLink": {
+    "loadError": "无法加载代码仓库",
+    "saveError": "无法保存",
+    "linked": "已关联：<strong>{repo}</strong>",
+    "none": "未关联代码仓库。Execution Council 将从空白工作区开始。",
+    "notLinked": "需求说明提到了 {url}，但它尚未关联：CONSYRION AI GitHub App 可能没有访问权限。在 GitHub 打开 Settings → Applications → CONSYRION AI 应用 → Configure，添加该仓库，然后点击“加载代码仓库”并在这里关联。没有关联就无法创建 pull request。",
+    "notConfigured": "此服务器未配置 GitHub。",
+    "notInPlan": "你的套餐不包含 GitHub。<link>查看账单与用量</link>。",
+    "connectFirst": "请先在<link>集成</link>中连接 GitHub。",
+    "account": "GitHub 账号",
+    "load": "加载代码仓库",
+    "repository": "代码仓库",
+    "link": "关联",
+    "unlink": "取消关联"
+  },
+  "repoContext": {
+    "readError": "无法读取代码仓库",
+    "savedSkipped": "已保存。已略过：{list}。",
+    "saved": "已保存。下一次 Council 前请重新确认需求——来源已更改。",
+    "saveError": "无法保存仓库上下文",
+    "intro": "Decision Council 的模型会把你在这里选择的文件（固定在某个提交）作为上下文读取——而不是作为需求。每次模型调用都会读取它们，因此会增加 Council 的 Token 用量。",
+    "reading": "正在读取代码仓库…",
+    "choose": "从代码仓库选择文件",
+    "readable": "{n, plural, other {# 个可读文本文件}}",
+    "filterLabel": "筛选文件",
+    "filter": "筛选，例如 docs/",
+    "files": "仓库文件",
+    "suggested": "推荐",
+    "size": "{n, plural, other {# 个文件}}，{size} ≈ 每次模型调用 {tokens} 个 Token",
+    "limit": "最多 {files} 个文件、{size}",
+    "readingFiles": "正在读取文件…",
+    "use": "用作上下文"
+  },
+  "requirements": {
+    "suspicion": {
+      "instruction": "看起来像是给 AI 模型的指令（例如忽略规则或给方案打分）。模型从不执行它。",
+      "quoted_instruction": "引用了看起来像是给 AI 模型的指令的文字。如果产品必须把这段文字当作数据处理（存储、显示、过滤），请保留——模型会把它作为需求检查，绝不执行引用的文字。",
+      "meta_rule": "说明需求何时算满足，而不是描述产品。Council 按实质内容评判每个方案；只有当它是真正的产品规则时才保留。"
+    },
+    "source": {
+      "requirements": "需求",
+      "goal": "期望结果",
+      "idea": "想法",
+      "document": "文档",
+      "documentNamed": "文档：{name}",
+      "user": "由你添加"
+    },
+    "confirmError": "无法确认需求",
+    "title": "硬性需求",
+    "intro": "Council 会逐条对照这份清单检查每个方案。开始前请审阅——需求说明里的句子数量并不能证明没有遗漏。",
+    "versionConfirmed": "版本 {version} 已确认",
+    "needsAgain": "需要重新确认",
+    "notConfirmed": "尚未确认",
+    "changed": "版本 {version} 确认后，需求说明或其文档发生了变化（需求说明版本 {briefVersion}）。开始 Council 前请审阅清单并重新确认。已在运行的 Council 保留其启动时的清单。",
+    "confirmedNone": "已确认：这份需求说明没有硬性需求。",
+    "estimated": "由模型估算：{measure}",
+    "severalLimits": "多个限值——不按数字检查",
+    "splitLimits": "一句话中有多个限值——请拆分，以便逐个按数字检查",
+    "excludedSummary": "{n, plural, other {# 条陈述被有意未采纳}}",
+    "edit": "编辑需求",
+    "new": "新",
+    "sourceGone": "来源已不在需求说明中",
+    "rowLabel": "需求 R{n}",
+    "remove": "移除",
+    "removeLabel": "移除 R{n}",
+    "add": "添加需求",
+    "toDecideLabel": "待决定的陈述",
+    "toDecide": "请决定（{n}）",
+    "toDecideText": "这里不会自动保留或移除任何内容。确认前请逐条决定；原始措辞保持不变。",
+    "pleaseCheck": "请检查",
+    "keep": "保留为需求",
+    "notRequirement": "不是需求",
+    "excludedTitle": "未采纳",
+    "excludedText": "这些来自需求说明或文档的陈述不具约束力。请为每条给出理由；它们会以“已排除”的形式展示给 Council，因此不会再作为需求出现。",
+    "reasonLabel": "不采纳的理由",
+    "reason": "理由（必填）",
+    "pendingImages": "请先在项目页面确认 {names} 的描述——Council 只通过已确认的描述读取图片，因此在此之前无法确认需求。",
+    "unscanned": "未扫描需求（格式原因）：{names}。请手动添加它们的硬性需求。",
+    "notProposed": "{n, plural, other {还有 # 条陈述因清单已满而未被提出。请手动添加其中属于需求的条目。}}",
+    "noHard": "这份需求说明没有硬性需求。",
+    "confirming": "正在确认…",
+    "confirm": "确认需求",
+    "cancel": "取消",
+    "readOnly": "只有能编辑项目的成员才能确认需求。",
+    "afterImplementation": "实现后才能衡量",
+    "afterImplementationText": "在构建任何东西之前，没有模型能确认“{text}”，因此 Council 将以“需要核实”结束。请保持原样，并补充如何衡量（方法、目标值），以便据此比较各方案。",
+    "addPlan": "添加衡量计划作为需求"
+  },
+  "voteWeights": {
+    "noRanking": "尚未加载排名——中性 5",
+    "notInRanking": "不在 {source}（{date}）中——中性 5",
+    "sourceModel": "{source}：{model}（{date}）",
+    "title": "投票权重",
+    "intro": "每个模型的评分和排名在 Final Verdict 中所占的分量。模型自己的方案从不计权，可行性检查对每个模型只计一次。Council 开始时固定。",
+    "useSuggestion": "使用 AI 建议",
+    "equal": "全部相等",
+    "listLabel": "每个模型的投票权重",
+    "suggestion": "AI 建议 <strong>{value}/10</strong>",
+    "stale": "排名超过 7 天",
+    "unknown": "未知",
+    "adjusted": "已调整",
+    "dominant": "投票份额占主导",
+    "far": "与建议相差较大",
+    "weightOf": "{name} 的投票权重",
+    "valueText": "{weight}/10，占投票的 {share}%",
+    "sourceNote": "建议来自 <link>{source}</link>（百分位等级 1–10）。不在排名中的模型获得中性的 5。",
+    "warning": {
+      "far": "{model} 的权重为 {weight}，排名建议为 {suggested}。",
+      "dominant": "{model} 占投票的 {share}%，超过其他所有模型的总和。",
+      "dominantTwo": "{model} 占投票的 {share}%——至少是 {other} 的两倍，因此其评估在很大程度上决定排名。"
+    }
+  },
+  "teamConfig": {
+    "mode": {
+      "title": "2. 决策模式",
+      "independent_expert": "盲审式专家方案，配以较轻的结构化反馈。适用于架构、战略、技术选型。",
+      "adversarial_review": "12 Minds Council 深度审查、反驳，每条异议由两名独立评审裁定。适用于安全和高风险决策。",
+      "consensus": "多轮修订，可选混合方案。不同意见会被记录在案。"
+    },
+    "weightError": {
+      "enter": "请输入 0 到 100 之间的数字。",
+      "negative": "不能为负数。",
+      "max": "最多为 100。"
+    },
+    "weight": {
+      "technicalQuality": "技术质量",
+      "security": "安全",
+      "maintainability": "可维护性",
+      "operatingCost": "运营成本",
+      "implementationSpeed": "实现速度"
+    },
+    "loadError": "无法加载模型",
+    "startError": "无法开始会话",
+    "budgetError": "Token 预算必须在 {min} 到 {max} 之间",
+    "problem": {
+      "requirements": "开始前请先确认上面的硬性需求。",
+      "minModels": "请至少选择两个模型。",
+      "plan": "你的 {plan} 套餐每个会话最多允许 {n} 个模型。",
+      "roles": "请至少启用一个 12 Minds Council 角色。",
+      "weights": "请修正标出的 Final Verdict 权重（每项 0–100）。",
+      "total": "权重之和必须为 100（当前为 {total}）。"
+    },
+    "models": {
+      "title": "1. 选择 AI 模型",
+      "intro": "从你的提供商实时加载。选择 {min}–{max} 个模型；不同提供商能带来更独立的观点。",
+      "introPlan": "从你的提供商实时加载。选择 {min}–{max} 个模型（你的 {plan} 套餐上限）；不同提供商能带来更独立的观点。",
+      "selected": "已选 {n} / {max}",
+      "loading": "正在从你的提供商加载模型…",
+      "noKeys": "还没有 API 密钥。请先<link>添加提供商密钥</link>。",
+      "filter": "筛选模型"
+    },
+    "roles": {
+      "title": "3. 12 Minds Council 视角",
+      "intro": "已启用 {n} 个。视角不是独立投票：多数按模型计算。角色越少，成本越低。",
+      "modelFor": "{role} 使用的模型"
+    },
+    "settings": {
+      "title": "4. 会话设置",
+      "debate": "辩论轮数",
+      "consensus": "共识修订轮数",
+      "hybrid": "允许混合方案（与其他方案一样接受审查）",
+      "weights": "Final Verdict 权重",
+      "total": "（合计 {total}%）",
+      "budget": "Token 预算（硬性上限）",
+      "budgetHint": "{min}–{max} 个 Token。在即将超出预算时停止调用。提供商按你自己的密钥计费。",
+      "rules": "会话规则（可选）",
+      "rulesHint": "例如“重点关注运营成本”或“必须在欧盟运行”。"
+    },
+    "summary": {
+      "title": "开始之前",
+      "project": "项目：{name}",
+      "estimate": "总计约 <strong>{calls}</strong> 次模型调用，最多 <strong>{tokens}</strong> 个 Token（上限）。",
+      "estimateDocs": "总计约 <strong>{calls}</strong> 次模型调用，最多 <strong>{tokens}</strong> 个 Token（上限），{docs, plural, other {包括 # 个附加文档}}。",
+      "typical": "通常约 {tokens} 个 Token（你最近 {calls} 次调用的中位数）。",
+      "noTypical": "暂无典型值：此工作区之前的调用太少。",
+      "twoModels": "只有两个模型时，每个方案只有一名独立评审：本次 Council 可以给出暂定首选，但绝不会给出可批准的推荐。要获得推荐，请选择三个或更多模型。",
+      "failedOften": "经常失败的模型",
+      "failedRecently": "最近经常失败——{model}。",
+      "overBudget": "上限超出了你 {budget} 个 Token 的预算。我接受为了给 Final Verdict 保留足够预算而缩短辩论阶段：如果预算不足，将跳过 Minority Review 和 Consensus Round，方案也不会修订——裁决将评判最初版本，并标记为已缩短。",
+      "checkWeights": "开始前请检查投票权重："
+    },
+    "starting": "正在开始…",
+    "start": "开始 Council 会话",
+    "decrease": "减少{label}",
+    "increase": "增加{label}",
+    "manual": {
+      "label": "模型 ID",
+      "placeholder": "手动添加模型 ID",
+      "add": "添加"
+    }
+  }
+}

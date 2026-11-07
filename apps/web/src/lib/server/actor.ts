@@ -34,6 +34,8 @@ export async function requireActor(options: { integration?: boolean } = {}): Pro
     const { userId, organizationId, scope } = await resolveApiToken(db, authorization.slice(7).trim());
     // Fail closed (#101): an integration token reaches only handlers that opted in with { integration: true }.
     // Approvals, builds, GitHub, keys, team, tokens, billing and deletions never do.
+    // Read-only tokens (cnr_) are for the MCP server only (/api/mcp resolves them itself) and reach no REST endpoint.
+    if (scope === "read") throw new DomainError("FORBIDDEN", "This API token is read-only and works only with the MCP server (/api/mcp)");
     if (scope !== "full" && !options.integration)
       throw new DomainError("FORBIDDEN", "This API token has the integration scope (councils only); this endpoint needs a full-access token or the web app");
     return resolveActor(db, userId, organizationId);

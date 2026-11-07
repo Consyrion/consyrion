@@ -190,14 +190,37 @@ export function classifySuspicion(statement: string): RequirementSuspicion | und
  * candidate; from the goal, the idea and documents only statements with a requirement marker (must, only, not, at
  * most, a number with a unit …). The same wording from several sources is proposed once, under its first source.
  */
+/**
+ * Live case 06.11.26: an idea that asks a question and lists the options to choose from ("A) So lassen …", "Option B:
+ * Repo privat …") had its question and options B–D proposed as hard requirements – "nur" and "kein" inside them read
+ * as binding wording, and options contradict each other. In the idea and the goal, a question and a lettered option
+ * are what the council decides, never a requirement. (The requirements field stays verbatim: the user put it there.)
+ */
+const OPTION_LINE = /^\s*(?:(?:option|variante|alternative|weg)\s+[A-Za-z0-9]{1,2}\s*[).:]?|[A-Ha-h][).:])\s+/i;
+export function optionStatements(text: string): string[] {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .filter((line) => OPTION_LINE.test(line))
+    .map((line) => normalizeRequirementText(line.replace(OPTION_LINE, "")))
+    .filter(Boolean);
+}
+function isQuestionOrOption(text: string, options: string[]): boolean {
+  if (/\?\s*[)"”“»«']?\s*$/.test(text)) return true;
+  if (OPTION_LINE.test(text)) return true;
+  const normalized = normalizeRequirementText(text);
+  return options.some((option) => option.includes(normalized));
+}
+
 export function extractRequirements(source: RequirementIntakeSource): RequirementProposal {
   const candidates: RequirementCandidate[] = [];
   const seen = new Set<string>();
   let notProposed = 0;
-  const add = (statements: string[], from: RequirementSource, all: boolean) => {
+  const add = (statements: string[], from: RequirementSource, all: boolean, options: string[] | null = null) => {
     for (const text of statements) {
       const normalized = normalizeRequirementText(text);
       if (!normalized || seen.has(normalized)) continue;
+      if (options && isQuestionOrOption(text, options)) continue;
       const suspicion = classifySuspicion(text);
       const suspectedInjection = suspicion === "instruction" || suspicion === "quoted_instruction";
       if (!all && !suspicion && !looksLikeRequirement(text)) continue;
@@ -216,8 +239,8 @@ export function extractRequirements(source: RequirementIntakeSource): Requiremen
     }
   };
   add(segmentRequirementText(source.requirements), { kind: "requirements" }, true);
-  add(segmentRequirementText(source.goal), { kind: "goal" }, false);
-  add(segmentRequirementText(source.idea), { kind: "idea" }, false);
+  add(segmentRequirementText(source.goal), { kind: "goal" }, false, optionStatements(source.goal));
+  add(segmentRequirementText(source.idea), { kind: "idea" }, false, optionStatements(source.idea));
   const unscannedDocuments: Array<{ id: string; name: string }> = [];
   for (const doc of source.documents) {
     if (!PROSE_DOCUMENT.test(doc.name)) {

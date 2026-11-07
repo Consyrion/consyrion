@@ -52,6 +52,12 @@ export interface GenerateRequest {
   /** When set, the provider is asked for JSON matching this schema and the result is parsed. */
   jsonSchema?: JsonSchemaSpec;
   signal?: AbortSignal;
+  /**
+   * Streaming (#284): when set, the adapter uses the provider's streaming API and calls this with every text chunk as it
+   * arrives. The returned result is the same as without streaming (full text, parsed JSON, stop reason, usage from the
+   * provider's final event). Councils do not set it.
+   */
+  onText?: (delta: string) => void;
 }
 
 export type StopReason = "completed" | "max_tokens" | "refusal" | "other";

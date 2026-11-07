@@ -36,6 +36,7 @@ Open the URL, create an account and add your keys under **AI providers**. Keys a
 | `SMTP_URL`, `MAIL_FROM`                              | E-mail delivery of decisions                                                       |
 | `ARTIFICIAL_ANALYSIS_API_KEY`                        | Model strength ranking (free key, attribution required)                            |
 | `PLATFORM_ADMIN_EMAILS`                              | Accounts with access to `/admin`                                                   |
+| `ADMIN_EMAILS`                                       | Recipients of the e-mail about new feedback reports (needs `SMTP_URL`)             |
 
 `SELF_HOSTED=true` (set by `init.sh`) removes all plan limits. Stripe and plans are only for running CONSYRION AI
 as a hosted service ([saas.md](saas.md)).

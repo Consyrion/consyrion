@@ -1,5 +1,7 @@
+import { NextIntlClientProvider } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { messagesFor } from "../../i18n/all-messages";
 import type { View } from "./helpers";
 import { EvaluationScreen, VerdictScreen } from "./screens";
 
@@ -23,7 +25,11 @@ function view(outcome: string, status: Record<string, unknown>, matrix: Record<s
   } as unknown as View;
 }
 
-const render = (v: View) => renderToStaticMarkup(<VerdictScreen view={v} canApprove onChange={async () => {}} />);
+const render = (v: View) => renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+      <VerdictScreen view={v} canApprove onChange={async () => {}} />
+    </NextIntlClientProvider>,
+  );
 
 describe("Final Verdict with outcomes the gate does not approve (#181, stage 1)", () => {
   it("shows needs_verification neutrally and offers no approval", () => {
@@ -52,7 +58,11 @@ describe("Final Verdict with outcomes the gate does not approve (#181, stage 1)"
     expect(html).not.toContain("Recommended solution");
     expect(html).toContain('<span class="min-w-0 truncate">Request changes</span>');
     // The evaluation screen does not try to read a matrix it does not know.
-    expect(renderToStaticMarkup(<EvaluationScreen view={newer} />)).toContain("Evaluation not shown");
+    expect(renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+      <EvaluationScreen view={newer} />
+    </NextIntlClientProvider>,
+  )).toContain("Evaluation not shown");
   });
 
   it("a legacy version-1 recommendation stays approvable when the server says so", () => {
@@ -110,7 +120,11 @@ describe("Final Verdict and evaluation of the S1 gate (#181, gate version 2)", (
   });
 
   it("shows status, who said what and the evidence per requirement, labelled as model judgements", () => {
-    const html = renderToStaticMarkup(<EvaluationScreen view={v2()} />);
+    const html = renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+      <EvaluationScreen view={v2()} />
+    </NextIntlClientProvider>,
+  );
     expect(html).toContain("Confirmed requirements per proposal");
     expect(html).toContain("not an independent fact check");
     expect(html).toContain("Health data stays in Germany.");

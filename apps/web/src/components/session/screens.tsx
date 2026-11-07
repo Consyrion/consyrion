@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  CRITERIA,
-  dedupeStatements,
-  describeConfidenceIssue,
-  objectionStatusText,
-  type ConfidenceIssue,
-  type Confidence,
-  type Criterion,
-} from "@consyrion/core/browser";
+import { CRITERIA, dedupeStatements, describeConfidenceIssue, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrion/core/browser";
+import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { SendDecision } from "../delivery";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -16,31 +9,36 @@ import { buttonClasses, Button } from "../ui/button";
 import { SelectField, TextAreaField } from "../ui/field";
 import { CouncilNetwork } from "../dashboard/council-network";
 import { Alert, Badge, Card, EmptyState } from "../ui/surface";
-import { feasibilityLabel, RequirementGateTable, type RequirementGateResult } from "./requirement-gate";
+import { RequirementGateTable, useFeasibilityLabel, type RequirementGateResult } from "./requirement-gate";
 import {
   contentOf,
   latestRevision,
   modelName,
   proposalLabel,
   readableFormula,
-  roleLabel,
   SEVERITY_TONE,
   STATUS_TONE,
+  useEnumText,
+  useRoleLabel,
   type ProposalContent,
   type ProposalJson,
   type View,
 } from "./helpers";
+import { NextStepsCard } from "./next-steps-card";
+import { deriveNextSteps } from "./next-steps";
+import { ProcessCharts } from "./process-charts";
+import { score1 } from "./verdict-dashboard";
+import { VerdictDashboard, type DashboardMatrix, type NextAction, type OutcomeKey } from "./verdict-dashboard";
 
-const CRITERION_LABELS: Record<Criterion, string> = {
-  technicalQuality: "Technical quality",
-  security: "Security",
-  maintainability: "Maintainability",
-  operatingCost: "Operating cost",
-  implementationSpeed: "Implementation speed",
-};
+/** Criterion names, shared with the verdict dashboard (`verdict.dashboard.criteria`). */
+function useCriterionLabel() {
+  const t = useTranslations("verdict.dashboard.criteria");
+  return (criterion: string) => (t.has(criterion) ? t(criterion) : criterion);
+}
 
-function List({ items, empty = "none" }: { items: string[]; empty?: string }) {
-  if (!items.length) return <p className="text-sm text-muted">{empty}</p>;
+function List({ items, empty }: { items: string[]; empty?: string }) {
+  const t = useTranslations("phaseScreens");
+  if (!items.length) return <p className="text-sm text-muted">{empty ?? t("none")}</p>;
   return (
     <ul className="list-disc space-y-1 pl-5 text-sm">
       {items.map((item, i) => (
@@ -55,12 +53,12 @@ function stageStatus(view: View, phase: string) {
 }
 
 function Waiting({ view, phase, text }: { view: View; phase: string; text: string }) {
+  const t = useTranslations("phaseScreens.waiting");
   const status = stageStatus(view, phase);
-  if (status === "running") return <EmptyState title="In progress" description={text} />;
-  if (status === "failed")
-    return <EmptyState title="This phase failed" description={view.stages.find((s) => s.phase === phase)?.error ?? "See the session error above."} />;
-  if (status === "cancelled") return <EmptyState title="Stopped" description="The session was stopped before this phase finished." />;
-  return <EmptyState title="Not started yet" description={text} />;
+  if (status === "running") return <EmptyState title={t("inProgress")} description={text} />;
+  if (status === "failed") return <EmptyState title={t("failed")} description={view.stages.find((s) => s.phase === phase)?.error ?? t("failedDefault")} />;
+  if (status === "cancelled") return <EmptyState title={t("stopped")} description={t("stoppedText")} />;
+  return <EmptyState title={t("notStarted")} description={text} />;
 }
 
 /* ---------- #39 Independent Thinking ---------- */
@@ -69,22 +67,21 @@ export function IndependentThinkingScreen({ view }: { view: View }) {
   const stage = stageStatus(view, "independent_thinking");
   const usage = view.usage.filter((u) => u.phase === "independent_thinking");
   const revealed = view.proposals.length > 0;
+  const t = useTranslations("phaseScreens.independent");
+  const format = useFormatter();
   return (
     <div className="space-y-4">
-      <Alert tone="warning">
-        Blind phase: every model receives the identical brief and works in its own request. No model sees another answer, and nobody sees any proposal until all
-        models have finished. Then all proposals are revealed at once.
-      </Alert>
+      <Alert tone="warning">{t("blind")}</Alert>
       <Card>
         <CouncilNetwork
-          centerLabel={revealed ? "Reveal" : "Blind"}
+          centerLabel={revealed ? t("centerReveal") : t("centerBlind")}
           nodes={view.participants.map((p) => {
             const rows = usage.filter((u) => u.participantId === p.id);
             const ok = rows.some((r) => r.outcome === "ok");
             const state = p.status === "failed" ? "failed" : ok ? "done" : stage === "running" ? "working" : "idle";
             return { id: p.id, label: p.provider, sublabel: p.modelId, state };
           })}
-          caption="Each node is one model. Nodes float gently; a node pulses only while its request is in flight."
+          caption={t("networkCaption")}
         />
       </Card>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -109,9 +106,9 @@ export function IndependentThinkingScreen({ view }: { view: View }) {
               <p className="font-medium">{modelName(view, p.id)}</p>
               <div className="mt-2 flex items-center gap-2">
                 <Badge tone={state === "submitted" ? "success" : state === "failed" ? "danger" : state === "working" ? "primary" : "neutral"}>
-                  {state === "submitted" ? "Proposal submitted" : state === "failed" ? "Failed" : state === "working" ? "Working…" : "Waiting"}
+                  {t(`state.${state}`)}
                 </Badge>
-                {tokens ? <span className="text-xs text-muted">{tokens.toLocaleString("en-US")} tokens</span> : null}
+                {tokens ? <span className="text-xs text-muted">{t("tokens", { n: format.number(tokens) })}</span> : null}
               </div>
               {p.failureReason ? <p className="mt-2 text-sm text-danger">{p.failureReason}</p> : null}
             </Card>
@@ -120,10 +117,10 @@ export function IndependentThinkingScreen({ view }: { view: View }) {
       </div>
       <p className="text-sm text-muted">
         {revealed && stage === "failed"
-          ? `${view.proposals.length} of ${view.participants.length} proposals arrived – too few for a council, so no debate or verdict followed. The proposal is readable in the council room, marked as incomplete.`
+          ? t("tooFew", { arrived: view.proposals.length, total: view.participants.length })
           : revealed
-            ? `${view.proposals.length} proposals revealed. Continue with Open Council.`
-            : `${view.submittedCount} of ${view.participants.length} proposals submitted – contents stay hidden until the reveal.`}
+            ? t("revealed", { n: view.proposals.length })
+            : t("submitted", { submitted: view.submittedCount, total: view.participants.length })}
       </p>
     </div>
   );
@@ -133,11 +130,12 @@ export function IndependentThinkingScreen({ view }: { view: View }) {
 
 function ProposalCard({ view, proposal, onOpen }: { view: View; proposal: ProposalJson; onOpen: () => void }) {
   const c = contentOf(proposal, 1);
+  const t = useTranslations("phaseScreens");
   return (
     <Card className="flex flex-col">
       <div className="flex items-center justify-between gap-2">
-        <Badge tone="primary">Proposal {proposal.label}</Badge>
-        {proposal.kind === "hybrid" ? <Badge tone="accent">Hybrid</Badge> : null}
+        <Badge tone="primary">{t("proposal", { label: proposal.label ?? "" })}</Badge>
+        {proposal.kind === "hybrid" ? <Badge tone="accent">{t("hybrid")}</Badge> : null}
       </div>
       <h3 className="mt-3 font-semibold">{c.title}</h3>
       <p className="mt-1 text-sm text-muted">{c.summary}</p>
@@ -148,16 +146,17 @@ function ProposalCard({ view, proposal, onOpen }: { view: View; proposal: Propos
           ))}
         </div>
       ) : null}
-      <p className="mt-3 text-sm font-medium">Strengths</p>
+      <p className="mt-3 text-sm font-medium">{t("strengths")}</p>
       <List items={c.advantages.slice(0, 4)} />
       <p className="mt-3 text-sm">
-        <span className="text-muted">Cost:</span> {c.costEstimate || "not provided"} · <span className="text-muted">Confidence:</span> {c.confidence} %
+        <span className="text-muted">{t("costLabel")}</span> {c.costEstimate || t("notProvided")} · <span className="text-muted">{t("confidenceLabel")}</span>{" "}
+        {c.confidence} %
       </p>
       <p className="mt-1 text-xs text-muted">
-        {proposal.authorParticipantId ? `Author: ${modelName(view, proposal.authorParticipantId)}` : "Author hidden until the verdict"}
+        {proposal.authorParticipantId ? t("author", { model: modelName(view, proposal.authorParticipantId) }) : t("authorHidden")}
       </p>
       <Button variant="secondary" className="mt-4" onClick={onOpen}>
-        View full proposal
+        {t("viewFull")}
       </Button>
     </Card>
   );
@@ -165,51 +164,49 @@ function ProposalCard({ view, proposal, onOpen }: { view: View; proposal: Propos
 
 function ProposalDetail({ view, proposal, version, onClose }: { view: View; proposal: ProposalJson; version?: number; onClose: () => void }) {
   const c = contentOf(proposal, version);
+  const t = useTranslations("phaseScreens");
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">
-          Proposal {proposal.label} – {c.title}
-        </h3>
+        <h3 className="font-semibold">{t("proposalTitle", { label: proposal.label ?? "", title: c.title })}</h3>
         <Button variant="ghost" onClick={onClose}>
-          Close
+          {t("close")}
         </Button>
       </div>
       <div className="mt-4 grid gap-5 md:grid-cols-2">
         <div>
-          <p className="text-sm font-medium">Summary</p>
+          <p className="text-sm font-medium">{t("fields.summary")}</p>
           <p className="text-sm">{c.summary}</p>
-          <p className="mt-3 text-sm font-medium">Architecture</p>
+          <p className="mt-3 text-sm font-medium">{t("fields.architecture")}</p>
           <p className="whitespace-pre-wrap text-sm">{c.architecture}</p>
-          <p className="mt-3 text-sm font-medium">Components</p>
+          <p className="mt-3 text-sm font-medium">{t("fields.components")}</p>
           <List items={c.components} />
         </div>
         <div className="space-y-3">
           <div>
-            <p className="text-sm font-medium">Advantages</p>
+            <p className="text-sm font-medium">{t("fields.advantages")}</p>
             <List items={c.advantages} />
           </div>
           <div>
-            <p className="text-sm font-medium">Disadvantages</p>
+            <p className="text-sm font-medium">{t("fields.disadvantages")}</p>
             <List items={c.disadvantages} />
           </div>
           <div>
-            <p className="text-sm font-medium">Risks</p>
-            <List items={c.risks.map((r) => `${r.risk} (${r.severity}) – mitigation: ${r.mitigation}`)} />
+            <p className="text-sm font-medium">{t("fields.risks")}</p>
+            <List items={c.risks.map((r) => t("riskItem", { risk: r.risk, severity: r.severity, mitigation: r.mitigation }))} />
           </div>
           <div>
-            <p className="text-sm font-medium">Assumptions</p>
+            <p className="text-sm font-medium">{t("fields.assumptions")}</p>
             <List items={c.assumptions} />
           </div>
           <div>
-            <p className="text-sm font-medium">Recommendations</p>
+            <p className="text-sm font-medium">{t("fields.recommendations")}</p>
             <List items={c.recommendations} />
           </div>
         </div>
       </div>
       <p className="mt-4 text-xs text-muted">
-        Statements are the model&apos;s own claims; they are checked in the 12 Minds Council and Minority Review.{" "}
-        {proposal.authorParticipantId ? `Author: ${modelName(view, proposal.authorParticipantId)}.` : ""}
+        {t("ownClaims")} {proposal.authorParticipantId ? t("authorSentence", { model: modelName(view, proposal.authorParticipantId) }) : ""}
       </p>
     </Card>
   );
@@ -218,21 +215,22 @@ function ProposalDetail({ view, proposal, version, onClose }: { view: View; prop
 export function OpenCouncilScreen({ view }: { view: View }) {
   const [open, setOpen] = useState<string | null>(null);
   const [mode, setMode] = useState<"cards" | "compare">("cards");
+  const t = useTranslations("phaseScreens");
   const originals = view.proposals.filter((p) => p.kind === "original");
-  if (!originals.length) return <Waiting view={view} phase="independent_thinking" text="Proposals appear here after the simultaneous reveal." />;
+  if (!originals.length) return <Waiting view={view} phase="independent_thinking" text={t("open.waiting")} />;
   const selected = originals.find((p) => p.id === open);
   const comparisons = view.messages.filter((m) => m.phase === "open_council" && m.kind === "comparison");
   const questions = view.messages.filter((m) => m.phase === "open_council" && m.kind === "question");
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted">All proposals in neutral order. No winner is declared in this phase.</p>
+        <p className="text-sm text-muted">{t("open.neutral")}</p>
         <div className="flex gap-2">
           <Button variant={mode === "cards" ? "primary" : "secondary"} onClick={() => setMode("cards")}>
-            Cards
+            {t("open.cards")}
           </Button>
           <Button variant={mode === "compare" ? "primary" : "secondary"} onClick={() => setMode("compare")}>
-            Compare
+            {t("open.compare")}
           </Button>
         </div>
       </div>
@@ -248,10 +246,10 @@ export function OpenCouncilScreen({ view }: { view: View }) {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-surface-2">
               <tr>
-                <th className="p-3">Aspect</th>
+                <th className="p-3">{t("open.aspect")}</th>
                 {originals.map((p) => (
                   <th key={p.id} className="p-3">
-                    Proposal {p.label}
+                    {t("proposal", { label: p.label ?? "" })}
                   </th>
                 ))}
               </tr>
@@ -259,12 +257,12 @@ export function OpenCouncilScreen({ view }: { view: View }) {
             <tbody className="divide-y divide-line">
               {(
                 [
-                  ["Title", (c: ProposalContent) => c.title],
-                  ["Architecture", (c: ProposalContent) => c.architecture],
-                  ["Cost", (c: ProposalContent) => c.costEstimate || "not provided"],
-                  ["Risks", (c: ProposalContent) => c.risks.map((r) => `${r.risk} (${r.severity})`).join("; ") || "none stated"],
-                  ["Disadvantages", (c: ProposalContent) => c.disadvantages.join("; ") || "none stated"],
-                  ["Confidence", (c: ProposalContent) => `${c.confidence} %`],
+                  [t("fields.title"), (c: ProposalContent) => c.title],
+                  [t("fields.architecture"), (c: ProposalContent) => c.architecture],
+                  [t("fields.cost"), (c: ProposalContent) => c.costEstimate || t("notProvided")],
+                  [t("fields.risks"), (c: ProposalContent) => c.risks.map((r) => `${r.risk} (${r.severity})`).join("; ") || t("noneStated")],
+                  [t("fields.disadvantages"), (c: ProposalContent) => c.disadvantages.join("; ") || t("noneStated")],
+                  [t("fields.confidence"), (c: ProposalContent) => `${c.confidence} %`],
                 ] as const
               ).map(([label, get]) => (
                 <tr key={label}>
@@ -281,17 +279,17 @@ export function OpenCouncilScreen({ view }: { view: View }) {
         </div>
       )}
       <Card>
-        <h3 className="font-semibold">Common ground and differences</h3>
-        {comparisons.length === 0 ? <Waiting view={view} phase="open_council" text="Each model compares all proposals." /> : null}
+        <h3 className="font-semibold">{t("open.commonTitle")}</h3>
+        {comparisons.length === 0 ? <Waiting view={view} phase="open_council" text={t("open.compareWaiting")} /> : null}
         <div className="mt-3 grid gap-4 md:grid-cols-2">
           {comparisons.map((m) => {
             const body = JSON.parse(m.body) as { commonGround: string[]; keyDifferences: string[] };
             return (
               <div key={m.id} className="rounded-lg border border-line p-3">
                 <p className="text-xs text-muted">{modelName(view, m.participantId)}</p>
-                <p className="mt-2 text-sm font-medium">Common ground</p>
+                <p className="mt-2 text-sm font-medium">{t("open.commonGround")}</p>
                 <List items={body.commonGround} />
-                <p className="mt-2 text-sm font-medium">Key differences</p>
+                <p className="mt-2 text-sm font-medium">{t("open.keyDifferences")}</p>
                 <List items={body.keyDifferences} />
               </div>
             );
@@ -300,17 +298,17 @@ export function OpenCouncilScreen({ view }: { view: View }) {
       </Card>
       {questions.length ? (
         <Card>
-          <h3 className="font-semibold">Questions and answers</h3>
+          <h3 className="font-semibold">{t("open.qa")}</h3>
           <ul className="mt-3 space-y-3">
             {questions.map((q) => {
               const answer = view.messages.find((m) => m.kind === "answer" && m.parentId === q.id);
               return (
                 <li key={q.id} className="rounded-lg border border-line p-3 text-sm">
                   <p>
-                    <Badge>Proposal {proposalLabel(view, q.targetProposalId)}</Badge>{" "}
-                    <span className="text-muted">{modelName(view, q.participantId)} asks:</span> {q.body}
+                    <Badge>{t("proposal", { label: proposalLabel(view, q.targetProposalId) })}</Badge>{" "}
+                    <span className="text-muted">{t("open.asks", { model: modelName(view, q.participantId) })}</span> {q.body}
                   </p>
-                  <p className="mt-2 border-l-2 border-primary/50 pl-3">{answer ? answer.body : <span className="text-muted">No answer yet.</span>}</p>
+                  <p className="mt-2 border-l-2 border-primary/50 pl-3">{answer ? answer.body : <span className="text-muted">{t("open.noAnswer")}</span>}</p>
                 </li>
               );
             })}
@@ -333,12 +331,15 @@ export function TwelveMindsScreen({ view }: { view: View }) {
   );
   const preferences = messages.filter((m) => m.kind === "preference" && (round === "all" || m.round === round));
   const open = critiques.filter((c) => !messages.some((r) => r.kind === "rebuttal" && r.parentId === c.id && r.evidence === "concedes"));
+  const t = useTranslations("phaseScreens");
+  const roleLabel = useRoleLabel();
+  const severityText = useEnumText("verdict.cruxes.severity");
 
   return (
     <div className="space-y-5">
       <Card>
-        <h3 className="font-semibold">Perspectives</h3>
-        <p className="text-sm text-muted">Several perspectives on the same model are one independent voice when majorities are counted.</p>
+        <h3 className="font-semibold">{t("minds.perspectives")}</h3>
+        <p className="text-sm text-muted">{t("minds.perspectivesNote")}</p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {view.roles.map((r) => {
             const done = preferences.some((p) => p.role === r.role);
@@ -348,36 +349,34 @@ export function TwelveMindsScreen({ view }: { view: View }) {
                   {roleLabel(r.role)}
                   <span className="block text-xs text-muted">{modelName(view, r.participantId)}</span>
                 </span>
-                <Badge tone={done ? "success" : "neutral"}>{done ? "reviewed" : "pending"}</Badge>
+                <Badge tone={done ? "success" : "neutral"}>{done ? t("minds.reviewed") : t("minds.pending")}</Badge>
               </li>
             );
           })}
         </ul>
       </Card>
       {messages.length === 0 ? (
-        <Waiting view={view} phase="twelve_minds_council" text="Each perspective reviews all proposals and names concrete, evidence-based objections." />
+        <Waiting view={view} phase="twelve_minds_council" text={t("minds.waiting")} />
       ) : (
         <>
           <div className="flex flex-wrap gap-3">
-            <SelectField label="Round" value={String(round)} onChange={(e) => setRound(e.target.value === "all" ? "all" : Number(e.target.value))}>
-              <option value="all">All rounds</option>
+            <SelectField label={t("minds.round")} value={String(round)} onChange={(e) => setRound(e.target.value === "all" ? "all" : Number(e.target.value))}>
+              <option value="all">{t("minds.allRounds")}</option>
               {rounds.map((r) => (
                 <option key={r} value={r}>
-                  Round {r}
+                  {t("minds.roundN", { n: r })}
                 </option>
               ))}
             </SelectField>
-            <SelectField label="Proposal" value={proposalFilter} onChange={(e) => setProposalFilter(e.target.value)}>
-              <option value="all">All proposals</option>
+            <SelectField label={t("proposalField")} value={proposalFilter} onChange={(e) => setProposalFilter(e.target.value)}>
+              <option value="all">{t("minds.allProposals")}</option>
               {view.proposals.map((p) => (
                 <option key={p.id} value={p.id}>
-                  Proposal {p.label}
+                  {t("proposal", { label: p.label ?? "" })}
                 </option>
               ))}
             </SelectField>
-            <p className="self-end pb-2 text-sm text-muted">
-              {critiques.length} critiques · {open.length} not conceded
-            </p>
+            <p className="self-end pb-2 text-sm text-muted">{t("minds.counts", { critiques: critiques.length, open: open.length })}</p>
           </div>
           <ul className="space-y-3">
             {critiques.map((c) => {
@@ -385,18 +384,22 @@ export function TwelveMindsScreen({ view }: { view: View }) {
               return (
                 <li key={c.id} className="rounded-xl border border-line bg-surface p-4">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <Badge tone="primary">Proposal {proposalLabel(view, c.targetProposalId)}</Badge>
-                    <Badge tone={SEVERITY_TONE[(c.severity ?? "low") as keyof typeof SEVERITY_TONE]}>{c.severity}</Badge>
+                    <Badge tone="primary">{t("proposal", { label: proposalLabel(view, c.targetProposalId) })}</Badge>
+                    <Badge tone={SEVERITY_TONE[(c.severity ?? "low") as keyof typeof SEVERITY_TONE]}>{severityText(c.severity)}</Badge>
                     <Badge>{c.category}</Badge>
-                    <span className="text-muted">
-                      {roleLabel(c.role)} · {modelName(view, c.participantId)} · round {c.round}
-                    </span>
+                    <span className="text-muted">{t("minds.meta", { role: roleLabel(c.role), model: modelName(view, c.participantId), round: c.round })}</span>
                   </div>
                   <p className="mt-2 text-sm">{c.body}</p>
-                  {c.evidence ? <p className="mt-1 text-sm text-muted">Evidence: {c.evidence}</p> : null}
+                  {c.evidence ? (
+                    <p className="mt-1 text-sm text-muted">
+                      {t("evidenceLabel")} {c.evidence}
+                    </p>
+                  ) : null}
                   {replies.map((r) => (
                     <div key={r.id} className="mt-3 border-l-2 border-accent/60 pl-3 text-sm">
-                      <p className="text-xs text-muted">Response by the proposal&apos;s author {r.evidence === "concedes" ? "· concedes the point" : ""}</p>
+                      <p className="text-xs text-muted">
+                        {t("minds.response")} {r.evidence === "concedes" ? `· ${t("minds.concedes")}` : ""}
+                      </p>
                       <p>{r.body}</p>
                     </div>
                   ))}
@@ -405,11 +408,11 @@ export function TwelveMindsScreen({ view }: { view: View }) {
             })}
           </ul>
           <Card>
-            <h3 className="font-semibold">Current preferences</h3>
+            <h3 className="font-semibold">{t("minds.preferences")}</h3>
             <ul className="mt-2 space-y-1 text-sm">
               {preferences.map((p) => (
                 <li key={p.id}>
-                  <span className="text-muted">{roleLabel(p.role)}:</span> Proposal {proposalLabel(view, p.targetProposalId)} – {p.body}
+                  <span className="text-muted">{roleLabel(p.role)}:</span> {t("proposal", { label: proposalLabel(view, p.targetProposalId) })} – {p.body}
                 </li>
               ))}
             </ul>
@@ -425,18 +428,19 @@ export function TwelveMindsScreen({ view }: { view: View }) {
 function DiffRows({ before, after }: { before: ProposalContent; after: ProposalContent }) {
   const keys = Object.keys(after) as Array<keyof ProposalContent>;
   const changed = keys.filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
-  if (!changed.length) return <p className="text-sm text-muted">No content changes.</p>;
+  const t = useTranslations("phaseScreens.diff");
+  if (!changed.length) return <p className="text-sm text-muted">{t("none")}</p>;
   const show = (value: unknown) => (Array.isArray(value) ? value.map((v) => (typeof v === "string" ? v : JSON.stringify(v))).join("\n") : String(value));
   return (
     <div className="space-y-3">
       {changed.map((k) => (
         <div key={k} className="grid gap-2 md:grid-cols-2">
           <div className="rounded-lg border border-danger/30 bg-danger/5 p-2 text-sm">
-            <p className="text-xs text-muted">{k} – before</p>
+            <p className="text-xs text-muted">{t("before", { field: k })}</p>
             <p className="whitespace-pre-wrap">{show(before[k])}</p>
           </div>
           <div className="rounded-lg border border-success/30 bg-success/5 p-2 text-sm">
-            <p className="text-xs text-muted">{k} – after</p>
+            <p className="text-xs text-muted">{t("after", { field: k })}</p>
             <p className="whitespace-pre-wrap">{show(after[k])}</p>
           </div>
         </div>
@@ -450,6 +454,10 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
   const [proposalId, setProposalId] = useState<string | null>(view.proposals[0]?.id ?? null);
   const review = view.minorityReview;
   const proposal = view.proposals.find((p) => p.id === proposalId);
+  const t = useTranslations("phaseScreens");
+  const severityText = useEnumText("verdict.cruxes.severity");
+  const statusText = useEnumText("phaseScreens.objectionStatus");
+  const consensusText = useEnumText("phaseScreens.consensus.status");
   return (
     <div className="space-y-5">
       <div className="flex gap-2" role="tablist">
@@ -473,44 +481,52 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
 
       {section === "minority" ? (
         !review && view.objections.length === 0 ? (
-          <Waiting view={view} phase="minority_review" text="Dissenting objections are reviewed separately before any consensus is formed." />
+          <Waiting view={view} phase="minority_review" text={t("minority.waiting")} />
         ) : (
           <>
             {review ? (
               <Card>
                 <p className="text-sm">
-                  Favoured so far:{" "}
-                  <strong>{review.favoredProposalId ? `Proposal ${proposalLabel(view, review.favoredProposalId)}` : "no clear favourite"}</strong>
-                  {review.favoredProposalId ? ` (${review.majorityModelCount} of ${review.independentModelCount} independent models)` : ""}.{" "}
-                  {review.reevaluationTriggered ? <Badge tone="warning">Well-founded dissent triggered a re-evaluation</Badge> : null}
+                  {t("minority.favoured")}{" "}
+                  <strong>
+                    {review.favoredProposalId ? t("proposal", { label: proposalLabel(view, review.favoredProposalId) }) : t("minority.noFavourite")}
+                  </strong>
+                  {review.favoredProposalId
+                    ? ` ${t("minority.majority", { majority: review.majorityModelCount, independent: review.independentModelCount })}`
+                    : ""}
+                  . {review.reevaluationTriggered ? <Badge tone="warning">{t("minority.reevaluation")}</Badge> : null}
                 </p>
               </Card>
             ) : null}
-            {view.objections.length === 0 ? <p className="text-sm text-muted">No substantiated objections were raised.</p> : null}
+            {view.objections.length === 0 ? <p className="text-sm text-muted">{t("minority.none")}</p> : null}
             <ul className="space-y-3">
               {view.objections.map((o) => (
                 <li key={o.id} className="rounded-xl border border-line bg-surface p-4 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="primary">Proposal {proposalLabel(view, o.proposalId)}</Badge>
-                    <Badge tone={SEVERITY_TONE[o.severity]}>{o.severity}</Badge>
+                    <Badge tone="primary">{t("proposal", { label: proposalLabel(view, o.proposalId) })}</Badge>
+                    <Badge tone={SEVERITY_TONE[o.severity]}>{severityText(o.severity)}</Badge>
                     <Badge>{o.category}</Badge>
-                    <Badge tone={STATUS_TONE[o.status]}>{objectionStatusText(o.status)}</Badge>
-                    {o.blocking ? <Badge tone="danger">Blocks approval</Badge> : null}
-                    <span className="text-muted">raised by {modelName(view, o.raisedByParticipantId)}</span>
+                    <Badge tone={STATUS_TONE[o.status]}>{statusText(o.status)}</Badge>
+                    {o.blocking ? <Badge tone="danger">{t("minority.blocks")}</Badge> : null}
+                    <span className="text-muted">{t("minority.raisedBy", { model: modelName(view, o.raisedByParticipantId) })}</span>
                   </div>
-                  <p className="mt-2">Objection: {o.claim}</p>
-                  {o.evidence ? <p className="mt-1 text-muted">Evidence: {o.evidence}</p> : null}
+                  <p className="mt-2">
+                    {t("minority.objection")} {o.claim}
+                  </p>
+                  {o.evidence ? (
+                    <p className="mt-1 text-muted">
+                      {t("evidenceLabel")} {o.evidence}
+                    </p>
+                  ) : null}
                   <p className="mt-2 border-l-2 border-accent/60 pl-3">
-                    <span className="text-xs text-muted">Response of the favoured approach</span>
+                    <span className="text-xs text-muted">{t("minority.response")}</span>
                     <br />
-                    {o.response ??
-                      (o.undefendedReason
-                        ? `Not defended – ${o.undefendedReason}. The author could not answer; this is not uncontested criticism.`
-                        : "No response.")}
+                    {o.response ?? (o.undefendedReason ? t("notDefended", { reason: o.undefendedReason }) : t("minority.noResponse"))}
                   </p>
                   {o.resolutionReason ? (
                     <p className="mt-2 text-muted">
-                      Independent review{o.reviewedByParticipantId ? ` (${modelName(view, o.reviewedByParticipantId)})` : ""}: {o.resolutionReason}
+                      {o.reviewedByParticipantId ? t("minority.reviewBy", { model: modelName(view, o.reviewedByParticipantId) }) : t("minority.review")}{" "}
+                      {o.resolutionReason}
                     </p>
                   ) : null}
                 </li>
@@ -519,30 +535,32 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
           </>
         )
       ) : !view.consensus ? (
-        <Waiting view={view} phase="consensus_round" text="Models may revise their proposals, keep their position or adopt ideas. Consensus is not required." />
+        <Waiting view={view} phase="consensus_round" text={t("consensus.waiting")} />
       ) : (
         <>
           <Card>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">Result:</span>
+              <span className="font-semibold">{t("consensus.result")}</span>
               <Badge tone={view.consensus.status === "consensus" ? "success" : view.consensus.status === "partial" ? "warning" : "neutral"}>
-                {view.consensus.status.replace("_", " ")}
+                {consensusText(view.consensus.status)}
               </Badge>
               {view.consensus.basedOn?.length ? (
-                <span className="text-sm text-muted">Based on {view.consensus.basedOn.map((r) => `${r.label} v${r.version}`).join(" · ")}</span>
+                <span className="text-sm text-muted">
+                  {t("consensus.basedOn", { list: view.consensus.basedOn.map((r) => `${r.label} v${r.version}`).join(" · ") })}
+                </span>
               ) : null}
             </div>
             <div className="mt-3 grid gap-4 md:grid-cols-3">
               <div>
-                <p className="text-sm font-medium">Agreements</p>
+                <p className="text-sm font-medium">{t("consensus.agreements")}</p>
                 <List items={view.consensus.agreements} />
               </div>
               <div>
-                <p className="text-sm font-medium">Remaining disagreements</p>
+                <p className="text-sm font-medium">{t("consensus.disagreements")}</p>
                 <List items={view.consensus.disagreements} />
               </div>
               <div>
-                <p className="text-sm font-medium">Outstanding risks</p>
+                <p className="text-sm font-medium">{t("consensus.risks")}</p>
                 <List items={view.consensus.outstandingRisks} />
               </div>
             </div>
@@ -550,25 +568,23 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
           <div className="flex flex-wrap gap-2">
             {view.proposals.map((p) => (
               <Button key={p.id} variant={p.id === proposalId ? "primary" : "secondary"} onClick={() => setProposalId(p.id)}>
-                Proposal {p.label}
-                {p.kind === "hybrid" ? " (hybrid)" : ""} · v{latestRevision(p).version}
+                {t("consensus.proposalVersion", { label: p.label ?? "", hybrid: p.kind === "hybrid" ? "yes" : "no", version: latestRevision(p).version })}
               </Button>
             ))}
           </div>
           {proposal ? (
             <Card>
-              <h3 className="font-semibold">
-                Proposal {proposal.label}: version 1 → version {latestRevision(proposal).version}
-              </h3>
+              <h3 className="font-semibold">{t("consensus.versions", { label: proposal.label ?? "", version: latestRevision(proposal).version })}</h3>
               <div className="mt-3 space-y-3">
                 {proposal.revisions.slice(1).map((r) => (
                   <div key={r.id} className="text-sm">
                     <p className="font-medium">
-                      Version {r.version} {r.keptPosition ? <Badge>position kept</Badge> : null}
+                      {t("consensus.version", { version: r.version })} {r.keptPosition ? <Badge>{t("consensus.kept")}</Badge> : null}
                     </p>
                     <List
                       items={(r.changes as Array<{ change?: string; reason?: string; motivatedBy?: string[] }>).map(
-                        (c) => `${c.change ?? ""}${c.reason ? ` – ${c.reason}` : ""}${c.motivatedBy?.length ? ` (refs: ${c.motivatedBy.length})` : ""}`,
+                        (c) =>
+                          `${c.change ?? ""}${c.reason ? ` – ${c.reason}` : ""}${c.motivatedBy?.length ? ` (${t("consensus.refs", { n: c.motivatedBy.length })})` : ""}`,
                       )}
                     />
                   </div>
@@ -613,13 +629,11 @@ interface DecisionMatrix {
   failedEvaluators?: { participantId: string; modelId: string; outcome: string }[];
 }
 
-const FAILURE_TEXT: Record<string, string> = {
-  invalid_output: "answer did not match the required structure",
-  max_tokens: "answer was cut off at the output limit",
-  refusal: "model declined to answer",
-  error: "provider call failed",
-  not_run: "no evaluation was run",
-};
+/** Why an evaluator has no usable scores (`evaluationScreen.failure.<outcome>`); unknown outcomes show the raw value. */
+function useFailureText() {
+  const t = useTranslations("evaluationScreen.failure");
+  return (outcome: string) => (t.has(outcome) ? t(outcome) : outcome);
+}
 
 /** Warns when the verdict rests on incomplete evaluations or the majority vote disagrees with the score. */
 function ConfidenceNotice({ view, matrix, recommendedProposalId }: { view: View; matrix: DecisionMatrix; recommendedProposalId: string | null }) {
@@ -638,31 +652,23 @@ function ConfidenceNotice({ view, matrix, recommendedProposalId }: { view: View;
       : []),
   ];
   const failed = matrix.failedEvaluators ?? [];
+  const t = useTranslations("evaluationScreen");
+  const failureText = useFailureText();
   if (issues.length === 0 && failed.length === 0) return null;
   const level = matrix.confidence ?? "low";
   const label = (id: string) => proposalLabel(view, id);
   return (
     <Alert tone="warning">
-      <p className="font-medium">
-        {level === "reduced" ? "Limited review depth – this verdict rests on a small council." : "Low confidence – read this verdict with care."}
-      </p>
+      <p className="font-medium">{level === "reduced" ? t("confidenceReduced") : t("confidenceLow")}</p>
       <ul className="mt-1 list-disc space-y-0.5 pl-5">
         {failed.map((f) => (
-          <li key={f.participantId}>
-            {f.modelId} could not evaluate ({FAILURE_TEXT[f.outcome] ?? f.outcome}); its scores and vote are missing.
-          </li>
+          <li key={f.participantId}>{t("couldNotEvaluate", { model: f.modelId, reason: failureText(f.outcome) })}</li>
         ))}
         {issues.map((issue, index) => (
           <li key={`${issue.kind}-${index}`}>{describeConfidenceIssue(issue, label)}.</li>
         ))}
       </ul>
-      {level === "low" ? (
-        <p className="mt-1">
-          {matrix.requirementGate
-            ? "Missing evaluations can be fetched with “Repeat the evaluation” while a model is still available; otherwise change the brief or the requirements and start a new council."
-            : "Consider “Request more debate” to re-run the missing evaluations, or compare the alternatives before approving."}
-        </p>
-      ) : null}
+      {level === "low" ? <p className="mt-1">{matrix.requirementGate ? t("hintRepeat") : t("hintDebate")}</p> : null}
     </Alert>
   );
 }
@@ -673,20 +679,17 @@ function ConfidenceNotice({ view, matrix, recommendedProposalId }: { view: View;
  */
 function MainReason({ view, matrix, canRepeat }: { view: View; matrix: DecisionMatrix; canRepeat: boolean }) {
   const failed = matrix.failedEvaluators ?? [];
+  const t = useTranslations("evaluationScreen.mainReason");
+  const failureText = useFailureText();
   if (failed.length === 0 || view.decision?.outcome === "recommended") return null;
-  const names = failed.map((f) => `${f.modelId} (${FAILURE_TEXT[f.outcome] ?? f.outcome})`).join(", ");
+  const names = failed.map((f) => `${f.modelId} (${failureText(f.outcome)})`).join(", ");
   const open = (matrix.requirementGate?.proposals ?? []).filter((g) => g.feasibility === "needs_verification").length;
   return (
     <div className="mt-3 rounded-lg border border-warning/50 p-3 text-sm" data-testid="main-reason">
       <p>
-        <span className="font-medium">Main reason: the evaluation is incomplete.</span> {names} could not finish its check
-        {open ? `, so ${open} proposal${open === 1 ? "" : "s"} could not be confirmed` : ""}. This is a technical gap, not a finding that a proposal fails a
-        requirement.
+        <span className="font-medium">{t("title")}</span> {open ? t("bodyOpen", { names, open }) : t("body", { names })}
       </p>
-      <p className="mt-1 text-muted">
-        Next step: {canRepeat ? "“Repeat the evaluation” below asks only the missing model again, with your API key and within this council's budget. " : ""}
-        If it fails again, start a new council – for example with fewer requirements or another model.
-      </p>
+      <p className="mt-1 text-muted">{canRepeat ? t("nextRepeat") : t("next")}</p>
     </div>
   );
 }
@@ -702,12 +705,13 @@ export function EvaluationScreen({ view }: { view: View }) {
       }
     | undefined;
   const [drill, setDrill] = useState<string | null>(null);
-  if (!matrix)
-    return (
-      <Waiting view={view} phase="final_verdict" text="Every model scores all proposals except its own. The matrix is computed from those stored scores." />
-    );
+  const t = useTranslations("evaluationScreen");
+  const tp = useTranslations("phaseScreens");
+  const criterionLabel = useCriterionLabel();
+  const feasibility = useFeasibilityLabel();
+  if (!matrix) return <Waiting view={view} phase="final_verdict" text={t("waiting")} />;
   // A matrix of a format this version does not know (#181): the server says so; nothing is guessed from it.
-  if (view.decisionStatus && !view.decisionStatus.readable) return <EmptyState title="Evaluation not shown" description={view.decisionStatus.reason ?? ""} />;
+  if (view.decisionStatus && !view.decisionStatus.readable) return <EmptyState title={t("notShown")} description={view.decisionStatus.reason ?? ""} />;
   const ordered = [...matrix.proposals].sort((a, b) => proposalLabel(view, a.proposalId).localeCompare(proposalLabel(view, b.proposalId)));
   const drillProposal = view.proposals.find((p) => p.id === drill);
   const drillScores = drillProposal ? view.scores.filter((s) => s.revisionId === latestRevision(drillProposal).id) : [];
@@ -716,14 +720,14 @@ export function EvaluationScreen({ view }: { view: View }) {
       <ConfidenceNotice view={view} matrix={matrix as DecisionMatrix} recommendedProposalId={view.decision?.recommendedProposalId ?? null} />
       <div className="overflow-x-auto rounded-xl border border-line">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <caption className="p-3 text-left text-muted">Mean of independent scores (0–10); ± shows the spread between evaluators.</caption>
+          <caption className="p-3 text-left text-muted">{t("caption")}</caption>
           <thead className="bg-surface-2">
             <tr>
-              <th className="p-3">Criterion (weight)</th>
+              <th className="p-3">{t("criterionWeight")}</th>
               {ordered.map((p) => (
                 <th key={p.proposalId} className="p-3">
                   <button type="button" className="underline-offset-2 hover:underline" onClick={() => setDrill(p.proposalId)}>
-                    Proposal {proposalLabel(view, p.proposalId)}
+                    {tp("proposal", { label: proposalLabel(view, p.proposalId) })}
                   </button>
                 </th>
               ))}
@@ -733,7 +737,7 @@ export function EvaluationScreen({ view }: { view: View }) {
             {CRITERIA.map((criterion) => (
               <tr key={criterion}>
                 <th className="p-3 font-medium">
-                  {CRITERION_LABELS[criterion]} ({matrix.weights[criterion]} %)
+                  {criterionLabel(criterion)} ({matrix.weights[criterion]} %)
                 </th>
                 {ordered.map((p) => (
                   <td key={p.proposalId} className="p-3">
@@ -744,41 +748,46 @@ export function EvaluationScreen({ view }: { view: View }) {
               </tr>
             ))}
             <tr className="bg-surface-2 font-semibold">
-              <th className="p-3">Weighted total</th>
+              <th className="p-3">{t("weightedTotal")}</th>
               {ordered.map((p) => (
                 <td key={p.proposalId} className="p-3">
-                  {p.total ?? "–"}
+                  <span title={p.total != null ? String(p.total) : undefined}>{score1(p.total)}</span>
                 </td>
               ))}
             </tr>
             <tr>
-              <th className="p-3 font-medium">Meets the hard requirements</th>
+              <th className="p-3 font-medium">{t("meetsHard")}</th>
               {ordered.map((p) => (
                 <td key={p.proposalId} className="p-3">
                   {matrix.requirementGate ? (
                     (() => {
                       const entry = matrix.requirementGate.proposals.find((g) => g.proposalId === p.proposalId);
-                      const label = entry ? feasibilityLabel(entry) : { text: "not evaluated", tone: "danger" as const };
+                      const label = entry ? feasibility(entry) : { text: t("notEvaluated"), tone: "danger" as const };
                       return <Badge tone={label.tone}>{label.text}</Badge>;
                     })()
                   ) : p.implementable === false ? (
-                    <Badge tone="danger">no – finding, not a solution</Badge>
+                    <Badge tone="danger">{t("finding")}</Badge>
                   ) : (
-                    <Badge tone="success">yes</Badge>
+                    <Badge tone="success">{t("yes")}</Badge>
                   )}
                   {!matrix.requirementGate && p.requirementChecks?.total ? (
                     <span className="mt-1 block text-xs text-muted">
-                      {p.requirementChecks.total - p.requirementChecks.failed} of {p.requirementChecks.total} independent evaluators: met
+                      {t("evaluatorsMet", { met: p.requirementChecks.total - p.requirementChecks.failed, total: p.requirementChecks.total })}
                     </span>
                   ) : null}
                 </td>
               ))}
             </tr>
             <tr>
-              <th className="p-3 font-medium">Gates</th>
+              <th className="p-3 font-medium">{t("gates")}</th>
               {ordered.map((p) => (
                 <td key={p.proposalId} className="p-3">
-                  {p.eligible ? <Badge tone="success">eligible</Badge> : <Badge tone="danger">not eligible</Badge>}
+                  {p.eligible ? <Badge tone="success">{t("eligible")}</Badge> : <Badge tone="danger">{t("notEligible")}</Badge>}
+                  {/* The server's approvability is the final word (ChatGPT test 06.11.26): passing the gates is not enough when the
+                      council as a whole cannot recommend (e.g. conflict of interest, incomplete comparison). */}
+                  {p.eligible && view.decisionStatus && !(view.decisionStatus.approvableProposalIds ?? []).includes(p.proposalId) ? (
+                    <span className="mt-1 block text-xs text-warning">! {t("eligibleButBlocked")}</span>
+                  ) : null}
                   {p.ineligibleReasons.map((r) => (
                     <span key={r} className="mt-1 block text-xs text-danger">
                       {r}
@@ -788,7 +797,7 @@ export function EvaluationScreen({ view }: { view: View }) {
               ))}
             </tr>
             <tr>
-              <th className="p-3 font-medium">Independent evaluators / vote points</th>
+              <th className="p-3 font-medium">{t("evaluatorsPoints")}</th>
               {ordered.map((p) => (
                 <td key={p.proposalId} className="p-3">
                   {p.independentEvaluators} / {p.bordaPoints}
@@ -799,25 +808,29 @@ export function EvaluationScreen({ view }: { view: View }) {
         </table>
       </div>
       <p className="text-sm text-muted">
-        Formula: {readableFormula(view, matrix.formula)}. Majority vote (for information only – it never overrides the requirement check):{" "}
-        {matrix.majorityVoteWinnerId ? `Proposal ${proposalLabel(view, matrix.majorityVoteWinnerId)}` : "no clear majority"}.
+        {t("formula", {
+          formula: readableFormula(view, matrix.formula),
+          winner: matrix.majorityVoteWinnerId ? tp("proposal", { label: proposalLabel(view, matrix.majorityVoteWinnerId) }) : t("noMajority"),
+        })}
       </p>
       {matrix.requirementGate ? <RequirementGateTable view={view} gate={matrix.requirementGate} /> : null}
       {drillProposal ? (
         <Card>
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Scores for Proposal {drillProposal.label}</h3>
+            <h3 className="font-semibold">{t("scoresFor", { label: drillProposal.label ?? "" })}</h3>
             <Button variant="ghost" onClick={() => setDrill(null)}>
-              Close
+              {tp("close")}
             </Button>
           </div>
           <ul className="mt-3 space-y-2 text-sm">
             {drillScores.map((s) => (
               <li key={s.id}>
-                <Badge>{CRITERION_LABELS[s.criterion as Criterion] ?? s.criterion}</Badge> <strong>{s.score}/10</strong>{" "}
+                <Badge>{criterionLabel(s.criterion)}</Badge> <strong>{s.score}/10</strong>{" "}
                 <span className="text-muted">
-                  by {modelName(view, s.evaluatorParticipantId)}
-                  {weightsDiffer(view) ? ` (vote weight ${view.participants.find((p) => p.id === s.evaluatorParticipantId)?.voteWeight ?? 1}/10)` : ""}
+                  {t("scoreBy", { model: modelName(view, s.evaluatorParticipantId) })}
+                  {weightsDiffer(view)
+                    ? ` ${t("voteWeight", { weight: view.participants.find((p) => p.id === s.evaluatorParticipantId)?.voteWeight ?? 1 })}`
+                    : ""}
                 </span>{" "}
                 – {s.rationale}
               </li>
@@ -839,27 +852,29 @@ function weightsDiffer(view: View) {
 /** Valid participation rate (#182): models with a valid contribution in every phase they were called in. */
 function ValidParticipation({ view }: { view: View }) {
   const p = view.participation;
+  const t = useTranslations("verdictScreen.participation");
   if (!p || p.percent === null) return null;
   return (
     <p className="text-sm text-muted" data-testid="valid-participation">
-      Valid participation:{" "}
+      {t("label")}{" "}
       <strong className={p.valid === p.total ? "text-text" : "text-warning"}>
         {p.valid}/{p.total}
       </strong>{" "}
       ({p.percent} %)
       {p.shortfalls.length
-        ? ` – short: ${p.shortfalls.map((s) => `${modelName(view, s.participantId)} (${s.phases.length ? s.phases.join(", ") : "no valid contribution"})`).join(", ")}`
-        : " – every model delivered in every phase it was called in."}
+        ? ` – ${t("short", { list: p.shortfalls.map((s) => `${modelName(view, s.participantId)} (${s.phases.length ? s.phases.join(", ") : t("noValid")})`).join(", ") })}`
+        : ` – ${t("all")}`}
     </p>
   );
 }
 
-const OUTCOME: Record<string, { title: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
-  recommended: { title: "Recommended solution", tone: "success" },
-  tie: { title: "Tie – please choose", tone: "warning" },
-  // #230: about the proposals of this council, never about every possible solution.
-  no_qualifying_solution: { title: "None of the proposals meets the requirements", tone: "danger" },
-  insufficient_evidence: { title: "Insufficient independent evidence", tone: "warning" },
+// Titles: `verdict.dashboard.outcome.<key>` (shared with the dashboard).
+// #230: no_qualifying_solution is about the proposals of this council, never about every possible solution.
+const OUTCOME: Record<string, { tone: "success" | "warning" | "danger" | "neutral" }> = {
+  recommended: { tone: "success" },
+  tie: { tone: "warning" },
+  no_qualifying_solution: { tone: "danger" },
+  insufficient_evidence: { tone: "warning" },
 };
 
 export function VerdictScreen({ view, canApprove, onChange }: { view: View; canApprove: boolean; onChange: () => Promise<void> }) {
@@ -877,25 +892,29 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   // Without a recommendation (tie, no qualifying solution) approving it is impossible – start with choosing one.
   // Evaluators without usable scores can be asked again; scores already given stay (#145).
   const missingEvaluators = (matrix?.failedEvaluators ?? []).length;
-  const [action, setAction] = useState(
-    notApprovable
-      ? missingEvaluators > 0
+  const initialAction = notApprovable
+    ? missingEvaluators > 0
+      ? "repeat_evaluation"
+      : "request_changes"
+    : decision?.outcome === "recommended" && status?.canApproveRecommendation
+      ? "approve"
+      : (decision?.outcome === "insufficient_evidence" || decision?.outcome === "needs_verification") && missingEvaluators > 0
         ? "repeat_evaluation"
-        : "request_changes"
-      : decision?.outcome === "recommended" && status?.canApproveRecommendation
-        ? "approve"
-        : (decision?.outcome === "insufficient_evidence" || decision?.outcome === "needs_verification") && missingEvaluators > 0
-          ? "repeat_evaluation"
-          : conflict
-            ? "reject"
-            : "select_alternative",
-  );
+        : conflict
+          ? "reject"
+          : "select_alternative";
+  const [action, setAction] = useState(initialAction);
   const [comment, setComment] = useState("");
   const [alternative, setAlternative] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!decision)
-    return <Waiting view={view} phase="final_verdict" text="The verdict is computed deterministically from independent scores, gates and objections." />;
+  const t = useTranslations("verdictScreen");
+  const tp = useTranslations("phaseScreens");
+  const tOutcome = useTranslations("verdict.dashboard.outcome");
+  const format = useFormatter();
+  const feasibility = useFeasibilityLabel();
+  const statusText = useEnumText("phaseScreens.objectionStatus");
+  if (!decision) return <Waiting view={view} phase="final_verdict" text={t("waiting")} />;
   const recommended = view.proposals.find((p) => p.id === decision.recommendedProposalId);
   const content = recommended ? contentOf(recommended) : null;
   // Objections against an earlier revision whose subject is gone are not risks of the recommendation (#150).
@@ -908,23 +927,29 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const blocked = new Set(view.objections.filter((o) => o.blocking && ["open", "accepted", "unresolved"].includes(o.status)).map((o) => o.proposalId));
   // #249: a proposal passed every check but too few independent evaluators took part – say so in the title.
   const provisional = (matrix?.requirementGate?.proposals ?? []).some((g) => g.limitedReview);
-  const outcome = notApprovable
-    ? {
-        title: provisional
-          ? "Provisional favourite – limited review, not approvable"
-          : decision.outcome === "needs_verification"
-            ? "Needs verification – not approvable"
-            : "Not approvable",
-        tone: "warning" as const,
-      }
+  const outcomeKey: OutcomeKey = notApprovable
+    ? provisional
+      ? "provisional"
+      : decision.outcome === "needs_verification"
+        ? "needs_verification"
+        : "not_approvable"
     : conflict
-      ? { title: "No solution can meet these requirements", tone: "danger" as const }
-      : (OUTCOME[decision.outcome] ?? { title: "Not approvable", tone: "warning" as const });
+      ? "conflict"
+      : OUTCOME[decision.outcome]
+        ? (decision.outcome as OutcomeKey)
+        : "not_approvable";
+  const outcome = {
+    title: tOutcome(outcomeKey),
+    tone: notApprovable ? ("warning" as const) : conflict ? ("danger" as const) : (OUTCOME[decision.outcome]?.tone ?? ("warning" as const)),
+  };
   const findings = new Set((matrix?.proposals ?? []).filter((p) => p.implementable === false).map((p) => p.proposalId));
   const approvableIds = new Set(status?.approvableProposalIds ?? []);
   const notImplementable = new Set(view.proposals.filter((p) => !approvableIds.has(p.id)).map((p) => p.id));
+  // A proposal whose requirements are all confirmed but which another rule blocks must not read "requirements not met"
+  // (ChatGPT test 06.11.26, Tags session): say what is true.
+  const qualified = new Set((matrix?.requirementGate?.proposals ?? []).filter((g) => g.feasibility === "qualified").map((g) => g.proposalId));
   const notApprovableText = (id: string) =>
-    s1 ? "does not meet all confirmed requirements" : findings.has(id) ? "finding, not an implementable solution" : "not approvable";
+    s1 ? (qualified.has(id) ? t("notApprovable.qualifiedBlocked") : t("notApprovable.s1")) : findings.has(id) ? t("notApprovable.finding") : t("notApprovable.other");
   // The same conflict named by several proposals is listed once (#173).
   const conflicts = dedupeStatements(view.proposals.flatMap((p) => contentOf(p).requirementConflicts ?? []));
   const total = (proposalId: string) => (matrix as { proposals?: MatrixProposal[] } | undefined)?.proposals?.find((p) => p.proposalId === proposalId)?.total;
@@ -939,7 +964,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
       });
       await onChange();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Could not record the decision");
+      setError(err instanceof ApiRequestError ? err.message : t("recordError"));
     } finally {
       setBusy(false);
     }
@@ -947,12 +972,48 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
 
   return (
     <div className="space-y-5">
+      {matrix ? (
+        <VerdictDashboard
+          view={view}
+          matrix={matrix as unknown as DashboardMatrix}
+          outcome={outcome}
+          outcomeKey={outcomeKey}
+          nextAction={view.session.status === "awaiting_approval" && canApprove ? (initialAction as NextAction) : null}
+          reason={notApprovable ? (status?.reason ?? null) : (matrix.requirementGate?.summary ?? null)}
+          approvableIds={approvableIds}
+          recommendedId={notApprovable ? null : (decision.recommendedProposalId ?? null)}
+        />
+      ) : null}
+      {(() => {
+        // #273: for the recommendation, or – when nothing can be approved – for the best-scored proposal.
+        if (!matrix) return null;
+        const recommendedId = notApprovable ? null : (decision.recommendedProposalId ?? null);
+        const best =
+          [...((matrix.proposals as Array<{ proposalId: string; total: number | null }>) ?? [])].sort((a, b) => (b.total ?? -1) - (a.total ?? -1))[0]
+            ?.proposalId ?? null;
+        // A human choice wins (ChatGPT test 06.11.26: decided tie sessions still read "nothing can be approved yet").
+        const last = view.approvals.at(-1);
+        const chosenId = last && (last.action === "approve" || last.action === "select_alternative") ? (last.selectedProposalId ?? recommendedId) : null;
+        const mode = chosenId ? "chosen" : recommendedId ? "recommended" : approvableIds.size ? "tie" : "blocked";
+        const steps = deriveNextSteps(view, chosenId ?? recommendedId ?? best, matrix.requirementGate);
+        return steps ? <NextStepsCard view={view} steps={steps} mode={mode} /> : null;
+      })()}
+      {matrix ? (
+        <ProcessCharts
+          view={view}
+          criterionMeans={Object.fromEntries(
+            (matrix.proposals as Array<{ proposalId: string; criterionMeans?: Partial<Record<Criterion, number>> }>).map((p) => [
+              p.proposalId,
+              p.criterionMeans ?? {},
+            ]),
+          )}
+        />
+      ) : null}
       {matrix ? <ConfidenceNotice view={view} matrix={matrix} recommendedProposalId={decision.recommendedProposalId} /> : null}
       <ValidParticipation view={view} />
       {weightsDiffer(view) ? (
         <p className="text-sm text-muted">
-          Vote weights (fixed at the start, #140): {view.participants.map((p) => `${modelName(view, p.id)} ${p.voteWeight}/10`).join(" · ")}. Weighted are each
-          model&apos;s scores and ranking, not its own proposal; the feasibility check counts every model once.
+          {t("voteWeights", { list: view.participants.map((p) => `${modelName(view, p.id)} ${p.voteWeight}/10`).join(" · ") })}
         </p>
       ) : null}
       <Card className={outcome.tone === "success" ? "border-success/50" : outcome.tone === "danger" ? "border-danger/50" : ""}>
@@ -960,7 +1021,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         {matrix ? <MainReason view={view} matrix={matrix} canRepeat={canApprove} /> : null}
         {notApprovable && status?.reason ? (
           <p className="mt-3 text-sm" data-testid="not-approvable-reason">
-            {status.reason} You can request changes to the brief or reject; a changed brief needs a new council.
+            {status.reason} {t("notApprovableHint")}
           </p>
         ) : null}
         {s1 && matrix?.requirementGate ? (
@@ -974,9 +1035,9 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
               );
               return otherGate.length ? (
                 <p className="mt-1">
-                  {otherGate.map((g) => `Proposal ${proposalLabel(view, g.proposalId)}`).join(", ")} meet
-                  {otherGate.length === 1 ? "s" : ""} the confirmed requirements but did not pass another gate (security minimum, minimum score or a blocking
-                  objection) – see Evaluation.
+                  {t(otherGate.length === 1 ? "otherGateOne" : "otherGateMany", {
+                    proposals: otherGate.map((g) => tp("proposal", { label: proposalLabel(view, g.proposalId) })).join(", "),
+                  })}
                 </p>
               ) : null;
             })()}
@@ -984,119 +1045,116 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
             <ul className="mt-1 list-disc pl-5 text-muted">
               {matrix.requirementGate.proposals.map((g) => (
                 <li key={g.proposalId}>
-                  Proposal {proposalLabel(view, g.proposalId)}: {feasibilityLabel(g).text}
-                  {g.causes.length ? ` – ${g.causes[0]}${g.causes.length > 1 ? ` (+${g.causes.length - 1} more)` : ""}` : ""}
+                  {tp("proposal", { label: proposalLabel(view, g.proposalId) })}: {feasibility(g).text}
+                  {g.causes.length ? ` – ${g.causes[0]}${g.causes.length > 1 ? ` ${t("moreCauses", { n: g.causes.length - 1 })}` : ""}` : ""}
                 </li>
               ))}
             </ul>
-            <p className="mt-1 text-xs text-muted">
-              Details per requirement and evaluator: Evaluation. These are model judgements with reasons, not a fact check.
-            </p>
+            <p className="mt-1 text-xs text-muted">{t("gateNote")}</p>
           </div>
         ) : null}
         {recommended && content ? (
           <>
-            <h2 className="mt-3 text-xl font-semibold">
-              Proposal {recommended.label} – {content.title}
-            </h2>
+            <h2 className="mt-3 text-xl font-semibold">{tp("proposalTitle", { label: recommended.label ?? "", title: content.title })}</h2>
             <p className="text-sm text-muted">
-              by {modelName(view, recommended.authorParticipantId)} · weighted total {total(recommended.id)} / 10
+              {t("byTotal", { model: modelName(view, recommended.authorParticipantId), total: score1(total(recommended.id)) })}
             </p>
             {change?.changed ? (
               <p className="mt-2 text-sm text-warning">
-                Architecture change: revision v{recommended.revisions.at(-1)?.version} replaced the solution of v1
-                {change.adoptedFrom.length ? ` and resembles Proposal ${change.adoptedFrom.join(", ")}` : ""} – the content is not only the author&apos;s own.
+                {change.adoptedFrom.length
+                  ? t("archChangeAdopted", { version: recommended.revisions.at(-1)?.version ?? "", from: change.adoptedFrom.join(", ") })
+                  : t("archChange", { version: recommended.revisions.at(-1)?.version ?? "" })}
               </p>
             ) : null}
             <p className="mt-3 text-sm">{content.summary}</p>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <div>
-                <p className="text-sm font-medium">Main strengths</p>
+                <p className="text-sm font-medium">{t("mainStrengths")}</p>
                 <List items={content.advantages} />
               </div>
               <div>
-                <p className="text-sm font-medium">Main weaknesses</p>
+                <p className="text-sm font-medium">{t("mainWeaknesses")}</p>
                 <List items={content.disadvantages} />
               </div>
               <div>
-                <p className="text-sm font-medium">Remaining risks</p>
+                <p className="text-sm font-medium">{t("remainingRisks")}</p>
                 <List
                   items={[
-                    ...content.risks.map((r) => `${r.risk} (${r.severity}; mitigation: ${r.mitigation})`),
-                    ...openObjections.current.map((o) => `${o.claim} (${o.status} objection)`),
+                    ...content.risks.map((r) => t("riskMitigation", { risk: r.risk, severity: r.severity, mitigation: r.mitigation })),
+                    ...openObjections.current.map((o) => t(o.status === "accepted" ? "openObjectionAccepted" : "openObjectionUnresolved", { claim: o.claim })),
                   ]}
                 />
               </div>
             </div>
             {openObjections.moot.length ? (
               <details className="mt-3 text-sm">
-                <summary className="cursor-pointer text-muted">
-                  {openObjections.moot.length} objection{openObjections.moot.length === 1 ? "" : "s"} against an earlier revision no longer apply
-                </summary>
-                <List
-                  items={openObjections.moot.map(
-                    (o) => `${o.claim} – raised against v${o.againstVersion}; no longer applies to v${o.currentVersion} (not independently re-reviewed)`,
-                  )}
-                />
+                <summary className="cursor-pointer text-muted">{t("mootSummary", { n: openObjections.moot.length })}</summary>
+                <List items={openObjections.moot.map((o) => t("mootItem", { claim: o.claim, against: o.againstVersion, current: o.currentVersion }))} />
               </details>
             ) : null}
           </>
         ) : conflict ? (
           <>
-            <p className="mt-3 text-sm">
-              The proposals conclude, and the independent evaluators confirm, that the hard requirements cannot be met together. A good analysis of that is not
-              a solution: nothing can be built under these requirements. Confirm the finding with “Reject” (no build), or change the requirements – a changed
-              brief needs a new council and a new approval.
-            </p>
+            <p className="mt-3 text-sm">{t("conflictText")}</p>
             {conflicts.length ? (
               <div className="mt-3">
-                <p className="text-sm font-medium">Conflicting requirements</p>
+                <p className="text-sm font-medium">{t("conflicting")}</p>
                 <List items={conflicts} />
               </div>
             ) : null}
           </>
         ) : notApprovable ? null : (
-          <p className="mt-3 text-sm">
-            {decision.outcome === "tie"
-              ? "The leading proposals are too close to call. Choose an alternative with a reason, or request more debate."
-              : "The council could not recommend a solution. You can request more debate, request changes to the brief or reject."}
-          </p>
+          <p className="mt-3 text-sm">{decision.outcome === "tie" ? t("tieText") : t("noRecommendation")}</p>
         )}
       </Card>
 
       <Card>
         {/* Objections, not minority opinions (#169): the badge says how the objection was decided, not the proposal. */}
-        <h3 className="font-semibold">Objections (Minority Review)</h3>
+        <h3 className="font-semibold">{t("objections.title")}</h3>
         {view.objections.length === 0 ? (
-          <p className="text-sm text-muted">No objections were raised.</p>
+          <p className="text-sm text-muted">{t("objections.none")}</p>
         ) : (
           <ul className="mt-2 space-y-2 text-sm">
             {view.objections.map((o) => (
               <li key={o.id}>
-                <Badge tone={STATUS_TONE[o.status]}>{objectionStatusText(o.status)}</Badge> Objection by {modelName(view, o.raisedByParticipantId)} against
-                Proposal {proposalLabel(view, o.proposalId)} ({o.category}/{o.severity}): {o.claim}
-                {o.blocking ? <span className="text-danger"> – blocks approval</span> : null}
-                {o.evidence ? <span className="block text-muted">Reasoning: {o.evidence}</span> : null}
-                {o.resolutionReason ? <span className="block text-muted">Decision: {o.resolutionReason}</span> : null}
-                {o.undefendedReason && !o.response ? <span className="text-warning"> – not defended ({o.undefendedReason})</span> : null}
+                <Badge tone={STATUS_TONE[o.status]}>{statusText(o.status)}</Badge>{" "}
+                {t("objections.line", {
+                  model: modelName(view, o.raisedByParticipantId),
+                  label: proposalLabel(view, o.proposalId),
+                  category: o.category,
+                  severity: o.severity,
+                  claim: o.claim,
+                })}
+                {o.blocking ? <span className="text-danger"> – {t("objections.blocks")}</span> : null}
+                {o.evidence ? (
+                  <span className="block text-muted">
+                    {t("objections.reasoning")} {o.evidence}
+                  </span>
+                ) : null}
+                {o.resolutionReason ? (
+                  <span className="block text-muted">
+                    {t("objections.decision")} {o.resolutionReason}
+                  </span>
+                ) : null}
+                {o.undefendedReason && !o.response ? (
+                  <span className="text-warning"> – {t("objections.notDefended", { reason: o.undefendedReason })}</span>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
-        {view.consensus?.disagreements.length ? (
-          <p className="mt-2 text-xs text-muted">Disagreements that remain between the models are shown in the Consensus Round.</p>
-        ) : null}
+        {view.consensus?.disagreements.length ? <p className="mt-2 text-xs text-muted">{t("objections.disagreements")}</p> : null}
       </Card>
 
       <Card>
-        <h3 className="font-semibold">Alternatives</h3>
+        <h3 className="font-semibold">{t("alternatives")}</h3>
         <ul className="mt-2 space-y-2 text-sm">
           {view.proposals
             .filter((p) => p.id !== decision.recommendedProposalId)
             .map((p) => (
               <li key={p.id}>
-                <strong>Proposal {p.label}</strong> – {contentOf(p).title} ({total(p.id) ?? "–"} / 10)
-                {blocked.has(p.id) ? <span className="text-danger"> – blocked</span> : null}
+                <strong>{tp("proposal", { label: p.label ?? "" })}</strong> – {t("alternativeScore", { title: contentOf(p).title, total: score1(total(p.id)) })}
+                {blocked.has(p.id) ? <span className="text-danger"> – {t("blocked")}</span> : null}
                 {notImplementable.has(p.id) ? <span className="text-danger"> – {notApprovableText(p.id)}</span> : null}
                 <span className="block text-muted">{contentOf(p).summary}</span>
               </li>
@@ -1105,17 +1163,24 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <a className={buttonClasses("primary")} href={`/api/sessions/${view.session.id}/report?format=pdf`}>
-          Download PDF
+        {/* PDF in three levels (#268): one page for decision makers, the full report, or everything for an audit. */}
+        <a className={buttonClasses("primary")} href={`/api/sessions/${view.session.id}/report?format=pdf&level=brief`} title={t("export.briefTitle")}>
+          {t("export.brief")}
+        </a>
+        <a className={buttonClasses("secondary")} href={`/api/sessions/${view.session.id}/report?format=pdf`} title={t("export.reportTitle")}>
+          {t("export.report")}
+        </a>
+        <a className={buttonClasses("secondary")} href={`/api/sessions/${view.session.id}/report?format=pdf&level=full`} title={t("export.fullTitle")}>
+          {t("export.full")}
         </a>
         <a className={buttonClasses("secondary")} href={`/api/sessions/${view.session.id}/report?format=docx`}>
-          Download Word
+          {t("export.word")}
         </a>
         <a className={buttonClasses("secondary")} href={`/api/sessions/${view.session.id}/report`}>
-          Export report (Markdown)
+          {t("export.markdown")}
         </a>
         <a className={buttonClasses("secondary")} href={`/api/sessions/${view.session.id}/report?format=json`}>
-          Export report (JSON)
+          {t("export.json")}
         </a>
       </div>
 
@@ -1123,53 +1188,47 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
 
       {view.approvals.length ? (
         <Card>
-          <h3 className="font-semibold">Decision history</h3>
+          <h3 className="font-semibold">{t("history.title")}</h3>
           <ul className="mt-2 space-y-1 text-sm">
             {view.approvals.map((a) => (
               <li key={a.id}>
-                {new Date(a.createdAt).toLocaleString("en-GB")} – {a.action.replaceAll("_", " ")}
+                {format.dateTime(new Date(a.createdAt), { dateStyle: "short", timeStyle: "medium" })} –{" "}
+                {t.has(`history.action.${a.action}`) ? t(`history.action.${a.action}`) : a.action.replaceAll("_", " ")}
                 {a.comment ? `: ${a.comment}` : ""}
               </li>
             ))}
           </ul>
-          {view.previousDecisions.length ? (
-            <p className="mt-2 text-xs text-muted">{view.previousDecisions.length} earlier verdict(s) were superseded by additional debate.</p>
-          ) : null}
+          {view.previousDecisions.length ? <p className="mt-2 text-xs text-muted">{t("history.superseded", { n: view.previousDecisions.length })}</p> : null}
         </Card>
       ) : null}
 
       {view.session.status === "awaiting_approval" ? (
         canApprove ? (
-          <Card>
-            <h3 className="font-semibold">Your decision</h3>
-            <p className="text-sm text-muted">
-              Nothing is developed without your approval. Proposals blocked by a critical security objection, and findings that the requirements cannot be met,
-              cannot be approved for implementation.
-            </p>
+          <Card id="your-decision" className="scroll-mt-20">
+            <h3 className="font-semibold">{t("form.title")}</h3>
+            <p className="text-sm text-muted">{t("form.intro")}</p>
             <div className="mt-3 grid gap-4 md:grid-cols-2">
-              <SelectField label="Action" value={action} onChange={(e) => setAction(e.target.value)}>
+              <SelectField label={t("form.action")} value={action} onChange={(e) => setAction(e.target.value)}>
                 <option value="approve" disabled={!status?.canApproveRecommendation}>
-                  Approve recommendation
+                  {t("form.approve")}
                 </option>
                 <option value="select_alternative" disabled={conflict || notApprovable}>
-                  Select an alternative
+                  {t("form.selectAlternative")}
                 </option>
                 <option value="repeat_evaluation" disabled={missingEvaluators === 0}>
-                  Repeat the evaluation ({missingEvaluators} model{missingEvaluators === 1 ? "" : "s"} without scores)
+                  {t("form.repeat", { n: missingEvaluators })}
                 </option>
-                {s1 ? null : <option value="request_more_debate">Request more debate</option>}
-                <option value="request_changes">
-                  {s1 ? "Request changes – then edit the brief or requirements and start a new council" : "Request changes"}
-                </option>
-                <option value="reject">{conflict ? "Reject – confirm the finding, no build" : "Reject"}</option>
+                {s1 ? null : <option value="request_more_debate">{t("form.moreDebate")}</option>}
+                <option value="request_changes">{s1 ? t("form.requestChangesS1") : t("form.requestChanges")}</option>
+                <option value="reject">{conflict ? t("form.rejectConflict") : t("form.reject")}</option>
               </SelectField>
               {action === "select_alternative" ? (
-                <SelectField label="Proposal" value={alternative} onChange={(e) => setAlternative(e.target.value)}>
-                  <option value="">Choose…</option>
+                <SelectField label={tp("proposalField")} value={alternative} onChange={(e) => setAlternative(e.target.value)}>
+                  <option value="">{t("form.choose")}</option>
                   {view.proposals.map((p) => (
                     <option key={p.id} value={p.id} disabled={blocked.has(p.id) || notImplementable.has(p.id)}>
-                      Proposal {p.label}
-                      {blocked.has(p.id) ? " (blocked)" : notImplementable.has(p.id) ? ` (${notApprovableText(p.id)})` : ""}
+                      {tp("proposal", { label: p.label ?? "" })}
+                      {blocked.has(p.id) ? ` (${t("blocked")})` : notImplementable.has(p.id) ? ` (${notApprovableText(p.id)})` : ""}
                     </option>
                   ))}
                 </SelectField>
@@ -1177,7 +1236,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
             </div>
             <div className="mt-3">
               <TextAreaField
-                label={action === "select_alternative" || action === "request_changes" ? "Reason (required)" : "Comment (optional)"}
+                label={action === "select_alternative" || action === "request_changes" ? t("form.reason") : t("form.comment")}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 maxLength={5000}
@@ -1189,11 +1248,11 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
               </div>
             ) : null}
             <Button className="mt-3" disabled={busy} onClick={() => void submit()}>
-              {busy ? "Saving…" : "Record decision"}
+              {busy ? t("form.saving") : t("form.record")}
             </Button>
           </Card>
         ) : (
-          <Alert tone="warning">Only owners and admins can approve decisions.</Alert>
+          <Alert tone="warning">{t("form.onlyOwners")}</Alert>
         )
       ) : null}
     </div>

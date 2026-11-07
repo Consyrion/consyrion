@@ -1,21 +1,36 @@
-import { listApiTokens } from "@consyrion/db";
+import { getEntitlements, listApiTokens } from "@consyrion/db";
+import { getTranslations } from "next-intl/server";
 import { ApiTokens } from "@/components/api-tokens";
 import { PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 
-export const metadata = { title: "API tokens" };
+export async function generateMetadata() {
+  const t = await getTranslations("settings.pages");
+  return { title: t("apiTokens.title") };
+}
 
 export default async function ApiTokensPage() {
   const actor = await requirePageActor();
-  const tokens = await listApiTokens(await getDb(), actor);
+  const t = await getTranslations("settings.pages.apiTokens");
+  const db = await getDb();
+  const tokens = await listApiTokens(db, actor);
+  const { entitlements } = await getEntitlements(db, actor.organizationId);
+  const origin = (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
   return (
     <>
-      <PageHeader
-        title="API tokens"
-        description="Personal tokens for integrations (API v1, docs/api.md) and the VS Code extension. A token acts as you in this workspace with your role, limited by its access; it is stored only as a hash. Integration tokens (cni_…) can run and read councils but never approve or build; VS Code needs a full-access token (cns_…)."
+      <PageHeader title={t("title")} description={t("description")} />
+      <ApiTokens
+        tokens={tokens.map((k) => ({
+          id: k.id,
+          name: k.name,
+          prefix: k.prefix,
+          scope: k.scope,
+          lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+          expiresAt: k.expiresAt.toISOString(),
+        }))}
+        mcp={{ url: `${origin}/api/mcp`, allowed: Boolean(entitlements.mcp) }}
       />
-      <ApiTokens tokens={tokens.map((t) => ({ id: t.id, name: t.name, prefix: t.prefix, scope: t.scope, lastUsedAt: t.lastUsedAt?.toISOString() ?? null, expiresAt: t.expiresAt.toISOString() }))} />
     </>
   );
 }

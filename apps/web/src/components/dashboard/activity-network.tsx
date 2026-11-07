@@ -1,12 +1,11 @@
 "use client";
 
+import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { MarkShapes } from "../brand/consyrion-logo";
 import { PROVIDER_COLOR, PROVIDER_NAME, type ActivityNode } from "./activity-network-data";
 import type { NodeState } from "./council-network";
 import { ease, pointerPull, svgPoint } from "./pointer-field";
-
-const STATE_TEXT: Record<NodeState, string> = { idle: "Queued", working: "Working", done: "Done", failed: "Failed" };
 
 const W = 760;
 const H = 320;
@@ -132,15 +131,6 @@ function coronaPath(cx: number, cy: number) {
   return d;
 }
 
-const STATE_HINT: Record<NodeState, string> = {
-  idle: "Waiting for the council to start.",
-  working: "Request in flight – thinking right now.",
-  done: "Answered the current phase.",
-  failed: "Dropped out of this council.",
-};
-
-const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
-
 function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)[number]; id: string }) {
   const color = node.state === "failed" ? "var(--danger)" : (PROVIDER_COLOR[node.provider] ?? "#22d3ee");
   const details = node.details;
@@ -153,6 +143,8 @@ function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)
     ...(right ? { right: `${(1 - (slot.x - NODE_R - 14) / W) * 100}%` } : { left: `${((slot.x + NODE_R + 14) / W) * 100}%` }),
   };
   const roles = details?.roles ?? [];
+  const t = useTranslations("dashboard");
+  const format = useFormatter();
   return (
     <div
       id={id}
@@ -163,33 +155,33 @@ function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)
       <div className="flex items-center gap-2">
         <span className="size-2.5 shrink-0 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
         <span className="font-semibold text-[#e8eefc]">{PROVIDER_NAME[node.provider] ?? node.provider}</span>
-        <span className="ml-auto rounded-full border border-white/15 px-2 py-0.5 text-[11px]">{STATE_TEXT[node.state]}</span>
+        <span className="ml-auto rounded-full border border-white/15 px-2 py-0.5 text-[11px]">{t(`nodeState.${node.state}`)}</span>
       </div>
       <p className="mt-1 font-mono text-[11.5px] break-all text-[#9aa9c6]">{node.model}</p>
-      <p className="mt-2">{STATE_HINT[node.state]}</p>
+      <p className="mt-2">{t(`activity.hint.${node.state}`)}</p>
       {details ? (
         <>
           <dl className="mt-2.5 grid grid-cols-3 gap-2 border-t border-white/10 pt-2.5">
             {[
-              ["Requests", details.calls],
-              ["Tokens in", details.inputTokens],
-              ["Tokens out", details.outputTokens],
+              [t("activity.requests"), details.calls],
+              [t("activity.tokensIn"), details.inputTokens],
+              [t("activity.tokensOut"), details.outputTokens],
             ].map(([label, value]) => (
               <div key={label}>
                 <dt className="text-[10.5px] tracking-wider text-[#7f8db0] uppercase">{label}</dt>
-                <dd className="text-[15px] font-semibold text-[#e8eefc] tabular-nums">{compact.format(value as number)}</dd>
+                <dd className="text-[15px] font-semibold text-[#e8eefc] tabular-nums">{format.number(value as number, { notation: "compact", maximumFractionDigits: 1 })}</dd>
               </div>
             ))}
           </dl>
-          {details.failedCalls ? <p className="mt-2 text-[12px] text-[#fbbf24]">{details.failedCalls} of {details.calls} requests failed or were unusable.</p> : null}
+          {details.failedCalls ? <p className="mt-2 text-[12px] text-[#fbbf24]">{t("activity.failed", { failed: details.failedCalls, calls: details.calls })}</p> : null}
           {roles.length ? (
-            <ul className="mt-2.5 flex flex-wrap gap-1" aria-label="Perspectives">
+            <ul className="mt-2.5 flex flex-wrap gap-1" aria-label={t("activity.perspectives")}>
               {roles.slice(0, 4).map((role) => (
                 <li key={role} className="rounded-full border px-2 py-0.5 text-[11px]" style={{ borderColor: `color-mix(in oklab, ${color} 50%, transparent)` }}>
                   {role}
                 </li>
               ))}
-              {roles.length > 4 ? <li className="px-1 py-0.5 text-[11px] text-[#9aa9c6]">+{roles.length - 4} more</li> : null}
+              {roles.length > 4 ? <li className="px-1 py-0.5 text-[11px] text-[#9aa9c6]">{t("activity.more", { n: roles.length - 4 })}</li> : null}
             </ul>
           ) : null}
           {details.failureReason ? <p className="mt-2 text-[12px] text-[#fca5a5]">{details.failureReason}</p> : null}
@@ -208,11 +200,12 @@ function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)
  * static graphic.
  */
 export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes: ActivityNode[]; centerTitle: string; centerSubtitle: string }) {
+  const t = useTranslations("dashboard");
   const hex = Array.from({ length: 6 }, (_, i) => {
     const a = (Math.PI / 3) * i - Math.PI / 2;
     return `${(CX + HEX_R * Math.cos(a)).toFixed(1)},${(CY + HEX_R * Math.sin(a)).toFixed(1)}`;
   }).join(" ");
-  const summary = nodes.map((n) => `${PROVIDER_NAME[n.provider] ?? n.provider} ${n.model}: ${STATE_TEXT[n.state]}`).join(", ");
+  const summary = nodes.map((n) => `${PROVIDER_NAME[n.provider] ?? n.provider} ${n.model}: ${t(`nodeState.${n.state}`)}`).join(", ");
   const shown = nodes.slice(0, SLOTS.length);
   const [active, setActive] = useState<number | null>(null);
   const figureRef = useRef<HTMLElement>(null);
@@ -335,7 +328,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
         setActive(null);
       }}
     >
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full rounded-2xl" role="group" aria-label={`${centerTitle} – ${centerSubtitle}. ${summary || "No models."}`}>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full rounded-2xl" role="group" aria-label={`${centerTitle} – ${centerSubtitle}. ${summary || t("activity.none")}`}>
         <defs>
           <radialGradient id="an-neb-a" cx="0.3" cy="0.55" r="0.5">
             <stop offset="0" stopColor="#2f7bff" stopOpacity="0.28" />
@@ -451,7 +444,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
               data-node-state={node.state}
               role="button"
               tabIndex={0}
-              aria-label={`${name} ${node.model}: ${STATE_TEXT[node.state]}`}
+              aria-label={`${name} ${node.model}: ${t(`nodeState.${node.state}`)}`}
               aria-describedby={isActive ? `an-card-${i}` : undefined}
               className="cursor-pointer outline-none transition-opacity duration-200 [&:focus-visible_.an-focus]:opacity-100"
               opacity={active != null && !isActive ? 0.55 : 1}
@@ -487,7 +480,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
               <g transform={`translate(${anchor === "middle" ? lx - 28 : anchor === "start" ? lx + 6 : lx - 52} ${ly + 33})`}>
                 <StatusIcon state={node.state} color={color} />
                 <text x={11} y={4} fontSize={11.5} fill={node.state === "done" ? "#2ee6a8" : "#c7d2e8"}>
-                  {STATE_TEXT[node.state]}
+                  {t(`nodeState.${node.state}`)}
                 </text>
               </g>
             </g>

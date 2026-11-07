@@ -138,7 +138,9 @@ export async function deliverDecision(db: Database, actor: ActorContext, keyring
   const link = appUrl ? `${appUrl}/sessions/${sessionId}` : "";
   const title = `Decision: ${report.project}`;
   const summary = deliverySummary(report, link);
-  const pdf = Buffer.from(await reportPdf(markdown, { title: `Final Decision Report – ${report.project}`, sessionId, createdAt: view.session.createdAt }));
+  const pdf = Buffer.from(
+    await reportPdf(markdown, { title: `Final Decision Report – ${report.project}`, sessionId, createdAt: view.session.createdAt }, report),
+  );
   const filename = `consyrion-decision-${sessionId}.pdf`;
   const doFetch = deps.fetch ?? fetch;
 

@@ -49,26 +49,25 @@ export class AnthropicAdapter implements ProviderAdapter {
 
   async generate(request: GenerateRequest): Promise<GenerateResult> {
     try {
-      const response = await this.client.messages.create(
-        {
-          model: request.model,
-          max_tokens: request.maxOutputTokens,
-          ...(request.system ? { system: request.system } : {}),
-          messages: request.messages.map((m) =>
-            m.images?.length
-              ? {
-                  role: m.role,
-                  content: [
-                    ...m.images.map((i) => ({ type: "image" as const, source: { type: "base64" as const, media_type: i.mediaType, data: i.data } })),
-                    { type: "text" as const, text: m.content },
-                  ],
-                }
-              : { role: m.role, content: m.content },
-          ),
-          ...(request.jsonSchema ? { output_config: { format: { type: "json_schema", schema: request.jsonSchema.schema } } } : {}),
-        },
-        { signal: request.signal },
-      );
+      const params = {
+        model: request.model,
+        max_tokens: request.maxOutputTokens,
+        ...(request.system ? { system: request.system } : {}),
+        messages: request.messages.map((m) =>
+          m.images?.length
+            ? {
+                role: m.role,
+                content: [
+                  ...m.images.map((i) => ({ type: "image" as const, source: { type: "base64" as const, media_type: i.mediaType, data: i.data } })),
+                  { type: "text" as const, text: m.content },
+                ],
+              }
+            : { role: m.role, content: m.content },
+        ),
+        ...(request.jsonSchema ? { output_config: { format: { type: "json_schema", schema: request.jsonSchema.schema } } } : {}),
+      } as Anthropic.MessageCreateParamsNonStreaming;
+      if (request.onText) return await this.stream(params, request);
+      const response = await this.client.messages.create(params, { signal: request.signal });
       const text = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === "text")
         .map((block) => block.text)
@@ -84,6 +83,39 @@ export class AnthropicAdapter implements ProviderAdapter {
     } catch (error) {
       throw this.normalize(error, request.signal);
     }
+  }
+
+  /** Streaming variant: text deltas go to `onText`; usage and stop reason come from the message_start/message_delta events. */
+  private async stream(params: Anthropic.MessageCreateParamsNonStreaming, request: GenerateRequest): Promise<GenerateResult> {
+    const events = await this.client.messages.create({ ...params, stream: true }, { signal: request.signal });
+    let text = "";
+    let model = request.model;
+    let stopReason: string | null = null;
+    const usage = { inputTokens: 0, outputTokens: 0 };
+    for await (const event of events) {
+      if (event.type === "message_start") {
+        model = event.message.model;
+        usage.inputTokens = event.message.usage.input_tokens;
+        usage.outputTokens = event.message.usage.output_tokens;
+      } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        text += event.delta.text;
+        request.onText!(event.delta.text);
+      } else if (event.type === "message_delta") {
+        stopReason = event.delta.stop_reason;
+        // Cumulative output tokens of the whole message.
+        usage.outputTokens = event.usage.output_tokens;
+      }
+    }
+    // The SDK streams end quietly when the signal aborts (live test 06.11.26) – report it as a cancellation.
+    if (request.signal?.aborted) throw abortError(this.provider, request.signal.reason, request.signal);
+    return {
+      provider: this.provider,
+      model,
+      text,
+      json: request.jsonSchema ? parseJsonOutput(text) : undefined,
+      stopReason: mapStopReason(stopReason),
+      usage,
+    };
   }
 
   private normalize(error: unknown, signal?: AbortSignal): ProviderError {

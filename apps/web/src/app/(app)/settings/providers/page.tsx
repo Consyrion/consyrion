@@ -1,12 +1,16 @@
 import { can } from "@consyrion/core";
 import { listCredentials } from "@consyrion/db";
+import { getTranslations } from "next-intl/server";
 import { ProviderSettings } from "@/components/provider-settings";
 import { Alert, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 import { getKeyring } from "@/lib/server/keyring";
 
-export const metadata = { title: "AI providers" };
+export async function generateMetadata() {
+  const t = await getTranslations("settings.pages");
+  return { title: t("providers.title") };
+}
 
 function keysConfigured() {
   try {
@@ -19,18 +23,19 @@ function keysConfigured() {
 
 export default async function ProvidersPage() {
   const actor = await requirePageActor();
+  const t = await getTranslations("settings.pages.providers");
   if (!can(actor.role, "credential:read")) {
     return (
       <>
-        <PageHeader title="AI providers" />
-        <Alert tone="warning">Your role does not allow viewing provider keys. Ask an owner or admin.</Alert>
+        <PageHeader title={t("title")} />
+        <Alert tone="warning">{t("noAccess")}</Alert>
       </>
     );
   }
   const credentials = await listCredentials(await getDb(), actor);
   return (
     <>
-      <PageHeader title="AI providers" description="Connect the AI providers your council may use. Keys belong to this workspace." />
+      <PageHeader title={t("title")} description={t("description")} />
       <ProviderSettings
         initial={credentials.map((c) => ({ ...c, lastValidatedAt: c.lastValidatedAt?.toISOString() ?? null, createdAt: undefined }))}
         canWrite={can(actor.role, "credential:write")}

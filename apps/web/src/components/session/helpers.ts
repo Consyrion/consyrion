@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import type { SessionViewJson } from "@/lib/types";
 
 export type View = SessionViewJson;
@@ -103,8 +103,52 @@ const GATE_CAUSES: ReadonlyArray<readonly [RegExp, string]> = [
   [/^(\S+) not confirmed: (\d+) of (\d+) evaluators? gave no valid answer\.$/, "noAnswer"],
 ];
 
+/**
+ * R3-02 (08.11.26): the cause of a measured requirement ("R3 not confirmed: estimates 99.9–99.97 % (median 99.9425),
+ * limit at least 99.95 %; 1 of 2 evaluators' ranges reach across the limit (model estimates).") was English with
+ * decimal points. Parsed into its parts and rebuilt in the interface language with local number format.
+ */
+const ESTIMATE_CAUSE =
+  /^(\S+) (not met|disputed|not confirmed): estimates (-?[\d.]+)–(-?[\d.]+)( %| EUR per month| \S+) \(median (-?[\d.]+)\), limit (below|at most|above|at least) (-?[\d.]+)(?: %| EUR per month| \S+); (.+) \(model estimates\)\.$/;
+const ESTIMATE_PARTS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^(\d+) of (\d+) evaluators expect the limit to be missed$/, "missed"],
+  [/^(\d+) of (\d+) evaluators' ranges reach across the limit$/, "across"],
+  [/^(\d+) of (\d+) evaluators gave no usable estimate$/, "noEstimate"],
+  // "evaluators?" keeps the engine's own wording out of the browser bundle.
+  [/^(\d+) of (\d+) evaluators? gave no valid answer$/, "noAnswer"],
+];
+const ESTIMATE_STATUS: Record<string, string> = { "not met": "notMet", disputed: "disputed", "not confirmed": "notConfirmed" };
+const ESTIMATE_RELATION: Record<string, string> = { below: "below", "at most": "atMost", above: "above", "at least": "atLeast" };
+
 export function useGateText() {
   const t = useTranslations("requirementGate.text");
+  const te = useTranslations("requirementGate.estimate");
+  const format = useFormatter();
+  const num = (raw: string) => format.number(Number(raw), { maximumFractionDigits: 6 });
+  const estimateCause = (text: string): string | null => {
+    const m = ESTIMATE_CAUSE.exec(text);
+    if (!m) return null;
+    const parts = m[9]!.split("; ").map((part) => {
+      for (const [re, key] of ESTIMATE_PARTS) {
+        const p = re.exec(part);
+        if (p) return te(`part.${key}` as never, { k: Number(p[1]), n: Number(p[2]) } as never);
+      }
+      return null;
+    });
+    if (parts.some((p) => p === null)) return null;
+    const unit = m[5] === " %" ? " %" : m[5] === " EUR per month" ? te("eurPerMonth") : m[5]!;
+    return te("cause", {
+      id: m[1]!,
+      status: te(`status.${ESTIMATE_STATUS[m[2]!]}` as never),
+      low: num(m[3]!),
+      high: num(m[4]!),
+      median: num(m[6]!),
+      relation: te(`relation.${ESTIMATE_RELATION[m[7]!]}` as never),
+      limit: num(m[8]!),
+      unit,
+      parts: parts.join("; "),
+    } as never);
+  };
   const summary = (text: string | null | undefined) => {
     if (!text) return text ?? null;
     for (const [re, key] of GATE_SUMMARIES) {
@@ -118,6 +162,8 @@ export function useGateText() {
     return text;
   };
   const cause = (text: string) => {
+    const estimate = estimateCause(text);
+    if (estimate) return estimate;
     for (const [re, key] of GATE_CAUSES) {
       const m = re.exec(text);
       if (!m) continue;

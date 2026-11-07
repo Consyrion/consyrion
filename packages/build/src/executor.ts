@@ -46,17 +46,31 @@ const MAX_OUTPUT_TOKENS = 16_000;
 /** One repair attempt for an answer cut off at the limit (thinking models spend part of it on reasoning). */
 const REPAIR_OUTPUT_TOKENS = 32_000;
 const CUT_OFF = "The answer was cut off at the output limit";
+const BAD_STRUCTURE = "The answer did not match the required structure";
 
 type CallRequest<T extends z.ZodType> = { prompt: string; system?: string; name: string; schema: T };
 
-/** Structured model call; an answer cut off at the output limit gets exactly one larger, more focused retry. */
+/**
+ * Structured model call. An answer cut off at the output limit gets exactly one larger, more focused retry; an answer
+ * that does not match the schema gets exactly one corrective retry naming what was wrong (GitHub build test 08.11.26:
+ * gpt-5.4-mini's first implement answer failed the schema and the whole task failed without a second try – the
+ * council's own calls already had this repair).
+ */
 async function call<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, participant: Participant, request: CallRequest<T>): Promise<z.output<T>> {
   try {
     return await attempt(deps, plan, participant, request, MAX_OUTPUT_TOKENS);
   } catch (error) {
-    if (!(error instanceof DomainError) || error.message !== CUT_OFF) throw error;
-    const note = "Your previous answer was cut off at the output limit. Answer again: change only what the task needs, keep explanations short, and still return complete files.";
-    return attempt(deps, plan, participant, { ...request, prompt: `${request.prompt}\n\n${note}` }, REPAIR_OUTPUT_TOKENS);
+    if (!(error instanceof DomainError)) throw error;
+    if (error.message === CUT_OFF) {
+      const note = "Your previous answer was cut off at the output limit. Answer again: change only what the task needs, keep explanations short, and still return complete files.";
+      return attempt(deps, plan, participant, { ...request, prompt: `${request.prompt}\n\n${note}` }, REPAIR_OUTPUT_TOKENS);
+    }
+    if (error.message === BAD_STRUCTURE) {
+      const issues = Array.isArray(error.details) ? (error.details as string[]).join("; ") : "";
+      const note = `Your previous answer did not match the required JSON structure${issues ? ` (${issues})` : ""}. Answer again with exactly the required fields and types – no extra text outside the JSON.`;
+      return attempt(deps, plan, participant, { ...request, prompt: `${request.prompt}\n\n${note}` }, MAX_OUTPUT_TOKENS);
+    }
+    throw error;
   }
 }
 
@@ -102,7 +116,9 @@ async function attempt<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, par
     const parsed = request.schema.safeParse(result.json);
     if (!parsed.success) {
       outcome = "invalid_output";
-      throw new DomainError("PROVIDER_ERROR", "The answer did not match the required structure");
+      // Field paths and messages only (no model content), for the one corrective retry.
+      const issues = parsed.error.issues.slice(0, 5).map((issue) => `${issue.path.join(".") || "root"}: ${issue.message}`);
+      throw new DomainError("PROVIDER_ERROR", BAD_STRUCTURE, issues);
     }
     return parsed.data as z.output<T>;
   } catch (error) {

@@ -62,7 +62,8 @@
       "passed": "pruebas superadas",
       "notRun": "pruebas sin ejecutar",
       "timedOut": "pruebas agotaron el tiempo",
-      "testsFailed": "pruebas fallidas"
+      "testsFailed": "pruebas fallidas",
+      "inGithub": "pruebas en GitHub Actions"
     },
     "tabsNote": "Las pestañas siguen las siete fases canónicas. Minority Review y Consensus Round comparten una pantalla; Evaluation y Review & Tests son vistas detalladas de Final Verdict y Execution Council."
   },
@@ -414,7 +415,27 @@
       "provisional": "favorita provisional – revisión limitada"
     },
     "eurPerMonth": "EUR al mes",
-    "estimate": "Estimado por {n, plural, one {# modelo} other {# modelos}}: {low}–{high}{unit} (mediana {median}) · límite {relation} {limit}{unit}. Solo se cumple si cada rango respeta el límite.",
+    "estimate": {
+      "cause": "{id} {status}: estimaciones {low}–{high}{unit} (mediana {median}), límite {relation} {limit}{unit}; {parts} (estimaciones de los modelos).",
+      "status": {
+        "notMet": "no cumplido",
+        "disputed": "discutido",
+        "notConfirmed": "no confirmado"
+      },
+      "relation": {
+        "below": "por debajo de",
+        "atMost": "como máximo",
+        "above": "por encima de",
+        "atLeast": "al menos"
+      },
+      "eurPerMonth": " EUR al mes",
+      "part": {
+        "missed": "{k} de {n} evaluadores esperan que se incumpla el límite",
+        "across": "para {k} de {n} evaluadores el rango cruza el límite",
+        "noEstimate": "{k} de {n} evaluadores no dieron una estimación útil",
+        "noAnswer": "{k} de {n} evaluadores no dieron una respuesta válida"
+      }
+    },
     "relation": {
       "below": "por debajo de",
       "atMost": "como máximo",

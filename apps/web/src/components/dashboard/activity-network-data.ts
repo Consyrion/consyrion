@@ -11,7 +11,16 @@ export const PROVIDER_COLOR: Record<string, string> = {
   xai: "#e2e8f0",
 };
 
-export const PROVIDER_NAME: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic", google: "Google", deepseek: "DeepSeek", glm: "Z.ai GLM", kimi: "Kimi", qwen: "Qwen", xai: "Grok" };
+export const PROVIDER_NAME: Record<string, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google",
+  deepseek: "DeepSeek",
+  glm: "Z.ai GLM",
+  kimi: "Kimi",
+  qwen: "Qwen",
+  xai: "Grok",
+};
 
 /** Real per-model figures for the hover card; all optional so the graphic also works without them. */
 export interface ActivityNodeDetails {
@@ -21,6 +30,8 @@ export interface ActivityNodeDetails {
   inputTokens: number;
   outputTokens: number;
   failureReason?: string | null;
+  /** Project overview, "all sessions": in how many council sessions this model took part. */
+  sessions?: number;
 }
 
 export interface ActivityNode {

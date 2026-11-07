@@ -36,4 +36,11 @@ describe("requirement gate texts in the interface language (night test R2-04, 08
       "Something new.|R2 not met: 300–400 CHF/month",
     );
   });
+
+  it("rebuilds a measured requirement's cause in German with a decimal comma (R3-02, 08.11.26)", () => {
+    const cause = "R3 not confirmed: estimates 99.9–99.97 % (median 99.9425), limit at least 99.95 %; 1 of 2 evaluators' ranges reach across the limit (model estimates).";
+    expect(render("de", "x", cause)).toContain(
+      "R3 nicht bestätigt: Schätzungen 99,9–99,97 % (Median 99,9425), Grenze mindestens 99,95 %; bei 1 von 2 Bewertern reicht die Spanne über die Grenze (Modellschätzungen).",
+    );
+  });
 });

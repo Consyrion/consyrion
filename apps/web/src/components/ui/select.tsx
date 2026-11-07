@@ -1,6 +1,7 @@
 "use client";
 
-import { Children, Fragment, isValidElement, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type ReactElement, type ReactNode, type SelectHTMLAttributes } from "react";
+import { Children, Fragment, isValidElement, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type ReactElement, type ReactNode, type SelectHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./icons";
 
 interface Option {
@@ -61,6 +62,9 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [upward, setUpward] = useState(false);
+  // The open list is drawn in <body> with a fixed position (admin 08.11.26: inside a scrolling table wrapper it was
+  // cut off and could not be clicked). `place` keeps it next to the button while the page or a container scrolls.
+  const [place, setPlace] = useState<CSSProperties | null>(null);
   const autoId = useId();
   const buttonId = id ?? `${autoId}-button`;
   const listId = `${autoId}-list`;
@@ -68,10 +72,32 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
   const listRef = useRef<HTMLUListElement>(null);
   const typed = useRef({ text: "", at: 0 });
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPlace({
+        position: "fixed",
+        minWidth: rect.width,
+        ...(upward ? { bottom: window.innerHeight - rect.top + 6 } : { top: rect.bottom + 6 }),
+        ...(align === "end" ? { right: window.innerWidth - rect.right } : { left: rect.left }),
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open, upward, align]);
+
   useEffect(() => {
     if (!open) return;
     const close = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !listRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
@@ -161,13 +187,14 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
         <span className="min-w-0 truncate">{selected?.label ?? " "}</span>
         <Icon name="chevron" className={`${size === "sm" ? "size-3" : "size-4"} shrink-0 text-muted transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
       </button>
-      {open ? (
+      {open && place ? createPortal(
         <ul
           ref={listRef}
           id={listId}
           role="listbox"
           aria-labelledby={buttonId}
-          className={`absolute z-50 max-h-72 w-full min-w-full max-w-[calc(100vw-2rem)] overflow-auto sm:min-w-max rounded-xl border border-glass-line bg-[color-mix(in_oklab,var(--surface)_92%,transparent)] p-1.5 shadow-[0_18px_50px_-12px_rgb(0_0_0/0.6),0_0_30px_-14px_var(--glow-cyan)] backdrop-blur-xl ${upward ? "bottom-full mb-1.5" : "top-full mt-1.5"} ${align === "end" ? "right-0" : "left-0"}`}
+          style={place}
+          className="z-[100] max-h-72 max-w-[calc(100vw-2rem)] overflow-auto sm:min-w-max rounded-xl border border-glass-line bg-[color-mix(in_oklab,var(--surface)_92%,transparent)] p-1.5 shadow-[0_18px_50px_-12px_rgb(0_0_0/0.6),0_0_30px_-14px_var(--glow-cyan)] backdrop-blur-xl"
         >
           {options.map((option, index) => {
             const isSelected = option.value === current;
@@ -195,7 +222,8 @@ export function Select({ children, value, defaultValue, onChange, name, disabled
               </Fragment>
             );
           })}
-        </ul>
+        </ul>,
+        document.body,
       ) : null}
     </div>
   );

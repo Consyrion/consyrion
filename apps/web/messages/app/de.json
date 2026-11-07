@@ -18,7 +18,11 @@
     "quickNav": "Schnellnavigation",
     "toggleTheme": "Hell/Dunkel umschalten",
     "signOut": "Abmelden",
-    "source": "Open Source (AGPL-3.0) · Quellcode"
+    "source": "Open Source (AGPL-3.0) · Quellcode",
+    "upgrade": {
+      "title": "Auf Pro upgraden",
+      "text": "Unbegrenzte Councils, bis zu 6 Modelle, MCP"
+    }
   },
   "dashboard": {
     "metaTitle": "Dashboard",
@@ -112,7 +116,8 @@
       "failed": "{failed} von {calls} Anfragen sind fehlgeschlagen oder waren unbrauchbar.",
       "perspectives": "Perspektiven",
       "more": "+{n} weitere",
-      "none": "Keine Modelle."
+      "none": "Keine Modelle.",
+      "sessions": "An {n, plural, one {# Sitzung} other {# Sitzungen}} beteiligt"
     },
     "compact": {
       "live": "LIVE-COUNCIL",
@@ -220,7 +225,34 @@
     "executionAfterApproval": "Umsetzung erst nach deiner Freigabe",
     "delete": "Projekt löschen",
     "deleteText": "Löscht das Projekt endgültig mit allen Council-Sitzungen, Entscheidungen, generiertem Code und Dokumenten.",
-    "deleteButton": "Projekt endgültig löschen"
+    "deleteButton": "Projekt endgültig löschen",
+    "overview": {
+      "title": "Projektüberblick",
+      "pick": "Council in der Grafik",
+      "latest": "Neueste",
+      "allSessions": "Alle Sitzungen ({n})",
+      "allSessionsShort": "Alle Sitzungen",
+      "center": "Entscheidung",
+      "models": "{n, plural, one {# Modell} other {# Modelle}}",
+      "openSession": "Sitzung öffnen",
+      "allNote": "{n, plural, one {# Modell} other {# Modelle}} aus allen Councils des Projekts – jedes Modell einmal",
+      "status": "Status",
+      "sessions": "Council-Sitzungen",
+      "lastDecision": "Letzte Entscheidung",
+      "approval": "Freigabe",
+      "build": "Build / Draft-PR",
+      "draftPr": "Draft-Pull-Request",
+      "repository": "Repository",
+      "requirements": "Bestätigte Anforderungen",
+      "tokens": "Tokens gesamt",
+      "tokensValue": "{total} (Council {council}, Build {build})",
+      "created": "Erstellt",
+      "updated": "Aktualisiert",
+      "none": "–",
+      "emptyTitle": "Noch kein Council",
+      "emptyText": "Starte einen Council: Mehrere KI-Modelle denken unabhängig nach, debattieren und kommen zu einem Urteil, das du freigibst. Hier siehst du danach, welche Modelle teilgenommen haben.",
+      "emptyNoRights": "Nur Mitglieder mit Entscheidungsrechten können einen Council starten"
+    }
   },
   "councilSetup": {
     "metaTitle": "KI-Team konfigurieren",

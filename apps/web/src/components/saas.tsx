@@ -2,7 +2,7 @@
 
 import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "./ui/button";
 import { SelectField, TextField } from "./ui/field";
@@ -55,13 +55,72 @@ export function PortalButton() {
   const t = useTranslations("settings.saas");
   return (
     <div>
-      <Button variant="secondary" disabled={busy} onClick={() => void run(async () => (window.location.href = (await fetchJson<{ url: string }>("/api/billing/portal", { method: "POST" })).url), false)}>
+      <Button
+        variant="secondary"
+        disabled={busy}
+        onClick={() => void run(async () => (window.location.href = (await fetchJson<{ url: string }>("/api/billing/portal", { method: "POST" })).url), false)}
+      >
         {t("manageSubscription")}
       </Button>
       {/* The server forgot a customer Stripe does not know (test mode → live, 07.11.26): explained in the interface language. */}
-      {error ? <p className="mt-1 text-xs text-danger">{error.startsWith("This subscription does not exist in the connected Stripe account") ? t("portalStaleCustomer") : error}</p> : null}
+      {error ? (
+        <p className="mt-1 text-xs text-danger">
+          {error.startsWith("This subscription does not exist in the connected Stripe account") ? t("portalStaleCustomer") : error}
+        </p>
+      ) : null}
     </div>
   );
+}
+
+/**
+ * Back to the free plan: opens Stripe's customer portal directly at the cancellation step. The portal cancels at the
+ * period end (portal configuration, #337), so the paid month stays usable and the billing page shows "ends on".
+ */
+export function DowngradeButton({ label }: { label: string }) {
+  const { busy, error, run } = useAction();
+  const t = useTranslations("settings.saas");
+  return (
+    <div>
+      <Button
+        variant="secondary"
+        disabled={busy}
+        onClick={() =>
+          void run(
+            async () =>
+              (window.location.href = (
+                await fetchJson<{ url: string }>("/api/billing/portal", { method: "POST", body: JSON.stringify({ flow: "cancel" }) })
+              ).url),
+            false,
+          )
+        }
+      >
+        {label}
+      </Button>
+      {error ? (
+        <p className="mt-1 text-xs text-danger">
+          {error.startsWith("This subscription does not exist in the connected Stripe account") ? t("portalStaleCustomer") : error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * After returning from Stripe (checkout or customer portal) the webhook often arrives a few seconds later. The server
+ * renders this only while the expected change is not stored yet; it refreshes the page – and with it the app layout,
+ * which client navigation does not re-render (sidebar upgrade entry) – every 2 seconds for at most 30 seconds.
+ */
+export function RefreshUntilSettled({ intervalMs = 2000, maxMs = 30_000 }: { intervalMs?: number; maxMs?: number }) {
+  const router = useRouter();
+  useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      if (Date.now() - started > maxMs) clearInterval(timer);
+      else router.refresh();
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [router, intervalMs, maxMs]);
+  return null;
 }
 
 export function PriceHintForm() {
@@ -87,7 +146,11 @@ export function PriceHintForm() {
         <TextField label={t("outputPrice")} value={form.outputPerMillion} onChange={set("outputPerMillion")} inputMode="decimal" />
         <TextField label={t("currency")} value={form.currency} onChange={set("currency")} maxLength={3} />
       </div>
-      <Button variant="secondary" disabled={busy || !form.modelId} onClick={() => void run(() => fetchJson("/api/pricing", { method: "POST", body: JSON.stringify(form) }))}>
+      <Button
+        variant="secondary"
+        disabled={busy || !form.modelId}
+        onClick={() => void run(() => fetchJson("/api/pricing", { method: "POST", body: JSON.stringify(form) }))}
+      >
         {t("savePrice")}
       </Button>
       {error ? <Alert>{error}</Alert> : null}
@@ -113,7 +176,17 @@ interface Member {
   userId: string;
 }
 
-export function TeamManager({ members, invitations, canManage, currentUserId }: { members: Member[]; invitations: Array<{ id: string; email: string; role: string; expiresAt: string }>; canManage: boolean; currentUserId: string }) {
+export function TeamManager({
+  members,
+  invitations,
+  canManage,
+  currentUserId,
+}: {
+  members: Member[];
+  invitations: Array<{ id: string; email: string; role: string; expiresAt: string }>;
+  canManage: boolean;
+  currentUserId: string;
+}) {
   const { busy, error, run } = useAction();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
@@ -162,7 +235,14 @@ export function TeamManager({ members, invitations, canManage, currentUserId }: 
           <h2 className="font-semibold">{t("inviteTitle")}</h2>
           {/* The address gets the full width; role and button sit next to it (stacked on phones). */}
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto] md:items-end">
-            <TextField label={t("email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off" />
+            <TextField
+              label={t("email")}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              autoComplete="off"
+            />
             <SelectField label={t("role")} value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="admin">{roleLabel("admin")}</option>
               <option value="member">{roleLabel("member")}</option>
@@ -246,7 +326,12 @@ export function WorkspaceSwitcher({ organizations, active }: { organizations: Ar
   const t = useTranslations("settings.saas");
   return (
     <div>
-      <SelectField label={t("activeWorkspace")} value={active} disabled={busy} onChange={(e) => void run(() => fetchJson("/api/orgs/active", { method: "POST", body: JSON.stringify({ organizationId: e.target.value }) }))}>
+      <SelectField
+        label={t("activeWorkspace")}
+        value={active}
+        disabled={busy}
+        onChange={(e) => void run(() => fetchJson("/api/orgs/active", { method: "POST", body: JSON.stringify({ organizationId: e.target.value }) }))}
+      >
         {organizations.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name} ({t.has(`roles.${o.role}`) ? t(`roles.${o.role}`) : o.role})
@@ -259,7 +344,19 @@ export function WorkspaceSwitcher({ organizations, active }: { organizations: Ar
 }
 
 /** Irreversible deletion that requires typing the exact name. */
-export function DangerDelete({ url, method, name, label, redirectTo }: { url: string; method: "POST" | "DELETE"; name: string; label: string; redirectTo: string }) {
+export function DangerDelete({
+  url,
+  method,
+  name,
+  label,
+  redirectTo,
+}: {
+  url: string;
+  method: "POST" | "DELETE";
+  name: string;
+  label: string;
+  redirectTo: string;
+}) {
   const router = useRouter();
   const { busy, error, run } = useAction();
   const [confirm, setConfirm] = useState("");
@@ -294,7 +391,9 @@ export function AdminPlanSelect({ organizationId, plan }: { organizationId: stri
         aria-label={t("plan")}
         value={plan}
         disabled={busy}
-        onChange={(e) => void run(() => fetchJson(`/api/admin/organizations/${organizationId}/plan`, { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }))}
+        onChange={(e) =>
+          void run(() => fetchJson(`/api/admin/organizations/${organizationId}/plan`, { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }))
+        }
         className="inline-block min-w-36"
       >
         {["starter", "pro", "developer", "business"].map((p) => (
@@ -308,7 +407,11 @@ export function AdminPlanSelect({ organizationId, plan }: { organizationId: stri
   );
 }
 
-export function AdminPlanEditor({ plan }: { plan: { key: string; name: string; entitlements: Record<string, number | boolean>; priceLabel: string | null; stripePriceId: string | null; active: boolean } }) {
+export function AdminPlanEditor({
+  plan,
+}: {
+  plan: { key: string; name: string; entitlements: Record<string, number | boolean>; priceLabel: string | null; stripePriceId: string | null; active: boolean };
+}) {
   const { busy, error, run } = useAction();
   const [state, setState] = useState(plan);
   const t = useTranslations("settings.saas");
@@ -316,7 +419,12 @@ export function AdminPlanEditor({ plan }: { plan: { key: string; name: string; e
     <div className="space-y-3 rounded-xl border border-line p-4">
       <div className="grid gap-3 md:grid-cols-4">
         <TextField label={t("name")} value={state.name} onChange={(e) => setState({ ...state, name: e.target.value })} />
-        <TextField label={t("priceLabel")} value={state.priceLabel ?? ""} onChange={(e) => setState({ ...state, priceLabel: e.target.value })} placeholder={t("priceLabelPlaceholder")} />
+        <TextField
+          label={t("priceLabel")}
+          value={state.priceLabel ?? ""}
+          onChange={(e) => setState({ ...state, priceLabel: e.target.value })}
+          placeholder={t("priceLabelPlaceholder")}
+        />
         <TextField label={t("stripePriceId")} value={state.stripePriceId ?? ""} onChange={(e) => setState({ ...state, stripePriceId: e.target.value })} />
         <label className="flex items-center gap-2 self-end pb-2 text-sm">
           <input type="checkbox" checked={state.active} onChange={(e) => setState({ ...state, active: e.target.checked })} /> {t("active")}
@@ -326,14 +434,30 @@ export function AdminPlanEditor({ plan }: { plan: { key: string; name: string; e
         {Object.entries(state.entitlements).map(([key, value]) =>
           typeof value === "boolean" ? (
             <label key={key} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={value} onChange={(e) => setState({ ...state, entitlements: { ...state.entitlements, [key]: e.target.checked } })} /> {key}
+              <input
+                type="checkbox"
+                checked={value}
+                onChange={(e) => setState({ ...state, entitlements: { ...state.entitlements, [key]: e.target.checked } })}
+              />{" "}
+              {key}
             </label>
           ) : (
-            <TextField key={key} label={key} type="number" min={0} value={String(value)} onChange={(e) => setState({ ...state, entitlements: { ...state.entitlements, [key]: Number(e.target.value) } })} />
+            <TextField
+              key={key}
+              label={key}
+              type="number"
+              min={0}
+              value={String(value)}
+              onChange={(e) => setState({ ...state, entitlements: { ...state.entitlements, [key]: Number(e.target.value) } })}
+            />
           ),
         )}
       </div>
-      <Button variant="secondary" disabled={busy} onClick={() => void run(() => fetchJson(`/api/admin/plans/${plan.key}`, { method: "PUT", body: JSON.stringify(state) }))}>
+      <Button
+        variant="secondary"
+        disabled={busy}
+        onClick={() => void run(() => fetchJson(`/api/admin/plans/${plan.key}`, { method: "PUT", body: JSON.stringify(state) }))}
+      >
         {t("savePlan", { plan: plan.key })}
       </Button>
       {error ? <Alert>{error}</Alert> : null}
@@ -355,7 +479,14 @@ export function RotateKey({ id }: { id: string }) {
   return (
     <span className="flex flex-wrap items-end gap-2">
       <TextField label={t("newApiKey")} type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} />
-      <Button disabled={busy || secret.length < 10} onClick={() => void run(async () => (await fetchJson(`/api/credentials/${id}/rotate`, { method: "POST", body: JSON.stringify({ secret }) }), setOpen(false), setSecret("")))}>
+      <Button
+        disabled={busy || secret.length < 10}
+        onClick={() =>
+          void run(
+            async () => (await fetchJson(`/api/credentials/${id}/rotate`, { method: "POST", body: JSON.stringify({ secret }) }), setOpen(false), setSecret("")),
+          )
+        }
+      >
         {t("save")}
       </Button>
       {error ? <span className="text-xs text-danger">{error}</span> : null}
@@ -364,7 +495,11 @@ export function RotateKey({ id }: { id: string }) {
 }
 
 /** /admin → Stripe: paste the secret key once; product, monthly price, webhook and portal are created at Stripe. */
-export function AdminStripeSetup({ status }: { status: { connected: boolean; fromEnv: boolean; mode?: string; keyHint?: string; priceId?: string; amountCents?: number } }) {
+export function AdminStripeSetup({
+  status,
+}: {
+  status: { connected: boolean; fromEnv: boolean; mode?: string; keyHint?: string; priceId?: string; amountCents?: number };
+}) {
   const { busy, error, run } = useAction();
   const [secretKey, setSecretKey] = useState("");
   const [amount, setAmount] = useState(((status.amountCents ?? 499) / 100).toFixed(2));
@@ -402,7 +537,10 @@ export function AdminStripeSetup({ status }: { status: { connected: boolean; fro
             disabled={busy || (!status.connected && secretKey.length < 10)}
             onClick={() =>
               void run(async () => {
-                const r = await fetchJson<{ mode: string; amountCents: number }>("/api/admin/stripe", { method: "POST", body: JSON.stringify({ secretKey: secretKey || undefined, amount }) });
+                const r = await fetchJson<{ mode: string; amountCents: number }>("/api/admin/stripe", {
+                  method: "POST",
+                  body: JSON.stringify({ secretKey: secretKey || undefined, amount }),
+                });
                 setSecretKey("");
                 setDone(t("saved", { mode: r.mode, price: euros(r.amountCents) }));
               })
@@ -412,9 +550,7 @@ export function AdminStripeSetup({ status }: { status: { connected: boolean; fro
           </Button>
         </div>
       </div>
-      <p className="text-xs text-muted">
-        {t("help")}
-      </p>
+      <p className="text-xs text-muted">{t("help")}</p>
       {done ? <Alert tone="success">{done}</Alert> : null}
       {error ? <Alert>{error}</Alert> : null}
     </div>

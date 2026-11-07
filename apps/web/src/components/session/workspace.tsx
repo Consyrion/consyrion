@@ -63,6 +63,7 @@ const EXEC_TEXT_KEY: Record<string, string> = {
   "tests passed, reviewed": "passedReviewed",
   "tests passed": "passed",
   "tests not run": "notRun",
+  "tests run in GitHub Actions": "inGithub",
   "tests timed out": "timedOut",
   "tests failed": "testsFailed",
 };

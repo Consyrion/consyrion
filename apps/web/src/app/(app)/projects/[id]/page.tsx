@@ -9,11 +9,13 @@ import { RepositoryContext } from "@/components/repository-context";
 import { RepositoryLink } from "@/components/repository-link";
 import { DangerDelete } from "@/components/saas";
 import { PhaseOverview } from "@/components/phase-overview";
+import { ProjectOverview } from "@/components/project-overview";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge, Card, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 import { githubConfig } from "@/lib/server/github";
+import { loadProjectOverview } from "@/lib/server/project-overview";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requirePageActor();
@@ -21,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: project?.name ?? (await getTranslations("projects"))("fallbackTitle") };
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProjectPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }) {
   const actor = await requirePageActor();
   const t = await getTranslations("projects");
   const tStatus = await getTranslations("decisions.status");
@@ -43,12 +45,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const requirementsCurrent = Boolean(requirementList && source && requirementList.sourceHash === source.hash);
   const brief = project.brief;
   const canRun = can(actor.role, "decision:run") && project.status !== "archived";
+  // Project overview (owner request 08.11.26): council graphic of the newest session, a chosen one or all sessions.
+  const overview = await loadProjectOverview(db, actor, sessions, (await searchParams).session);
 
   return (
     <>
       <PageHeader
         title={project.name}
-        description={t("briefLine", { version: String(brief?.version ?? "–"), intent: t.has(`intent.${project.intent}`) ? t(`intent.${project.intent}`) : project.intent })}
+        description={t("briefLine", {
+          version: String(brief?.version ?? "–"),
+          intent: t.has(`intent.${project.intent}`) ? t(`intent.${project.intent}`) : project.intent,
+        })}
         actions={
           <div className="flex items-center gap-2">
             <Badge>{t.has(`status.${project.status}`) ? t(`status.${project.status}`) : project.status}</Badge>
@@ -60,6 +67,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           </div>
         }
       />
+      <ProjectOverview project={project} overview={overview} sessions={sessions} requirementList={requirementList} canRun={canRun} />
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card>
           <h2 className="font-semibold">{t("brief")}</h2>

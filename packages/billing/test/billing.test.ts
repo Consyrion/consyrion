@@ -1,5 +1,14 @@
 import { createHmac } from "node:crypto";
-import { createDatabase, ensurePersonalOrganization, forgetStripeCustomer, getEntitlements, getSubscription, schema, upsertStripeSubscription, type DatabaseHandle } from "@consyrion/db";
+import {
+  createDatabase,
+  ensurePersonalOrganization,
+  forgetStripeCustomer,
+  getEntitlements,
+  getSubscription,
+  schema,
+  upsertStripeSubscription,
+  type DatabaseHandle,
+} from "@consyrion/db";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handleStripeEvent, isMissingStripeCustomer, StripeClient, verifyStripeSignature, type FetchLike } from "../src";
 
@@ -33,7 +42,14 @@ describe("stripe", () => {
       calls.push({ url, body: String(init?.body) });
       return new Response(JSON.stringify({ id: "cs_1", url: "https://checkout.stripe.com/c/cs_1" }), { status: 200 });
     };
-    const session = await new StripeClient({ secretKey: "sk_test_x", webhookSecret: "w" }, fetchImpl).createCheckoutSession({ priceId: "price_pro", organizationId: orgId, plan: "pro", customerEmail: "u@example.test", successUrl: "https://a/s", cancelUrl: "https://a/c" });
+    const session = await new StripeClient({ secretKey: "sk_test_x", webhookSecret: "w" }, fetchImpl).createCheckoutSession({
+      priceId: "price_pro",
+      organizationId: orgId,
+      plan: "pro",
+      customerEmail: "u@example.test",
+      successUrl: "https://a/s",
+      cancelUrl: "https://a/c",
+    });
     expect(session.url).toContain("checkout.stripe.com");
     const body = new URLSearchParams(calls[0]!.body);
     expect(body.get("mode")).toBe("subscription");
@@ -41,9 +57,29 @@ describe("stripe", () => {
     expect(body.get("subscription_data[metadata][organizationId]")).toBe(orgId);
   });
 
+  it("opens the customer portal directly at the cancellation step for 'back to Free' (08.11.26)", async () => {
+    const calls: Array<{ url: string; body: string }> = [];
+    const fetchImpl: FetchLike = async (url, init) => {
+      calls.push({ url, body: String(init?.body) });
+      return new Response(JSON.stringify({ url: "https://billing.stripe.com/p/session/x" }), { status: 200 });
+    };
+    const client = new StripeClient({ secretKey: "sk_test_x", webhookSecret: "w", portalConfigurationId: "bpc_1" }, fetchImpl);
+    await client.createPortalSession("cus_1", "https://a/settings/billing", { cancelSubscriptionId: "sub_1" });
+    const cancel = new URLSearchParams(calls[0]!.body);
+    expect(cancel.get("flow_data[type]")).toBe("subscription_cancel");
+    expect(cancel.get("flow_data[subscription_cancel][subscription]")).toBe("sub_1");
+    expect(cancel.get("flow_data[after_completion][redirect][return_url]")).toBe("https://a/settings/billing");
+    expect(cancel.get("configuration")).toBe("bpc_1");
+    // "Manage subscription" stays the plain portal.
+    await client.createPortalSession("cus_1", "https://a/settings/billing");
+    expect(new URLSearchParams(calls[1]!.body).has("flow_data[type]")).toBe(false);
+  });
+
   it("applies subscription webhooks to entitlements", async () => {
     const base = { id: "sub_1", customer: "cus_1", metadata: { organizationId: orgId, plan: "developer" }, current_period_end: 2_000_000_000 };
-    expect(await handleStripeEvent(handle.db, { type: "customer.subscription.updated", data: { object: { ...base, status: "active" } } })).toEqual({ handled: true });
+    expect(await handleStripeEvent(handle.db, { type: "customer.subscription.updated", data: { object: { ...base, status: "active" } } })).toEqual({
+      handled: true,
+    });
     expect((await getEntitlements(handle.db, orgId)).plan).toBe("developer");
     await handleStripeEvent(handle.db, { type: "customer.subscription.deleted", data: { object: { ...base, status: "canceled" } } });
     expect((await getEntitlements(handle.db, orgId)).plan).toBe("starter");
@@ -55,7 +91,9 @@ describe("a customer Stripe does not know (owner report 07.11.26)", () => {
   it("recognises 'No such customer' and forgets the stale ids without changing the plan", async () => {
     const fetchImpl: FetchLike = async () =>
       new Response(JSON.stringify({ error: { code: "resource_missing", param: "customer", message: "No such customer: 'cus_test123'" } }), { status: 400 });
-    const error = await new StripeClient({ secretKey: "sk_live_x", webhookSecret: "w" }, fetchImpl).createPortalSession("cus_test123", "https://a/b").catch((e: unknown) => e);
+    const error = await new StripeClient({ secretKey: "sk_live_x", webhookSecret: "w" }, fetchImpl)
+      .createPortalSession("cus_test123", "https://a/b")
+      .catch((e: unknown) => e);
     expect(isMissingStripeCustomer(error)).toBe(true);
     expect(isMissingStripeCustomer(new Error("No such customer"))).toBe(false);
 
@@ -69,7 +107,14 @@ describe("a customer Stripe does not know (owner report 07.11.26)", () => {
     });
     await forgetStripeCustomer(handle.db, orgId, "u");
     const sub = await getSubscription(handle.db, orgId);
-    expect(sub).toMatchObject({ plan: "pro", status: "active", provider: "manual", stripeCustomerId: null, stripeSubscriptionId: null, currentPeriodEnd: null });
+    expect(sub).toMatchObject({
+      plan: "pro",
+      status: "active",
+      provider: "manual",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      currentPeriodEnd: null,
+    });
     expect((await getEntitlements(handle.db, orgId)).plan).toBe("pro");
   });
 });
@@ -87,7 +132,10 @@ describe("cancelled at the period end (owner request 07.11.26)", () => {
     await handleStripeEvent(handle.db, { type: "customer.subscription.updated", data: { object: { ...base, status: "active", cancel_at_period_end: false } } });
     expect((await getSubscription(handle.db, orgId)).cancelAtPeriodEnd).toBe(false);
     // At the period end Stripe deletes the subscription: the workspace falls back to the default plan.
-    await handleStripeEvent(handle.db, { type: "customer.subscription.deleted", data: { object: { ...base, status: "canceled", cancel_at_period_end: true } } });
+    await handleStripeEvent(handle.db, {
+      type: "customer.subscription.deleted",
+      data: { object: { ...base, status: "canceled", cancel_at_period_end: true } },
+    });
     expect(await getSubscription(handle.db, orgId)).toMatchObject({ status: "canceled", cancelAtPeriodEnd: false });
     expect((await getEntitlements(handle.db, orgId)).plan).toBe("starter");
   });

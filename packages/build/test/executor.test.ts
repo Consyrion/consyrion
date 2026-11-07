@@ -260,6 +260,19 @@ describe("Execution Council", () => {
     expect(repaired[0]!.messages[0]!.content).toContain("cut off at the output limit");
   });
 
+  it("retries a coding answer that misses the schema once, naming what was wrong (GitHub build test 08.11.26)", async () => {
+    const { sessionId, resolveAdapter, adapters } = await approvedSession({ malformedFileChanges: 1 });
+    await submitApproval(handle.db, actor, sessionId, { action: "approve" });
+    const { id } = await startExecution(handle.db, actor, sessionId, { requirePlanApproval: false });
+    await runExecution({ db: handle.db, resolveAdapter, sandbox: new FakeSandbox(() => "passed"), concurrency: 1 }, id);
+    const view = await getExecutionView(handle.db, actor, id);
+    expect(view.plan.status).toBe("completed");
+    const coding = [...adapters.m1.requests, ...adapters.m2.requests].filter((r) => r.jsonSchema?.name === "file_changes");
+    const corrected = coding.filter((r) => r.messages[0]!.content.includes("did not match the required JSON structure"));
+    expect(corrected.length).toBeGreaterThan(0);
+    expect(corrected[0]!.messages[0]!.content).toMatch(/summary: /);
+  });
+
   it("resumes a failed run with only the failed task and keeps the finished work (#107)", async () => {
     // m2 implements T2 and is cut off twice (first answer and the larger retry), so T2 fails.
     const { sessionId, resolveAdapter, adapters } = await approvedSession({}, { truncatedFileChanges: 2 });

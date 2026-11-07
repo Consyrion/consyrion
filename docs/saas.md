@@ -58,6 +58,23 @@ Webhook `/api/billing/webhook` verifies `Stripe-Signature` (5 min tolerance) and
 `customer.subscription.created|updated|deleted`. Without these variables nothing can be charged; the admin
 assigns plans manually. Stripe test mode keys are recommended until launch.
 
+## Upgrade and back to Free (08.11.26)
+
+- **Upgrade entry in the sidebar:** "Auf Pro upgraden" (→ `/settings/billing#plans`) appears above the workspace card
+  only when the workspace is on the free plan (`starter`), online checkout is open (`onlineCheckoutOpen`: Stripe
+  configured, a live key only with final legal pages) and the user may manage billing (`billing:manage`). After the
+  upgrade it disappears; members without billing rights never see it.
+- **Back to Free on the billing page:** for a Stripe subscription the free plan shows "Zurück zu Free". It opens the
+  customer portal directly at the cancellation step (`/api/billing/portal` with `{ "flow": "cancel" }`, Stripe
+  `flow_data[type]=subscription_cancel`). The portal cancels at the period end, so the paid month stays usable; once the
+  webhook arrives the page shows "Zurück zu Free am …" and the plan card "endet am …" (#337).
+- A plan the platform admin assigned by hand (provider `manual`) cannot be cancelled online; the page asks the user to
+  get in touch instead.
+- **Back from Stripe before the webhook:** Stripe redirects at once, the webhook often follows seconds later, and the
+  app layout (sidebar upgrade entry) is not re-rendered on client navigation. So after `?checkout=success` (while the
+  plan is still Free) and after the portal (`?portal=return`) the billing page refreshes itself every 2 s for at most
+  30 s (`RefreshUntilSettled`); after a successful checkout it stops as soon as the plan has changed.
+
 ## Team
 
 Invitation links (no e-mail is sent): valid 7 days, bound to the invited address, count as a seat, revocable.

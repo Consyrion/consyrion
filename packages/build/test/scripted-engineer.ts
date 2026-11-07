@@ -14,11 +14,15 @@ export class ScriptedEngineer implements ProviderAdapter {
       parallelSameFile?: boolean;
       /** Number of coding answers cut off at the output limit before complete ones (thinking models). */
       truncatedFileChanges?: number;
+      /** Number of coding answers that miss the schema before valid ones (GitHub build test 08.11.26). */
+      malformedFileChanges?: number;
     } = {},
   ) {
     this.truncatedLeft = options.truncatedFileChanges ?? 0;
+    this.malformedLeft = options.malformedFileChanges ?? 0;
   }
   private truncatedLeft: number;
+  private malformedLeft: number;
   async listModels() {
     return [];
   }
@@ -30,6 +34,10 @@ export class ScriptedEngineer implements ProviderAdapter {
     if (name === "file_changes" && this.truncatedLeft > 0) {
       this.truncatedLeft -= 1;
       return { provider: "anthropic", model: "scripted", text: "{", json: undefined, stopReason: "max_tokens", usage: { inputTokens: Math.ceil(prompt.length / 4), outputTokens: request.maxOutputTokens } };
+    }
+    if (name === "file_changes" && this.malformedLeft > 0) {
+      this.malformedLeft -= 1;
+      return { provider: "anthropic", model: "scripted", text: "{}", json: { summary: 42 }, stopReason: "completed", usage: { inputTokens: Math.ceil(prompt.length / 4), outputTokens: 10 } };
     }
     let json: unknown;
     if (name === "development_plan" && this.options.parallelSameFile) {

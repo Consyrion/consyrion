@@ -15,8 +15,14 @@ export const POST = handle(async (request: Request) => {
   const db = await getDb();
   const sub = await getSubscription(db, actor.organizationId);
   if (!config || !sub.stripeCustomerId) throw new DomainError("CONFLICT", "No online subscription to manage");
+  // { flow: "cancel" } = "back to Free": the portal opens at the cancellation step of the current subscription.
+  const body = (await request.json().catch(() => ({}))) as { flow?: unknown };
+  const cancel = body?.flow === "cancel";
+  if (cancel && !sub.stripeSubscriptionId) throw new DomainError("CONFLICT", "No online subscription to manage");
   try {
-    const portal = await new StripeClient(config).createPortalSession(sub.stripeCustomerId, `${publicOrigin(request)}/settings/billing`);
+    const portal = await new StripeClient(config).createPortalSession(sub.stripeCustomerId, `${publicOrigin(request)}/settings/billing?portal=return`, {
+      cancelSubscriptionId: cancel ? sub.stripeSubscriptionId : null,
+    });
     return NextResponse.json({ url: portal.url });
   } catch (error) {
     if (!isMissingStripeCustomer(error)) throw error;

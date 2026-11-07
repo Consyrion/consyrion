@@ -95,7 +95,11 @@
       "colCost": "≈ 费用",
       "pricesTitle": "你的提供商价格（可选，用于估算）",
       "priceHint": "{provider} · {model}：输入 {input} / 输出 {output} {currency} 每百万",
-      "endsOn": "已取消——你的套餐在 {date} 前保持有效，之后工作区将切换为 Free。不会再扣费。"
+      "endsOn": "已取消——你的套餐在 {date} 前保持有效，之后工作区将切换为 Free。不会再扣费。",
+      "downgrade": "返回 {name}",
+      "downgradeHint": "在已付费周期结束时终止，在此之前一切照常可用。",
+      "downgradeScheduled": "将于 {date} 返回 {name} – 已安排取消。",
+      "downgradeManual": "此方案由平台团队分配。如需更改，请<contact>联系我们</contact>。"
     },
     "providers": {
       "needKey": "需要密钥？请在提供商控制台中创建：",
@@ -409,7 +413,18 @@
     "noFindings": "没有发现问题。",
     "loadingChecks": "正在加载 CI 状态…",
     "noChecks": "该 Pull Request 尚未报告 CI 检查。",
-    "ciChecks": "CI 检查："
+    "ciChecks": "CI 检查：",
+    "readinessText": {
+      "notRunGithub": "CONSYRION AI 未自行运行测试（此服务器没有沙箱）——结果见草稿拉取请求的 GitHub Actions（下方 CI 检查）。",
+      "noRun": "此更改没有沙箱测试运行。",
+      "installTimeout": "上次沙箱运行中安装依赖超时。",
+      "installFailed": "上次沙箱运行中安装依赖失败。",
+      "runTimeout": "上次沙箱测试运行超时。",
+      "runError": "上次沙箱测试运行出错。",
+      "runFailed": "上次沙箱测试运行失败。",
+      "highFindings": "{n, plural, other {# 个高严重度审查发现}}——合并前请检查。",
+      "criticalFindings": "{n, plural, other {# 个严重审查发现}}：{list}"
+    }
   },
   "auth": {
     "failed": "身份验证失败",

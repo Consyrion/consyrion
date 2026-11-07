@@ -1,12 +1,12 @@
-import { can, isSelfHosted, isUnlimited, type Entitlements } from "@consyrion/core";
+import { can, DEFAULT_PLAN, isSelfHosted, isUnlimited, type Entitlements } from "@consyrion/core";
 import { approximateCost, getEntitlements, getPlanCatalog, getSubscription, listPriceHints, usageThisMonth } from "@consyrion/db";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { DeleteHint, PortalButton, PriceHintForm, UpgradeButton } from "@/components/saas";
+import Link from "next/link";
+import { DeleteHint, DowngradeButton, PortalButton, PriceHintForm, RefreshUntilSettled, UpgradeButton } from "@/components/saas";
 import { Alert, Badge, Card, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
-import { getStripeConfig } from "@/lib/server/stripe";
-import { hasPlaceholders } from "@/lib/legal";
+import { onlineCheckoutOpen } from "@/lib/server/stripe";
 
 export async function generateMetadata() {
   const t = await getTranslations("settings.pages");
@@ -32,7 +32,7 @@ function Meter({ label, used, limit, limitLabel }: { label: string; used: number
   );
 }
 
-export default async function BillingPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ checkout?: string; portal?: string }> }) {
   const actor = await requirePageActor();
   const t = await getTranslations("settings.billing");
   const format = await getFormatter();
@@ -53,18 +53,20 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     usageThisMonth(db, actor.organizationId),
     listPriceHints(db, actor),
   ]);
-  const stripeConfig = await getStripeConfig();
   // Live checkout stays closed while the legal pages are drafts (same rule as /api/billing/checkout).
-  const stripe = Boolean(stripeConfig) && !(/^(sk|rk)_live_/.test(stripeConfig!.secretKey) && hasPlaceholders());
+  const stripe = await onlineCheckoutOpen();
   const canBill = can(actor.role, "billing:manage");
   const limitText = (limit: number) => (isUnlimited(limit) ? t("unlimited") : String(limit));
   const meterLimit = (limit: number) => (isUnlimited(limit) ? t("unlimited") : limit === 0 ? t("notIncluded") : String(limit));
   const meter = (label: string, used: number, limit: number) => <Meter label={label} used={used} limit={limit} limitLabel={meterLimit(limit)} />;
   const statusKey = `status.${sub.status}`;
+  const query = await searchParams;
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
-      {(await searchParams).checkout === "success" ? (
+      {/* Back from Stripe before the webhook arrived: refresh (page and app layout) until the change is stored. */}
+      {(query.checkout === "success" && plan === DEFAULT_PLAN) || query.portal === "return" ? <RefreshUntilSettled /> : null}
+      {query.checkout === "success" ? (
         <div className="mb-4">
           <Alert tone="success">{t("checkoutSuccess")}</Alert>
         </div>
@@ -97,7 +99,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
             </div>
           ) : null}
         </Card>
-        <Card>
+        <Card id="plans" className="scroll-mt-6">
           <h2 className="font-semibold">{t("plans")}</h2>
           {!stripe ? <p className="mt-1 text-sm text-muted">{t("noCheckout")}</p> : null}
           <ul className="mt-3 space-y-3">
@@ -124,6 +126,30 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                       <Badge tone="success">{t("current")}</Badge>
                     ) : canBill && stripe && p.stripePriceId ? (
                       <UpgradeButton plan={p.key} label={t("choose", { name: p.name })} />
+                    ) : p.key === DEFAULT_PLAN && plan !== DEFAULT_PLAN ? (
+                      // Back to the free plan (owner request 08.11.26). A Stripe subscription ends at the period end
+                      // (cancel_at_period_end, #337): the paid month stays usable. A plan the platform admin assigned
+                      // by hand cannot be cancelled online.
+                      sub.provider !== "stripe" ? (
+                        <span className="max-w-xs text-xs text-muted">
+                          {t.rich("downgradeManual", {
+                            contact: (chunks) => (
+                              <Link className="underline hover:text-text" href="/settings/feedback">
+                                {chunks}
+                              </Link>
+                            ),
+                          })}
+                        </span>
+                      ) : sub.cancelAtPeriodEnd && sub.currentPeriodEnd ? (
+                        <span className="max-w-xs text-xs text-warning">
+                          {t("downgradeScheduled", { name: p.name, date: format.dateTime(sub.currentPeriodEnd, { dateStyle: "medium" }) })}
+                        </span>
+                      ) : canBill ? (
+                        <span className="flex max-w-xs flex-col items-end gap-1 text-right">
+                          <DowngradeButton label={t("downgrade", { name: p.name })} />
+                          <span className="text-xs text-muted">{t("downgradeHint")}</span>
+                        </span>
+                      ) : null
                     ) : null}
                   </li>
                 );

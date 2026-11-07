@@ -95,7 +95,11 @@
       "colCost": "≈ Cost",
       "pricesTitle": "Your provider prices (optional, for the estimate)",
       "priceHint": "{provider} · {model}: in {input} / out {output} {currency} per 1M",
-      "endsOn": "Cancelled – your plan stays active until {date}, then the workspace moves to Free. Nothing more is charged."
+      "endsOn": "Cancelled – your plan stays active until {date}, then the workspace moves to Free. Nothing more is charged.",
+      "downgrade": "Back to {name}",
+      "downgradeHint": "Ends at the end of the paid period – until then everything stays available.",
+      "downgradeScheduled": "Back to {name} on {date} – the cancellation is scheduled.",
+      "downgradeManual": "This plan was assigned by the platform team. To change it, <contact>contact us</contact>."
     },
     "providers": {
       "needKey": "Need a key? Create one in the provider console:",
@@ -409,7 +413,18 @@
     "noFindings": "No findings.",
     "loadingChecks": "Loading CI status…",
     "noChecks": "No CI checks reported for the pull request yet.",
-    "ciChecks": "CI checks:"
+    "ciChecks": "CI checks:",
+    "readinessText": {
+      "notRunGithub": "CONSYRION AI did not run the tests itself (no sandbox on this server) – the draft pull request's GitHub Actions show the result (CI checks below).",
+      "noRun": "There is no sandbox test run for this change.",
+      "installTimeout": "Installing dependencies timed out in the latest sandbox run.",
+      "installFailed": "Installing dependencies failed in the latest sandbox run.",
+      "runTimeout": "The latest sandbox test run timed out.",
+      "runError": "The latest sandbox test run errored.",
+      "runFailed": "The latest sandbox test run failed.",
+      "highFindings": "{n, plural, one {# high-severity review finding} other {# high-severity review findings}} – check before merging.",
+      "criticalFindings": "{n, plural, one {# critical review finding} other {# critical review findings}}: {list}"
+    }
   },
   "auth": {
     "failed": "Authentication failed",

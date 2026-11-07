@@ -95,7 +95,11 @@
       "colCost": "≈ Kosten",
       "pricesTitle": "Deine Anbieterpreise (optional, für die Schätzung)",
       "priceHint": "{provider} · {model}: Input {input} / Output {output} {currency} pro 1 Mio.",
-      "endsOn": "Gekündigt – dein Plan bleibt bis {date} aktiv, danach wechselt der Workspace auf Free. Es wird nichts mehr abgebucht."
+      "endsOn": "Gekündigt – dein Plan bleibt bis {date} aktiv, danach wechselt der Workspace auf Free. Es wird nichts mehr abgebucht.",
+      "downgrade": "Zurück zu {name}",
+      "downgradeHint": "Endet zum Ende des bezahlten Zeitraums – bis dahin bleibt alles nutzbar.",
+      "downgradeScheduled": "Zurück zu {name} am {date} – die Kündigung ist vorgemerkt.",
+      "downgradeManual": "Dieser Plan wurde vom Plattform-Team zugewiesen. Für eine Änderung <contact>nimm Kontakt auf</contact>."
     },
     "providers": {
       "needKey": "Brauchst du einen Key? Erstelle ihn in der Konsole des Anbieters:",
@@ -409,7 +413,18 @@
     "noFindings": "Keine Befunde.",
     "loadingChecks": "CI-Status wird geladen…",
     "noChecks": "Für den Pull Request wurden noch keine CI-Checks gemeldet.",
-    "ciChecks": "CI-Checks:"
+    "ciChecks": "CI-Checks:",
+    "readinessText": {
+      "notRunGithub": "CONSYRION AI hat die Tests nicht selbst ausgeführt (keine Sandbox auf diesem Server) – das Ergebnis zeigen die GitHub Actions des Draft-Pull-Requests (CI-Checks unten).",
+      "noRun": "Für diese Änderung gibt es keinen Testlauf in der Sandbox.",
+      "installTimeout": "Die Installation der Abhängigkeiten hat im letzten Sandbox-Lauf das Zeitlimit überschritten.",
+      "installFailed": "Die Installation der Abhängigkeiten ist im letzten Sandbox-Lauf fehlgeschlagen.",
+      "runTimeout": "Der letzte Testlauf in der Sandbox hat das Zeitlimit überschritten.",
+      "runError": "Der letzte Testlauf in der Sandbox brach mit einem Fehler ab.",
+      "runFailed": "Der letzte Testlauf in der Sandbox ist fehlgeschlagen.",
+      "highFindings": "{n, plural, one {# Review-Befund} other {# Review-Befunde}} mit hoher Schwere – vor dem Mergen prüfen.",
+      "criticalFindings": "{n, plural, one {# kritischer Review-Befund} other {# kritische Review-Befunde}}: {list}"
+    }
   },
   "auth": {
     "failed": "Anmeldung fehlgeschlagen",

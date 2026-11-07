@@ -36,6 +36,9 @@ export function executionStates(exec: ExecutionFacts | null): ExecutionStates {
     if (exec.reviews.length > 0 && build !== "running") [reviewTests, reviewTestsText] = ["blocked", "reviewed, tests not run"];
     else [reviewTests, reviewTestsText] = [build === "running" ? "running" : "pending", build === "running" ? "running" : "not started"];
   } else if (latest === "passed") [reviewTests, reviewTestsText] = ["completed", exec.reviews.length > 0 ? "tests passed, reviewed" : "tests passed"];
+  // GitHub build test 08.11.26: without a sandbox the draft PR's GitHub Actions run the tests – that is the expected
+  // path, not a warning; whether they passed is shown on the Review & Tests screen (live CI checks).
+  else if (latest === "not_run" && exec.plan.pullRequestUrl) [reviewTests, reviewTestsText] = ["pending", "tests run in GitHub Actions"];
   else if (latest === "not_run") [reviewTests, reviewTestsText] = ["blocked", "tests not run"];
   else [reviewTests, reviewTestsText] = ["failed", latest === "timeout" ? "tests timed out" : "tests failed"];
   if (build === "running" && reviewTests !== "failed") [reviewTests, reviewTestsText] = ["running", "running"];

@@ -80,6 +80,7 @@ export function AppShell({
   organizationName,
   isAdmin = false,
   adminBadge = 0,
+  showUpgrade = false,
   children,
 }: {
   user: { name: string; email: string };
@@ -87,6 +88,8 @@ export function AppShell({
   isAdmin?: boolean;
   /** Number of new feedback reports, shown next to the Admin entry (#295). */
   adminBadge?: number;
+  /** Free plan, online checkout open and allowed to manage billing: a visible way to upgrade. */
+  showUpgrade?: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations("shell");
@@ -171,6 +174,20 @@ export function AppShell({
           )}
         </nav>
         <div className="relative mt-auto space-y-2 pt-8">
+          {showUpgrade ? (
+            <Link
+              href="/settings/billing#plans"
+              onClick={() => setOpen(false)}
+              data-testid="upgrade-link"
+              className="flex items-center justify-between gap-2 rounded-xl bg-[linear-gradient(90deg,#1cc8ff,#5ef0c8)] px-3.5 py-3 text-sm font-semibold text-[#03121c] shadow-[0_0_24px_-8px_rgb(34_211_238/0.7)] hover:brightness-110"
+            >
+              <span className="min-w-0">
+                <span className="block">{t("upgrade.title")}</span>
+                <span className="block text-xs font-normal opacity-80">{t("upgrade.text")}</span>
+              </span>
+              <Icon name="arrow" className="size-4 shrink-0" />
+            </Link>
+          ) : null}
           <Link
             href="/settings/workspace"
             onClick={() => setOpen(false)}

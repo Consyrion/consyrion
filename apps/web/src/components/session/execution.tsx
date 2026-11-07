@@ -394,12 +394,35 @@ export function ExecutionScreen({ view, canApprove }: { view: View; canApprove: 
   );
 }
 
+/**
+ * GitHub build test 08.11.26: the readiness reasons and warnings (packages/core/src/readiness.ts) are English sentences;
+ * the known ones are shown in the interface language, anything else as sent.
+ */
+function useReadinessText() {
+  const t = useTranslations("executionScreen.readinessText");
+  return (text: string): string => {
+    if (text.startsWith("Tests were not executed by CONSYRION AI")) return t("notRunGithub");
+    // Pattern, not the literal sentence: the readiness wording is a bundle marker (scripts/check-client-bundle.mjs).
+    if (/^No sandbox test run exists for this/.test(text)) return t("noRun");
+    let m = /^Installing dependencies (timed out|failed) in the latest sandbox run\.$/.exec(text);
+    if (m) return t(m[1] === "timed out" ? "installTimeout" : "installFailed");
+    m = /^The latest sandbox test run (timed out|errored|failed)\.$/.exec(text);
+    if (m) return t(m[1] === "timed out" ? "runTimeout" : m[1] === "errored" ? "runError" : "runFailed");
+    m = /^(\d+) high-severity review finding\(s\) – check them before merging\.$/.exec(text);
+    if (m) return t("highFindings", { n: Number(m[1]) });
+    m = /^(\d+) critical review finding\(s\): (.*)$/.exec(text);
+    if (m) return t("criticalFindings", { n: Number(m[1]), list: m[2]! });
+    return text;
+  };
+}
+
 /** Screen #46 – tests and reviews. Only real sandbox runs and stored reviews are shown. */
 export function ReviewTestsScreen({ view }: { view: View }) {
   const { exec } = useExecution(view.session.id);
   const t = useTranslations("executionScreen");
   const format = useFormatter();
   const label = useStatusLabel();
+  const readinessText = useReadinessText();
   if (!exec) return <EmptyState title={t("noRunTitle")} description={t("noRunText")} />;
   const last = exec.tests.filter((t) => !t.kind.endsWith(":install")).at(-1);
   return (
@@ -415,12 +438,12 @@ export function ReviewTestsScreen({ view }: { view: View }) {
           </li>
           {readinessOf(exec).reasons.map((r) => (
             <li key={r} className="text-danger">
-              {t("blocksPr", { reason: r })}
+              {t("blocksPr", { reason: readinessText(r) })}
             </li>
           ))}
           {readinessOf(exec).warnings.map((w) => (
             <li key={w} className="text-warning">
-              {w}
+              {readinessText(w)}
             </li>
           ))}
           <li>

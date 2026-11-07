@@ -18,7 +18,11 @@
     "quickNav": "Quick navigation",
     "toggleTheme": "Toggle light/dark",
     "signOut": "Sign out",
-    "source": "Open source (AGPL-3.0) · Source code"
+    "source": "Open source (AGPL-3.0) · Source code",
+    "upgrade": {
+      "title": "Upgrade to Pro",
+      "text": "Unlimited councils, up to 6 models, MCP"
+    }
   },
   "dashboard": {
     "metaTitle": "Dashboard",
@@ -112,7 +116,8 @@
       "failed": "{failed} of {calls} requests failed or were unusable.",
       "perspectives": "Perspectives",
       "more": "+{n} more",
-      "none": "No models."
+      "none": "No models.",
+      "sessions": "Took part in {n, plural, one {# session} other {# sessions}}"
     },
     "compact": {
       "live": "LIVE COUNCIL",
@@ -220,7 +225,34 @@
     "executionAfterApproval": "Execution only after your approval",
     "delete": "Delete project",
     "deleteText": "Permanently deletes the project with all council sessions, decisions, generated code and documents.",
-    "deleteButton": "Delete project permanently"
+    "deleteButton": "Delete project permanently",
+    "overview": {
+      "title": "Project overview",
+      "pick": "Council shown in the graphic",
+      "latest": "Latest",
+      "allSessions": "All sessions ({n})",
+      "allSessionsShort": "All sessions",
+      "center": "Decision",
+      "models": "{n, plural, one {# model} other {# models}}",
+      "openSession": "Open session",
+      "allNote": "{n, plural, one {# model} other {# models}} across the project's councils – each model once",
+      "status": "Status",
+      "sessions": "Council sessions",
+      "lastDecision": "Latest decision",
+      "approval": "Approval",
+      "build": "Build / draft PR",
+      "draftPr": "Draft pull request",
+      "repository": "Repository",
+      "requirements": "Confirmed requirements",
+      "tokens": "Tokens in total",
+      "tokensValue": "{total} (council {council}, build {build})",
+      "created": "Created",
+      "updated": "Updated",
+      "none": "–",
+      "emptyTitle": "No council yet",
+      "emptyText": "Start a council: several AI models think independently, debate and reach a verdict you approve. Here you will then see which models took part.",
+      "emptyNoRights": "Only members who may run decisions can start a council"
+    }
   },
   "councilSetup": {
     "metaTitle": "Configure AI team",

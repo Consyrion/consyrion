@@ -132,6 +132,13 @@ const BINDING =
  */
 const OPTION_FACT =
   /(?<![\p{L}\d])(?:bei|für|von|option|variante|alternative|angebot)\s+[A-H](?![\p{L}\d])|\balle\s+(?:zwei|drei|vier|fünf|\d+)\s+(?:lösungen|angebote|alternativen|optionen|varianten|anbieter|vorschläge)\b|\ball\s+(?:two|three|four|five|\d+)\s+(?:alternatives|options|solutions|offers|vendors|proposals)\b|\b(?:must|has to|needs to)\s+(?:choose|decide|select|pick)\b|\bmuss\s+(?:sich\s+)?(?:entscheiden|wählen|auswählen)\b/iu;
+/**
+ * GitHub build test 08.11.26 (R3, ChatGPT P3): "Die Implementierung soll möglichst unter 80 Zeilen bleiben" is a
+ * preference, not a hard requirement – "keine" inside it made it binding. Soft wording proposes an idea/goal sentence
+ * as context; one click keeps it.
+ */
+const SOFT_WORDING =
+  /\b(?:möglichst|idealerweise|nach\s+möglichkeit|wenn\s+möglich|wo\s+möglich|tendenziell|preferably|ideally|if\s+possible|where\s+possible|as\s+far\s+as\s+possible)\b/i;
 const SELF_CONTEXT =
   /\b(?:hintergrund\w*|kontextinformation\w*|nur\s+(?:zur\s+)?(?:info\w*|kontext)|historische\s+angabe|background(?:\s+information)?|for\s+context|context\s+only|historical\s+(?:note|figure|information))\b/i;
 /**
@@ -148,8 +155,15 @@ const EVALUATION_RULE =
  *  handles it (#339); it is no product requirement. */
 const OUTPUT_LANGUAGE =
   /\b(?:proposals?|critiques?|evaluations?|answers?|responses?|reasoning|outputs?|vorschläge|bewertungen|antworten|begründung\w*|ausgaben?)\b.{0,160}?\b(?:in|auf)\s+(?:english|englisch|german|deutsch|french|französisch|spanish|spanisch)\b/i;
+/**
+ * R3 (ChatGPT P3): rules about CONSYRION's own workflow ("Kein automatischer Merge.", "Der Draft-PR soll durch die
+ * bestehende Pipeline geprüft werden") describe how the build is delivered – CONSYRION only opens draft pull requests
+ * and never merges – not what the product must do.
+ */
+const WORKFLOW_RULE =
+  /\b(?:(?:kein|keine|keinen|no)\s+(?:automatische[nr]?\s+|automatic\s+)?(?:merge|auto-?merge)|auto-?merge|draft-?(?:pull-?request|pr)\b|pull[-\s]request\s+(?:must|should|soll|muss))/i;
 export function isWorkInstruction(text: string): boolean {
-  return WORK_INSTRUCTION.test(text) || EVALUATION_RULE.test(text) || OUTPUT_LANGUAGE.test(text);
+  return WORK_INSTRUCTION.test(text) || EVALUATION_RULE.test(text) || OUTPUT_LANGUAGE.test(text) || WORKFLOW_RULE.test(text);
 }
 /**
  * R2-04 (night test 08.11.26): the idea restated R1/R2 in reported speech ("Die Geschäftsführung hat verlangt, dass
@@ -206,7 +220,7 @@ function repeats(text: string, of: string): boolean {
 
 function soundsBinding(text: string): boolean {
   const own = withoutQuotes(text);
-  if (SELF_CONTEXT.test(own) || OPTION_FACT.test(own)) return false;
+  if (SELF_CONTEXT.test(own) || OPTION_FACT.test(own) || SOFT_WORDING.test(own)) return false;
   return BINDING.test(own) || detectMeasure(own) !== null;
 }
 

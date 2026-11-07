@@ -62,7 +62,8 @@
       "passed": "Tests bestanden",
       "notRun": "Tests nicht ausgeführt",
       "timedOut": "Tests haben das Zeitlimit überschritten",
-      "testsFailed": "Tests fehlgeschlagen"
+      "testsFailed": "Tests fehlgeschlagen",
+      "inGithub": "Tests laufen in GitHub Actions"
     },
     "tabsNote": "Die Tabs folgen den sieben kanonischen Phasen. Minority Review und Consensus Round teilen sich eine Ansicht; Evaluation und Review & Tests sind Detailansichten von Final Verdict und Execution Council."
   },
@@ -414,7 +415,27 @@
       "provisional": "vorläufiger Favorit – eingeschränkte Prüfung"
     },
     "eurPerMonth": "EUR pro Monat",
-    "estimate": "Geschätzt von {n, plural, one {# Modell} other {# Modellen}}: {low}–{high}{unit} (Median {median}) · Grenze {relation} {limit}{unit}. Nur erfüllt, wenn jede Spanne die Grenze einhält.",
+    "estimate": {
+      "cause": "{id} {status}: Schätzungen {low}–{high}{unit} (Median {median}), Grenze {relation} {limit}{unit}; {parts} (Modellschätzungen).",
+      "status": {
+        "notMet": "nicht erfüllt",
+        "disputed": "umstritten",
+        "notConfirmed": "nicht bestätigt"
+      },
+      "relation": {
+        "below": "unter",
+        "atMost": "höchstens",
+        "above": "über",
+        "atLeast": "mindestens"
+      },
+      "eurPerMonth": " EUR pro Monat",
+      "part": {
+        "missed": "{k} von {n} Bewertern erwarten, dass die Grenze verfehlt wird",
+        "across": "bei {k} von {n} Bewertern reicht die Spanne über die Grenze",
+        "noEstimate": "{k} von {n} Bewertern gaben keine brauchbare Schätzung",
+        "noAnswer": "{k} von {n} Bewertern gaben keine gültige Antwort"
+      }
+    },
     "relation": {
       "below": "unter",
       "atMost": "höchstens",

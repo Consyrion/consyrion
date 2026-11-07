@@ -377,6 +377,24 @@ describe("test cases 30.10.26: soft idea and goal sentences are context, binding
     expect(proposal.excluded.filter((e) => /^Repeats a requirement/.test(e.reason))).toHaveLength(2);
   });
 
+  it("R3 (GitHub build test 08.11.26): soft goals and workflow rules from the goal are no hard requirements", async () => {
+    const id = (
+      await createProject(handle.db, actor, {
+        name: "QA R3 weich",
+        type: "architecture",
+        brief: {
+          idea: "Eine kleine Todo-App soll eine Suche bekommen.",
+          goal: "Die Implementierung soll möglichst unter 80 geänderten Codezeilen einschließlich Tests bleiben, keine neue Infrastruktur benötigen und bestehende Funktionen unverändert lassen. Der Draft-PR soll durch die bestehende GitHub-Actions-Pipeline geprüft werden. Kein automatischer Merge.",
+          requirements: "createStore() muss eine zusätzliche Methode search(query) bereitstellen.",
+        },
+      })
+    ).id;
+    const proposal = await proposeRequirementList(handle.db, actor, id);
+    expect(proposal.items.filter((i) => i.source.kind !== "requirements").map((i) => i.text)).toEqual([]);
+    expect(proposal.excluded.some((e) => /Kein automatischer Merge/.test(e.text) && /^A work instruction/.test(e.reason))).toBe(true);
+    expect(proposal.excluded.some((e) => /möglichst/.test(e.text) && /^From the idea or goal/.test(e.reason))).toBe(true);
+  });
+
   it("R2-01/R2-02 (night test 08.11.26): option facts, the decision sentence and evaluation rules are no requirements", async () => {
     const english = (
       await createProject(handle.db, actor, {

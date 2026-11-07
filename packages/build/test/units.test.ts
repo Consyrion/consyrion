@@ -77,12 +77,16 @@ describe.skipIf(!dockerAvailable)("docker sandbox (integration, runs where Docke
 });
 
 describe("pull request title", () => {
-  it("uses the first sentence and never cuts a word", () => {
-    expect(pullRequestTitle("Add remove(id). Then write tests.")).toBe("Consyrion: Add remove(id)");
+  it("uses a short first sentence, else the first task, and never cuts a word", () => {
+    expect(pullRequestTitle("Add remove(id). Then write tests.")).toBe("CONSYRION AI: Add remove(id)");
+    // GitHub build test 08.11.26: a long summary sentence gives way to the first task's title.
+    expect(
+      pullRequestTitle("Implement Option A in src/todos.js: add search(query) that validates input, trims and lowercases the query.", "Add search(query) to the todo store"),
+    ).toBe("CONSYRION AI: Add search(query) to the todo store");
     const long = pullRequestTitle("Implement an additive, synchronous remove(id) method on the in-memory store returned by createStore in src/todos.js and more");
-    expect(long.length).toBeLessThanOrEqual(80);
+    expect(long.length).toBeLessThanOrEqual(72);
     expect(long.endsWith("…")).toBe(true);
     expect(long).not.toMatch(/src\/to…$/);
-    expect(pullRequestTitle(null)).toBe("Consyrion: Implement approved decision");
+    expect(pullRequestTitle(null)).toBe("CONSYRION AI: Implement approved decision");
   });
 });

@@ -203,3 +203,6 @@ requirements no proposal meets (#339).
 - Duplicates (R2-04, 08.11.26): an idea or goal sentence with the same numbers and at least three shared word stems as
   a requirements-field item ("Die Geschäftsführung hat verlangt, dass … spätestens nach sieben Tagen gelöscht …") is
   proposed as excluded (`DUPLICATE_EXCLUSION_REASON`, `requirements.reasons.duplicate`); one click keeps it.
+- Soft goals and workflow rules (GitHub build test 08.11.26): an idea/goal sentence with soft wording ("möglichst",
+  "idealerweise", "preferably", "if possible" …) is context; a rule about CONSYRION's own delivery ("Kein automatischer
+  Merge.", "Der Draft-PR soll … geprüft werden") is a work instruction – CONSYRION only opens draft pull requests.

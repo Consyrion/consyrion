@@ -28,7 +28,7 @@ const SLOTS: Array<{ x: number; y: number; label: "below" | "right" | "left" }> 
 const STARS = Array.from({ length: 70 }, (_, i) => {
   const a = Math.sin(i * 12.9898) * 43758.5453;
   const b = Math.sin(i * 78.233) * 12543.123;
-  return { x: (a - Math.floor(a)) * W, y: (b - Math.floor(b)) * H, r: 0.4 + ((a * 7) % 1 + 1) % 1 * 0.9, o: 0.15 + (((b * 3) % 1) + 1) % 1 * 0.5 };
+  return { x: (a - Math.floor(a)) * W, y: (b - Math.floor(b)) * H, r: 0.4 + ((((a * 7) % 1) + 1) % 1) * 0.9, o: 0.15 + ((((b * 3) % 1) + 1) % 1) * 0.5 };
 });
 
 /** Glyph inside a node ring, per provider (concept: rings, star, ring). */
@@ -70,7 +70,9 @@ function ribbon(from: Point, to: Point, strands: number) {
     const t = strands === 1 ? 0 : k / (strands - 1) - 0.5;
     const c1 = { x: from.x + dx * 0.45, y: from.y + t * 46 };
     const c2 = { x: from.x + dx * 0.55, y: to.y - t * 46 };
-    paths.push(`M${from.x.toFixed(1)} ${(from.y + t * 6).toFixed(1)} C${c1.x.toFixed(1)} ${c1.y.toFixed(1)}, ${c2.x.toFixed(1)} ${c2.y.toFixed(1)}, ${to.x.toFixed(1)} ${(to.y + t * 8).toFixed(1)}`);
+    paths.push(
+      `M${from.x.toFixed(1)} ${(from.y + t * 6).toFixed(1)} C${c1.x.toFixed(1)} ${c1.y.toFixed(1)}, ${c2.x.toFixed(1)} ${c2.y.toFixed(1)}, ${to.x.toFixed(1)} ${(to.y + t * 8).toFixed(1)}`,
+    );
   }
   return paths;
 }
@@ -159,6 +161,7 @@ function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)
       </div>
       <p className="mt-1 font-mono text-[11.5px] break-all text-[#9aa9c6]">{node.model}</p>
       <p className="mt-2">{t(`activity.hint.${node.state}`)}</p>
+      {details?.sessions ? <p className="mt-1 text-[12px] text-[#9aa9c6]">{t("activity.sessions", { n: details.sessions })}</p> : null}
       {details ? (
         <>
           <dl className="mt-2.5 grid grid-cols-3 gap-2 border-t border-white/10 pt-2.5">
@@ -169,15 +172,23 @@ function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)
             ].map(([label, value]) => (
               <div key={label}>
                 <dt className="text-[10.5px] tracking-wider text-[#7f8db0] uppercase">{label}</dt>
-                <dd className="text-[15px] font-semibold text-[#e8eefc] tabular-nums">{format.number(value as number, { notation: "compact", maximumFractionDigits: 1 })}</dd>
+                <dd className="text-[15px] font-semibold text-[#e8eefc] tabular-nums">
+                  {format.number(value as number, { notation: "compact", maximumFractionDigits: 1 })}
+                </dd>
               </div>
             ))}
           </dl>
-          {details.failedCalls ? <p className="mt-2 text-[12px] text-[#fbbf24]">{t("activity.failed", { failed: details.failedCalls, calls: details.calls })}</p> : null}
+          {details.failedCalls ? (
+            <p className="mt-2 text-[12px] text-[#fbbf24]">{t("activity.failed", { failed: details.failedCalls, calls: details.calls })}</p>
+          ) : null}
           {roles.length ? (
             <ul className="mt-2.5 flex flex-wrap gap-1" aria-label={t("activity.perspectives")}>
               {roles.slice(0, 4).map((role) => (
-                <li key={role} className="rounded-full border px-2 py-0.5 text-[11px]" style={{ borderColor: `color-mix(in oklab, ${color} 50%, transparent)` }}>
+                <li
+                  key={role}
+                  className="rounded-full border px-2 py-0.5 text-[11px]"
+                  style={{ borderColor: `color-mix(in oklab, ${color} 50%, transparent)` }}
+                >
                   {role}
                 </li>
               ))}
@@ -328,7 +339,13 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
         setActive(null);
       }}
     >
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full rounded-2xl" role="group" aria-label={`${centerTitle} – ${centerSubtitle}. ${summary || t("activity.none")}`}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-auto w-full rounded-2xl"
+        role="group"
+        aria-label={`${centerTitle} – ${centerSubtitle}. ${summary || t("activity.none")}`}
+      >
         <defs>
           <radialGradient id="an-neb-a" cx="0.3" cy="0.55" r="0.5">
             <stop offset="0" stopColor="#2f7bff" stopOpacity="0.28" />
@@ -392,7 +409,14 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
           const dim = node.state === "idle";
           const opacity = active === i ? 1 : active != null ? 0.3 : dim ? 0.45 : 1;
           return (
-            <g key={`link-${node.id}`} aria-hidden="true" fill="none" stroke={`url(#an-link-${i})`} opacity={opacity} className="transition-opacity duration-200">
+            <g
+              key={`link-${node.id}`}
+              aria-hidden="true"
+              fill="none"
+              stroke={`url(#an-link-${i})`}
+              opacity={opacity}
+              className="transition-opacity duration-200"
+            >
               <path d={core} strokeWidth={14} strokeOpacity={active === i ? 0.45 : 0.25} filter="url(#an-soft)" />
               {strands.map((d, k) => (
                 <path key={k} d={d} strokeWidth={0.7} strokeOpacity={0.35} />
@@ -405,10 +429,27 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
                 style={working ? ({ "--travel": "-96px", animation: "consyrion-flow 1.4s linear infinite" } as CSSProperties) : undefined}
               />
               {[0, 1].map((k) => (
-                <path key={`arc-${k}`} ref={(el) => void (arcRefs.current[i * 2 + k] = el)} d="" opacity={0} stroke="#e6f6ff" strokeWidth={k ? 0.8 : 1.2} strokeLinejoin="round" filter="url(#an-zap)" />
+                <path
+                  key={`arc-${k}`}
+                  ref={(el) => void (arcRefs.current[i * 2 + k] = el)}
+                  d=""
+                  opacity={0}
+                  stroke="#e6f6ff"
+                  strokeWidth={k ? 0.8 : 1.2}
+                  strokeLinejoin="round"
+                  filter="url(#an-zap)"
+                />
               ))}
               {[0, 1].map((k) => (
-                <circle key={`spark-${k}`} ref={(el) => void (sparkRefs.current[i * 2 + k] = el)} r={2.4} fill="#ffffff" stroke="none" opacity={0} filter="url(#an-zap)" />
+                <circle
+                  key={`spark-${k}`}
+                  ref={(el) => void (sparkRefs.current[i * 2 + k] = el)}
+                  r={2.4}
+                  fill="#ffffff"
+                  stroke="none"
+                  opacity={0}
+                  filter="url(#an-zap)"
+                />
               ))}
             </g>
           );
@@ -460,13 +501,39 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
               <circle cx={slot.x} cy={slot.y} r={NODE_R + 12} fill="transparent" />
               <g ref={(el) => void (nodeRefs.current[i] = el)}>
                 {node.state === "working" ? (
-                  <circle cx={slot.x} cy={slot.y} r={44} fill={color} opacity={0.16} style={{ transformOrigin: `${slot.x}px ${slot.y}px`, animation: "consyrion-pulse 1.8s ease-in-out infinite" }} data-pulse="true" />
+                  <circle
+                    cx={slot.x}
+                    cy={slot.y}
+                    r={44}
+                    fill={color}
+                    opacity={0.16}
+                    style={{ transformOrigin: `${slot.x}px ${slot.y}px`, animation: "consyrion-pulse 1.8s ease-in-out infinite" }}
+                    data-pulse="true"
+                  />
                 ) : null}
                 <circle cx={slot.x} cy={slot.y} r={NODE_R + 6} fill={color} opacity={isActive ? 0.6 : 0.35} filter="url(#an-glow)" />
                 <circle cx={slot.x} cy={slot.y} r={NODE_R} fill="#071226" stroke={color} strokeWidth={isActive ? 4 : 3} />
                 <circle cx={slot.x} cy={slot.y} r={NODE_R - 5} fill="none" stroke={color} strokeOpacity={0.35} strokeWidth={1} />
-                <path ref={(el) => void (coronaRefs.current[i] = el)} d="" opacity={0} fill="none" stroke={node.state === "failed" ? color : "#e6f6ff"} strokeWidth={1.2} strokeLinejoin="round" filter="url(#an-zap)" />
-                <circle className="an-focus opacity-0" cx={slot.x} cy={slot.y} r={NODE_R + 9} fill="none" stroke="#e8eefc" strokeWidth={1.5} strokeDasharray="4 4" />
+                <path
+                  ref={(el) => void (coronaRefs.current[i] = el)}
+                  d=""
+                  opacity={0}
+                  fill="none"
+                  stroke={node.state === "failed" ? color : "#e6f6ff"}
+                  strokeWidth={1.2}
+                  strokeLinejoin="round"
+                  filter="url(#an-zap)"
+                />
+                <circle
+                  className="an-focus opacity-0"
+                  cx={slot.x}
+                  cy={slot.y}
+                  r={NODE_R + 9}
+                  fill="none"
+                  stroke="#e8eefc"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                />
                 <g transform={`translate(${slot.x} ${slot.y})`}>
                   <Glyph provider={node.provider} color={color} />
                 </g>

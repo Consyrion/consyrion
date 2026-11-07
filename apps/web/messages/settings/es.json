@@ -95,7 +95,11 @@
       "colCost": "≈ Coste",
       "pricesTitle": "Tus precios de proveedor (opcional, para la estimación)",
       "priceHint": "{provider} · {model}: entrada {input} / salida {output} {currency} por millón",
-      "endsOn": "Cancelada: tu plan sigue activo hasta el {date}; después el espacio pasa a Free. No se cobra nada más."
+      "endsOn": "Cancelada: tu plan sigue activo hasta el {date}; después el espacio pasa a Free. No se cobra nada más.",
+      "downgrade": "Volver a {name}",
+      "downgradeHint": "Termina al final del periodo pagado; hasta entonces todo sigue disponible.",
+      "downgradeScheduled": "Vuelta a {name} el {date}: la cancelación está programada.",
+      "downgradeManual": "Este plan lo asignó el equipo de la plataforma. Para cambiarlo, <contact>contacta con nosotros</contact>."
     },
     "providers": {
       "needKey": "¿Necesitas una clave? Créala en la consola del proveedor:",
@@ -409,7 +413,18 @@
     "noFindings": "Sin hallazgos.",
     "loadingChecks": "Cargando el estado de CI…",
     "noChecks": "Aún no se han informado checks de CI para la pull request.",
-    "ciChecks": "Checks de CI:"
+    "ciChecks": "Checks de CI:",
+    "readinessText": {
+      "notRunGithub": "CONSYRION AI no ejecutó las pruebas (no hay sandbox en este servidor): las GitHub Actions de la pull request borrador muestran el resultado (comprobaciones de CI abajo).",
+      "noRun": "No existe ninguna ejecución de pruebas en sandbox para este cambio.",
+      "installTimeout": "La instalación de dependencias superó el tiempo límite en la última ejecución en sandbox.",
+      "installFailed": "La instalación de dependencias falló en la última ejecución en sandbox.",
+      "runTimeout": "La última ejecución de pruebas en sandbox superó el tiempo límite.",
+      "runError": "La última ejecución de pruebas en sandbox terminó con un error.",
+      "runFailed": "La última ejecución de pruebas en sandbox falló.",
+      "highFindings": "{n, plural, one {# hallazgo de revisión de gravedad alta} other {# hallazgos de revisión de gravedad alta}}: revísalos antes de fusionar.",
+      "criticalFindings": "{n, plural, one {# hallazgo crítico de revisión} other {# hallazgos críticos de revisión}}: {list}"
+    }
   },
   "auth": {
     "failed": "Error de autenticación",

@@ -722,3 +722,11 @@ never confirms a requirement and nothing starts without the user.
   any new wording stay as sent.
 - Needs verification (R2-02, 08.11.26): when every proposal leaves the same requirement unconfirmed, the verdict hero
   names it ("Bei keinem Vorschlag bestätigt: R4 …", `verdict.dashboard.openByAll`).
+- Fixed scenario facts (R2-02, owner decision 08.11.26): in the requirement check, facts the brief states as fixed input
+  about a given option count as written for a proposal that adopts that option unchanged; evaluators name the brief
+  fact in evidence. They stop counting once the proposal changes the option in a way that affects the fact. Vendor
+  claims, quoted documents, assumptions and embedded instructions are no fixed facts, and a fixed fact never overrides
+  or replaces a confirmed requirement (`packages/engine/src/prompts.ts`, `PROMPT_VERSION` 2026-11-08.2).
+- Fixed measured values (R3-02, 08.11.26): when the brief states a fixed measured value for the option a proposal
+  adopts unchanged, the evaluator uses it as the estimate (estimateLow = estimateHigh) instead of a range. The cause of
+  a measured requirement is shown in the interface language with local number format (`requirementGate.estimate.*`).

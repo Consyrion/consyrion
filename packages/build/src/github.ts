@@ -58,7 +58,7 @@ export async function createPullRequestForPlan(db: Database, ctx: ActorContext, 
     throw new DomainError("CONFLICT", `Quality gate: ${readiness.reasons.join(" ")} Fix the change or publish anyway with a written reason.`);
   }
   const overridden = readiness.blocked;
-  const planJson = plan.plan as { summary?: string } | null;
+  const planJson = plan.plan as { summary?: string; tasks?: Array<{ title?: string }> } | null;
   const body = [
     `Implementation of the decision approved in Consyrion (project "${project!.name}", session ${plan.sessionId}).`,
     "",
@@ -78,7 +78,7 @@ export async function createPullRequestForPlan(db: Database, ctx: ActorContext, 
     baseBranch: plan.baseBranch!,
     baseSha: plan.baseCommitSha!,
     branch: `consyrion/${plan.id}`,
-    title: pullRequestTitle(planJson?.summary),
+    title: pullRequestTitle(planJson?.summary, planJson?.tasks?.[0]?.title),
     body,
     changes: changes.map((c) => ({ path: c.path, content: c.after, mode: c.mode })),
   });
@@ -96,10 +96,18 @@ export async function pullRequestChecks(db: Database, ctx: ActorContext, planId:
   return checkRuns(client, { fullName: plan.repositoryFullName!, defaultBranch: plan.baseBranch!, private: true }, plan.pullRequestCommitSha);
 }
 
-/** PR title from the plan summary: first sentence, cut at a word boundary with an ellipsis (GitHub shows ~70 chars). */
-export function pullRequestTitle(summary: string | null | undefined, max = 80) {
-  const sentence = (summary ?? "").trim().split(/(?<=[.!?])\s/)[0]?.replace(/[.!?]$/, "") || "Implement approved decision";
-  const full = `Consyrion: ${sentence}`;
+/**
+ * PR title: "CONSYRION AI: " and the plan summary's first sentence when it is short; otherwise the first task's title
+ * (GitHub build test 08.11.26: "Consyrion: Implement Option A in src/todos.js: add search(query) that…" was cut off and
+ * hard to read – "CONSYRION AI: Add search(query) to the todo store" says it). Long text is cut at a word boundary.
+ */
+export function pullRequestTitle(summary: string | null | undefined, firstTask?: string | null, max = 72) {
+  const prefix = "CONSYRION AI: ";
+  const room = max - prefix.length;
+  const sentence = (summary ?? "").trim().split(/(?<=[.!?])\s/)[0]?.replace(/[.!?]$/, "") ?? "";
+  const task = (firstTask ?? "").trim().replace(/[.!?]$/, "");
+  const text = sentence && sentence.length <= room ? sentence : task && task.length <= room ? task : sentence || task || "Implement approved decision";
+  const full = `${prefix}${text}`;
   if (full.length <= max) return full;
   const cut = full.slice(0, max - 1);
   return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max / 2))}…`;

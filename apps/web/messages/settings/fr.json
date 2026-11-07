@@ -95,7 +95,11 @@
       "colCost": "≈ Coût",
       "pricesTitle": "Vos prix fournisseurs (facultatif, pour l’estimation)",
       "priceHint": "{provider} · {model} : entrée {input} / sortie {output} {currency} par million",
-      "endsOn": "Résilié – ton plan reste actif jusqu’au {date}, puis l’espace passe à Free. Plus rien n’est prélevé."
+      "endsOn": "Résilié – ton plan reste actif jusqu’au {date}, puis l’espace passe à Free. Plus rien n’est prélevé.",
+      "downgrade": "Revenir à {name}",
+      "downgradeHint": "Prend fin à la fin de la période payée – jusque-là, tout reste disponible.",
+      "downgradeScheduled": "Retour à {name} le {date} – la résiliation est programmée.",
+      "downgradeManual": "Ce plan a été attribué par l'équipe de la plateforme. Pour le changer, <contact>contactez-nous</contact>."
     },
     "providers": {
       "needKey": "Besoin d’une clé ? Créez-la dans la console du fournisseur :",
@@ -409,7 +413,18 @@
     "noFindings": "Aucune remarque.",
     "loadingChecks": "Chargement du statut CI…",
     "noChecks": "Aucun check CI signalé pour la pull request pour l’instant.",
-    "ciChecks": "Checks CI :"
+    "ciChecks": "Checks CI :",
+    "readinessText": {
+      "notRunGithub": "CONSYRION AI n’a pas exécuté les tests lui-même (pas de sandbox sur ce serveur) – les GitHub Actions de la pull request brouillon montrent le résultat (vérifications CI ci-dessous).",
+      "noRun": "Aucun test en sandbox n’existe pour cette modification.",
+      "installTimeout": "L’installation des dépendances a dépassé le délai lors du dernier passage en sandbox.",
+      "installFailed": "L’installation des dépendances a échoué lors du dernier passage en sandbox.",
+      "runTimeout": "Le dernier test en sandbox a dépassé le délai.",
+      "runError": "Le dernier test en sandbox s’est terminé par une erreur.",
+      "runFailed": "Le dernier test en sandbox a échoué.",
+      "highFindings": "{n, plural, one {# constat de revue de gravité élevée} other {# constats de revue de gravité élevée}} – à vérifier avant le merge.",
+      "criticalFindings": "{n, plural, one {# constat de revue critique} other {# constats de revue critiques}} : {list}"
+    }
   },
   "auth": {
     "failed": "Échec de l’authentification",

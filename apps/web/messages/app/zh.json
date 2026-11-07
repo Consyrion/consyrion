@@ -18,7 +18,11 @@
     "quickNav": "快速导航",
     "toggleTheme": "切换浅色/深色",
     "signOut": "退出登录",
-    "source": "开源（AGPL-3.0）· 源代码"
+    "source": "开源（AGPL-3.0）· 源代码",
+    "upgrade": {
+      "title": "升级到 Pro",
+      "text": "不限 council 次数，最多 6 个模型，MCP"
+    }
   },
   "dashboard": {
     "metaTitle": "控制台",
@@ -112,7 +116,8 @@
       "failed": "{calls} 个请求中有 {failed} 个失败或无法使用。",
       "perspectives": "视角",
       "more": "另有 {n} 个",
-      "none": "没有模型。"
+      "none": "没有模型。",
+      "sessions": "参与了 {n, plural, one {# 个会话} other {# 个会话}}"
     },
     "compact": {
       "live": "实时 Council",
@@ -220,7 +225,34 @@
     "executionAfterApproval": "仅在你批准后执行",
     "delete": "删除项目",
     "deleteText": "永久删除该项目及其所有 Council 会话、决策、生成的代码和文档。",
-    "deleteButton": "永久删除项目"
+    "deleteButton": "永久删除项目",
+    "overview": {
+      "title": "项目概览",
+      "pick": "图中显示的 council",
+      "latest": "最新",
+      "allSessions": "所有会话（{n}）",
+      "allSessionsShort": "所有会话",
+      "center": "决策",
+      "models": "{n, plural, one {# 个模型} other {# 个模型}}",
+      "openSession": "打开会话",
+      "allNote": "{n, plural, one {# 个模型} other {# 个模型}}来自该项目的所有 council – 每个模型只计一次",
+      "status": "状态",
+      "sessions": "Council 会话",
+      "lastDecision": "最近决策",
+      "approval": "批准",
+      "build": "构建 / 草稿 PR",
+      "draftPr": "草稿拉取请求",
+      "repository": "仓库",
+      "requirements": "已确认的要求",
+      "tokens": "Token 总计",
+      "tokensValue": "{total}（council {council}，构建 {build}）",
+      "created": "创建于",
+      "updated": "更新于",
+      "none": "–",
+      "emptyTitle": "尚无 council",
+      "emptyText": "启动一个 council：多个 AI 模型独立思考、辩论并得出由你批准的裁决。之后你会在这里看到哪些模型参与了。",
+      "emptyNoRights": "只有具备决策权限的成员才能启动 council"
+    }
   },
   "councilSetup": {
     "metaTitle": "配置 AI 团队",

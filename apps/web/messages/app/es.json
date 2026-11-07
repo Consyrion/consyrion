@@ -18,7 +18,11 @@
     "quickNav": "Navegación rápida",
     "toggleTheme": "Cambiar claro/oscuro",
     "signOut": "Cerrar sesión",
-    "source": "Código abierto (AGPL-3.0) · Código fuente"
+    "source": "Código abierto (AGPL-3.0) · Código fuente",
+    "upgrade": {
+      "title": "Mejorar a Pro",
+      "text": "Councils ilimitados, hasta 6 modelos, MCP"
+    }
   },
   "dashboard": {
     "metaTitle": "Panel",
@@ -112,7 +116,8 @@
       "failed": "{failed} de {calls} solicitudes fallaron o no se pudieron usar.",
       "perspectives": "Perspectivas",
       "more": "+{n} más",
-      "none": "Sin modelos."
+      "none": "Sin modelos.",
+      "sessions": "Participó en {n, plural, one {# sesión} other {# sesiones}}"
     },
     "compact": {
       "live": "CONSEJO EN DIRECTO",
@@ -220,7 +225,34 @@
     "executionAfterApproval": "Ejecución solo tras tu aprobación",
     "delete": "Eliminar proyecto",
     "deleteText": "Elimina definitivamente el proyecto con todas las sesiones del Council, decisiones, código generado y documentos.",
-    "deleteButton": "Eliminar proyecto definitivamente"
+    "deleteButton": "Eliminar proyecto definitivamente",
+    "overview": {
+      "title": "Resumen del proyecto",
+      "pick": "Council mostrado en el gráfico",
+      "latest": "Más reciente",
+      "allSessions": "Todas las sesiones ({n})",
+      "allSessionsShort": "Todas las sesiones",
+      "center": "Decisión",
+      "models": "{n, plural, one {# modelo} other {# modelos}}",
+      "openSession": "Abrir sesión",
+      "allNote": "{n, plural, one {# modelo} other {# modelos}} de todos los councils del proyecto – cada modelo una vez",
+      "status": "Estado",
+      "sessions": "Sesiones de council",
+      "lastDecision": "Última decisión",
+      "approval": "Aprobación",
+      "build": "Build / PR borrador",
+      "draftPr": "Pull request borrador",
+      "repository": "Repositorio",
+      "requirements": "Requisitos confirmados",
+      "tokens": "Tokens en total",
+      "tokensValue": "{total} (council {council}, build {build})",
+      "created": "Creado",
+      "updated": "Actualizado",
+      "none": "–",
+      "emptyTitle": "Aún no hay council",
+      "emptyText": "Inicia un council: varios modelos de IA piensan de forma independiente, debaten y llegan a un veredicto que tú apruebas. Aquí verás después qué modelos participaron.",
+      "emptyNoRights": "Solo los miembros con permiso para decidir pueden iniciar un council"
+    }
   },
   "councilSetup": {
     "metaTitle": "Configurar el equipo de IA",

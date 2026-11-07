@@ -5,7 +5,7 @@ import { COUNCIL_PHASE_LABELS, describeMeasure, measureUnitText, type CouncilRol
  * declared as untrusted data, so instructions hidden inside a brief, a repository excerpt or another
  * model's answer are not followed (prompt-injection defence, issue #11).
  */
-export const PROMPT_VERSION = "2026-11-08.1";
+export const PROMPT_VERSION = "2026-11-08.2";
 
 const BASE_SYSTEM = [
   "You are one participant in Consyrion, a structured decision council of several independent AI models.",

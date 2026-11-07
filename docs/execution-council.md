@@ -50,6 +50,10 @@ Own token budget per run (default 600,000, atomic reservation like the council),
 **Answers cut off at the output limit** are never applied. A coding call asks for 16K output tokens; a cut-off
 answer gets one focused retry at 32K. If that is cut off as well, the task fails.
 
+**Answers that miss the required structure** (wrong field types, missing fields) are never applied either. The call
+gets exactly one corrective retry whose prompt names the failing field paths (no model content is logged); a second
+miss fails the task as before (GitHub build test 08.11.26: gpt-5.4-mini's first implement answer).
+
 **Resume only the failed tasks (#107).** A failed run with a stored plan can be resumed by an owner/admin
 (`POST /api/executions/:id/resume`, optional `{ "participantId": "par_…" }`): failed tasks go back to pending,
 done tasks and their files stay untouched, waiting tasks start afterwards, then tests and the missing reviews.
@@ -72,3 +76,8 @@ the latest build run (`executionStates`, `apps/web/src/components/session/execut
 stored phase row that older or finished runs never updated: running, completed ("code generated, draft PR
 opened"), failed, cancelled and not started stay distinct. Tests that never ran are shown as **not run**
 (blocked, "!"), never as passed or green.
+
+**Tests in GitHub (GitHub build test 08.11.26).** Without a sandbox the draft PR's GitHub Actions run the tests. The
+Review & Tests tab then reads "Tests laufen in GitHub Actions" (neutral, never "passed") instead of a warning; the
+screen shows the live CI checks of the pull request. The readiness reasons and warnings are shown in the interface
+language (`executionScreen.readinessText`).

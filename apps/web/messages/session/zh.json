@@ -62,7 +62,8 @@
       "passed": "测试通过",
       "notRun": "测试未运行",
       "timedOut": "测试超时",
-      "testsFailed": "测试失败"
+      "testsFailed": "测试失败",
+      "inGithub": "测试在 GitHub Actions 中运行"
     },
     "tabsNote": "标签页对应七个标准阶段。Minority Review 和 Consensus Round 共用一个页面；Evaluation 和 Review & Tests 是 Final Verdict 与 Execution Council 的详细视图。"
   },
@@ -414,7 +415,27 @@
       "provisional": "暂定首选——审查有限"
     },
     "eurPerMonth": "欧元/月",
-    "estimate": "由 {n, plural, other {# 个模型}}估算：{low}–{high}{unit}（中位数 {median}）· 限值 {relation} {limit}{unit}。只有每个范围都符合限值才算满足。",
+    "estimate": {
+      "cause": "{id} {status}：估计 {low}–{high}{unit}（中位数 {median}），限值{relation} {limit}{unit}；{parts}（模型估计）。",
+      "status": {
+        "notMet": "未满足",
+        "disputed": "有争议",
+        "notConfirmed": "未确认"
+      },
+      "relation": {
+        "below": "低于",
+        "atMost": "至多",
+        "above": "高于",
+        "atLeast": "至少"
+      },
+      "eurPerMonth": " 欧元/月",
+      "part": {
+        "missed": "{n} 位评估者中有 {k} 位预计会超出限值",
+        "across": "{n} 位评估者中有 {k} 位的范围跨越限值",
+        "noEstimate": "{n} 位评估者中有 {k} 位没有给出可用估计",
+        "noAnswer": "{n} 位评估者中有 {k} 位没有给出有效回答"
+      }
+    },
     "relation": {
       "below": "低于",
       "atMost": "不超过",

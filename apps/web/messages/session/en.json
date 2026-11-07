@@ -62,7 +62,8 @@
       "passed": "tests passed",
       "notRun": "tests not run",
       "timedOut": "tests timed out",
-      "testsFailed": "tests failed"
+      "testsFailed": "tests failed",
+      "inGithub": "tests run in GitHub Actions"
     },
     "tabsNote": "The tabs follow the seven canonical phases. Minority Review and Consensus Round share one screen; Evaluation and Review & Tests are detailed views of Final Verdict and Execution Council."
   },
@@ -414,7 +415,27 @@
       "provisional": "provisional favourite – limited review"
     },
     "eurPerMonth": "EUR per month",
-    "estimate": "Estimated by {n, plural, one {# model} other {# models}}: {low}–{high}{unit} (median {median}) · limit {relation} {limit}{unit}. Met only if every range keeps the limit.",
+    "estimate": {
+      "cause": "{id} {status}: estimates {low}–{high}{unit} (median {median}), limit {relation} {limit}{unit}; {parts} (model estimates).",
+      "status": {
+        "notMet": "not met",
+        "disputed": "disputed",
+        "notConfirmed": "not confirmed"
+      },
+      "relation": {
+        "below": "below",
+        "atMost": "at most",
+        "above": "above",
+        "atLeast": "at least"
+      },
+      "eurPerMonth": " EUR per month",
+      "part": {
+        "missed": "{k} of {n} evaluators expect the limit to be missed",
+        "across": "for {k} of {n} evaluators the range reaches across the limit",
+        "noEstimate": "{k} of {n} evaluators gave no usable estimate",
+        "noAnswer": "{k} of {n} evaluators returned no usable answer"
+      }
+    },
     "relation": {
       "below": "below",
       "atMost": "at most",

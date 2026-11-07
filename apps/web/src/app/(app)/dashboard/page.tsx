@@ -12,13 +12,13 @@ import { EmptyCouncil } from "@/components/dashboard/empty-council";
 import { LiveCouncilCompact } from "@/components/dashboard/live-council-compact";
 import { stepStatesFor, WorkflowStepper, type StepState } from "@/components/dashboard/workflow-stepper";
 import { executionStates } from "@/components/session/execution-status";
-import { roleLabel } from "@/components/session/helpers";
 import { buttonClasses } from "@/components/ui/button";
 import { GlassPanel } from "@/components/ui/glass";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
+import { sessionActivityNodes } from "@/lib/activity-nodes";
 
 export async function generateMetadata() {
   return { title: (await getTranslations("dashboard"))("metaTitle") };
@@ -61,7 +61,21 @@ async function databaseHealthy() {
   }
 }
 
-function Metric({ href, icon, label, value, tone, className = "" }: { href: string; icon: IconName; label: string; value: number; tone: string; className?: string }) {
+function Metric({
+  href,
+  icon,
+  label,
+  value,
+  tone,
+  className = "",
+}: {
+  href: string;
+  icon: IconName;
+  label: string;
+  value: number;
+  tone: string;
+  className?: string;
+}) {
   return (
     <Link
       href={href}
@@ -73,7 +87,12 @@ function Metric({ href, icon, label, value, tone, className = "" }: { href: stri
     >
       <span
         className="grid size-10 shrink-0 place-items-center rounded-xl border md:size-12"
-        style={{ color: tone, borderColor: `color-mix(in oklab, ${tone} 45%, transparent)`, background: `color-mix(in oklab, ${tone} 14%, transparent)`, boxShadow: `0 0 18px -6px ${tone}` }}
+        style={{
+          color: tone,
+          borderColor: `color-mix(in oklab, ${tone} 45%, transparent)`,
+          background: `color-mix(in oklab, ${tone} 14%, transparent)`,
+          boxShadow: `0 0 18px -6px ${tone}`,
+        }}
       >
         <Icon name={icon} />
       </span>
@@ -139,7 +158,11 @@ export default async function DashboardPage() {
   const awaiting = sessions.filter((s) => s.status === "awaiting_approval");
   const running = sessions.filter((s) => LIVE.has(s.status));
   const recent = sessions.slice(0, 6);
-  const participants = await listSessionParticipants(db, actor, recent.map((s) => s.id));
+  const participants = await listSessionParticipants(
+    db,
+    actor,
+    recent.map((s) => s.id),
+  );
   const verified = credentials.filter((c) => c.lastValidatedAt && !c.lastValidationError);
 
   // Council activity shows the live session, else the one waiting for a decision, else the latest one.
@@ -147,23 +170,7 @@ export default async function DashboardPage() {
   const view = featured ? await getSessionView(db, actor, featured.id) : null;
   const phase = (view?.session.currentPhase ?? null) as CouncilPhase | null;
   const live = view ? LIVE.has(view.session.status) : false;
-  const nodes: ActivityNode[] = (view?.participants ?? []).map((p) => {
-    const answered = view!.usage.some((u) => u.participantId === p.id && u.phase === phase && u.outcome === "ok");
-    // Queued sessions have no request in flight yet; a council that ended without a verdict leaves unanswered models idle (#106).
-    const status = view!.session.status;
-    const state = p.status === "failed" ? "failed" : status === "queued" ? "idle" : live ? (answered ? "done" : "working") : status === "failed" || status === "cancelled" ? (answered ? "done" : "idle") : "done";
-    // Real figures for the hover card: roles from the assignment, calls and tokens from usage records.
-    const usage = view!.usage.filter((u) => u.participantId === p.id);
-    const details = {
-      roles: view!.roles.filter((r) => r.participantId === p.id).map((r) => roleLabel(r.role)),
-      calls: usage.reduce((sum, u) => sum + u.calls, 0),
-      failedCalls: usage.filter((u) => u.outcome !== "ok").reduce((sum, u) => sum + u.calls, 0),
-      inputTokens: usage.reduce((sum, u) => sum + u.inputTokens, 0),
-      outputTokens: usage.reduce((sum, u) => sum + u.outputTokens, 0),
-      failureReason: p.failureReason,
-    };
-    return { id: p.id, provider: p.provider, model: p.modelId, state, details };
-  });
+  const nodes: ActivityNode[] = view ? sessionActivityNodes(view) : [];
   const completedPhases = phase ? COUNCIL_PHASES.indexOf(phase) + (live ? 0 : 1) : 0;
   // The Execution Council step follows the actual build run of an approved decision (#91).
   const featuredRun = featured?.status === "approved" ? (await listExecutions(db, actor, featured.id))[0] : undefined;
@@ -174,16 +181,39 @@ export default async function DashboardPage() {
   const firstProject = activeProjects[0];
   const next =
     awaiting[0] != null
-      ? { href: `/sessions/${awaiting[0].id}`, icon: "doc" as const, title: awaiting[0].projectName, text: t("next.awaitingText"), action: t("next.awaitingAction") }
+      ? {
+          href: `/sessions/${awaiting[0].id}`,
+          icon: "doc" as const,
+          title: awaiting[0].projectName,
+          text: t("next.awaitingText"),
+          action: t("next.awaitingAction"),
+        }
       : running[0] != null
-        ? { href: `/sessions/${running[0].id}`, icon: "pulse" as const, title: running[0].projectName, text: t("next.runningText"), action: t("next.runningAction") }
+        ? {
+            href: `/sessions/${running[0].id}`,
+            icon: "pulse" as const,
+            title: running[0].projectName,
+            text: t("next.runningText"),
+            action: t("next.runningAction"),
+          }
         : credentials.length === 0 && can(actor.role, "credential:write")
           ? { href: "/settings/providers", icon: "key" as const, title: t("next.keysTitle"), text: t("next.keysText"), action: t("next.keysAction") }
           : sessions.length === 0 && firstProject
-            ? { href: `/projects/${firstProject.id}`, icon: "play" as const, title: firstProject.name, text: t("next.firstText"), action: t("next.firstAction") }
+            ? {
+                href: `/projects/${firstProject.id}`,
+                icon: "play" as const,
+                title: firstProject.name,
+                text: t("next.firstText"),
+                action: t("next.firstAction"),
+              }
             : { href: "/projects/new", icon: "plus" as const, title: t("next.startTitle"), text: t("next.startText"), action: t("next.startTitle") };
   const statusText = view ? statusOf(view.session.status).text : "";
-  const phaseLine = view && phase ? (phase === "independent_thinking" && live ? t("submitted", { n: view.submittedCount, total: view.participants.length }) : t("phasesDone", { n: completedPhases })) : "";
+  const phaseLine =
+    view && phase
+      ? phase === "independent_thinking" && live
+        ? t("submitted", { n: view.submittedCount, total: view.participants.length })
+        : t("phasesDone", { n: completedPhases })
+      : "";
 
   return (
     <>
@@ -199,7 +229,13 @@ export default async function DashboardPage() {
           </p>
         </div>
         {can(actor.role, "project:write") ? (
-          <Link href="/projects/new" className={buttonClasses("primary", "h-12 w-full rounded-xl px-5 text-base font-semibold shadow-[0_0_30px_-8px_var(--glow-cyan)] md:h-11 md:w-auto")}>
+          <Link
+            href="/projects/new"
+            className={buttonClasses(
+              "primary",
+              "h-12 w-full rounded-xl px-5 text-base font-semibold shadow-[0_0_30px_-8px_var(--glow-cyan)] md:h-11 md:w-auto",
+            )}
+          >
             <Icon name="plus" className="size-5" /> {t("next.startTitle")} <Icon name="arrow" className="size-4 md:hidden" />
           </Link>
         ) : null}
@@ -209,8 +245,21 @@ export default async function DashboardPage() {
       <section aria-label={t("metrics.label")} className="mb-5 grid grid-cols-2 gap-3 md:mb-6 md:gap-4 xl:grid-cols-4">
         <Metric href="/projects" icon="folder" label={t("metrics.projects")} value={activeProjects.length} tone="var(--primary)" />
         <Metric href="/decisions" icon="team" label={t("metrics.sessions")} value={sessions.length} tone="var(--accent)" className="max-md:hidden" />
-        <Metric href={awaiting[0] ? `/sessions/${awaiting[0].id}` : "/decisions"} icon="clock" label={t("metrics.awaiting")} value={awaiting.length} tone="var(--warning)" />
-        <Metric href={running[0] ? `/sessions/${running[0].id}` : "/decisions"} icon="pulse" label={t("metrics.running")} value={running.length} tone="var(--success)" className="max-md:hidden" />
+        <Metric
+          href={awaiting[0] ? `/sessions/${awaiting[0].id}` : "/decisions"}
+          icon="clock"
+          label={t("metrics.awaiting")}
+          value={awaiting.length}
+          tone="var(--warning)"
+        />
+        <Metric
+          href={running[0] ? `/sessions/${running[0].id}` : "/decisions"}
+          icon="pulse"
+          label={t("metrics.running")}
+          value={running.length}
+          tone="var(--success)"
+          className="max-md:hidden"
+        />
       </section>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(320px,1fr)]">
@@ -239,7 +288,13 @@ export default async function DashboardPage() {
 
           <section aria-label={t("metrics.more")} className="grid grid-cols-2 gap-3 md:hidden">
             <Metric href="/decisions" icon="team" label={t("metrics.sessions")} value={sessions.length} tone="var(--accent)" />
-            <Metric href={running[0] ? `/sessions/${running[0].id}` : "/decisions"} icon="pulse" label={t("metrics.running")} value={running.length} tone="var(--success)" />
+            <Metric
+              href={running[0] ? `/sessions/${running[0].id}` : "/decisions"}
+              icon="pulse"
+              label={t("metrics.running")}
+              value={running.length}
+              tone="var(--success)"
+            />
           </section>
 
           <GlassPanel className="p-4 md:p-5">
@@ -255,17 +310,29 @@ export default async function DashboardPage() {
                   const bars = state === "verified" ? 3 : state === "failed" ? 1 : 0;
                   return (
                     <li key={c.id} className="flex items-center gap-3 py-2.5 text-sm">
-                      <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full border-[2.5px] shadow-[0_0_14px_-4px_currentColor]" style={{ borderColor: PROVIDER_COLOR[c.provider], color: PROVIDER_COLOR[c.provider] }} />
+                      <span
+                        aria-hidden="true"
+                        className="grid size-9 shrink-0 place-items-center rounded-full border-[2.5px] shadow-[0_0_14px_-4px_currentColor]"
+                        style={{ borderColor: PROVIDER_COLOR[c.provider], color: PROVIDER_COLOR[c.provider] }}
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">
                           {PROVIDER_NAME[c.provider] ?? c.provider} <span className="text-muted">· {c.label}</span>
                         </span>
-                        <span className="block text-xs text-muted">{c.lastValidatedAt ? t("providers.checked", { when: relative(t, new Date(c.lastValidatedAt)) }) : t("providers.useCheck")}</span>
+                        <span className="block text-xs text-muted">
+                          {c.lastValidatedAt ? t("providers.checked", { when: relative(t, new Date(c.lastValidatedAt)) }) : t("providers.useCheck")}
+                        </span>
                       </span>
-                      <span className={`text-xs ${state === "verified" ? "text-success" : state === "failed" ? "text-danger" : "text-muted"}`}>{t(`providers.state.${state}`)}</span>
+                      <span className={`text-xs ${state === "verified" ? "text-success" : state === "failed" ? "text-danger" : "text-muted"}`}>
+                        {t(`providers.state.${state}`)}
+                      </span>
                       <span aria-hidden="true" className="flex h-4 items-end gap-0.5">
                         {[1, 2, 3].map((n) => (
-                          <span key={n} className={`w-1 rounded-sm ${n <= bars ? (bars === 3 ? "bg-success" : "bg-danger") : "bg-surface-2"}`} style={{ height: `${n * 5}px` }} />
+                          <span
+                            key={n}
+                            className={`w-1 rounded-sm ${n <= bars ? (bars === 3 ? "bg-success" : "bg-danger") : "bg-surface-2"}`}
+                            style={{ height: `${n * 5}px` }}
+                          />
                         ))}
                       </span>
                     </li>
@@ -289,14 +356,26 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-3 text-right text-sm">
                   <span>
                     <span className={`flex items-center justify-end gap-1.5 font-medium ${live ? "text-primary" : "text-text"}`}>
-                      <span aria-hidden="true" className={`size-2 rounded-full ${live ? "bg-primary [animation:consyrion-pulse_1.6s_ease-in-out_infinite]" : "bg-muted"}`} />
+                      <span
+                        aria-hidden="true"
+                        className={`size-2 rounded-full ${live ? "bg-primary [animation:consyrion-pulse_1.6s_ease-in-out_infinite]" : "bg-muted"}`}
+                      />
                       {COUNCIL_PHASE_LABELS[phase]}
                     </span>
                     <span className="text-xs text-muted">{phaseLine}</span>
                   </span>
                   <svg viewBox="0 0 36 36" className="size-11 -rotate-90" aria-hidden="true">
                     <circle cx="18" cy="18" r="15" fill="none" stroke="var(--surface-2)" strokeWidth="3" />
-                    <circle cx="18" cy="18" r="15" fill="none" stroke="var(--primary)" strokeWidth="3" strokeDasharray={`${(completedPhases / 7) * 94.2} 94.2`} strokeLinecap="round" />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15"
+                      fill="none"
+                      stroke="var(--primary)"
+                      strokeWidth="3"
+                      strokeDasharray={`${(completedPhases / 7) * 94.2} 94.2`}
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </div>
               ) : null}
@@ -324,7 +403,10 @@ export default async function DashboardPage() {
               const status = statusOf(s.status);
               return (
                 <li key={s.id}>
-                  <Link href={`/sessions/${s.id}`} className="flex items-center gap-3 rounded-xl border border-glass-line bg-surface/40 p-3 hover:border-primary/50">
+                  <Link
+                    href={`/sessions/${s.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-glass-line bg-surface/40 p-3 hover:border-primary/50"
+                  >
                     <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
                       <Icon name="folder" />
                     </span>
@@ -367,11 +449,22 @@ export default async function DashboardPage() {
                       <td className="py-3 pr-3">
                         <span className="flex gap-1.5" aria-label={providers.map((p) => `${PROVIDER_NAME[p.provider] ?? p.provider} ${p.modelId}`).join(", ")}>
                           {providers.map((p, i) => (
-                            <span key={i} title={`${PROVIDER_NAME[p.provider] ?? p.provider} · ${p.modelId}`} className="size-4 rounded-full border-2 shadow-[0_0_8px_-2px_currentColor]" style={{ borderColor: PROVIDER_COLOR[p.provider], color: PROVIDER_COLOR[p.provider] }} />
+                            <span
+                              key={i}
+                              title={`${PROVIDER_NAME[p.provider] ?? p.provider} · ${p.modelId}`}
+                              className="size-4 rounded-full border-2 shadow-[0_0_8px_-2px_currentColor]"
+                              style={{ borderColor: PROVIDER_COLOR[p.provider], color: PROVIDER_COLOR[p.provider] }}
+                            />
                           ))}
                         </span>
                       </td>
-                      <td className="py-3 pr-3">{s.currentPhase ? <Badge tone="accent">{COUNCIL_PHASE_LABELS[s.currentPhase as CouncilPhase]}</Badge> : <Badge>{t("notStartedLower")}</Badge>}</td>
+                      <td className="py-3 pr-3">
+                        {s.currentPhase ? (
+                          <Badge tone="accent">{COUNCIL_PHASE_LABELS[s.currentPhase as CouncilPhase]}</Badge>
+                        ) : (
+                          <Badge>{t("notStartedLower")}</Badge>
+                        )}
+                      </td>
                       <td className="py-3 pr-3">
                         <Badge tone={status.tone}>{status.text}</Badge>
                       </td>
@@ -381,7 +474,10 @@ export default async function DashboardPage() {
                             {compact(s.tokensUsed)} / {compact(s.tokenBudget)}
                           </span>
                           <span className="h-2 w-28 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
-                            <span className="block h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--accent))] shadow-[0_0_10px_var(--glow-cyan)]" style={{ width: `${share}%` }} />
+                            <span
+                              className="block h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--accent))] shadow-[0_0_10px_var(--glow-cyan)]"
+                              style={{ width: `${share}%` }}
+                            />
                           </span>
                         </span>
                       </td>

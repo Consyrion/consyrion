@@ -47,7 +47,15 @@ export class StripeClient {
     return json;
   }
 
-  createCheckoutSession(input: { priceId: string; organizationId: string; plan: PlanKey; customerEmail: string; customerId?: string | null; successUrl: string; cancelUrl: string }) {
+  createCheckoutSession(input: {
+    priceId: string;
+    organizationId: string;
+    plan: PlanKey;
+    customerEmail: string;
+    customerId?: string | null;
+    successUrl: string;
+    cancelUrl: string;
+  }) {
     return this.request<{ id: string; url: string }>("POST", "/v1/checkout/sessions", {
       mode: "subscription",
       "line_items[0][price]": input.priceId,
@@ -62,17 +70,36 @@ export class StripeClient {
     });
   }
 
-  createPortalSession(customerId: string, returnUrl: string) {
+  /**
+   * Stripe's customer portal. With `cancelSubscriptionId` it opens directly at the cancellation step of that
+   * subscription ("back to Free", 08.11.26); the portal configuration cancels at the period end (setup.ts) and returns
+   * to `returnUrl` afterwards.
+   */
+  createPortalSession(customerId: string, returnUrl: string, options: { cancelSubscriptionId?: string | null } = {}) {
     return this.request<{ url: string }>("POST", "/v1/billing_portal/sessions", {
       customer: customerId,
       return_url: returnUrl,
       ...(this.config.portalConfigurationId ? { configuration: this.config.portalConfigurationId } : {}),
+      ...(options.cancelSubscriptionId
+        ? {
+            "flow_data[type]": "subscription_cancel",
+            "flow_data[subscription_cancel][subscription]": options.cancelSubscriptionId,
+            "flow_data[after_completion][type]": "redirect",
+            "flow_data[after_completion][redirect][return_url]": returnUrl,
+          }
+        : {}),
     });
   }
 }
 
 /** Verifies the Stripe-Signature header (t=…,v1=…) with a tolerance against replay. */
-export function verifyStripeSignature(payload: string, header: string | null, secret: string, toleranceSeconds = 300, now = Math.floor(Date.now() / 1000)): boolean {
+export function verifyStripeSignature(
+  payload: string,
+  header: string | null,
+  secret: string,
+  toleranceSeconds = 300,
+  now = Math.floor(Date.now() / 1000),
+): boolean {
   if (!header) return false;
   const parts = Object.fromEntries(header.split(",").map((p) => p.split("=") as [string, string]));
   const timestamp = Number(parts.t);

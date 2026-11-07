@@ -50,6 +50,23 @@ describe("decision requests from external clients (ask_consyrion)", () => {
     expect(audit?.metadata).toMatchObject({ confirmedVia: "mcp", requirements: 2, options: 2 });
   });
 
+  it("a context sentence that sounds binding stays context – only the listed requirements are confirmed (QA 07.11.26)", async () => {
+    const { project, requirements } = await createProjectForDecisionRequest(
+      handle.db,
+      actor,
+      {
+        question: "Soll unser Vereins-Tool PostgreSQL oder SQLite nutzen?",
+        context: "Ein Entwickler, ein günstiger VPS in der Schweiz, tägliche Backups nötig, maximal 50 gleichzeitige Nutzer.",
+        options: ["PostgreSQL", "SQLite"],
+        requirements: ["Betriebskosten unter 20 CHF pro Monat"],
+      },
+      "mcp",
+    );
+    expect(requirements).toEqual(["Betriebskosten unter 20 CHF pro Monat"]);
+    const { list } = await assertCurrentRequirementList(handle.db, actor, project.id);
+    expect(list.items.map((i) => i.text)).toEqual(["Betriebskosten unter 20 CHF pro Monat"]);
+  });
+
   it("without requirements the list is confirmed as having none; too short questions are refused", async () => {
     const { project } = await createProjectForDecisionRequest(
       handle.db,

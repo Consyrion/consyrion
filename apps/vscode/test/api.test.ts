@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConsyrionApi, ConsyrionApiError, type FetchLike } from "../src/api";
+import { ConsyrionApi, ConsyrionApiError, normalizeServerUrl, type FetchLike } from "../src/api";
 import { escapeHtml, renderSessionHtml } from "../src/html";
 
 describe("api client", () => {
@@ -85,5 +85,22 @@ describe("webview html", () => {
     );
     expect(legacy).toContain("Recommended solution");
     expect(legacy).toContain('data-action="approve"');
+  });
+});
+
+describe("server URL (QA 07.11.26)", () => {
+  it("maps the redirecting website domain to the app and keeps other addresses", () => {
+    expect(normalizeServerUrl("https://consyrion.com")).toBe("https://app.consyrion.com");
+    expect(normalizeServerUrl("https://www.consyrion.com/")).toBe("https://app.consyrion.com");
+    expect(normalizeServerUrl("https://consyrion.example.org/")).toBe("https://consyrion.example.org");
+  });
+
+  it("explains a web page answer instead of failing on JSON", async () => {
+    const api = new ConsyrionApi(
+      "https://self.example",
+      "cns_x",
+      async () => new Response("<!DOCTYPE html><html></html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }),
+    );
+    await expect(api.projects()).rejects.toThrow(/answered with a web page/);
   });
 });

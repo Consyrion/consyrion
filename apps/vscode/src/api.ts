@@ -28,15 +28,28 @@ export interface SessionSummary {
 
 export type ApprovalAction = "approve" | "reject" | "request_more_debate" | "request_changes" | "select_alternative";
 
+/**
+ * The app runs on app.consyrion.com; consyrion.com only redirects there, and a redirect to another host drops the
+ * Authorization header – so the old default and the bare domain are mapped to the app (QA 07.11.26).
+ */
+export function normalizeServerUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  return /^https?:\/\/(www\.)?consyrion\.com$/i.test(trimmed) ? "https://app.consyrion.com" : trimmed;
+}
+
 export class ConsyrionApi {
   constructor(
-    private readonly baseUrl: string,
+    baseUrl: string,
     private readonly token: string,
     private readonly fetchImpl: FetchLike = fetch,
-  ) {}
+  ) {
+    this.baseUrl = normalizeServerUrl(baseUrl);
+  }
+
+  private readonly baseUrl: string;
 
   private async request<T>(path: string, init: RequestInit = {}, raw = false): Promise<T> {
-    const response = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, "")}${path}`, {
+    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
       ...init,
       headers: { Authorization: `Bearer ${this.token}`, Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}), ...init.headers },
     });
@@ -44,7 +57,11 @@ export class ConsyrionApi {
       const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
       throw new ConsyrionApiError(response.status, body.error?.message ?? `Request failed (${response.status})`);
     }
-    return (raw ? await response.text() : response.status === 204 ? undefined : await response.json()) as T;
+    if (raw || response.status === 204) return (raw ? await response.text() : undefined) as T;
+    // A web page instead of JSON: the server URL points to the website (e.g. a redirecting domain), not the API.
+    if ((response.headers.get("content-type") ?? "").includes("text/html"))
+      throw new ConsyrionApiError(response.status, `${this.baseUrl} answered with a web page, not the CONSYRION AI API – check the setting consyrion.serverUrl (e.g. https://app.consyrion.com).`);
+    return (await response.json()) as T;
   }
 
   async projects() {

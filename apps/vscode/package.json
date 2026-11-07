@@ -1,6 +1,6 @@
 {
   "name": "consyrion",
-  "displayName": "Consyrion",
+  "displayName": "CONSYRION AI",
   "description": "Follow Consyrion council decisions, approve verdicts and review generated code inside VS Code.",
   "version": "0.1.0",
   "publisher": "consyrion",
@@ -11,9 +11,13 @@
   "categories": ["Other"],
   "main": "./dist/extension.js",
   "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": true, "description": "Only talks to your CONSYRION AI server; it never runs code from the workspace." },
+    "virtualWorkspaces": true
+  },
   "contributes": {
     "viewsContainers": {
-      "activitybar": [{ "id": "consyrion", "title": "Consyrion", "icon": "media/icon.svg" }]
+      "activitybar": [{ "id": "consyrion", "title": "CONSYRION AI", "icon": "media/icon.svg" }]
     },
     "views": {
       "consyrion": [{ "id": "consyrion.projects", "name": "Projects & decisions" }]
@@ -34,7 +38,7 @@
     "configuration": {
       "title": "Consyrion",
       "properties": {
-        "consyrion.serverUrl": { "type": "string", "default": "https://consyrion.com", "description": "Base URL of your Consyrion server." }
+        "consyrion.serverUrl": { "type": "string", "default": "https://app.consyrion.com", "description": "Base URL of your CONSYRION AI server (hosted: https://app.consyrion.com, or your self-hosted address)." }
       }
     }
   },

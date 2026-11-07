@@ -48,11 +48,19 @@ export async function createProjectForDecisionRequest(db: Database, ctx: ActorCo
       "VALIDATION",
       `Some statements look like instructions to the models and need a human decision: ${proposal.toDecide.map((t) => `"${t.text.slice(0, 60)}"`).join(", ")}. Rephrase them as plain requirements.`,
     );
+  // Only the requirement lines the user gave are confirmed. A sentence of the question or context that merely sounds
+  // binding ("max. 50 users", "backups needed") would otherwise become a hard requirement nobody saw – the web flow shows
+  // such items for review, this flow confirms without a screen (QA 07.11.26). They stay context, listed as excluded.
+  const confirmed = proposal.items.filter((i) => i.source.kind === "requirements");
+  const fromContext = proposal.items.filter((i) => i.source.kind !== "requirements" && i.candidateKey);
   await confirmRequirementList(db, ctx, project.id, {
     sourceHash: proposal.source.hash,
-    items: proposal.items.map((i) => ({ text: i.text, candidateKey: i.candidateKey })),
-    excluded: proposal.excluded.map((e) => ({ candidateKey: e.candidateKey, reason: e.reason })),
-    noHardRequirements: proposal.items.length === 0,
+    items: confirmed.map((i) => ({ text: i.text, candidateKey: i.candidateKey })),
+    excluded: [
+      ...proposal.excluded.map((e) => ({ candidateKey: e.candidateKey, reason: e.reason })),
+      ...fromContext.map((i) => ({ candidateKey: i.candidateKey!, reason: "Context of the question, not a requirement the user listed" })),
+    ],
+    noHardRequirements: confirmed.length === 0,
   });
   await recordAudit(db, {
     organizationId: ctx.organizationId,
@@ -60,9 +68,9 @@ export async function createProjectForDecisionRequest(db: Database, ctx: ActorCo
     action: `${via}.decision_requested`,
     targetType: "project",
     targetId: project.id,
-    metadata: { requirements: proposal.items.length, options: options.length, confirmedVia: via },
+    metadata: { requirements: confirmed.length, options: options.length, confirmedVia: via },
   });
-  return { project, requirements: proposal.items.map((i) => i.text) };
+  return { project, requirements: confirmed.map((i) => i.text) };
 }
 
 /** The models of the workspace's most recent council (keys still present) – "the same models as last time". */

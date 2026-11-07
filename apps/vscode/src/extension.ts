@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
   const getApi = async () => {
     const token = await context.secrets.get(TOKEN_KEY);
     if (!token) return null;
-    return new ConsyrionApi(vscode.workspace.getConfiguration("consyrion").get<string>("serverUrl") ?? "https://consyrion.com", token);
+    return new ConsyrionApi(vscode.workspace.getConfiguration("consyrion").get<string>("serverUrl") ?? "https://app.consyrion.com", token);
   };
   const provider = new ProjectsProvider(getApi);
   const contents = new FileContents();

@@ -84,7 +84,11 @@ export type SessionInput = z.input<typeof sessionInput>;
 
 function parse<T extends z.ZodType>(schemaDef: T, input: unknown): z.output<T> {
   const parsed = schemaDef.safeParse(input);
-  if (!parsed.success) throw new DomainError("VALIDATION", "Invalid session configuration", z.flattenError(parsed.error));
+  if (!parsed.success) {
+    // Name the fields, so an API or MCP client can correct its call (QA 07.11.26: "Invalid session configuration" alone).
+    const fields = parsed.error.issues.map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`).slice(0, 5);
+    throw new DomainError("VALIDATION", `Invalid session configuration – ${fields.join("; ")}`, z.flattenError(parsed.error));
+  }
   return parsed.data;
 }
 

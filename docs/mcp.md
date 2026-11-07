@@ -53,3 +53,10 @@ that look like instructions to the models are refused, never auto-decided), star
 
 `apps/web/src/lib/server/mcp.test.ts` (protocol, 401/403, Pro gate, tool sets per scope, nothing that approves,
 builds or deletes, draft creation, budget limit), `actor.test.ts` (read-only token refused by REST endpoints).
+
+### Requirements of an `ask_consyrion` call (QA 07.11.26)
+
+Only the `requirements` lines the user gave are confirmed as hard requirements. Sentences of `question` and `context`
+stay context even when they sound binding ("max. 50 users"): this flow confirms without a review screen, so they are
+stored as excluded ("context of the question"). The same applies to `/frage` in Telegram. Invalid tool input names the
+fields (`Invalid session configuration – participants: …`).

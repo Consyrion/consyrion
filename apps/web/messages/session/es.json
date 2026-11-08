@@ -9,7 +9,9 @@
       "awaiting_approval": "Esperando tu decisión",
       "approved": "Aprobada",
       "rejected": "Rechazada",
-      "changes_requested": "Cambios solicitados"
+      "changes_requested": "Cambios solicitados",
+      "awaitingReview": "Esperando tu revisión",
+      "noApprovableProposal": "Ninguna propuesta aprobable"
     },
     "cancelError": "No se pudo cancelar",
     "briefVersion": "Encargo v{version}",
@@ -21,6 +23,7 @@
     "perspectives": "{n, plural, one {# perspectiva} other {# perspectivas}}",
     "tokensUsed": "Tokens usados",
     "reserved": "+ {n} reservados para llamadas en curso (se liberan o se sustituyen por el uso real cuando terminan)",
+    "cachedInput": "de ellos {n} desde la caché de prompts del proveedor (facturados más baratos)",
     "budgetAria": "Presupuesto de tokens usado",
     "stop": "Detener sesión",
     "queue": "Esperando un hueco libre de worker: {position}, {running} en curso.",
@@ -68,6 +71,24 @@
     "tabsNote": "Las pestañas siguen las siete fases canónicas. Minority Review y Consensus Round comparten una pantalla; Evaluation y Review & Tests son vistas detalladas de Final Verdict y Execution Council."
   },
   "councilRoom": {
+    "participation": {
+      "title": "Participación por modelo",
+      "intro": "Quién participó realmente en cada fase, contado a partir de llamadas y aportes guardados. Varias perspectivas de un modelo siguen siendo un voto.",
+      "model": "Modelo",
+      "calls": "{n, plural, one {# llamada} other {# llamadas}}",
+      "contributions": "{n, plural, one {# aporte} other {# aportes}}",
+      "failed": "{n, plural, one {# fallida} other {# fallidas}}",
+      "silent": "sin aporte",
+      "phase": {
+        "independent_thinking": "Independent Thinking",
+        "open_council": "Open Council",
+        "twelve_minds_council": "12 Minds Council",
+        "minority_review": "Minority Review",
+        "consensus_round": "Consensus Round",
+        "final_verdict": "Final Verdict"
+      },
+      "instance": "Instancia {index}/{total} – una sola voz independiente"
+    },
     "voice": {
       "working": "Trabajando",
       "submitted": "Enviada",
@@ -91,12 +112,13 @@
     "objectionsLater": "Las objeciones aparecen después del 12 Minds Council.",
     "noObjections": "No se plantearon objeciones.",
     "proposal": "Propuesta {label}",
+    "objectionAgainst": "Objeción contra la propuesta {label}",
     "objectionStatus": {
-      "open": "abierta",
-      "accepted": "confirmada",
-      "unresolved": "sin resolver",
-      "resolved": "resuelta",
-      "refuted": "refutada"
+      "open": "objeción abierta",
+      "accepted": "objeción confirmada",
+      "unresolved": "objeción sin resolver",
+      "resolved": "objeción resuelta",
+      "refuted": "objeción refutada"
     },
     "blocking": "bloqueante",
     "notDefended": "no defendida",
@@ -261,6 +283,27 @@
       "version": "Versión {version}",
       "kept": "posición mantenida",
       "refs": "refs.: {n}"
+    },
+    "why": {
+      "title": "¿Por qué estas perspectivas?",
+      "counts": "{models, plural, one {# modelo} other {# modelos}} · {perspectives, plural, one {# perspectiva} other {# perspectivas}}: las perspectivas no son votos.",
+      "origin": {
+        "suggestion": "sugerencia del proyecto",
+        "skill": "del skill",
+        "own": "elegida por ti",
+        "coverage": "añadida (cada modelo revisa)",
+        "default": "predeterminado del modo (inicio sin elegir roles)"
+      },
+      "always": {
+        "security": "Siempre sugerida: una revisión de seguridad y riesgos.",
+        "critic": "Siempre sugerido: un crítico independiente."
+      },
+      "words": "Temas del encargo: {words}",
+      "requirements": "Requisitos: {ids}",
+      "default": "Perspectiva neutral por defecto",
+      "profile": "Perfil de rol: {name}",
+      "notSuggested": "No sugeridas (sin tema correspondiente): {roles}",
+      "note": "Guardado al iniciar este council; los cambios posteriores del encargo o de los perfiles no lo modifican."
     }
   },
   "evaluationScreen": {
@@ -302,7 +345,20 @@
     "scoresFor": "Puntuaciones de la propuesta {label}",
     "scoreBy": "por {model}",
     "voteWeight": "(peso de voto {weight}/10)",
-    "eligibleButBlocked": "Supera los gates, pero no se puede aprobar en este Council – ver Final Verdict."
+    "eligibleButBlocked": "Supera los gates, pero no se puede aprobar en este Council – ver Final Verdict.",
+    "ineligible": {
+      "missingScores": "Faltan puntuaciones independientes",
+      "securityLow": "Puntuación de seguridad {score} por debajo del mínimo de {min}",
+      "blocking": "{count, plural, one {# objeción bloqueante sigue abierta} other {# objeciones bloqueantes siguen abiertas}}",
+      "totalLow": "Total {score} por debajo del mínimo de {min}",
+      "notInGate": "No cualificada: la comprobación de requisitos no incluye esta propuesta",
+      "notQualified": "No cualificada: {cause}",
+      "declaredUnsolvable": "No realizable: la propia propuesta indica que no se pueden cumplir todos los requisitos estrictos",
+      "hardUnmet": "No realizable: {k} de {n} evaluadores independientes consideran un requisito estricto no cumplido"
+    },
+    "formulaText": {
+      "text": "total = suma sobre todos los criterios de la media {weighted, select, yes {ponderada por votos } other {}}de las puntuaciones independientes × peso / 100; pesos: {weights}{weighted, select, yes {; pesos de voto: {votes}} other {}}"
+    }
   },
   "verdictScreen": {
     "participation": {
@@ -317,7 +373,8 @@
       "s1": "no cumple todos los requisitos confirmados",
       "finding": "conclusión, no una solución implementable",
       "other": "no aprobable",
-      "qualifiedBlocked": "cumple los requisitos confirmados, pero no se puede aprobar en este Council"
+      "qualifiedBlocked": "cumple los requisitos confirmados, pero no se puede aprobar en este Council",
+      "architectureCandidate": "candidata de arquitectura – prueba de rendimiento pendiente ({ids})"
     },
     "voteWeights": "Pesos de voto (fijados al inicio, #140): {list}. Se ponderan las puntuaciones y la clasificación de cada modelo, no su propia propuesta; la comprobación de viabilidad cuenta cada modelo una vez.",
     "notApprovableHint": "Puedes pedir cambios en el encargo o rechazar; un encargo cambiado necesita un nuevo council.",
@@ -372,7 +429,10 @@
         "repeat_evaluation": "evaluación repetida",
         "request_more_debate": "más debate solicitado",
         "request_changes": "cambios solicitados",
-        "reject": "rechazado"
+        "reject": "rechazado",
+        "mark_favorite": "marcada como favorita",
+        "approve_prototype": "build de prototipo / medición aprobado",
+        "approve_after_measurement": "aprobada tras la medición"
       },
       "superseded": "{n, plural, one {# veredicto anterior fue sustituido} other {# veredictos anteriores fueron sustituidos}} por un debate adicional."
     },
@@ -393,14 +453,66 @@
       "comment": "Comentario (opcional)",
       "saving": "Guardando…",
       "record": "Registrar decisión",
-      "onlyOwners": "Solo los propietarios y administradores pueden aprobar decisiones."
+      "onlyOwners": "Solo los propietarios y administradores pueden aprobar decisiones.",
+      "markFavorite": "Marcar como favorita (sin aprobación ni build)",
+      "approvePrototype": "Aprobar un build de prototipo / medición (no es una solución terminada)",
+      "approveAfterMeasurement": "Aprobar tras la medición"
     },
     "reasons": {
       "needsVerification": "Requiere verificación: el consejo no pudo confirmar que una propuesta cumpla todos los requisitos. No se puede aprobar ni construir.",
       "notQualified": "Según las evaluaciones, esta propuesta no cumple todos los requisitos confirmados (o no se pudo confirmar). No se puede aprobar ni construir. Cambia el encargo o los requisitos e inicia un nuevo consejo.",
       "limitedReview": "Demasiados pocos modelos independientes revisaron esta propuesta (se necesitan al menos 2). Es una favorita provisional y no se puede aprobar ni construir. Inicia un nuevo consejo con al menos 3 modelos.",
       "unknownOutcome": "Este veredicto usa un resultado que esta versión no conoce. Aquí no se puede aprobar ni construir.",
-      "conflictOfInterest": "La propuesta {qualified} cumple todos los requisitos, pero no se recomienda automáticamente: la propuesta {blocked} obtuvo más puntos y solo la bloquearon las comprobaciones del autor de la propuesta {qualified}, una decisión a su propio favor. Inicia un nuevo consejo (p. ej. con otro modelo) para decidir sin este conflicto de intereses."
+      "conflictOfInterest": "La propuesta {qualified} cumple todos los requisitos, pero no se recomienda automáticamente: la propuesta {blocked} obtuvo más puntos y solo la bloquearon las comprobaciones del autor de la propuesta {qualified}, una decisión a su propio favor. Inicia un nuevo consejo (p. ej. con otro modelo) para decidir sin este conflicto de intereses.",
+      "architectureCandidate": "Candidata de arquitectura – prueba de rendimiento pendiente: {ids} solo se puede confirmar midiendo la implementación en funcionamiento. El Council confirmó el plan de medición, no el requisito, por lo que aún no se puede aprobar ninguna propuesta como solución terminada. Márcala como favorita, aprueba un build de prototipo / medición o registra el resultado medido."
+    },
+    "why": {
+      "title": "Por qué no hay una recomendación aprobable",
+      "conflict": "Los requisitos obligatorios se contradicen: ninguna propuesta puede cumplirlos todos a la vez.",
+      "violated": "{list} no se cumple según los evaluadores de IA.",
+      "violatedCount": "{list} no se cumple: lo dicen {fail} de {total} evaluadores de IA.",
+      "disputed": "los evaluadores de IA no se ponen de acuerdo sobre {list}.",
+      "disputedCount": "los evaluadores de IA no se ponen de acuerdo sobre {list}: {pass} dicen que se cumple, {fail} que no.",
+      "notEvaluated": "no evaluada por completo: para {list} al menos un evaluador de IA no dio una respuesta válida. Es un hueco técnico, no un hallazgo contra la propuesta.",
+      "notProven": "{list} no se pudo confirmar con el texto de la propuesta. No confirmado no es lo mismo que no cumplido: faltan pruebas.",
+      "limitedReview": "superó todas las comprobaciones, pero participaron muy pocos evaluadores de IA independientes para recomendarla.",
+      "qualified": "cumple los requisitos; decide otra regla (puntuación mínima, mínimo de seguridad o una objeción abierta).",
+      "onlyThese": "Esto se refiere solo a las propuestas presentadas; no significa que no exista ninguna solución.",
+      "modelJudgement": "Valoraciones de los evaluadores de IA, no una comprobación independiente de los hechos.",
+      "nextTitle": "Qué puedes hacer ahora",
+      "next": {
+        "repeatEvaluation": "Repetir la evaluación para los modelos sin respuesta válida (cuesta tokens en tus claves; las comprobaciones existentes se mantienen).",
+        "addEvidence": "Añadir los datos que faltan al brief o como documento (mediciones, límites, fuentes) e iniciar un nuevo council.",
+        "reviewRequirement": "Comprobar si el requisito incumplido es realmente obligatorio. Si no, cambiar la lista de requisitos e iniciar un nuevo council (nueva versión de la lista).",
+        "resolveConflict": "Cambiar uno de los requisitos contradictorios e iniciar un nuevo council.",
+        "chooseOther": "Elegir en su lugar una de las propuestas aprobables.",
+        "markFavorite": "Marcar la candidata de arquitectura como favorita – sin aprobación ni build.",
+        "prototypeBuild": "Aprobar un build de prototipo / medición – no es una solución terminada.",
+        "recordMeasurement": "Registrar el resultado medido con evidencia; cuando todas las mediciones pendientes se cumplan, se puede aprobar tras la medición."
+      },
+      "architectureCandidate": "superó todas las comprobaciones, pero {list} solo se puede confirmar midiendo la implementación en funcionamiento: una candidata de arquitectura con la prueba de rendimiento pendiente, no una recomendación."
+    },
+    "followUp": {
+      "title": "Comprobación adicional (opcional, cuesta tokens)",
+      "intro": "Los mismos evaluadores de IA vuelven a mirar: solo las comprobaciones indicadas, sobre las propuestas congeladas. Un FAIL nunca se vuelve a preguntar ni se sustituye. Solo se ejecuta tras confirmar un presupuesto adicional.",
+      "completion": {
+        "button": "Completar {n} comprobaciones que faltan (≈ {tokens} tokens)",
+        "explain": "Se pregunta exactamente por ellas a los evaluadores que las omitieron. Después se recalcula el veredicto."
+      },
+      "targeted_review": {
+        "button": "Revisar {n} comprobaciones dudosas (≈ {tokens} tokens)",
+        "explain": "Cada evaluador revisa las comprobaciones que respondió con UNKNOWN, con las pruebas de los demás como pista, no como veredicto. Los FAIL se mantienen."
+      },
+      "budget": "Presupuesto adicional (tokens)",
+      "budgetHint": "Al menos la estimación de {tokens} tokens. Se suma al presupuesto del council y se gasta con tus propias claves.",
+      "confirm": "Confirmo este presupuesto adicional con mis propias claves API.",
+      "start": "Iniciar comprobación",
+      "starting": "Iniciando…",
+      "error": "No se pudo iniciar la comprobación adicional."
+    },
+    "mark": {
+      "favorite": "La propuesta {label} está marcada como favorita – no aprobada; el veredicto aún requiere verificación.",
+      "prototype": "La propuesta {label} tiene un build de prototipo / medición aprobado – no es una solución terminada ni una aprobación regular."
     }
   },
   "requirementGate": {
@@ -412,7 +524,8 @@
       "needs_verification": "necesita verificación",
       "fail": "requisito no cumplido",
       "incomplete": "borrador incompleto",
-      "provisional": "favorita provisional – revisión limitada"
+      "provisional": "favorita provisional – revisión limitada",
+      "architectureCandidate": "candidata de arquitectura – prueba de rendimiento pendiente"
     },
     "eurPerMonth": "EUR al mes",
     "estimate": {
@@ -458,8 +571,14 @@
       "notMet": "{id} no cumplido según {k} de {n} evaluadores (juicio de los modelos).",
       "disputed": "{id} discutido: {pass} de {n} evaluadores lo confirman, {fail} lo consideran no cumplido.",
       "notConfirmed": "{id} no confirmado: {k} de {n} evaluadores no pudieron confirmarlo.",
-      "noAnswer": "{id} no confirmado: {k} de {n} evaluadores no dieron una respuesta válida."
-    }
+      "noAnswer": "{id} no confirmado: {k} de {n} evaluadores no dieron una respuesta válida.",
+      "authorDeclines": "Según el autor, esta propuesta no cumple todos los requisitos (no es decisivo por sí solo).",
+      "architectureCandidate": "Candidata de arquitectura – prueba de rendimiento pendiente: {ids} solo se puede confirmar midiendo la implementación en funcionamiento; los evaluadores confirmaron el plan de medición, no el requisito."
+    },
+    "buildPending": "plan indicado – se verifica tras la implementación",
+    "buildPendingHint": "Las propuestas indican cómo se verifica (pruebas, CI). Aún no está verificado: el build debe demostrarlo antes de que el cambio cuente como exitoso.",
+    "measurementPending": "plan de medición indicado – se mide tras la implementación",
+    "measurementPendingHint": "Las propuestas indican cómo se mide (método, valor objetivo, montaje). Aún no se cumple: solo medir la implementación en funcionamiento puede confirmarlo. El requisito no cambia."
   },
   "engineText": {
     "noJudgeFailed": "No había ningún revisor independiente disponible – {reason} en cada juez elegible",
@@ -493,5 +612,148 @@
       "conflict_of_interest": "La propuesta {blocked} obtuvo más puntos, pero solo la bloquean las comprobaciones del autor de la propuesta {label} – una decisión a su favor, por eso no hay recomendación automática",
       "evaluation_rejected": "{count, plural, one {# evaluador repitió el título de otra propuesta para la propuesta {label}; se descartó su puntuación} other {# evaluadores repitieron el título de otra propuesta para la propuesta {label}; se descartaron sus puntuaciones}}"
     }
+  },
+  "replay": {
+    "tab": "Desarrollo",
+    "title": "Desarrollo del council",
+    "intro": "Cada entrada es un evento guardado con su hora real – nada se escenifica ni se completa. Recórrelo paso a paso, reprodúcelo o sigue un council en curso.",
+    "empty": "Todavía no hay eventos guardados.",
+    "phasesAria": "Fases en este momento",
+    "mode": {
+      "live": "En vivo",
+      "completed": "Terminado",
+      "replay": "Reproducción"
+    },
+    "phase": {
+      "pending": "sin empezar",
+      "running": "en curso",
+      "completed": "terminada",
+      "failed": "fallida"
+    },
+    "stepBack": "Evento anterior",
+    "stepForward": "Evento siguiente",
+    "play": "Reproducir",
+    "pause": "Pausa",
+    "speed": "Velocidad de reproducción",
+    "toLive": "Ir al estado actual",
+    "toEnd": "Ir al final",
+    "position": "Evento {n} de {total} · {time}",
+    "scrubber": "Posición en el desarrollo",
+    "withoutTime": "{n} entradas guardadas no tienen marca de tiempo y faltan en el desarrollo.",
+    "participants": "Modelos",
+    "active": "participa",
+    "failed": "abandonó",
+    "failedNote": "Abandonó durante la ejecución – la hora no está guardada, por eso nunca se muestra como activo.",
+    "countMessages": "Mensajes hasta aquí",
+    "countObjections": "Objeciones hasta aquí",
+    "timeline": "Eventos",
+    "round": "ronda {n}",
+    "objectionFinal": "Estado final: {status}",
+    "objectionPending": "La decisión sobre esta objeción no tiene hora propia – se muestra al final del desarrollo.",
+    "event": {
+      "stageStarted": "{phase} iniciada",
+      "stageCompleted": "{phase} terminada",
+      "stageFailed": "{phase} fallida",
+      "revision": "Propuesta {label} – versión v{version}",
+      "message": "{model}: {kind}",
+      "toProposal": "sobre la propuesta {label}",
+      "objection": "{model} plantea una objeción contra la propuesta {label}",
+      "minorityReview": "Minority Review terminada",
+      "scores": "{model} entregó {count} puntuaciones",
+      "vote": "{model} votó",
+      "consensus": "Consensus Round: {status}",
+      "decision": "Veredicto: {outcome}",
+      "superseded": "reemplazado después",
+      "approval": "Decisión humana: {action}"
+    },
+    "kind": {
+      "question": "pregunta",
+      "answer": "respuesta",
+      "critique": "crítica",
+      "rebuttal": "réplica",
+      "moderator": "moderación",
+      "role_failed": "revisión de rol fallida",
+      "comparison": "comparación",
+      "preference": "preferencia"
+    },
+    "outcome": {
+      "recommended": "se recomienda una solución",
+      "tie": "empate",
+      "needs_verification": "necesita verificación",
+      "no_qualifying_solution": "ninguna solución cualificada",
+      "insufficient_evidence": "pruebas insuficientes"
+    },
+    "action": {
+      "approve": "aprobado",
+      "reject": "rechazado",
+      "request_more_debate": "se pidió más debate",
+      "request_changes": "cambios solicitados",
+      "select_alternative": "alternativa elegida",
+      "repeat_evaluation": "evaluación repetida"
+    },
+    "olderHidden": "{n} eventos anteriores están ocultos.",
+    "showOlder": "Mostrar {n} anteriores",
+    "layoutAria": "Vista",
+    "layout": {
+      "timeline": "Cronología",
+      "network": "Red",
+      "table": "Tabla"
+    },
+    "network": {
+      "title": "Red hasta aquí",
+      "empty": "Hasta aquí no hay preguntas, críticas, respuestas ni objeciones guardadas.",
+      "aria": "{edges} conexiones entre modelos y propuestas",
+      "proposal": "Propuesta {label}",
+      "legend": "Tipos de conexión",
+      "connections": "Conexiones",
+      "edge": "{model} → propuesta {label}: {kind} ({count})",
+      "kind": {
+        "question": "pregunta",
+        "critique": "crítica",
+        "answer": "respuesta",
+        "objection": "objeción"
+      }
+    },
+    "table": {
+      "title": "Eventos hasta aquí",
+      "caption": "Eventos guardados hasta aquí, uno por fila",
+      "time": "Hora",
+      "phase": "Fase",
+      "event": "Evento",
+      "model": "Modelo",
+      "proposal": "Propuesta"
+    }
+  },
+  "measurement": {
+    "title": "Aceptación por medición",
+    "intro": "Estos requisitos solo se pueden confirmar midiendo la implementación en funcionamiento. El Council confirmó el plan de medición, no el requisito. Registra el resultado medido con evidencia; solo cuando todas las mediciones pendientes se cumplen, la propuesta puede aprobarse tras la medición.",
+    "proposal": "Propuesta {label}",
+    "open": "medición pendiente",
+    "met": "cumplido",
+    "notMet": "no cumplido",
+    "selfDeclared": "Medición: declarada por {person}, evidencia: {evidence}",
+    "values": "método: {method} · valor objetivo: {target} · medido: {measured}",
+    "record": "Registrar medición",
+    "method": "Método",
+    "target": "Valor objetivo",
+    "measured": "Valor medido",
+    "result": "Resultado",
+    "choose": "Elegir…",
+    "evidence": "Evidencia",
+    "evidenceHint": "Por ejemplo un registro de medición, un informe o un enlace. Obligatorio.",
+    "save": "Guardar medición",
+    "saving": "Guardando …",
+    "cancel": "Cancelar",
+    "error": "No se pudo guardar la medición."
+  },
+  "sessionDelete": {
+    "title": "Eliminar esta sesión",
+    "text": "Elimina esta sesión de Council con todas las propuestas, veredictos, aprobaciones, mediciones, builds y el registro de envíos. El proyecto, su encargo, las listas de requisitos y las demás sesiones se mantienen. No se puede deshacer.",
+    "exportFirst": "Exporta antes el informe si quieres conservarlo:",
+    "exportPdf": "Informe completo (PDF)",
+    "exportMarkdown": "Informe (Markdown)",
+    "stopFirst": "Este Council sigue en curso: detenlo primero (y cancela un build activo) y luego elimina la sesión.",
+    "external": "CONSYRION no elimina los informes ya enviados, los pull requests en borrador de GitHub ni las copias de seguridad (hasta que venza su plazo). El número de Councils del mes no se restablece.",
+    "button": "Eliminar sesión"
   }
 }

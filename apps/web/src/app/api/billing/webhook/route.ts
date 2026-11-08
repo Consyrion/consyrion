@@ -1,4 +1,4 @@
-import { handleStripeEvent, verifyStripeSignature } from "@consyrion/billing";
+import { handleStripeEvent, StripeClient, verifyStripeSignature } from "@consyrion/billing";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
 import { getStripeConfig } from "@/lib/server/stripe";
@@ -8,6 +8,9 @@ export async function POST(request: Request) {
   if (!config) return NextResponse.json({ error: "not configured" }, { status: 404 });
   const payload = await request.text();
   if (!verifyStripeSignature(payload, request.headers.get("stripe-signature"), config.webhookSecret)) return NextResponse.json({ error: "invalid signature" }, { status: 400 });
-  await handleStripeEvent(await getDb(), JSON.parse(payload));
+  // Apply the subscription's current state, not the event snapshot (#407): Stripe may deliver late, twice or out of
+  // order. A failed lookup answers 500, so Stripe retries the event later.
+  const stripe = new StripeClient(config);
+  await handleStripeEvent(await getDb(), JSON.parse(payload), { fetchCurrent: (id) => stripe.retrieveSubscription(id) });
   return NextResponse.json({ received: true });
 }

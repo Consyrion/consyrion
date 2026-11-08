@@ -1,3 +1,4 @@
+import type { RetryOptions } from "@consyrion/ai";
 import { COUNCIL_PHASES, DomainError, type CouncilPhase } from "@consyrion/core";
 import { recordAudit, schema, type Database } from "@consyrion/db";
 import { and, eq, sql } from "drizzle-orm";
@@ -15,6 +16,8 @@ export interface EngineDeps {
   random?: () => number;
   /** Wait before the late retry of an overloaded provider (#146); tests shorten it. */
   transientRetryDelayMs?: number;
+  /** Sleep between the quick provider retries (`withRetry`); tests pass one that does not wait. */
+  retrySleep?: RetryOptions["sleep"];
 }
 
 /** Phases the engine runs automatically. Execution Council starts only after human approval (M4). */
@@ -71,6 +74,7 @@ export async function runSession(deps: EngineDeps, sessionId: string): Promise<v
     db,
     (await db.select().from(schema.councilSession).where(eq(schema.councilSession.id, sessionId)))[0]!,
     deps.transientRetryDelayMs,
+    deps.retrySleep,
   );
   await ctx.restoreOutputFloors();
   const stages = await db.select().from(schema.workflowStage).where(eq(schema.workflowStage.sessionId, sessionId));

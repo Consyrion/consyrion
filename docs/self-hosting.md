@@ -36,11 +36,16 @@ Open the URL, create an account and add your keys under **AI providers**. Keys a
 | `SMTP_URL`, `MAIL_FROM`                              | E-mail delivery of decisions; also turns on e-mail verification of new accounts         |
 | `REQUIRE_EMAIL_VERIFICATION=false`                   | Switch e-mail verification off although SMTP is configured ([security.md](security.md)) |
 | `ARTIFICIAL_ANALYSIS_API_KEY`                        | Model strength ranking (free key, attribution required)                                 |
-| `PLATFORM_ADMIN_EMAILS`                              | Accounts with access to `/admin`                                                        |
+| `PLATFORM_ADMIN_EMAILS`                              | Accounts with access to `/admin` (verified address required, #404)                      |
+| `SKILLHUB_PUBLISH`                                   | `1` turns on SkillHub submissions (#368); off until the admin queue is live             |
+| `PLATFORM_ADMIN_ALLOW_UNVERIFIED`                    | `true` only without SMTP: the admin list alone decides, also for unverified accounts     |
 | `ADMIN_EMAILS`                                       | Recipients of the e-mail about new feedback reports (needs `SMTP_URL`)                  |
 
 `SELF_HOSTED=true` (set by `init.sh`) removes all plan limits. Stripe and plans are only for running CONSYRION AI
 as a hosted service ([saas.md](saas.md)).
+
+The optional follow-up round after a verdict without recommendation (#228/#229) is off when `SELF_HOSTED=true`; set
+`FOLLOW_UP_ROUND=true` to enable it ([council-engine.md](council-engine.md#follow-up-round-228-d--229-owner-decision-081126-option-a)).
 
 ## Running on a server
 

@@ -21,6 +21,12 @@ describe("reference set (#182)", () => {
 
   it("does not count a recommendation that cannot be approved as one", () => {
     expect(classifyReport(report("recommended", { decisionFormat: { approvable: false } }))).toBe("needs_verification");
+    // #249 part 2: a needs-verification verdict with an architecture candidate is its own class.
+    const candidate = { proposals: [{ feasibility: "architecture candidate (performance proof open)" }, { feasibility: "needs_verification" }] };
+    expect(classifyReport(report("needs_verification", { decisionFormat: { approvable: false }, requirementGate: candidate }))).toBe("architecture_candidate");
+    expect(classifyReport(report("needs_verification", { requirementGate: { proposals: [{ feasibility: "needs_verification" }] } }))).toBe(
+      "needs_verification",
+    );
     expect(classifyReport(report("no_qualifying_solution", { requirementsConflict: true }))).toBe("requirements_conflict");
     expect(classifyReport(report(null))).toBe("no_verdict");
   });
@@ -51,5 +57,15 @@ describe("reference set (#182)", () => {
 
   it("rejects a report for an unknown case", () => {
     expect(() => summarize([{ caseId: "x", config: "A", file: "x.json", report: report("recommended") }], [solvable])).toThrow(/unknown reference case/);
+  });
+});
+
+describe("pos-latency-limit (owner decision 08.11.26, #249 variant A)", () => {
+  const latency = REFERENCE_CASES.find((c) => c.id === "pos-latency-limit")!;
+  it("an architecture candidate is correct, a recommendation is a false approval, a plain block is wrong", () => {
+    const candidate = { proposals: [{ feasibility: "architecture candidate (performance proof open)" }] };
+    expect(scoreRun(latency, report("needs_verification", { decisionFormat: { approvable: false }, requirementGate: candidate })).result).toBe("correct");
+    expect(scoreRun(latency, report("recommended")).result).toBe("false_approval");
+    expect(scoreRun(latency, report("needs_verification")).result).toBe("wrong");
   });
 });

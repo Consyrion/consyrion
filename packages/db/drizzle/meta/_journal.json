@@ -253,6 +253,132 @@
       "when": 1794071028044,
       "tag": "0035_curved_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794098729406,
+      "tag": "0036_optimal_landau",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794101717097,
+      "tag": "0037_rare_black_bird",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794104380695,
+      "tag": "0038_previous_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794105656507,
+      "tag": "0039_supreme_wallop",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794126037076,
+      "tag": "0040_sour_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794129066006,
+      "tag": "0041_cool_gressill",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794130237087,
+      "tag": "0042_dusty_sinister_six",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794131227639,
+      "tag": "0043_unique_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794132272617,
+      "tag": "0044_wet_miek",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1794141723252,
+      "tag": "0045_swift_sleeper",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1794149375873,
+      "tag": "0046_adorable_xorn",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794151296980,
+      "tag": "0047_majestic_hannibal_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794152379803,
+      "tag": "0048_organic_lethal_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794154349870,
+      "tag": "0049_nappy_lilandra",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794155417074,
+      "tag": "0050_even_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1794159710487,
+      "tag": "0051_bumpy_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1794162772929,
+      "tag": "0052_white_captain_flint",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794164582994,
+      "tag": "0053_nice_hitman",
+      "breakpoints": true
     }
   ]
 }

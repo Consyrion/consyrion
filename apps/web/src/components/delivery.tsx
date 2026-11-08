@@ -129,7 +129,7 @@ export function DeliveryConnections({
         {connections.length === 0 ? <li className="py-3 text-sm text-muted">{t("none")}</li> : null}
       </ul>
       {canWrite ? (
-        <form onSubmit={(e) => void onAdd(e)} className="mt-4 grid gap-3 md:grid-cols-2">
+        <form onSubmit={(e) => void onAdd(e)} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <SelectField label={t("type")} value={kind} onChange={(e) => setKind(e.target.value as "telegram" | "confluence")}>
             <option value="telegram">Telegram</option>
             <option value="confluence">Confluence (Atlassian Cloud)</option>
@@ -209,6 +209,10 @@ export function SendDecision({
   }, [sessionId]);
 
   const ofKind = connections.filter((c) => c.kind === target);
+  // Confluence test 09.11.26: with exactly one connection of the chosen kind, it is preselected.
+  useEffect(() => {
+    if (target !== "email" && ofKind.length === 1 && !ofKind.some((c) => c.id === connectionId)) setConnectionId(ofKind[0]!.id);
+  }, [target, connections]);
   const ready = target === "email" ? emailConfigured && recipients.length > 0 : Boolean(connectionId && ofKind.some((c) => c.id === connectionId));
 
   async function send(body: Record<string, unknown>) {
@@ -236,7 +240,8 @@ export function SendDecision({
     <Card>
       <h3 className="font-semibold">{t("sendTitle")}</h3>
       <p className="text-sm text-muted">{t("sendText")}</p>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
+      {/* grid-cols-1 = minmax(0,1fr): on a phone the long select text must not widen the page (#509). */}
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
         <SelectField label={t("target")} value={target} onChange={(e) => setTarget(e.target.value as typeof target)}>
           <option value="email">{emailConfigured ? t("emailOption") : t("emailOptionMissing")}</option>
           <option value="telegram">Telegram</option>
@@ -246,13 +251,15 @@ export function SendDecision({
           <fieldset className="text-sm">
             <legend className="mb-1 font-medium">{t("recipients")}</legend>
             {members.map((m) => (
-              <label key={m.email} className="flex items-center gap-2">
+              <label key={m.email} className="flex min-w-0 items-center gap-2">
                 <input
                   type="checkbox"
                   checked={recipients.includes(m.email)}
                   onChange={(e) => setRecipients((current) => (e.target.checked ? [...current, m.email] : current.filter((r) => r !== m.email)))}
                 />
-                {m.name} <span className="text-muted">({m.email})</span>
+                <span className="min-w-0 break-words">
+                  {m.name} <span className="break-all text-muted">({m.email})</span>
+                </span>
               </label>
             ))}
           </fieldset>

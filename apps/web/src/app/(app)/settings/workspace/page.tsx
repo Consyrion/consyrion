@@ -1,6 +1,7 @@
 import { can } from "@consyrion/core";
 import { listOrganizationsForUser } from "@consyrion/db";
 import { getTranslations } from "next-intl/server";
+import { DeletionNotice } from "@/components/deletion-notice";
 import { DangerDelete, WorkspaceSwitcher } from "@/components/saas";
 import { buttonClasses } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/surface";
@@ -39,6 +40,7 @@ export default async function WorkspacePage() {
         <Card className="mt-6 border-danger/40">
           <h2 className="font-semibold text-danger">{t("deleteTitle")}</h2>
           <p className="mt-1 mb-3 text-sm text-muted">{t("deleteText", { name: current.name })}</p>
+          <DeletionNotice scope="workspace" />
           <DangerDelete url="/api/privacy/organization" method="DELETE" name={current.name} label={t("deleteButton")} redirectTo="/dashboard" />
         </Card>
       ) : null}

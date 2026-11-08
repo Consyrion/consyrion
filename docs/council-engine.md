@@ -169,6 +169,44 @@ upper bound of tokens. No prices are hardcoded; providers bill the user's own ke
   may be shortened …: if the budget runs short, Minority Review and Consensus Round are dropped and the proposals
   are not revised"); without it the API answers with a validation error that says the same.
 
+## Stable prompt prefix for provider caching (#244)
+
+Providers cache identical prompt *prefixes* (Anthropic with an explicit marker, OpenAI, Gemini and the
+OpenAI-compatible providers automatically) and bill cached input at a fraction of the price. A council sends the same
+brief – often with a large repository context – in most of its ~27 calls, but every call used to start with its own
+system prompt (base rules + phase + role), so the brief was never a shared prefix.
+
+`stablePrompt` (`packages/council/src/prompts.ts`), applied in `callStructured`, rearranges each call without changing
+what the model reads:
+
+- system prompt = base rules + the session rules → identical for every call of a council;
+- the user message starts with the `<brief>` block (identical within a council), returned as `cachePrefix`;
+- the phase and role instructions follow right after the brief as "Instructions for this step (from Consyrion, not
+  from the brief)" – after the untrusted data, which is also the safer order.
+
+The Anthropic adapter sets `cache_control` after `cachePrefix`; prefixes below the provider's minimum cacheable length
+are simply not cached. Prompts that do not start with the brief (rebuttals, objection answers) keep their text and get
+the instructions first. Cached input is recorded per call (`usage_record.cached_input_tokens`, docs/saas.md), so the
+effect is measurable per council. Caching lowers **cost**, not the number of tokens; fewer tokens would need the
+digest (step C of #244, not built).
+
+## Size check before every call (#243)
+
+Before a call is sent, `fitCallToModel` (`packages/core/src/call-size.ts`, applied in `callStructured`) checks the
+estimated input (characters / 4) plus the requested output against the limits the provider's models endpoint reports
+for that model (`ai_model.context_window`, `ai_model.max_output_tokens`; unknown limits are not guessed):
+
+- the output limit never exceeds what the model can write (no provider error for an impossible `max_tokens`);
+- it is lowered to what the context window leaves after the input, with a 10 % margin for the estimate;
+- when even a minimal answer (1,000 tokens) does not fit, the call is **not sent**: the participant fails with error
+  kind `context_window` and a clear reason – content is never shortened.
+
+How much output is *wanted* still comes from `outputTokensFor` (per schema and item, #172) and the split Final Verdict
+(#246); this check only makes the request possible for the model. The start screen shows, per model, when the brief
+with its documents and repository context plus all proposals does not fit its window (`contextFit` in the preview).
+The baseline of #251 (30.10.26: 6.8 % cut off/invalid, largest input 49k) was caused by output limits, not windows;
+whether the share drops below 2 % has to be measured on the next real councils (`deploy/hetzner/call-report.sh`).
+
 ## Budget kept for the Final Verdict (#148)
 
 Before #148 a council with 392,117 of 400,000 tokens used failed in the Consensus Round – no verdict, although
@@ -183,6 +221,40 @@ every earlier phase was complete. Now:
   `phase_shortened` (low confidence) and the report names the shortened phase.
 - Independent Thinking cannot be shortened: if even it does not fit next to the reserve, the council fails at once
   ("would leave too little for the Final Verdict") instead of spending tokens on a run that cannot end in a verdict.
+
+## Session header: review status and approval status (#477)
+
+While a verdict waits for the owner but nothing can be approved (needs verification, no qualifying solution, provisional
+favourite), the session header no longer says "Awaiting your decision" next to "not approvable". It shows the workflow
+status "Awaiting your review" and, apart from it, the approval status "No approvable proposal" – the same message as
+the verdict card (#230). The server already refuses every approval of such a verdict, also by a direct API call
+(`submitApproval`: `approve` needs a recommendation, `select_alternative` runs `assertDecisionApprovable`; test in
+`packages/council/test/s1-gate.test.ts`). The PDF/Markdown wording follows with #268.
+
+## Why there is no recommendation (#230)
+
+When a gate-version-2 council ends without an approvable recommendation, the Final Verdict card first says why, in
+plain words, before the details (`WhyNoRecommendationCard`, `apps/web/src/components/session/why-no-recommendation.ts`).
+It only **explains** the stored gate result – the gate stays the single source and nothing is re-decided in the
+browser. One reason per proposal, the most concrete first:
+
+| Reason        | Meaning shown to the user                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| violated      | "R1 not met – 2 of 2 AI evaluators say so" (FAIL)                                                           |
+| disputed      | "the AI evaluators disagree on R2: 1 says met, 1 says not met" (DISPUTED)                                   |
+| not evaluated | an expected evaluator gave no valid answer – a technical gap, not a finding against the proposal             |
+| not proven    | "could not be confirmed from the proposal text – not confirmed is not the same as not met" (UNKNOWN)       |
+| limited review| every check passed, but too few independent evaluators took part (#249)                                     |
+| architecture candidate | every check passed, but a requirement can only be confirmed by measuring the running implementation (#249 part 2) |
+
+A requirements conflict (#121) is named first. For "no qualifying solution" the card adds that this concerns the
+submitted proposals only, not whether a solution exists at all. Every line is labelled as AI evaluators' judgement.
+
+The **next steps** are only those that exist today: repeat the evaluation for models without a valid answer, add
+missing facts and start a new council, check whether a violated requirement is really hard (new list version),
+change one of two contradicting requirements, or choose an approvable proposal. A targeted re-check of single items
+is **not** offered until #228/#229 are decided. Model failures keep their own main-reason block (`MainReason`).
+The PDF report is unchanged in this step.
 
 ## Decision report
 
@@ -535,6 +607,7 @@ keep version 1 and finish with the production gate above. The rules of the gate 
   lowest–highest estimate and the median of the evaluators' midpoints next to the limit ("estimates 3–5 months (median
   4), limit at most 4 months"). Estimates are model judgements, not a guarantee. Lists confirmed before this release
   have no measures; confirm the list again to use them. Rounds frozen before keep their behaviour.
+- #226 (08.11.26): a performance limit in ms/s ("at least 95 % of page loads within 300 ms") has **no** estimated measure – it is a measurement check (#249 variant A); next to an availability it counts as a second limit ("split it"). Spaces and no-break spaces group thousands ("1 000 €"); "not more than" is recognised. Lists confirmed earlier keep their stored measure.
 - **What the user can do.** Approve a recommendation or choose a qualified alternative; `repeat_evaluation` only
   fetches completely missing evaluations of the frozen round from models that are still available; `request_more_debate`
   is refused (409, before any change) because it would discard the stored checks. Otherwise: request changes, edit the
@@ -589,18 +662,44 @@ The Final Verdict names the main reason before the details:
 - _No qualifying solution_ reads "None of the proposals meets the requirements" – about this council's proposals,
   never a claim that no solution exists.
 
-## Final Verdict size check (#228)
+## Final Verdict size check (#228) and split evaluator (#246)
 
-Every evaluator checks the proposals of all other models against every confirmed requirement in **one** answer of
-at most 32,000 output tokens. Before the start (preview and `createSession`) CONSYRION counts
-(models − 1) × requirements check items at 1,250 tokens each (highest measured value, 30.10.26):
+Every evaluator checks the proposals of all other models against every confirmed requirement. Before the start
+(preview and `createSession`) CONSYRION counts (models − 1) × requirements check items at 1,250 tokens each (highest
+measured value, 30.10.26) against the call limit of 32,000 output tokens (`finalVerdictFit`, `packages/core`):
 
-- does not fit (3 models: more than 12 requirements; 4: more than 8; 5: more than 6; 6: more than 5) → the start is
-  refused with the largest list that fits, before any model is paid;
-- more than three quarters → a warning on the start screen.
+- fits into one answer (3 models: up to 12 requirements; 4: up to 8; 5: up to 6; 6: up to 5) → **one call**, unchanged;
+  above three quarters a warning on the start screen;
+- larger → **split evaluator (#246)**: the evaluator checks the requirements in balanced groups in list order
+  (`splitRequirementIds`), each filling at most 75 % of a call. The first call scores, ranks and checks group 1
+  (`evaluation` schema); every further call only checks its group (`evaluation_checks`), names the group in
+  `<requirement_scope>` and restates title and summary, so its checks bind to the proposal they name exactly like the
+  first call's. The start screen says how many calls each evaluator makes;
+- refused only if not even one requirement per call fits (not reachable with at most 6 models).
 
-Splitting the Final Verdict per proposal (alternative B in `docs/adr/0228-final-verdict-recovery.md`) would lift this
-limit; it is not built yet.
+Same rules as one call: only the expected evaluators, the same frozen round, no extra evaluator, no majority over a
+FAIL – the engine gate sees the same raw checks. A check of a requirement that belongs to another call of the split is
+stored, but as invalid ("requirement id belongs to another call of this split evaluation"), so every requirement counts
+from exactly one call. Nothing of an evaluator is stored before all its calls answered; a failed call fails that
+evaluator, and a resume redoes all of its calls (never two evaluations of one evaluator mixed, #181).
+
+Cost: each extra call sends the brief and the proposals again. The cost estimate (`estimateCalls`, `estimateTokens`),
+the minimum budget (`minimumCouncilBudget`) and the Final Verdict reserve (`verdictReserve`) count every call, and the
+hard token budget applies as always. Test: `packages/council/test/s1-gate.test.ts` (#246 – same answers give the same
+gate, also when a model ignores the scope).
+
+## Independence groups (engine contract 6, owner decision 08.11.2026)
+
+The same model may take part through several API keys, but it counts as **one** independent evaluator. The application
+passes `GateRound.participantGroups` (participant id → independence group, e.g. the normalised provider/model family;
+filled by the council, #31's part). In the gate:
+
+- Instances of the author's group never evaluate that proposal.
+- Per requirement every group gives one statement: any FAIL of an instance is FAIL; PASS only when every stated check
+  of the group is a confirmed PASS; otherwise UNKNOWN; open only when no instance answered. The lists still name every
+  instance, the counts are groups.
+- Minimum review breadth (#249), majorities (DISPUTED), causes and the equal-terms check count groups.
+- Without `participantGroups` every participant is its own group – the behaviour of contract 5.
 
 ## Minimum review breadth (#249, engine contract 4)
 
@@ -618,8 +717,94 @@ phase, each proposal kept a single evaluator, and the verdict still read "recomm
 - Since 31.10.2026 (external review): the same model may join a council only once, also through a second API key of
   the same provider – it would not be an independent evaluator. Independently of the engine, the public approval check
   refuses every proposal with `limitedReview: true` and treats "qualified" together with it as an inconsistent verdict.
-- Not yet built (#249, part 2): a two-stage check that separates the architecture decision from the later acceptance
-  measurement for requirements that can only be measured after implementation.
+
+## Architecture candidate: measurement checks (#249 part 2, gate version 3, engine contract 5)
+
+Owner decision 08.11.2026 (strict variant first). Some requirements nobody can confirm before the solution exists –
+OnJam R5 "muss 2–4 Musikern rhythmisch stabiles Zusammenspiel ermöglichen". Until now every evaluator said UNKNOWN and
+the requirement blocked every proposal without telling the user why.
+
+- **Gate 1 – architecture (this release).** From gate version 3 such a requirement (`requirementVerification` →
+  `"measurement"`, detected from the wording by `measurableOnlyAfterImplementation`, also for lists confirmed earlier)
+  is checked as a **measurement plan**: the evaluators get a `[measurement check …]` note in `<confirmed_requirements>` –
+  PASS only if the proposal names method, target value with unit, measurement setup and conditions; UNKNOWN without
+  such a plan; FAIL if the proposal contradicts it. The round passes `GateRound.measurementChecks` to the engine.
+- **Never met by a plan.** The engine marks these requirements `measurementPending`. A proposal whose every check passed
+  with enough independent evaluators is an **architecture candidate – performance proof open** (`architectureCandidate:
+  true`): feasibility stays `needs_verification`, never qualified, never a recommendation, never regularly approvable.
+  Below the minimum review breadth it is a provisional favourite instead. A missing plan or a FAIL stays what it is.
+- **The requirement stays hard.** Its text is never changed; a measurement plan never replaces it.
+- **Fail closed in the app.** `assertGateResultConsistent` and the approval check refuse "qualified" together with an
+  open measurement, and the approval check refuses every architecture candidate with its own message.
+- **Display.** Final Verdict title, requirement table (badge "measurement plan named – measured after implementation"),
+  dashboard cell `MEASURE`, "why no recommendation" card, report (feasibility "architecture candidate (performance proof
+  open)", requirement note "measurement check", matrix status `MEASUREMENT_PLAN`) and PDF – in every interface and
+  report language.
+- **Versions.** New councils start for gate version 3. Councils started for version 2 finish with version 2: no
+  measurement note in the prompt, no `measurementChecks`, unchanged result (regression test
+  `packages/council/test/measurement-gate.test.ts`).
+- **Favourite, prototype build and gate 2:** see the section "Favourite, prototype build and acceptance by measurement".
+- **Performance limits (owner decision 08.11.2026, variant A).** A limit in milliseconds or seconds – latency, response
+  or load time ("95 % of page loads within 300 ms") – is always a measurement check from gate version 3
+  (`performanceLimit`): a proposal is at best an architecture candidate, even when every estimate is far below the
+  limit. Cost and availability limits stay estimates (engine contract 3); hours, days, weeks and months are not
+  performance limits. The owner chose this over a narrower variant (only estimates that reach across the limit) after
+  the minimal benchmark of 09.11.2026, whose only unnecessary block was `pos-latency-limit`. The reference set now
+  labels that case `architecture_candidate`; offline regression in `packages/council/test/measurement-gate.test.ts`.
+
+## Follow-up round (#228 D + #229, owner decision 08.11.26, option A)
+
+When the Final Verdict ends without a recommendation because checks are missing or unclear, the owner can start **one
+small follow-up round** from the verdict card ("Why is there no recommendation?"). It is the same mechanism with two
+triggers (ADR `docs/adr/0228-0229-follow-up-round.md`):
+
+| Kind              | Items asked                                                                 | Who answers                                        |
+| ----------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
+| `completion`      | `(evaluator, proposal, requirement)` with no valid check from that evaluator | the same evaluator, only for these items           |
+| `targeted_review` | the evaluator's own `UNKNOWN` checks                                        | the same evaluator; the other evaluators' evidence is passed as an untrusted hint |
+
+Rules:
+
+- **Frozen and append-only.** The follow-up is a new `evaluation_round` (`kind`, `parent_round_id`, `items`,
+  `token_budget`, `status`, `created_by_id`) on round 1's frozen proposals and requirements. New checks are new
+  `requirement_check` rows; nothing is overwritten.
+- **A FAIL is never outvoted.** `mergeFollowUpChecks` lets a valid follow-up answer replace the same evaluator's valid
+  checks of an asked item only when none of them is a valid FAIL. Invalid rows stay visible.
+- **Only per click, with an extra budget.** `GET /api/sessions/:id/follow-up` returns the items and a token estimate per
+  kind; `POST` needs `decision:approve`, status `awaiting_approval`, a budget ≥ the estimate (max 1,000,000 tokens) and
+  an explicit confirmation. The budget is added to the session budget and spent on the owner's own keys (BYOK). At most
+  two follow-ups per decision, one at a time; the request is audited (`council.follow_up_requested`).
+- **Then the verdict is recomputed.** The job runs only the follow-up evaluation and `computeDecision`; the matrix lists
+  the rounds in `followUpRounds` (`round`, `kind`, `items`, `applied`). If nobody answered, the round is `failed` and the
+  verdict stays as it was.
+- **Feature flag.** `FOLLOW_UP_ROUND=true|false`; default on for the hosted app, off for self-hosted installations.
+
+## Favourite, prototype build and acceptance by measurement (#249 part 2, #478, gate version 3)
+
+Owner decisions 08.11.2026: variant B (a marked prototype/measurement build for an architecture candidate) and the same
+"favourite – not regularly approved" state for a qualified proposal of a needs-verification verdict (#478). Gate
+version 3 only; councils of version 2 get none of it.
+
+- **Who may.** A person with the approval role, from a signed-in session only: the web route refuses API tokens for
+  these actions, and neither MCP nor the assistant offers them. Every step is audited.
+- **Eligible proposals** (`checkPrototypeEligibility`): an architecture candidate, or a proposal the gate qualified
+  while the verdict as a whole needs verification – consistent matrix, every check PASS, enough evaluators, security
+  minimum met, not blocked by a critical objection. The session view lists them in `decisionStatus.prototypeProposalIds`.
+- **Mark as favourite** (`mark_favorite`, written reason): a human statement, no approval and no build. The session keeps
+  waiting for a decision; the view returns it as `humanMark`.
+- **Approve a prototype / measurement build** (`approve_prototype`, written reason): the session still waits for a
+  decision; the Execution Council starts only a run of kind `prototype`. It is marked everywhere: builder prompt
+  ("prototype / measurement build – not a finished solution"), draft pull request title prefix
+  `[Prototype – not a finished solution]` and body, audit (`kind: "prototype"`), execution screen and Final Verdict. It
+  is never a regular approval: `approve` and `select_alternative` stay closed for a needs-verification verdict.
+- **Gate 2 – acceptance by measurement** (`measurement_result`, append-only): for every requirement the gate marked
+  `measurementPending`, a person records method, target value, measured value, met / not met and **mandatory
+  evidence**. It is a self-declaration and shown as such everywhere ("Measurement: self-declared by <person>, evidence:
+  …"). A single recorded "not met" blocks the proposal for good. When every open measurement is recorded as met,
+  `approve_after_measurement` is the regular approval (`checkApprovalAfterMeasurement`): all other rules stay, including
+  a comparison on equal terms, and the build re-checks it on every run. The requirement stays hard – only the measured
+  value fulfils it.
+- **Not built yet:** a second person confirming a measurement (four-eyes principle, optional per workspace) – #496.
 
 ## Verdict at a glance (stage 1 result visualisations, 05.11.26)
 
@@ -646,6 +831,21 @@ claim with raiser and role, the author's answer (or "conceded" / why it is unans
 whether the proposal was revised afterwards – plus the Consensus Round's remaining disagreements, as stored. A
 finished session now opens on the Final Verdict tab; a running one on the Council Room.
 
+Stage 2 (08.11.26): the same card also sits above the objection list in the Minority Review & Consensus Round tab.
+- Filter chips with counts: all, open (open/unresolved, or upheld but not yet fixed – not moot), high/critical (or blocking), resolved
+  (refuted/resolved or moot) – `matchesFilter`.
+- A step row per dispute: objection raised → answer (answered / conceded / unanswered) → independent review → revision
+  → status, with a time only where one is stored (objection and revision; answers and reviews have none).
+- "Belege ansehen": the objection id and time, the original message (id, phase, round, time, full stored text), the
+  attacked and the current proposal version ("damals: v1 · aktuell: v2" – the newest revision stored before the
+  objection) and the review. Missing data reads "not stored", never filled in.
+- Empty state: once the Minority Review is done or a verdict exists and no objection or remaining disagreement was
+  stored, the card says "no documented decisive disagreement" instead of disappearing – never an invented conflict.
+  Before that point it stays hidden.
+- Tests (`cruxes.test.tsx`): objection on A v1, A revised to v2, review still unresolved → open, never resolved, sources
+  then v1 / now v2; every shown dispute points to a stored objection row; a council without objections shows the empty
+  state only after the review. No model call, no migration; the PDF report is unchanged.
+
 ## Verdict dashboard (#266, 05.11.26)
 
 Top of the Final Verdict (`apps/web/src/components/session/verdict-dashboard.tsx`), all texts in 5 languages
@@ -658,6 +858,14 @@ shows every stored evaluator check with its reason. Design review with ChatGPT 0
 cannot be approved is a calm grey bar with a lock and the words "not approvable", never coloured like a contender. The
 PDF page 1 uses the same rules.
 
+**Gate before score (08.11.26).** The requirement × proposal matrix now comes right after the status hero and the
+review facts, **before** any score, and every score bar carries the proposal's gate status as a chip beside it
+(qualified / needs verification / does not meet / provisional favourite, `requirementGate.feasibility.*`). So a high
+score can never be read as "passed" before the reader has seen which requirements are not met or still open. Order:
+1 status, 2 requirements (gate), 3 overall scores, 4 criteria, 5 key disputes (#267, `CruxesCard`, built separately),
+6 objections. The plain-language "why no recommendation" card (#230) stays in the decision card below the dashboard.
+The 30-second usability measurement of #266 still needs a test with real people.
+
 ## PDF in three levels (#268, 05.11.26)
 
 `/api/sessions/:id/report?format=pdf&level=brief|report|full` – one report snapshot, three depths: **brief** = the
@@ -666,6 +874,52 @@ graphical decision summary only (1–2 pages for decision makers), **report** (d
 (requirement × proposal × actual evaluator, status, evidence, estimate exactly as stored, checks that did not count with
 the reason) and the model calls per model and phase with tokens, plus brief/requirement/gate versions. No model call,
 nothing recomputed. The Final Verdict offers the three as buttons.
+
+**Chinese report (#268, 08.11.26):** the report speaks all five interface languages. `reportLocale("zh")` gives
+Chinese fixed wording (`ZH` in `report-i18n.ts`, plus the engine sentences in `report-engine-text.ts`) for Markdown,
+Word, the delivery message and Confluence; model text stays as written. The PDF stays English for zh (`pdfLocale`) until
+a CJK font is embedded – the standard PDF fonts have no CJK glyphs.
+
+**One status for screen and PDF (#268 PR 1, 08.11.26):** `verdictStatus(view)`
+(`apps/web/src/components/session/verdict-status.ts`) is the only derivation of the verdict title (`outcomeKey`), the
+first offered action, the S1 locks (gate versions 2 and 3) and the #477 split "awaiting your review · no approvable
+proposal". The verdict screen, the session header and the PDF use it; the PDF takes the screen's words
+(`reportStatus`, `apps/web/src/lib/server/report-status.ts`, via next-intl messages) and prints the status line and the
+title on top, before any score – downloaded PDF and delivered PDF alike. `humanMark` and typed `marks` are reserved for
+#249 part 2 (a favourite or prototype build is a human action, never a verdict).
+
+**Brief page from the screen's derivations (#268 PR 2):** on the summary page the hard-requirement matrix now comes
+before the overall score and the criteria (gate before score, #266). Below the scores the PDF shows the key disputes
+(top 3, `deriveCruxes`, as on the Minority Review tab) and the next steps for the same proposal and mode as the verdict
+screen (`nextStepsTarget` + `deriveNextSteps`: what to settle, strongest counter-position, riskiest assumptions,
+cheapest test, stop criteria) – worded with the screen's messages, stored statements as written. The human decision
+is printed in words (`approvalActionText`), never as the raw action id. Callers without the shared derivation keep the
+per-proposal objection counts.
+
+**Page master and long reports (#268 PR 3):** every page carries the AI note ("AI assessment – not independent factual
+verification") and "x / y"; from page 2 the document id "project · session · verdict · created … UTC". The requirement
+matrix on the summary page shrinks its columns for up to six proposals (narrow cells show OK / x / ? / ! / P / M with a
+legend), wraps long requirement texts instead of cutting them and repeats its header on a new page; the audit's
+model-call table repeats its header too. In the audit, statuses are translated, phases carry their product names and
+"not every part confirmed" is translated. Layout fixtures (`report-layout.test.ts`): A 3×6 → brief 2 pages; B 6×45
+with long DE/EN texts → full report 21 pages, ~56 KB, ~0.1 s; C 2 models, limited review, rejected.
+
+**Human marks, measurements, review status (#268 with #249 part 2 and #477):** `verdictStatus` carries `humanMark`
+and the typed `marks` (`favoriteNotRegular`, `prototypeBuild`); the PDF prints the screen's sentence under the verdict
+(a favourite or prototype build is a human action, the verdict stays as it is). Acceptance by measurement uses one
+derivation for the panel and the PDF (`measurementRows`, `apps/web/src/components/session/measurements.ts`): every result
+is "Measurement: self-declared by …, evidence: …", one measured miss stays decisive. The rule "awaiting your review ·
+no approvable proposal" (`awaitingReviewWithoutApproval`, `packages/core/src/approval-status.ts`) is shared by the
+header, `verdictStatus` and the report: Markdown/Word print it as the status, JSON carries `workflowStatus` and
+`approvalStatus`. The new human actions (marked as favourite, prototype/measurement build approved, approved after
+measurement) are worded in every report.
+
+**Course of the council (#268 part 4):** the report and full PDFs open with "Course of the council" before the full
+text: the phase timeline (stored stage times as in the replay, `buildReplayEvents`, UTC and minutes), participation and
+tokens per model (the Council Room's `participationMatrix`: calls, contributions, failed calls, "no contribution",
+instances of one model marked as one independent voice), follow-up check rounds as stored with the verdict
+(`followUpRounds`: requested checks, done and taken over or not finished) and the human decisions (the verdict
+screen's history, in its words). The brief stays the summary alone.
 
 ## Stage-2 charts (05.11.26)
 
@@ -683,6 +937,29 @@ call. A security/downside check and an independent critic are always suggested; 
 requirements (R1, R2, …) that led to it, the rest are listed as "not suggested" with the reason. The team setup shows
 each role's core question and applies the suggestion only on the user's click. Roles stay perspectives, not votes.
 
+**Stage 2 (08.11.26): profiles, snapshot, role ≠ vote, golden set**
+
+- Role profiles (#270) are suggested with their role (`suggestRoleProfiles`): exactly one own or team profile for the
+  role → that one; none → the curated profile of the role; several → none preselected ("N of your profiles – choose").
+  Applying sets the roles and, only for roles without a chosen profile, the suggested profile (`profilesAfterApply`) –
+  the user's own choice is never overwritten. Nothing starts without the user.
+- `council_session.role_selection` (migration 0046, `roleSelectionSnapshot`): what was suggested (roles, topic words,
+  R-ids, suggested profile), what was not suggested, and where every active role came from (`suggestion`, `skill`,
+  `own`, `coverage` for #136 extra perspectives) plus the number of models. Computed in `createSession` from the brief and
+  the confirmed list the council is bound to – never taken from the client. Older runs: null.
+- The setup states role ≠ vote as numbers ("3 models · 5 perspectives · each proposal is checked by up to 2 other
+  models") and names a model selected twice (also through a second key): it is no second independent evaluator, the
+  start stays blocked – the same rule the server enforces (#249).
+- Gate, votes, weights, thresholds and the minimum of two foreign evaluators are unchanged.
+- Session view, 12 Minds Council tab: "Why these perspectives?" (`why-perspectives.tsx`) shows, only from
+  `role_selection`, where each active role came from, the topic words and R-ids behind a suggested one, the frozen role
+  profile and what was not suggested. Councils without the snapshot (before 0046) show nothing – no reconstruction.
+
+Golden set (`packages/core/src/role-suggestion.golden.test.ts`, ten projects, relevant roles written by hand, no model
+call): average coverage of the relevant roles **95 %** with the suggestion versus **32 %** with the default team of
+Independent Expert; at most one role without a reason per project (0.3 on average; default team 1.6). Known gap: "runs on
+the existing server" (OnJam) suggests the backend engineer rather than DevOps – topic words only, no inference.
+
 ## Next steps (#273 MVP, 05.11.26)
 
 `deriveNextSteps` (`apps/web/src/components/session/next-steps.ts`) builds a read-only checklist for the recommended
@@ -691,6 +968,23 @@ confirmed for it and its open objections ("settle before any irreversible step")
 these first"), high/critical risks with the planned mitigation ("stop and re-check if …") and the points the Consensus
 Round left open ("ask the council again when …"). Empty sections say "not specified"; nothing is generated, a test plan
 never confirms a requirement and nothing starts without the user.
+
+**Stage 1 (08.11.26), still without any model call:** every open objection names the model that raised it; a new section
+"Strongest counter-position" shows the top open, unresolved or upheld objection against the proposal – taken from the
+Key disputes ranking (#267 `deriveCruxes`, no second logic) – with its own stored reasoning as "it would be right if …";
+when nothing can be approved the card says that nothing can be approved or built yet and points to settling the open
+points. A cheapest validating test, concrete stop criteria and revisit triggers would need new model output (optional
+proposal fields, about 1–2k tokens per council, new `PROMPT_VERSION`) – stage 2, waiting for the owner's decision.
+
+**Stage 2 (owner decision 08.11.26):** the proposal schema has three optional fields – `cheapestTest` (riskiest
+assumption, smallest test, success criterion), `stopCriteria` and `revisitTriggers`. They come with the existing
+Independent Thinking and Consensus Round revision calls (no extra call; `PROMPT_VERSION` 2026-11-09.6); the prompt asks
+to leave a field empty rather than invent figures, dates or costs. Providers receive them as fields (strict schemas
+require every property, so "empty" is the way to say "not stated"); proposals written before stay valid because the
+fields are optional when stored. The next-steps card shows "Cheapest useful test" (labelled "the author's own
+suggestion (AI) – a plan, not a confirmed check"), adds the stop criteria and revisit triggers to their sections with
+"(AI suggestion)", and says "not stated by the author" when a field is missing. Nothing here confirms a requirement or
+unlocks a build.
 
 ## Answer language and the interface language (QA live test 07.11.26)
 
@@ -730,3 +1024,103 @@ never confirms a requirement and nothing starts without the user.
 - Fixed measured values (R3-02, 08.11.26): when the brief states a fixed measured value for the option a proposal
   adopts unchanged, the evaluator uses it as the estimate (estimateLow = estimateHigh) instead of a range. The cause of
   a measured requirement is shown in the interface language with local number format (`requirementGate.estimate.*`).
+- Report: the proposals (Telegram live test 08.11.26). Markdown, PDF and Word name every proposal right after the
+  outcome – label, title, author model and summary ("Die Vorschläge"); the PDF summary page lists them before the
+  scores. The engine's gate causes and summary appear in the report language.
+- Report: one language from start to end, and one approval status (ChatGPT review of two Telegram PDFs, 08.11.26).
+  In de/fr/es the report no longer prints engine English or raw values: confidence issues are worded from the stored
+  structure (`evaluationMatrix.confidenceIssueData`, `packages/council/src/report-engine-text.ts`), the fixed parts of
+  objection decisions ("Addressed by the author in v2.", "Not independently re-reviewed.", "Conceded by the author …"),
+  matrix notes ("Not qualified: …", "Other gate: …"), debate types and roles, objection areas and severities,
+  consensus status, risk lines, human decisions, the delivery subject, the PDF title and the Confluence link are
+  translated. English output is unchanged. Model text is never translated.
+  - Status: when proposals passed the requirement check but nothing can be approved (e.g. conflict of interest), the
+    outcome says so neutrally and `blockedExplanation` names the proposals that passed and why nothing was recommended;
+    on the PDF summary those proposals read "passes the requirements" instead of "not approvable". A tie the server
+    lets a human decide is titled "No automatic recommendation".
+  - "What you need to do now" (`nextAction`): one sentence from stored state only (approvable set, outcome, last human
+    decision) – right under the outcome in Markdown and on the PDF summary, and as the next step when the recommended
+    proposal names none ("Next steps: none" is gone).
+  - Language check: `reportLanguageIssues(text, locale)` lists engine English and raw values in a non-English report.
+    Delivery (Telegram, e-mail, Confluence) logs a warning when it finds any; it does not block a verdict. Test:
+    `packages/council/test/report-language.test.ts` (the Telegram run "E-Mail oder Messenger-Gruppe?", de/fr/es).
+  - Stored exclusion reasons ("Not taken over") appear in the report language too; the ask_consyrion / Telegram
+    context sentence is a known reason (`CLIENT_CONTEXT_EXCLUSION_REASON`, live test of #410, 08.11.26).
+
+## Every model gets a perspective (#136)
+
+Roles are spread round-robin over the models. When there are more models than chosen perspectives (six models,
+four default roles), the models without a role get an extra perspective that is not chosen yet – generalist reviewers
+first (independent critical thinker, maintainability reviewer, QA expert, …; `coverAllParticipants`,
+`packages/core/src/role-coverage.ts`). This also applies when every role is assigned to one model by hand. The setup
+page lists the added perspectives before the start, the preview counts their calls, and the session stores them in its
+policy. A role is a review perspective, not a vote: every model still has exactly one vote and never scores its own
+proposal. The extra perspectives can be switched off on the setup page (`extraRoles: false`, ChatGPT review 09.11.26);
+the page shows how many extra 12 Minds calls they add, and that two perspectives of one model are not two independent
+opinions.
+proposal.
+
+## Replay ("Verlauf" tab, #271 part 1, 08.11.26)
+
+The session workspace has a "Verlauf" (Replay) tab next to the Council room: the council as a timeline of **stored
+events only**, replayable step by step. Every entry is one persisted row with its own timestamp – stage start/end
+(`workflow_stage`), proposal revision, debate message, objection, Minority Review, scores (one entry per evaluator at its
+last score), vote, Consensus Round, verdict (also superseded ones) and human decisions. Nothing is generated: no quotes,
+no estimated times, no reconstructed events; rows without a timestamp are left out and counted ("{n} entries have no
+time stamp"). Same order after every reload: time, then phase, then a fixed kind order, then the row id
+(`buildReplayEvents`, `apps/web/src/components/session/replay-events.ts`).
+
+- Controls: previous/next event, play/pause, speed 1×/2×/4× (display only), scrubber, "Jump to the end" / "Jump to live".
+  The phase bar shows the state at the cursor in words; message and objection counts up to the cursor.
+- Honest limits: a dropped-out model is shown as dropped out from the start (the time of the dropout is not stored, so it
+  is never shown as active); objection decisions have no time of their own and appear only at the end of the replay;
+  authors stay hidden until the verdict, as everywhere else.
+- Read-only: no writes, no model calls, no new endpoint – it reads the session view the page already has, and a running
+  session follows the existing live stream. Screen readers get one polite announcement per manual step, not every
+  playback step; scrolling respects reduced motion.
+- Long sessions (part 2): the timeline renders at most `REPLAY_PAGE` (150) events ending at the cursor; "Show 150
+  earlier" loads more on request, the scrubber always covers every event.
+- Network view (part 3, "Zeitleiste | Netzwerk"): models left, proposals right, one line per model → proposal and kind
+  (question, critique incl. rebuttal, answer, objection) built only from stored rows up to the cursor
+  (`replayEdges`); line width = number of rows, colour plus dash pattern per kind, no animation. No model → model lines
+  (they would reveal authors before the verdict), nothing inferred from activity. Every line is also a button in the
+  "Connections" list, which shows the stored original texts – the list is the primary view on phones.
+- Table view (part 4, "Zeitleiste | Netzwerk | Tabelle"): the same stored events as the timeline, one row each with
+  time, phase, event, model and proposal, in the same window of 150 ending at the cursor; the cursor row is marked
+  (`aria-current`). Authors appear only once the verdict revealed them, as everywhere else.
+- Follow-ups of #271: demo mode "Simulation" (#449), user test and measurements (#450).
+
+## Participation per model (ChatGPT P0, 09.11.26)
+
+The Council Room shows a table **Beteiligung je Modell**: per model and phase the successful calls, failed calls and
+stored contributions (proposal, debate messages, scores) – counted only from stored rows (`participationMatrix`,
+`apps/web/src/components/session/participation.ts`). A phase that ran without any call or contribution of a model is
+marked "kein Beitrag", so a silent model is visible instead of being counted as taking part. Several perspectives of
+one model remain one vote.
+
+Several instances of one model (different keys, user decision 08.11.26) are marked per row as "Instance 2/3 – one
+independent voice" (`independenceKey` from `@consyrion/core`), matching the counting in verdict, majority and gate (#522).
+
+## Same model through several keys (user decision 08.11.26)
+
+The same model may join a council several times through different API keys or accounts – each instance with its own
+role and role profile. Instances of one model are never independent of each other: `independenceKey`
+(`packages/core/src/independence.ts`) puts them into one group (provider + model id, lower case, without a date or
+version stamp such as `-20261001`, `@20261001`, `-latest`). Part 1 (this, no behaviour change while the start still
+refuses a second instance):
+
+- Final Verdict (`aggregateVerdict`, `evaluatorGroups`): a group never scores or ranks a proposal of its own group, its
+  instances share one voice (their weights are split) and it counts once as an independent evaluator.
+- Majority (`modelMajority`): one preference per group.
+- Minority Review judges: a judge is independent of author and raiser by model, not by key; one verdict per model per
+  objection (another instance may stand in only for one that failed).
+- Requirement round: `expectedEvaluatorIds` are frozen without the instances of the author's group.
+
+Part 2 (engine contract 6, #523; the council passes `participantGroups` from `groupsOf` to the gate): the gate counts groups for n, majorities and the minimum of two
+independent evaluators (#249), one statement per group (any FAIL → FAIL). Part 3 (user decision 08.11.26, replaces the #253 block): the start allows the same model again through **another**
+key or account (the same model twice through the same key stays refused). The setup shows a clear note instead of
+the former red block ("Claude Opus: 3 instances (different keys) count as 1 independent voice …"), the role line counts
+groups, the report names every instance ("anthropic/claude-opus-5-5 (instance 2 of 3 – one independent voice)") and
+the audit appendix numbers them ("#2/3"). Tests: `packages/council/test/s1-gate.test.ts` (2× m1 + m2 is a limited
+review, never approvable; 2× m1 + m2 + m3 can still qualify), `engine.test.ts` (second key allowed, same key refused).
+

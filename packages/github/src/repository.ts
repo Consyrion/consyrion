@@ -14,7 +14,9 @@ export async function listInstallationRepositories(client: GitHubClient): Promis
 export const SNAPSHOT_LIMITS = { maxFileBytes: 100_000, maxTotalBytes: 2_000_000, maxFiles: 300 } as const;
 
 const SKIP_PATH = /(^|\/)(node_modules|vendor|dist|build|\.next|\.git|coverage|__pycache__|\.venv)(\/|$)/;
-const SECRET_PATH = /(^|\/)(\.env(\..*)?|.*\.(pem|key|p12|pfx|keystore|jks)|id_rsa|id_ed25519|credentials(\.json)?|\.npmrc|\.pypirc|secrets?\.(ya?ml|json))$/i;
+// #408: also Terraform variables/state, netrc/git credentials, htpasswd, kubeconfig, Docker auth and service-account keys.
+const SECRET_PATH =
+  /(^|\/)(\.env(\..*)?|.*\.(pem|key|p12|pfx|keystore|jks|tfvars|tfstate(\.backup)?)|id_rsa|id_ed25519|id_ecdsa|credentials(\.json)?|\.npmrc|\.pypirc|\.netrc|_netrc|\.git-credentials|\.htpasswd|kubeconfig|\.kube\/config|\.dockercfg|\.docker\/config\.json|service[-_]?account[\w.-]*\.json|secrets?\.(ya?ml|json))$/i;
 const BINARY_EXT = /\.(png|jpe?g|gif|webp|ico|pdf|zip|gz|tar|tgz|jar|class|exe|dll|so|dylib|woff2?|ttf|otf|mp[34]|mov|avi|wasm|bin|lock\.b)$/i;
 const SECRET_CONTENT = [
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
@@ -23,6 +25,11 @@ const SECRET_CONTENT = [
   /\bsk-(ant-)?[A-Za-z0-9_-]{20,}\b/,
   /\bxox[abpr]-[A-Za-z0-9-]{10,}\b/,
   /\bAIza[0-9A-Za-z_-]{35}\b/,
+  // #408: Stripe live keys, Slack webhooks, JSON web tokens, Google service-account private keys.
+  /\b[rs]k_live_[A-Za-z0-9]{20,}\b/,
+  /https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]{20,}/,
+  /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+  /"private_key_id"\s*:\s*"[0-9a-f]{20,}"/,
 ];
 
 /** A path a snapshot or a repository context may read: no build output, dependencies, secret-looking or binary files. */

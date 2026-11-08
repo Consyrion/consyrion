@@ -1,9 +1,18 @@
 import "server-only";
-import { buildDecisionReport, getSessionView, reportToMarkdown, type DecisionReport } from "@consyrion/council";
+import {
+  buildDecisionReport,
+  getSessionView,
+  reportLanguageIssues,
+  reportToMarkdown,
+  reportTranslator,
+  type DecisionReport,
+  type ReportLocale,
+} from "@consyrion/council";
 import { assertCan, DomainError, type Keyring } from "@consyrion/core";
 import { deliveryConnectionForUse, listMembers, recordDelivery, setProjectDeliveryDefault, type ActorContext, type Database } from "@consyrion/db";
 import { z } from "zod";
-import { reportBlocks, reportPdf } from "./report-documents";
+import { pdfLocale, reportBlocks, reportPdf } from "./report-documents";
+import { reportStatus } from "./report-status";
 
 /**
  * Sending a decision where the user works (#165): e-mail (platform SMTP, PDF attached), Telegram (the workspace's bot,
@@ -23,6 +32,8 @@ export interface MailMessage {
   to: string[];
   subject: string;
   text: string;
+  /** Optional Reply-To header (e.g. the operator's address for answers to a no-reply sender). */
+  replyTo?: string;
   attachments: Array<{ filename: string; content: Buffer; contentType: string }>;
 }
 
@@ -32,6 +43,8 @@ export interface DeliveryDeps {
   sendMail?: ((message: MailMessage) => Promise<void>) | null;
   appUrl?: string;
   mailFrom?: string;
+  /** Language of the fixed wording in summary and PDF (Telegram: the connection's language). */
+  locale?: ReportLocale;
 }
 
 /**
@@ -106,15 +119,18 @@ export function reportStorageHtml(markdown: string) {
  * Short text for e-mail, Telegram and Confluence. A verdict the server marks as not approvable (#181, stage 1:
  * needs_verification, unknown outcome or format version) never reads as a recommendation.
  */
-export function deliverySummary(report: DecisionReport, link: string) {
+export function deliverySummary(report: DecisionReport, link: string, locale: ReportLocale = "en") {
+  // Telegram live test 08.11.26: the summary was English in a German workspace – fixed wording in the chosen language.
+  const t = reportTranslator(locale);
   const approvable = report.decisionFormat?.approvable !== false;
   const r = report.recommendedSolution;
+  const confidence = report.evaluationMatrix?.confidence;
   return [
     `CONSYRION AI – ${report.project}`,
-    report.outcomeText,
-    r ? `${approvable ? "Recommended" : "Leading proposal (not approvable)"}: Proposal ${r.label} – ${r.title ?? ""}` : null,
-    approvable ? null : "Not approvable: this verdict cannot be approved or built.",
-    report.evaluationMatrix?.confidence && report.evaluationMatrix.confidence !== "normal" ? `Confidence: ${report.evaluationMatrix.confidence}` : null,
+    t(report.outcomeText),
+    r ? `${approvable ? t("Recommended") : t("Leading proposal (not approvable)")}: ${t("Proposal {label}", { label: r.label })} – ${r.title ?? ""}` : null,
+    approvable ? null : t("Not approvable: this verdict cannot be approved or built."),
+    confidence && confidence !== "normal" ? t("Confidence: {level}", { level: t(confidence) }) : null,
     link || null,
   ]
     .filter(Boolean)
@@ -133,13 +149,27 @@ export async function deliverDecision(db: Database, actor: ActorContext, keyring
   const view = await getSessionView(db, actor, sessionId);
   if (!view.decision) throw new DomainError("CONFLICT", "There is no verdict to send yet");
   const report = buildDecisionReport(view);
-  const markdown = reportToMarkdown(report);
+  const locale = deps.locale ?? "en";
+  const markdown = reportToMarkdown(report, locale);
+  // Language check before the report leaves the app (ChatGPT review 08.11.26). It reports, it does not block: a
+  // late English fragment must not stop a verdict from reaching the user; the unit tests keep the known paths clean.
+  const languageIssues = reportLanguageIssues(markdown, locale);
+  if (languageIssues.length) console.warn(`[delivery] report ${sessionId} (${locale}) still contains: ${languageIssues.join(" | ")}`);
   const appUrl = (deps.appUrl ?? process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
   const link = appUrl ? `${appUrl}/sessions/${sessionId}` : "";
-  const title = `Decision: ${report.project}`;
-  const summary = deliverySummary(report, link);
+  const tt = reportTranslator(locale);
+  const title = tt("Decision: {project}", { project: report.project });
+  const summary = deliverySummary(report, link, locale);
+  // A Chinese PDF stays English until a CJK font is embedded (#268); the message and the Confluence page are Chinese.
+  const docLocale = pdfLocale(locale);
   const pdf = Buffer.from(
-    await reportPdf(markdown, { title: `Final Decision Report – ${report.project}`, sessionId, createdAt: view.session.createdAt }, report),
+    await reportPdf(
+      docLocale === locale ? markdown : reportToMarkdown(report, docLocale),
+      { title: reportTranslator(docLocale)("Final Decision Report – {project}", { project: report.project }), sessionId, createdAt: view.session.createdAt },
+      report,
+      // The same status line as the screen and the downloaded PDF (#268).
+      { locale: docLocale, status: reportStatus(view, docLocale), verdictId: view.decision?.id ?? null },
+    ),
   );
   const filename = `consyrion-decision-${sessionId}.pdf`;
   const doFetch = deps.fetch ?? fetch;
@@ -196,7 +226,9 @@ export async function deliverDecision(db: Database, actor: ActorContext, keyring
             space: { key: connection.config.spaceKey },
             body: {
               storage: {
-                value: reportStorageHtml(markdown) + (link ? `<p><a href="${escapeHtml(link)}">Open in CONSYRION AI</a></p>` : ""),
+                value:
+                  reportStorageHtml(markdown) +
+                  (link ? `<p><a href="${escapeHtml(link)}">${escapeHtml(reportTranslator(locale)("Open in CONSYRION AI"))}</a></p>` : ""),
                 representation: "storage",
               },
             },

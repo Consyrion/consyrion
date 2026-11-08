@@ -9,7 +9,9 @@
       "awaiting_approval": "Awaiting your decision",
       "approved": "Approved",
       "rejected": "Rejected",
-      "changes_requested": "Changes requested"
+      "changes_requested": "Changes requested",
+      "awaitingReview": "Awaiting your review",
+      "noApprovableProposal": "No approvable proposal"
     },
     "cancelError": "Could not cancel",
     "briefVersion": "Brief v{version}",
@@ -21,6 +23,7 @@
     "perspectives": "{n, plural, one {# perspective} other {# perspectives}}",
     "tokensUsed": "Tokens used",
     "reserved": "+ {n} reserved for running calls (released or replaced by the actual usage when they finish)",
+    "cachedInput": "of which {n} from the provider's prompt cache (billed cheaper)",
     "budgetAria": "Token budget used",
     "stop": "Stop session",
     "queue": "Waiting for a free worker slot: {position}, {running} running.",
@@ -68,6 +71,24 @@
     "tabsNote": "The tabs follow the seven canonical phases. Minority Review and Consensus Round share one screen; Evaluation and Review & Tests are detailed views of Final Verdict and Execution Council."
   },
   "councilRoom": {
+    "participation": {
+      "title": "Participation per model",
+      "intro": "Who really took part in each phase – counted from stored calls and contributions. Several perspectives of one model are still one vote.",
+      "model": "Model",
+      "calls": "{n, plural, one {# call} other {# calls}}",
+      "contributions": "{n, plural, one {# contribution} other {# contributions}}",
+      "failed": "{n, plural, one {# failed} other {# failed}}",
+      "silent": "no contribution",
+      "phase": {
+        "independent_thinking": "Independent Thinking",
+        "open_council": "Open Council",
+        "twelve_minds_council": "12 Minds Council",
+        "minority_review": "Minority Review",
+        "consensus_round": "Consensus Round",
+        "final_verdict": "Final Verdict"
+      },
+      "instance": "Instance {index}/{total} – one independent voice"
+    },
     "voice": {
       "working": "Working",
       "submitted": "Submitted",
@@ -91,12 +112,13 @@
     "objectionsLater": "Objections appear after the 12 Minds Council.",
     "noObjections": "No objections were raised.",
     "proposal": "Proposal {label}",
+    "objectionAgainst": "Objection against Proposal {label}",
     "objectionStatus": {
-      "open": "open",
-      "accepted": "accepted",
-      "unresolved": "unresolved",
-      "resolved": "resolved",
-      "refuted": "refuted"
+      "open": "objection open",
+      "accepted": "objection accepted",
+      "unresolved": "objection unresolved",
+      "resolved": "objection resolved",
+      "refuted": "objection refuted"
     },
     "blocking": "blocking",
     "notDefended": "not defended",
@@ -261,6 +283,27 @@
       "version": "Version {version}",
       "kept": "position kept",
       "refs": "refs: {n}"
+    },
+    "why": {
+      "title": "Why these perspectives?",
+      "counts": "{models, plural, one {# model} other {# models}} · {perspectives, plural, one {# perspective} other {# perspectives}} – perspectives are not votes.",
+      "origin": {
+        "suggestion": "project suggestion",
+        "skill": "from skill",
+        "own": "chosen by you",
+        "coverage": "added (every model reviews)",
+        "default": "mode default (start without role choice)"
+      },
+      "always": {
+        "security": "Always suggested: a security and downside check.",
+        "critic": "Always suggested: an independent critic."
+      },
+      "words": "Topics in the brief: {words}",
+      "requirements": "Requirements: {ids}",
+      "default": "Neutral default perspective",
+      "profile": "Role profile: {name}",
+      "notSuggested": "Not suggested (no matching topic): {roles}",
+      "note": "Stored at the start of this council; later changes to the brief or profiles do not change it."
     }
   },
   "evaluationScreen": {
@@ -302,7 +345,20 @@
     "scoresFor": "Scores for Proposal {label}",
     "scoreBy": "by {model}",
     "voteWeight": "(vote weight {weight}/10)",
-    "eligibleButBlocked": "Passes the gates, but cannot be approved in this council – see Final Verdict."
+    "eligibleButBlocked": "Passes the gates, but cannot be approved in this council – see Final Verdict.",
+    "ineligible": {
+      "missingScores": "Independent scores are missing",
+      "securityLow": "Security score {score} is under the minimum of {min}",
+      "blocking": "{count, plural, one {# blocking objection is} other {# blocking objections are}} still open",
+      "totalLow": "Total {score} is under the minimum of {min}",
+      "notInGate": "Not qualified: the requirement check does not include this proposal",
+      "notQualified": "Not qualified: {cause}",
+      "declaredUnsolvable": "Not implementable: the proposal says itself that the hard requirements cannot all be met",
+      "hardUnmet": "Not implementable: {k} of {n} independent reviewers found a hard requirement unmet"
+    },
+    "formulaText": {
+      "text": "total = sum over all criteria of the {weighted, select, yes {vote-weighted } other {}}average of the independent scores × weight / 100; weights: {weights}{weighted, select, yes {; vote weights: {votes}} other {}}"
+    }
   },
   "verdictScreen": {
     "participation": {
@@ -317,7 +373,8 @@
       "s1": "does not meet all confirmed requirements",
       "finding": "finding, not an implementable solution",
       "other": "not approvable",
-      "qualifiedBlocked": "meets the confirmed requirements, but cannot be approved in this council"
+      "qualifiedBlocked": "meets the confirmed requirements, but cannot be approved in this council",
+      "architectureCandidate": "architecture candidate – performance proof open ({ids})"
     },
     "voteWeights": "Vote weights (fixed at the start, #140): {list}. Weighted are each model's scores and ranking, not its own proposal; the feasibility check counts every model once.",
     "notApprovableHint": "You can request changes to the brief or reject; a changed brief needs a new council.",
@@ -372,7 +429,10 @@
         "repeat_evaluation": "repeat evaluation",
         "request_more_debate": "request more debate",
         "request_changes": "request changes",
-        "reject": "reject"
+        "reject": "reject",
+        "mark_favorite": "marked as favourite",
+        "approve_prototype": "prototype / measurement build approved",
+        "approve_after_measurement": "approved after measurement"
       },
       "superseded": "{n, plural, one {# earlier verdict was} other {# earlier verdicts were}} superseded by additional debate."
     },
@@ -393,14 +453,66 @@
       "comment": "Comment (optional)",
       "saving": "Saving…",
       "record": "Record decision",
-      "onlyOwners": "Only owners and admins can approve decisions."
+      "onlyOwners": "Only owners and admins can approve decisions.",
+      "markFavorite": "Mark as favourite (no approval, no build)",
+      "approvePrototype": "Approve a prototype / measurement build (not a finished solution)",
+      "approveAfterMeasurement": "Approve after measurement"
     },
     "reasons": {
       "needsVerification": "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.",
       "notQualified": "This proposal does not meet every confirmed requirement according to the evaluations (or it could not be confirmed). It cannot be approved or built. Change the brief or the requirements and start a new council.",
       "limitedReview": "Too few independent models checked this proposal (at least 2 are needed). It is a provisional favourite and cannot be approved or built. Start a new council with at least 3 models.",
       "unknownOutcome": "This verdict uses a result this version does not know. It cannot be approved or built here.",
-      "conflictOfInterest": "Proposal {qualified} meets every requirement, but there is no automatic recommendation: Proposal {blocked} scored higher and was blocked only by the requirement checks of the author of Proposal {qualified} – a decision in its own favour. Start a new council (e.g. with another model) to decide without this conflict of interest."
+      "conflictOfInterest": "Proposal {qualified} meets every requirement, but there is no automatic recommendation: Proposal {blocked} scored higher and was blocked only by the requirement checks of the author of Proposal {qualified} – a decision in its own favour. Start a new council (e.g. with another model) to decide without this conflict of interest.",
+      "architectureCandidate": "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so no proposal can be approved as a finished solution yet. Mark it as favourite, approve a prototype / measurement build or record the measured result."
+    },
+    "why": {
+      "title": "Why there is no approvable recommendation",
+      "conflict": "The hard requirements contradict each other – no proposal can meet all of them at once.",
+      "violated": "{list} not met according to the AI evaluators.",
+      "violatedCount": "{list} not met – {fail} of {total} AI evaluators say so.",
+      "disputed": "the AI evaluators disagree on {list}.",
+      "disputedCount": "the AI evaluators disagree on {list}: {pass} say met, {fail} say not met.",
+      "notEvaluated": "not fully evaluated – for {list} at least one AI evaluator gave no valid answer. This is a technical gap, not a finding against the proposal.",
+      "notProven": "{list} could not be confirmed from the proposal text. Not confirmed is not the same as not met – evidence is missing.",
+      "limitedReview": "passed every check, but too few independent AI evaluators took part to recommend it.",
+      "qualified": "meets the requirements; another rule (minimum score, security minimum or an open objection) decides.",
+      "onlyThese": "This is about the submitted proposals only – it does not mean that no solution exists at all.",
+      "modelJudgement": "Judgements of the AI evaluators, not an independent fact check.",
+      "nextTitle": "What you can do now",
+      "next": {
+        "repeatEvaluation": "Repeat the evaluation for the models without a valid answer (costs tokens on your keys; the existing checks stay).",
+        "addEvidence": "Add the missing facts to the brief or as documents (measurements, limits, sources) and start a new council.",
+        "reviewRequirement": "Check whether the violated requirement is really a hard requirement. If not, change the requirement list and start a new council (a new list version).",
+        "resolveConflict": "Change one of the contradicting requirements and start a new council.",
+        "chooseOther": "Choose one of the approvable proposals instead.",
+        "markFavorite": "Mark the architecture candidate as favourite – no approval, no build.",
+        "prototypeBuild": "Approve a prototype / measurement build – not a finished solution.",
+        "recordMeasurement": "Record the measured result with evidence; once every open measurement is met, it can be approved after measurement."
+      },
+      "architectureCandidate": "passed every check, but {list} can only be confirmed by measuring the running implementation – an architecture candidate with the performance proof open, not a recommendation."
+    },
+    "followUp": {
+      "title": "Follow-up check (optional, costs tokens)",
+      "intro": "The same AI evaluators look again – only at the listed checks, on the frozen proposals. A FAIL is never asked again or replaced. It runs only after you confirm an extra budget.",
+      "completion": {
+        "button": "Complete {n} missing checks (≈ {tokens} tokens)",
+        "explain": "The evaluators that left checks out are asked for exactly those. The verdict is recomputed afterwards."
+      },
+      "targeted_review": {
+        "button": "Re-check {n} unclear checks (≈ {tokens} tokens)",
+        "explain": "Each evaluator looks again at the checks it answered with UNKNOWN, with the other evaluators' evidence as a hint, not as a verdict. FAIL checks stay as they are."
+      },
+      "budget": "Extra budget (tokens)",
+      "budgetHint": "At least the estimate of {tokens} tokens. It is added to the council's budget and spent on your own keys.",
+      "confirm": "I confirm this extra budget on my own API keys.",
+      "start": "Start follow-up check",
+      "starting": "Starting…",
+      "error": "The follow-up check could not be started."
+    },
+    "mark": {
+      "favorite": "Proposal {label} is marked as favourite – not approved; the verdict still needs verification.",
+      "prototype": "Proposal {label} has an approved prototype / measurement build – not a finished solution and not a regular approval."
     }
   },
   "requirementGate": {
@@ -412,7 +524,8 @@
       "needs_verification": "needs verification",
       "fail": "requirement not met",
       "incomplete": "incomplete draft",
-      "provisional": "provisional favourite – limited review"
+      "provisional": "provisional favourite – limited review",
+      "architectureCandidate": "architecture candidate – performance proof open"
     },
     "eurPerMonth": "EUR per month",
     "estimate": {
@@ -458,8 +571,14 @@
       "notMet": "{id} not met according to {k} of {n} evaluators (model judgement).",
       "disputed": "{id} disputed: {pass} of {n} evaluators confirm it, {fail} found it not met.",
       "notConfirmed": "{id} not confirmed: {k} of {n} evaluators could not confirm this requirement.",
-      "noAnswer": "{id} not confirmed: {k} of {n} evaluators returned no usable answer."
-    }
+      "noAnswer": "{id} not confirmed: {k} of {n} evaluators returned no usable answer.",
+      "authorDeclines": "The author says this proposal does not meet every requirement (not decisive on its own).",
+      "architectureCandidate": "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement."
+    },
+    "buildPending": "plan named – verified after implementation",
+    "buildPendingHint": "The proposals name how this is verified (tests, CI). It is not verified yet: the build must prove it before the change counts as successful.",
+    "measurementPending": "measurement plan named – measured after implementation",
+    "measurementPendingHint": "The proposals name how this is measured (method, target value, setup). It is not met yet: only measuring the running implementation can confirm it. The requirement stays unchanged."
   },
   "engineText": {
     "noJudgeFailed": "No independent reviewer was available – {reason} for every eligible judge",
@@ -493,5 +612,148 @@
       "conflict_of_interest": "Proposal {blocked} scored higher but is blocked only by the requirement checks of the author of Proposal {label} – a decision in its own favour, so no automatic recommendation",
       "evaluation_rejected": "{count, plural, one {# evaluator restated another proposal's title for Proposal {label}; its scores for it were dropped} other {# evaluators restated another proposal's title for Proposal {label}; their scores for it were dropped}}"
     }
+  },
+  "replay": {
+    "tab": "Replay",
+    "title": "Council replay",
+    "intro": "Every entry is a stored event with its real time – nothing is staged or filled in. Step through it, play it back or follow a running council.",
+    "empty": "No stored events yet.",
+    "phasesAria": "Phases at this point",
+    "mode": {
+      "live": "Live",
+      "completed": "Completed",
+      "replay": "Replay"
+    },
+    "phase": {
+      "pending": "not started",
+      "running": "running",
+      "completed": "done",
+      "failed": "failed"
+    },
+    "stepBack": "Previous event",
+    "stepForward": "Next event",
+    "play": "Play",
+    "pause": "Pause",
+    "speed": "Playback speed",
+    "toLive": "Jump to live",
+    "toEnd": "Jump to the end",
+    "position": "Event {n} of {total} · {time}",
+    "scrubber": "Position in the replay",
+    "withoutTime": "{n} stored entries have no time stamp and are not in the replay.",
+    "participants": "Models",
+    "active": "taking part",
+    "failed": "dropped out",
+    "failedNote": "Dropped out during the run – the time is not stored, so it is never shown as active.",
+    "countMessages": "Messages so far",
+    "countObjections": "Objections so far",
+    "timeline": "Events",
+    "round": "round {n}",
+    "objectionFinal": "Final state: {status}",
+    "objectionPending": "The decision on this objection has no time of its own – it is shown at the end of the replay.",
+    "event": {
+      "stageStarted": "{phase} started",
+      "stageCompleted": "{phase} finished",
+      "stageFailed": "{phase} failed",
+      "revision": "Proposal {label} – version v{version}",
+      "message": "{model}: {kind}",
+      "toProposal": "on Proposal {label}",
+      "objection": "{model} raises an objection against Proposal {label}",
+      "minorityReview": "Minority Review finished",
+      "scores": "{model} submitted {count} scores",
+      "vote": "{model} voted",
+      "consensus": "Consensus Round: {status}",
+      "decision": "Verdict: {outcome}",
+      "superseded": "replaced later",
+      "approval": "Human decision: {action}"
+    },
+    "kind": {
+      "question": "question",
+      "answer": "answer",
+      "critique": "critique",
+      "rebuttal": "rebuttal",
+      "moderator": "moderation",
+      "role_failed": "role review failed",
+      "comparison": "comparison",
+      "preference": "preference"
+    },
+    "outcome": {
+      "recommended": "a solution is recommended",
+      "tie": "tie",
+      "needs_verification": "needs verification",
+      "no_qualifying_solution": "no qualifying solution",
+      "insufficient_evidence": "insufficient evidence"
+    },
+    "action": {
+      "approve": "approved",
+      "reject": "rejected",
+      "request_more_debate": "more debate requested",
+      "request_changes": "changes requested",
+      "select_alternative": "alternative selected",
+      "repeat_evaluation": "evaluation repeated"
+    },
+    "olderHidden": "{n} earlier events are not shown.",
+    "showOlder": "Show {n} earlier",
+    "layoutAria": "View",
+    "layout": {
+      "timeline": "Timeline",
+      "network": "Network",
+      "table": "Table"
+    },
+    "network": {
+      "title": "Network up to this point",
+      "empty": "No stored questions, critiques, answers or objections up to this point.",
+      "aria": "{edges} connections between models and proposals",
+      "proposal": "Proposal {label}",
+      "legend": "Kinds of connection",
+      "connections": "Connections",
+      "edge": "{model} → Proposal {label}: {kind} ({count})",
+      "kind": {
+        "question": "question",
+        "critique": "critique",
+        "answer": "answer",
+        "objection": "objection"
+      }
+    },
+    "table": {
+      "title": "Events up to this point",
+      "caption": "Stored events up to this point, one row each",
+      "time": "Time",
+      "phase": "Phase",
+      "event": "Event",
+      "model": "Model",
+      "proposal": "Proposal"
+    }
+  },
+  "measurement": {
+    "title": "Acceptance by measurement",
+    "intro": "These requirements can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement. Record the measured result with evidence; only when every open measurement is met can the proposal be approved after measurement.",
+    "proposal": "Proposal {label}",
+    "open": "measurement open",
+    "met": "met",
+    "notMet": "not met",
+    "selfDeclared": "Measurement: self-declared by {person}, evidence: {evidence}",
+    "values": "method: {method} · target: {target} · measured: {measured}",
+    "record": "Record measurement",
+    "method": "Method",
+    "target": "Target value",
+    "measured": "Measured value",
+    "result": "Result",
+    "choose": "Choose…",
+    "evidence": "Evidence",
+    "evidenceHint": "For example a measurement log, a report or a link. Required.",
+    "save": "Save measurement",
+    "saving": "Saving …",
+    "cancel": "Cancel",
+    "error": "The measurement could not be saved."
+  },
+  "sessionDelete": {
+    "title": "Delete this session",
+    "text": "Deletes this council session with all proposals, verdicts, approvals, measurements, builds and the delivery log. The project, its brief, requirement lists and other sessions stay. This cannot be undone.",
+    "exportFirst": "Export the report first if you want to keep it:",
+    "exportPdf": "Full report (PDF)",
+    "exportMarkdown": "Report (Markdown)",
+    "stopFirst": "This council is still running – stop it first (and cancel an active build), then delete the session.",
+    "external": "Already sent reports, draft pull requests on GitHub and backups (until their retention ends) are not deleted by CONSYRION. The month's council count is not reset.",
+    "button": "Delete session"
   }
 }

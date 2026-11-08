@@ -27,6 +27,12 @@
     "email": "您的电子邮件地址",
     "emailHint": "仅用于回复您。",
     "honeypot": "请勿填写此字段",
+    "screenshot": "截图（可选）",
+    "screenshotHint": "PNG、JPEG、WebP 或 GIF，最大 3 MB。请确认截图中没有密码或密钥。",
+    "screenshotChoose": "选择图片",
+    "screenshotChange": "选择其他图片",
+    "screenshotNone": "未选择图片",
+    "screenshotRemove": "移除",
     "attached": "自动附带：页面 {page}、界面语言、浏览器和应用版本。",
     "privacy": "我们会保存您的消息、电子邮件地址和上述信息，用于回复您并改进 CONSYRION AI。",
     "privacyLink": "隐私政策",
@@ -41,13 +47,15 @@
       "fields": "请检查标记的字段。",
       "subject": "请输入主题（最多 120 个字符）。",
       "text": "请输入内容（最多 4000 个字符）。",
-      "email": "请输入有效的电子邮件地址。"
+      "email": "请输入有效的电子邮件地址。",
+      "screenshot": "请选择不超过 3 MB 的 PNG、JPEG、WebP 或 GIF 图片。"
     },
     "mine": {
       "title": "我的反馈",
       "empty": "您还没有发送过反馈。",
       "reply": "CONSYRION AI 团队的回复",
-      "deleteNote": "想删除某条反馈？请联系我们，我们会将其连同所有回复一并删除。"
+      "deleteNote": "想删除某条反馈？请联系我们，我们会将其连同所有回复一并删除。",
+      "new": "新"
     },
     "admin": {
       "title": "反馈收件箱",
@@ -86,7 +94,18 @@
       "deleteConfirm": "要永久删除此反馈及其所有回复吗？",
       "deleteYes": "永久删除",
       "cancel": "取消",
-      "error": "操作失败，请重试。"
-    }
+      "error": "操作失败，请重试。",
+      "screenshot": "附带的截图（点击打开）",
+      "screenshotAlt": "反馈附带的截图",
+      "replyByMail": "同时通过电子邮件将回复发送至 {email}",
+      "replyNoMail": "未配置邮件服务器（SMTP_URL）：回复只会显示在应用中。",
+      "replySent": "回复已保存。",
+      "replySentMail": "回复已保存，正在通过电子邮件发送至 {email}。",
+      "context": "页面（经同意）"
+    },
+    "unreadReplies": "{count, plural, other {你的反馈有 # 条新回复}}",
+    "shareProject": "发送此页面的项目（仅 ID——帮助我们找到问题）",
+    "shareSession": "发送此页面的 Council（仅 ID——帮助我们找到问题）",
+    "storage": "我们会保存你的反馈和电子邮箱以便回复；你可以随时要求删除。"
   }
 }

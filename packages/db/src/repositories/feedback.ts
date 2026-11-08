@@ -1,10 +1,12 @@
 import { assertCan, DomainError } from "@consyrion/core";
-import { and, asc, count, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";
 import { newId } from "../ids";
-import { feedback, feedbackReply, user } from "../schema";
+import { councilSession, feedback, feedbackReply, project, user } from "../schema";
+import { recordAudit } from "./audit";
 import type { ActorContext } from "./context";
+import { sniffImageType } from "./documents";
 
 /**
  * Feedback inbox (#295): bug reports, feature wishes and contact requests. A report belongs to its author (a signed-in
@@ -17,7 +19,7 @@ export const FEEDBACK_KINDS = ["bug", "feature", "contact"] as const;
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
 export const FEEDBACK_STATES = ["new", "in_progress", "done"] as const;
 export type FeedbackState = (typeof FEEDBACK_STATES)[number];
-export const FEEDBACK_LIMITS = { subject: 120, text: 4000, reply: 4000 } as const;
+export const FEEDBACK_LIMITS = { subject: 120, text: 4000, reply: 4000, screenshotBytes: 3_000_000 } as const;
 
 export const feedbackInput = z.object({
   kind: z.enum(FEEDBACK_KINDS),
@@ -27,6 +29,15 @@ export const feedbackInput = z.object({
   locale: z.string().trim().max(10).nullish(),
   agent: z.string().trim().max(400).nullish(),
   appVersion: z.string().trim().max(60).nullish(),
+  /** Optional screenshot as base64 (no data: prefix); PNG, JPEG, WebP or GIF, at most 3 MB. */
+  screenshot: z
+    .string()
+    .max(Math.ceil((FEEDBACK_LIMITS.screenshotBytes * 4) / 3) + 4)
+    .nullish(),
+  /** #295 stage 3: project/council of the page, sent only with the user's consent; ignored for visitors. */
+  context: z
+    .object({ projectId: z.string().trim().max(60).optional(), sessionId: z.string().trim().max(60).optional() })
+    .nullish(),
 });
 export type FeedbackInput = z.input<typeof feedbackInput>;
 
@@ -37,6 +48,23 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) throw new DomainError("VALIDATION", "Check the highlighted fields", z.flattenError(result.error as z.ZodError<Record<string, unknown>>));
   return result.data;
+}
+
+/**
+ * Checks a screenshot like an image document (decoded size, file signature – the name or a claimed type is not
+ * trusted) and returns it as a data URL, which is what the column stores and the admin inbox shows.
+ */
+function screenshotDataUrl(base64: string | null | undefined): string | null {
+  if (!base64) return null;
+  const clean = base64.replace(/\s+/g, "");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(clean))
+    throw new DomainError("VALIDATION", "The screenshot is not a valid image", { fieldErrors: { screenshot: ["invalid"] } });
+  const bytes = Uint8Array.from(Buffer.from(clean, "base64"));
+  if (bytes.byteLength > FEEDBACK_LIMITS.screenshotBytes)
+    throw new DomainError("VALIDATION", "The screenshot may be at most 3 MB", { fieldErrors: { screenshot: ["too_large"] } });
+  const type = sniffImageType(bytes);
+  if (!type) throw new DomainError("VALIDATION", "Supported screenshots are PNG, JPEG, WebP and GIF", { fieldErrors: { screenshot: ["invalid"] } });
+  return `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
 /** Only the path of the page is kept (no query string or fragment: they may carry tokens). */
@@ -75,9 +103,55 @@ export async function createFeedback(db: Database, author: FeedbackAuthor, input
       locale: data.locale ?? null,
       agent: data.agent ?? null,
       appVersion: data.appVersion ?? null,
+      screenshot: screenshotDataUrl(data.screenshot),
+      context: author.kind === "user" ? await ownContext(db, author.actor, data.context) : null,
     })
     .returning();
   return row!;
+}
+
+/**
+ * The page context a user agreed to send (#295 stage 3), reduced to ids of the user's current workspace: an id from
+ * another workspace (or a made-up one) is dropped, so a report can never point an admin at foreign data.
+ */
+async function ownContext(db: Database, actor: ActorContext, context: { projectId?: string; sessionId?: string } | null | undefined) {
+  if (!context) return null;
+  const out: { projectId?: string; sessionId?: string } = {};
+  if (context.projectId) {
+    const [row] = await db
+      .select({ id: project.id })
+      .from(project)
+      .where(and(eq(project.id, context.projectId), eq(project.organizationId, actor.organizationId)))
+      .limit(1);
+    if (row) out.projectId = row.id;
+  }
+  if (context.sessionId) {
+    const [row] = await db
+      .select({ id: councilSession.id, projectId: councilSession.projectId })
+      .from(councilSession)
+      .where(and(eq(councilSession.id, context.sessionId), eq(councilSession.organizationId, actor.organizationId)))
+      .limit(1);
+    if (row) {
+      out.sessionId = row.id;
+      out.projectId ??= row.projectId;
+    }
+  }
+  return out.projectId || out.sessionId ? out : null;
+}
+
+/** Replies to the user's own reports that arrived after they last looked (#295 stage 3, badge in the sidebar). */
+export async function countUnreadFeedbackReplies(db: Database, ctx: ActorContext) {
+  const [row] = await db
+    .select({ n: count() })
+    .from(feedbackReply)
+    .innerJoin(feedback, eq(feedback.id, feedbackReply.feedbackId))
+    .where(and(eq(feedback.userId, ctx.userId), sql`${feedbackReply.createdAt} > coalesce(${feedback.replySeenAt}, 'epoch'::timestamptz)`));
+  return Number(row?.n ?? 0);
+}
+
+/** The user opened "My reports": every reply so far counts as read. */
+export async function markFeedbackRepliesSeen(db: Database, ctx: ActorContext, now = new Date()) {
+  await db.update(feedback).set({ replySeenAt: now }).where(eq(feedback.userId, ctx.userId));
 }
 
 async function repliesFor(db: Database, ids: string[]) {
@@ -101,6 +175,7 @@ export async function listMyFeedback(db: Database, ctx: ActorContext) {
       state: feedback.state,
       createdAt: feedback.createdAt,
       doneAt: feedback.doneAt,
+      replySeenAt: feedback.replySeenAt,
     })
     .from(feedback)
     .where(eq(feedback.userId, ctx.userId))
@@ -110,7 +185,13 @@ export async function listMyFeedback(db: Database, ctx: ActorContext) {
     db,
     rows.map((r) => r.id),
   );
-  return rows.map((r) => ({ ...r, replies: replies.filter((x) => x.feedbackId === r.id).map(({ feedbackId: _f, ...rest }) => rest) }));
+  return rows.map(({ replySeenAt, ...r }) => ({
+    ...r,
+    // #295 stage 3: replies that arrived after the user last opened "My reports".
+    replies: replies
+      .filter((x) => x.feedbackId === r.id)
+      .map(({ feedbackId: _f, ...rest }) => ({ ...rest, unread: !replySeenAt || rest.createdAt > replySeenAt })),
+  }));
 }
 
 /* ---------- Platform admin ---------- */
@@ -143,7 +224,8 @@ export async function resolvePlatformAdmin(
   return ctx;
 }
 
-function assertPlatformAdmin(admin: PlatformAdminContext) {
+/** Every platform-admin read checks the context came from resolvePlatformAdmin (not built by hand). */
+export function assertPlatformAdmin(admin: PlatformAdminContext) {
   if (!admin || !issued.has(admin)) throw new DomainError("NOT_FOUND", "Not found");
 }
 
@@ -196,6 +278,14 @@ export async function setFeedbackState(db: Database, admin: PlatformAdminContext
     .where(eq(feedback.id, id))
     .returning();
   if (!updated.length) throw new DomainError("NOT_FOUND", "Report not found");
+  await recordAudit(db, {
+    organizationId: null,
+    actorUserId: admin.userId,
+    action: "admin.feedback_state_changed",
+    targetType: "feedback",
+    targetId: id,
+    metadata: { state: value },
+  });
   return updated[0]!;
 }
 
@@ -210,6 +300,8 @@ export async function replyToFeedback(db: Database, admin: PlatformAdminContext,
     .values({ id: newId("fbr"), feedbackId: id, adminId: admin.userId, text: body })
     .returning();
   if (row.state === "new") await db.update(feedback).set({ state: "in_progress" }).where(eq(feedback.id, id));
+  // No reply text in the audit log: it may contain personal data of the author.
+  await recordAudit(db, { organizationId: null, actorUserId: admin.userId, action: "admin.feedback_replied", targetType: "feedback", targetId: id });
   return reply!;
 }
 
@@ -218,4 +310,5 @@ export async function deleteFeedback(db: Database, admin: PlatformAdminContext, 
   assertPlatformAdmin(admin);
   const deleted = await db.delete(feedback).where(eq(feedback.id, id)).returning({ id: feedback.id });
   if (!deleted.length) throw new DomainError("NOT_FOUND", "Report not found");
+  await recordAudit(db, { organizationId: null, actorUserId: admin.userId, action: "admin.feedback_deleted", targetType: "feedback", targetId: id });
 }

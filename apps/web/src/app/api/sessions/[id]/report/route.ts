@@ -6,7 +6,8 @@ import { handle } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
 import { isLocale, LOCALE_COOKIE, localeFromAcceptLanguage } from "@/i18n/locales";
 import { buildAudit } from "@/lib/server/report-audit";
-import { PDF_LEVELS, type PdfLevel, reportDocx, reportPdf } from "@/lib/server/report-documents";
+import { PDF_LEVELS, pdfLocale, type PdfLevel, reportDocx, reportPdf } from "@/lib/server/report-documents";
+import { reportStatus } from "@/lib/server/report-status";
 
 /** Export of the Final Decision Report as Markdown (default), JSON, PDF or Word (#164) – same content in every format. */
 export const GET = handle(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
@@ -23,15 +24,30 @@ export const GET = handle(async (request: Request, { params }: { params: Promise
   const requested = url.searchParams.get("level");
   const level: PdfLevel = PDF_LEVELS.includes(requested as PdfLevel) ? (requested as PdfLevel) : "report";
   if (format === "pdf" || format === "docx") {
-    const meta = { title: reportTranslator(locale)("Final Decision Report – {project}", { project: report.project }), sessionId: id, createdAt: view.session.createdAt };
-    const markdown = reportToMarkdown(report, locale);
+    // A Chinese PDF stays English until a CJK font is embedded; Word handles any script (#268).
+    const docLocale = format === "pdf" ? pdfLocale(locale) : locale;
+    const meta = {
+      title: reportTranslator(docLocale)("Final Decision Report – {project}", { project: report.project }),
+      sessionId: id,
+      createdAt: view.session.createdAt,
+    };
+    const markdown = reportToMarkdown(report, docLocale);
     const body =
       format === "pdf"
-        ? await reportPdf(markdown, meta, report, { level, locale, audit: level === "full" ? buildAudit(view) : undefined })
-        : await reportDocx(markdown, meta, locale);
+        ? await reportPdf(markdown, meta, report, {
+            level,
+            locale: docLocale,
+            status: reportStatus(view, docLocale),
+            verdictId: view.decision?.id ?? null,
+            audit: level === "full" ? buildAudit(view) : undefined,
+          })
+        : await reportDocx(markdown, meta, docLocale);
     const type = format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     return new NextResponse(Buffer.from(body), {
-      headers: { "Content-Type": type, "Content-Disposition": `attachment; filename="consyrion-decision-${id}${format === "pdf" && level !== "report" ? `-${level}` : ""}.${format}"` },
+      headers: {
+        "Content-Type": type,
+        "Content-Disposition": `attachment; filename="consyrion-decision-${id}${format === "pdf" && level !== "report" ? `-${level}` : ""}.${format}"`,
+      },
     });
   }
   if (format === "json") {

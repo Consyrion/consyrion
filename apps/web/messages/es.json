@@ -17,7 +17,8 @@
       "skip": "Saltar al contenido",
       "openSource": "Código abierto",
       "pricing": "Precios",
-      "menu": "Menú"
+      "menu": "Menú",
+      "integrations": "Integraciones"
     },
     "cta": {
       "start": "Iniciar una decisión",
@@ -130,7 +131,8 @@
       "agb": "Términos",
       "datenschutz": "Privacidad",
       "source": "Código fuente",
-      "feedback": "Contacto y comentarios"
+      "feedback": "Contacto y comentarios",
+      "integrations": "Integraciones"
     },
     "why": {
       "title": "¿Por qué CONSYRION AI?",
@@ -343,6 +345,38 @@
         "high": "alta",
         "medium": "media",
         "low": "baja"
+      },
+      "none": "Ningún desacuerdo decisivo documentado: no se guardó ninguna objeción y la Consensus Round no dejó nada abierto. No es un consenso inventado – solo significa que ningún modelo planteó una objeción guardada.",
+      "filterAria": "Filtrar puntos de desacuerdo",
+      "filter": {
+        "all": "Todos ({n})",
+        "open": "Abiertos ({n})",
+        "critical": "Alto/crítico ({n})",
+        "resolved": "Resueltos ({n})"
+      },
+      "filterEmpty": "Ningún punto de desacuerdo coincide con este filtro.",
+      "notStored": "no guardado",
+      "stepsAria": "Desarrollo de este punto de desacuerdo",
+      "step": {
+        "raised": "Objeción planteada",
+        "answered": "Respuesta",
+        "conceded": "Concedido",
+        "unanswered": "Sin respuesta",
+        "noAnswer": "No hay respuesta guardada",
+        "reviewed": "Revisión independiente",
+        "notReviewed": "Sin revisar",
+        "revised": "Revisada a v{version}",
+        "notRevised": "Sin revisar"
+      },
+      "showSources": "Ver fuentes",
+      "hideSources": "Ocultar fuentes",
+      "src": {
+        "objection": "Objeción",
+        "message": "Mensaje original",
+        "round": "ronda {n}",
+        "versions": "Versión de la propuesta",
+        "versionsText": "entonces: {then} · ahora: {now}",
+        "review": "Revisión"
       }
     },
     "dashboard": {
@@ -360,7 +394,8 @@
         "repeat_evaluation": "repetir la evaluación que falta",
         "request_changes": "pedir cambios en el encargo",
         "reject": "rechazar",
-        "request_more_debate": "pedir más debate"
+        "request_more_debate": "pedir más debate",
+        "mark_favorite": "marcar la candidata de arquitectura como favorita (sin aprobación)"
       },
       "outcome": {
         "recommended": "Solución recomendada",
@@ -370,7 +405,8 @@
         "needs_verification": "Requiere verificación – no aprobable",
         "provisional": "Favorita provisional – revisión limitada, no aprobable",
         "conflict": "Ninguna solución puede cumplir estos requisitos",
-        "not_approvable": "No aprobable"
+        "not_approvable": "No aprobable",
+        "architecture_candidate": "Candidata de arquitectura – prueba de rendimiento pendiente, no aprobable"
       },
       "facts": {
         "title": "Datos de la revisión",
@@ -419,9 +455,11 @@
         "FAIL": "no cumplido",
         "DISPUTED": "disputado",
         "UNKNOWN": "sin confirmar",
+        "PLAN": "plan confirmado – prueba pendiente",
         "noAnswer": "sin respuesta",
         "noEvaluation": "Sin evaluación",
-        "count": "{n} de {of} confirman"
+        "count": "{n} de {of} confirman",
+        "MEASURE": "plan de medición confirmado – medición pendiente"
       },
       "cell": {
         "aria": "Justificaciones de los evaluadores para este requisito",
@@ -485,7 +523,8 @@
       "verify": {
         "title": "Resolver antes de cualquier paso irreversible",
         "source": "Requisitos sin confirmar y objeciones abiertas del council",
-        "empty": "Nada abierto – todos los requisitos confirmados, ninguna objeción abierta."
+        "empty": "Nada abierto – todos los requisitos confirmados, ninguna objeción abierta.",
+        "raisedBy": "planteada por {model}"
       },
       "assumptions": {
         "title": "Supuestos más arriesgados – probarlos primero",
@@ -506,7 +545,25 @@
       },
       "note": "Construido solo con declaraciones guardadas del council, nada generado. Un plan de pruebas sigue siendo un plan: no confirma ningún requisito, y nada se construye ni se inicia sin tu decisión.",
       "introChosen": "Para la propuesta {label} que elegiste: qué comprobar antes de un paso irreversible, qué probar, cuándo parar y cuándo volver a consultar al Council.",
-      "introTie": "No hay una recomendación única (las propuestas líderes están demasiado cerca). Para la propuesta mejor puntuada {label}: qué comprobar antes de elegir."
+      "introTie": "No hay una recomendación única (las propuestas líderes están demasiado cerca). Para la propuesta mejor puntuada {label}: qué comprobar antes de elegir.",
+      "counter": {
+        "title": "Postura contraria más fuerte",
+        "source": "La objeción abierta o confirmada más importante, como en Puntos de desacuerdo",
+        "empty": "No hay objeciones abiertas o confirmadas contra esta propuesta.",
+        "rightIf": "Tendría razón si este razonamiento es cierto: {text}",
+        "noReason": "No se guardó ningún razonamiento."
+      },
+      "notYet": "Todavía no se puede aprobar ni construir nada: primero aclara los puntos abiertos de arriba y luego inicia un nuevo council o repite la evaluación.",
+      "aiSuggestion": "sugerencia de IA",
+      "test": {
+        "title": "Prueba útil más barata",
+        "source": "Sugerencia propia del autor (IA): un plan, no una comprobación confirmada",
+        "empty": "No indicado por el autor.",
+        "assumption": "Supuesto más arriesgado: {text}",
+        "method": "Prueba: {text}",
+        "success": "Confirmado si: {text}",
+        "noSuccess": "Criterio de éxito: no indicado."
+      }
     }
   },
   "scene": {
@@ -674,6 +731,16 @@
       "quality_assurance_expert": "¿Cómo se demuestra que funciona, y qué se rompería sin que nadie lo note?",
       "maintainability_reviewer": "¿Lo entenderá y cambiará el equipo dentro de un año?",
       "independent_critical_thinker": "¿Qué pasan por alto los demás – hay un camino más simple o más seguro?"
+    },
+    "titleAlternative": "Alternativa: perspectivas recomendadas para este proyecto",
+    "introAlternative": "El skill «{name}» está activo: sus {n} perspectivas están seleccionadas abajo. Esta sugerencia basada en tu encargo y tus requisitos es una alternativa.",
+    "replace": "Sustituir por {n} perspectivas",
+    "add": "Añadir {n} que faltan",
+    "effect": "Aplicar sustituye tu selección actual ({current} activas) por estas {n} perspectivas.",
+    "effectAlternative": "«Sustituir» cambia las {current} perspectivas activas por estas {n}; «Añadir» las mantiene y añade {missing}.",
+    "profile": {
+      "suggested": "Perfil sugerido: {name}",
+      "choose": "{n} perfiles propios para este rol: elige uno abajo"
     }
   },
   "assistant": {
@@ -706,6 +773,7 @@
     "loading": "Cargando…",
     "noChats": "Todavía no hay chats.",
     "delete": "Eliminar el chat «{title}»",
+    "download": "Descargar el chat «{title}» en Markdown",
     "privacy": "Tus chats se guardan solo para ti – ningún otro miembro ni admin puede leerlos. Eliminarlos es definitivo.",
     "model": "Modelo que responde",
     "modelNote": "Solo modelos de tus propias claves. Cada pregunta cuesta unas pocas llamadas con esa clave; los tokens aparecen bajo cada respuesta.",
@@ -713,6 +781,7 @@
     "shortcut": "Atajo: ⌘/Ctrl + J abre y cierra el asistente, Esc lo cierra.",
     "usedTools": "leído: {tools}",
     "tokens": "{n} tokens",
+    "cost": "≈ {amount}",
     "open": "Abrir el asistente IA (⌘/Ctrl + J)",
     "actions": {
       "types": {
@@ -762,10 +831,100 @@
         "teams": "Microsoft Teams",
         "email": "Correo electrónico"
       },
-      "copyAgain": "Copiar de nuevo"
+      "copyAgain": "Copiar de nuevo",
+      "summaryPdf": "PDF",
+      "summaryWord": "Word"
     },
     "stop": "Detener",
     "stopped": "Detenido: no se guardó nada de esta respuesta.",
-    "readingTool": "Leyendo {tool} …"
+    "readingTool": "Leyendo {tool} …",
+    "toolNames": {
+      "list_projects": "los proyectos",
+      "list_sessions": "las decisiones",
+      "get_session": "la decisión",
+      "list_open_steps": "los pasos pendientes",
+      "get_project": "el proyecto",
+      "list_documents": "los documentos",
+      "get_build_status": "el estado del build",
+      "search": "los resultados de búsqueda"
+    },
+    "export": {
+      "you": "Tú",
+      "assistant": "Asistente",
+      "exported": "Exportado",
+      "links": "Páginas",
+      "actions": "Acciones sugeridas",
+      "checks": "Verificación cruzada"
+    },
+    "ask": "Preguntar a la IA",
+    "askAboutDecision": "Resume esta decisión: veredicto, motivos, objeciones abiertas y qué debo hacer a continuación.",
+    "reviewer": "Segunda opinión",
+    "reviewerNone": "Sin segunda opinión",
+    "reviewerNote": "Este modelo revisa una respuesta cuando haces clic en «Segunda opinión» debajo – con las mismas herramientas de solo lectura, con tu clave (consume tokens).",
+    "limits": "Límites de tokens del asistente",
+    "limitDaily": "Por día",
+    "limitMonthly": "Por mes",
+    "limitNone": "sin límite",
+    "usage": "Usado: {today} tokens hoy, {month} este mes.",
+    "saveLimits": "Guardar límites",
+    "settingsSaved": "Guardado.",
+    "secondOpinion": "Segunda opinión",
+    "secondOpinionBusy": "Revisando …",
+    "secondOpinionTitle": "Segunda opinión",
+    "downloadPdf": "Descargar el chat «{title}» en PDF",
+    "document": {
+      "summaryTitle": "Resumen para el cliente",
+      "summaryTitleProject": "Resumen para el cliente: {project}",
+      "summarySubtitle": "Resumen de IA · {date}",
+      "summaryNote": "Redactado por un modelo de IA a partir de los datos de este espacio de trabajo de CONSYRION AI y revisado por el usuario antes de exportarlo. No es un veredicto del council.",
+      "chatSubtitle": "Chat del asistente · exportado el {date}",
+      "chatNote": "Las respuestas del asistente de IA proceden de los datos del espacio de trabajo mediante herramientas de solo lectura; las afirmaciones de los modelos no son una verificación de hechos.",
+      "lostCharacters": "Algunos caracteres no se pueden mostrar en este PDF (aparecen como ?). El archivo Word contiene el texto completo."
+    },
+    "summaryHint": "Chat largo: el modelo ya no lee los {count} mensajes más antiguos. Un resumen conserva su contenido (una llamada con tu clave, consume tokens).",
+    "summaryCreate": "Crear resumen",
+    "summaryBusy": "Resumiendo …",
+    "summaryDone": "Resumen guardado: abarca {count} mensajes anteriores.",
+    "chatModeLabel": "Modo de chat",
+    "modeSingle": "1 modelo",
+    "modeCouncil": "Chat de council",
+    "councilAddModel": "Añadir modelo",
+    "councilRemoveModel": "Quitar {model}",
+    "councilPickModels": "Elige de 2 a 4 modelos: cada uno responde con su propia voz. Empieza una pregunta con @modelo para preguntar solo a ese.",
+    "councilHint": "Cada modelo responde por sí mismo; @modelo pregunta solo a ese.",
+    "councilEstimate": "hasta ≈ {answers} tokens para {n, plural, one {# respuesta} other {# respuestas}} (normalmente menos) · con verificación cruzada hasta ≈ {check} (verificación solo al hacer clic)",
+    "councilFailures": "No todos los modelos respondieron: {list}",
+    "perspective": "Perspectiva",
+    "perspectiveNone": "Ninguna",
+    "perspectiveTitle": "Perspectiva única: {role} – sin verificar",
+    "perspectives": {
+      "security": "Seguridad",
+      "cost": "Costes",
+      "product": "Producto",
+      "architecture": "Arquitectura",
+      "operations": "Operaciones",
+      "legal": "Legal y cumplimiento"
+    },
+    "crossCheck": "Contrastar",
+    "crossCheckBusy": "Comprobando …",
+    "crossCheckConfirm": "{n, plural, one {# otro modelo revisa} other {# otros modelos revisan}} esta respuesta · ≈ {tokens} tokens",
+    "crossCheckRun": "Comprobar",
+    "crossCheckCancel": "Cancelar",
+    "checkVerdict": {
+      "confirmed": "confirmado",
+      "contradicted": "contradicho",
+      "unverifiable": "no comprobable"
+    },
+    "checkSummary": {
+      "confirmed": "Confirmado por los otros modelos",
+      "contradicted": "Contradicho – lee las objeciones",
+      "unverified": "No verificado"
+    },
+    "checkSensitive": "medicina, derecho o seguridad: que lo revise siempre un profesional",
+    "makeCouncil": "Convertirlo en un council",
+    "makeCouncilPrompt": "Convierte este council chat en un council: redacta el proyecto (idea y objetivo a partir de mi pregunta), toma como requisitos los puntos en los que coinciden los modelos y cada desacuerdo abierto como requisito que debe comprobarse.",
+    "makeCouncilNote": "{model} responde una vez con tarjetas de acción (borrador de proyecto, requisitos). Nada empieza solo: confirmas los requisitos e inicias el council desde su formulario con la estimación de costes.",
+    "limitReserveNote": "Cada pregunta reserva primero sus tokens previstos (una corta unos {min}) y se rechaza si superara un límite; después solo cuentan los tokens reales.",
+    "limitTooSmall": "Este límite es menor que una pregunta (unos {min} tokens): no pasaría ninguna pregunta."
   }
 }

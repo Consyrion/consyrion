@@ -13,10 +13,10 @@ CONSYRION AI can be used from any MCP client – Claude Code, Claude Desktop, Cu
 
 ## Tokens and tools
 
-| Token                                                                | Tools                                                                                                                      |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `cnr_` **Read only** (new; MCP only, refused by every REST endpoint) | `list_projects`, `list_decisions`, `get_decision`, `list_open_steps`, `list_models`, `get_requirements`, `preview_council` |
-| `cni_` Councils only / `cns_` Full access                            | the read tools + `ask_consyrion`, `create_project_draft`, `update_brief`, `propose_requirements`, `start_council`          |
+| Token                                                                | Tools                                                                                                                                     |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `cnr_` **Read only** (new; MCP only, refused by every REST endpoint) | `list_projects`, `list_decisions`, `get_decision`, `list_open_steps`, `list_models`, `get_requirements`, `preview_council`, `list_skills` |
+| `cni_` Councils only / `cns_` Full access                            | the read tools + `ask_consyrion`, `create_project_draft`, `update_brief`, `propose_requirements`, `start_council`                         |
 
 ## Ask for a decision while working: `ask_consyrion`
 
@@ -30,6 +30,19 @@ that look like instructions to the models are refused, never auto-decided), star
 - The client asks the user before running the tool – that approval is the human confirmation of the requirements
   (audit `mcp.decision_requested`, `confirmedVia: "mcp"`, `packages/db/src/repositories/client-requests.ts`).
 - Without `participants` the models of the workspace's last council are used.
+- Optional `skill` (id from `list_skills` or `official:<slug>`): pre-fills mode, perspectives, weights and session
+  rules and is pinned (version + hash) in the verdict. Its requirement blocks come back as `skillRequirementBlocks` –
+  only suggestions; put the ones the user confirms into `requirements` (docs/skills.md).
+- Optional `files` (#331): up to 20 `{ path, content }` excerpts the decision is about – the code to change, its tests,
+  `package.json` – at most 200 kB together, text only. They become **one context document** ("Files from MCP (n).md",
+  `role: "context"`, origin `{ kind: "client", client: "mcp", paths }`, audit `document.client_files`): every model
+  reads it as untrusted `<document>` data, it is never scanned for requirements, and the requirement list is confirmed
+  against it. Without such excerpts requirements like "existing tests stay green" cannot be verified and the verdict
+  ends as _needs verification_ (developer test 07.11.26). The response lists them as `filesAttached`. The client should
+  tell the user which files it sends and never send secrets (`.env`, keys). The server enforces this too: files
+  named like secrets (`.env*` except `.env.example`, `id_rsa`, `*.pem`/`*.key`, `credentials.json`, `.npmrc` …) and
+  content with API keys, tokens or private keys are refused before anything is stored. A request refused after the
+  project was created (e.g. instructions among the requirements) archives that project with its files.
 - Approving or building the verdict stays in the app; for advice the verdict itself is the answer.
 
 - Every tool runs with the token owner's actor and the same repository functions as the app (`apps/web/src/lib/server/mcp-tools.ts`):
@@ -39,8 +52,21 @@ that look like instructions to the models are refused, never auto-decided), star
 - `start_council` costs tokens on the workspace's own keys (BYOK): `tokenBudget` is required and at most
   **1,000,000** (`MCP_MAX_TOKEN_BUDGET`); needs a current confirmed requirement list; rate limit 5/min. The client
   should call `preview_council` first and tell the user the estimate.
+- **Daily budget (#405):** `start_council` and `ask_consyrion` are refused once what this user's **client-started**
+  councils of the last 24 hours (MCP, Telegram, REST with an API token – marked by the audit event
+  `client.council_started`; councils started in the web app never count) **really used** – finished councils with their recorded
+  usage, queued or running ones with their full budget – plus the new one exceed **5,000,000** tokens
+  (`MCP_DAILY_TOKEN_BUDGET` on the server). Until 08.11.26 (#429 live finding) finished councils counted their whole
+  budget, which hit the limit far too early. A prompt-injected agent can thus spend at most one
+  day's budget of the user's keys. Councils started in the web app are not limited by it.
+- **Batches (#405):** a JSON-RPC batch holds at most 20 messages, and every message counts against the limit of
+  120 requests per minute and user – a batch does not multiply what one request may do.
 - **Never over MCP:** approve/reject, builds, delete/archive, confirming requirements, keys, billing, settings,
   members, tokens.
+- **Who confirms requirements (#405):** only the human. Over MCP that is the user's approval of the `ask_consyrion`
+  call, which carries the requirement lines (the client must show them first); `propose_requirements` never confirms.
+  Over REST an integration token may confirm a list (`POST /api/projects/:id/requirements`, #101) only for an
+  integration that shows the list to its user first – an agent must never confirm on its own.
 - Write tools carry `readOnlyHint: false` so clients ask the user before running them.
 
 ## Protocol
@@ -76,3 +102,16 @@ ask the user before implementing anything but an approved decision. Approval its
 - `verdict.approvable` (get_decision, session status): true only when something can be approved now – the
   recommendation or an alternative. A `no_qualifying_solution` verdict without an approvable proposal reads false,
   as in the web UI (Windows smoke test 08.11.26).
+
+## Integrations page (08.11.26)
+
+Public overview at **`/integrations`** (linked in the homepage navigation and footer, no sign-in needed) and the same
+card grid at the top of **Settings → Integrations**: AI clients (Claude Code, Cursor, VS Code, Claude Desktop), apps
+(Telegram; VS Code extension and claude.ai/ChatGPT connectors marked "planned") and delivery & code (GitHub, e-mail,
+Confluence – these jump to their section in Settings → Integrations).
+
+Each available client has a setup page `/integrations/<slug>` with numbered steps and copyable snippets built from this
+server's address (`BETTER_AUTH_URL` + `/api/mcp`); tokens appear only as the placeholder `<TOKEN>`. Structure and
+snippets: `apps/web/src/lib/connect-catalog.ts` (test `connect-catalog.test.ts`); texts: `settings.connect` in
+`apps/web/messages/settings/*.json`. Claude Desktop uses the `mcp-remote` bridge (needs Node.js) because its config file
+only starts local servers.

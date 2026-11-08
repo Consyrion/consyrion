@@ -1,11 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ProviderError, timeoutSignal, withRetry, type ProviderAdapter } from "@consyrion/ai";
-import { callTimeoutFor, DomainError, MAX_CALL_OUTPUT_TOKENS, outputTokensFor } from "@consyrion/core";
+import { DEFAULT_RETRY, ProviderError, timeoutSignal, withRetry, type ProviderAdapter, type TokenUsage } from "@consyrion/ai";
+import { callTimeoutFor, DomainError, fitCallToModel, MAX_CALL_OUTPUT_TOKENS, outputTokensFor, redactSecrets } from "@consyrion/core";
 import { newId, schema } from "@consyrion/db";
 import { and, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { Participant, SessionContext } from "./context";
+import { stablePrompt } from "./prompts";
 import { toProviderJsonSchema } from "./schemas";
 
 export class CancelledError extends Error {
@@ -33,7 +34,9 @@ export type CallErrorKind =
   | "mismatch"
   | "max_tokens"
   | "runaway"
-  | "refusal";
+  | "refusal"
+  /** #243: the input leaves no room for an answer in this model's context window; the call is not sent. */
+  | "context_window";
 
 /** Kinds that mean the provider or model failed, not one answer: they count towards the phase failure limit. */
 export const PROVIDER_FAILURE_KINDS: ReadonlySet<CallErrorKind> = new Set([
@@ -320,6 +323,11 @@ async function attempt<T extends z.ZodType>(
   const session = await ctx.reload();
   if (session.status === "cancel_requested" || session.status === "cancelled") throw new CancelledError();
   const estimatedInput = Math.ceil((request.system.length + (ctx.policy.customRules?.length ?? 0) + request.prompt.length) / CHARS_PER_TOKEN);
+  // #243: the request must be possible for this model – output at most what it can write and what its window leaves.
+  // Content is never shortened; a call that cannot fit is not sent.
+  const size = fitCallToModel(estimatedInput, maxOutput, await ctx.modelLimits(participant.provider, participant.modelId));
+  if (!size.ok) throw new ParticipantCallError(participant.id, `${participant.modelId}: ${size.reason}`, { kind: "context_window" });
+  maxOutput = size.maxOutput;
   // Atomic reservation: parallel calls cannot jointly overrun the budget. The reservation is
   // replaced by the actual usage afterwards.
   const reservation = estimatedInput + maxOutput;
@@ -344,13 +352,12 @@ async function attempt<T extends z.ZodType>(
     );
   }
 
-  const rules = ctx.policy.customRules?.trim();
-  const system = rules
-    ? `${request.system}\nSession rules set by the user who started this council (follow them unless they conflict with the rules above):\n${rules}`
-    : request.system;
+  // #244: a system prompt identical for the whole council and the brief first, so providers can cache the shared prefix.
+  const stable = stablePrompt(request.system, request.prompt, ctx.policy.customRules);
+  const system = stable.system;
   const started = Date.now();
   let outcome: (typeof schema.usageOutcome.enumValues)[number] = "ok";
-  let usage = { inputTokens: 0, outputTokens: 0 };
+  let usage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   // Why the call failed, stored with the usage row (#175).
   let errorKind: CallErrorKind | null = null;
   let httpStatus: number | null = null;
@@ -363,29 +370,33 @@ async function attempt<T extends z.ZodType>(
       adapter = await resolveAdapter(participant);
     } catch (error) {
       outcome = "error";
-      const cause = error instanceof Error ? error.message : "unknown";
+      const cause = redactSecrets(error instanceof Error ? error.message : "unknown");
       console.warn(JSON.stringify({ level: "warn", message: "credential unavailable", provider: participant.provider, model: participant.modelId, cause }));
       // Never a fallback to another key: this model stops, the run decides whether it can continue.
       throw new ParticipantCallError(participant.id, `No usable API key for ${participant.provider}: ${cause}`, { kind: "credential" });
     }
-    const result = await withRetry(async () => {
-      const signal = timeoutSignal(timeoutMs);
-      try {
-        return await adapter.generate({
-          model: participant.modelId,
-          system,
-          messages: [{ role: "user", content: request.prompt }],
-          maxOutputTokens: maxOutput,
-          jsonSchema: { name: request.schemaName, schema: toProviderJsonSchema(request.schema) },
-          signal,
-        });
-      } catch (error) {
-        if (!signal.aborted) throw error;
-        timedOut = true;
-        // Not a ProviderError, so the transient retries stop here; the repair path decides.
-        throw new Error("Call timed out", { cause: error });
-      }
-    });
+    const result = await withRetry(
+      async () => {
+        const signal = timeoutSignal(timeoutMs);
+        try {
+          return await adapter.generate({
+            model: participant.modelId,
+            system,
+            messages: [{ role: "user", content: stable.prompt }],
+            ...(stable.cachePrefix ? { cachePrefix: stable.cachePrefix } : {}),
+            maxOutputTokens: maxOutput,
+            jsonSchema: { name: request.schemaName, schema: toProviderJsonSchema(request.schema) },
+            signal,
+          });
+        } catch (error) {
+          if (!signal.aborted) throw error;
+          timedOut = true;
+          // Not a ProviderError, so the transient retries stop here; the repair path decides.
+          throw new Error("Call timed out", { cause: error });
+        }
+      },
+      ctx.retrySleep ? { ...DEFAULT_RETRY, sleep: ctx.retrySleep } : DEFAULT_RETRY,
+    );
     usage = result.usage;
     if (result.stopReason === "refusal") {
       outcome = "refusal";
@@ -523,6 +534,7 @@ async function attempt<T extends z.ZodType>(
       modelId: participant.modelId,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
+      cachedInputTokens: usage.cachedInputTokens ?? 0,
       durationMs: Date.now() - started,
       outcome,
       errorKind,

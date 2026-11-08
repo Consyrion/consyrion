@@ -27,6 +27,12 @@
     "email": "Deine E-Mail-Adresse",
     "emailHint": "Nur für unsere Antwort.",
     "honeypot": "Dieses Feld leer lassen",
+    "screenshot": "Screenshot (optional)",
+    "screenshotHint": "PNG, JPEG, WebP oder GIF, bis 3 MB. Achte darauf, dass keine Passwörter oder Schlüssel zu sehen sind.",
+    "screenshotChoose": "Bild auswählen",
+    "screenshotChange": "Anderes Bild wählen",
+    "screenshotNone": "Kein Bild ausgewählt",
+    "screenshotRemove": "Entfernen",
     "attached": "Automatisch angehängt: Seite {page}, Sprache der Oberfläche, Browser und App-Version.",
     "privacy": "Wir speichern deine Nachricht, deine E-Mail-Adresse und diese Angaben, um dir zu antworten und CONSYRION AI zu verbessern.",
     "privacyLink": "Datenschutzerklärung",
@@ -41,13 +47,15 @@
       "fields": "Bitte prüfe die markierten Felder.",
       "subject": "Gib einen Betreff ein (max. 120 Zeichen).",
       "text": "Gib eine Nachricht ein (max. 4000 Zeichen).",
-      "email": "Gib eine gültige E-Mail-Adresse ein."
+      "email": "Gib eine gültige E-Mail-Adresse ein.",
+      "screenshot": "Wähle ein Bild (PNG, JPEG, WebP oder GIF) mit höchstens 3 MB."
     },
     "mine": {
       "title": "Meine Meldungen",
       "empty": "Du hast noch keine Meldungen gesendet.",
       "reply": "Antwort des Teams von CONSYRION AI",
-      "deleteNote": "Soll eine Meldung gelöscht werden? Schreib uns – wir löschen sie samt allen Antworten."
+      "deleteNote": "Soll eine Meldung gelöscht werden? Schreib uns – wir löschen sie samt allen Antworten.",
+      "new": "neu"
     },
     "admin": {
       "title": "Feedback-Postfach",
@@ -86,7 +94,18 @@
       "deleteConfirm": "Diese Meldung samt allen Antworten endgültig löschen?",
       "deleteYes": "Endgültig löschen",
       "cancel": "Abbrechen",
-      "error": "Die Aktion ist fehlgeschlagen. Bitte versuche es noch einmal."
-    }
+      "error": "Die Aktion ist fehlgeschlagen. Bitte versuche es noch einmal.",
+      "screenshot": "Angehängter Screenshot (zum Öffnen klicken)",
+      "screenshotAlt": "Screenshot zur Meldung",
+      "replyByMail": "Antwort zusätzlich per E-Mail an {email} senden",
+      "replyNoMail": "Kein E-Mail-Server eingerichtet (SMTP_URL): Die Antwort erscheint nur in der App.",
+      "replySent": "Antwort gespeichert.",
+      "replySentMail": "Antwort gespeichert und wird per E-Mail an {email} gesendet.",
+      "context": "Seite (mit Zustimmung)"
+    },
+    "unreadReplies": "{count, plural, one {# neue Antwort} other {# neue Antworten}} auf deine Meldungen",
+    "shareProject": "Projekt dieser Seite mitsenden (nur die ID – hilft uns, das Problem zu finden)",
+    "shareSession": "Council dieser Seite mitsenden (nur die ID – hilft uns, das Problem zu finden)",
+    "storage": "Wir speichern deine Meldung mit deiner E-Mail-Adresse, um zu antworten; du kannst sie jederzeit löschen lassen."
   }
 }

@@ -27,6 +27,12 @@
     "email": "Your e-mail address",
     "emailHint": "Only used to answer you.",
     "honeypot": "Leave this field empty",
+    "screenshot": "Screenshot (optional)",
+    "screenshotHint": "PNG, JPEG, WebP or GIF, up to 3 MB. Make sure it shows no passwords or keys.",
+    "screenshotChoose": "Choose image",
+    "screenshotChange": "Choose another image",
+    "screenshotNone": "No image selected",
+    "screenshotRemove": "Remove",
     "attached": "Attached automatically: page {page}, interface language, browser and app version.",
     "privacy": "We store your message, your e-mail address and these details to answer you and to improve CONSYRION AI.",
     "privacyLink": "Privacy policy",
@@ -41,13 +47,15 @@
       "fields": "Please check the highlighted fields.",
       "subject": "Enter a subject (max. 120 characters).",
       "text": "Enter a message (max. 4000 characters).",
-      "email": "Enter a valid e-mail address."
+      "email": "Enter a valid e-mail address.",
+      "screenshot": "Choose a PNG, JPEG, WebP or GIF image of at most 3 MB."
     },
     "mine": {
       "title": "My reports",
       "empty": "You have not sent any reports yet.",
       "reply": "Answer from the CONSYRION AI team",
-      "deleteNote": "Want a report deleted? Write to us – we delete it including all replies."
+      "deleteNote": "Want a report deleted? Write to us – we delete it including all replies.",
+      "new": "new"
     },
     "admin": {
       "title": "Feedback inbox",
@@ -86,7 +94,18 @@
       "deleteConfirm": "Delete this report and all replies for good?",
       "deleteYes": "Delete for good",
       "cancel": "Cancel",
-      "error": "The action failed. Please try again."
-    }
+      "error": "The action failed. Please try again.",
+      "screenshot": "Attached screenshot (click to open)",
+      "screenshotAlt": "Screenshot attached to the report",
+      "replyByMail": "Also send the answer by e-mail to {email}",
+      "replyNoMail": "No e-mail server is configured (SMTP_URL): the answer is only shown in the app.",
+      "replySent": "Answer saved.",
+      "replySentMail": "Answer saved and being sent by e-mail to {email}.",
+      "context": "Page (with consent)"
+    },
+    "unreadReplies": "{count, plural, one {# new answer} other {# new answers}} to your reports",
+    "shareProject": "Send the project of this page (only its id – helps us find the problem)",
+    "shareSession": "Send the council of this page (only its id – helps us find the problem)",
+    "storage": "We store your report with your e-mail address to answer you; you can have it deleted at any time."
   }
 }

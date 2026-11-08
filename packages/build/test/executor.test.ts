@@ -136,8 +136,8 @@ describe("Execution Council", () => {
         message: expect.stringMatching(message),
       });
 
-    await change({ gateVersion: 3 });
-    await refused(/gate version 3/);
+    await change({ gateVersion: 4 });
+    await refused(/gate version 4/);
     await change({ gateVersion: null });
     await refused(/no format version/);
     await change({ gateVersion: 1, matrix: { ...matrix, proposals: [] } });
@@ -181,12 +181,12 @@ describe("Execution Council", () => {
     await submitApproval(handle.db, actor, sessionId, { action: "approve" });
     const { id } = await startExecution(handle.db, actor, sessionId, { requirePlanApproval: false });
     const before = adapters.m1.requests.length + adapters.m2.requests.length;
-    // The queued build belongs to a council a newer release started for gate version 3.
-    await handle.db.update(schema.councilSession).set({ gateVersion: 3 }).where(eq(schema.councilSession.id, sessionId));
+    // The queued build belongs to a council a newer release started for gate version 4.
+    await handle.db.update(schema.councilSession).set({ gateVersion: 4 }).where(eq(schema.councilSession.id, sessionId));
     await runExecution({ db: handle.db, resolveAdapter, sandbox: new FakeSandbox(() => "passed"), concurrency: 1 }, id);
     const view = await getExecutionView(handle.db, actor, id);
     expect(view.plan.status).toBe("failed");
-    expect(view.plan.error).toMatch(/gate version 3/);
+    expect(view.plan.error).toMatch(/gate version 4/);
     expect(adapters.m1.requests.length + adapters.m2.requests.length).toBe(before);
     expect(view.tasks).toHaveLength(0);
 
@@ -388,7 +388,9 @@ describe("Execution Council", () => {
     await submitApproval(handle.db, actor, sessionId, { action: "approve" });
     const participants = await handle.db.select().from(schema.councilParticipant).where(eq(schema.councilParticipant.sessionId, sessionId));
     const builder = participants.find((p) => p.modelId === "m3")!;
-    await expect(startExecution(handle.db, actor, sessionId, { requirePlanApproval: false, builderParticipantId: "par_unknown" })).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(startExecution(handle.db, actor, sessionId, { requirePlanApproval: false, builderParticipantId: "par_unknown" })).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
     const { id } = await startExecution(handle.db, actor, sessionId, { requirePlanApproval: false, builderParticipantId: builder.id });
     await runExecution({ db: handle.db, resolveAdapter, sandbox: new FakeSandbox(() => "passed") }, id);
     const view = await getExecutionView(handle.db, actor, id);

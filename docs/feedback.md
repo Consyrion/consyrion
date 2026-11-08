@@ -19,6 +19,28 @@ Attached automatically: the app page the user came from (path only – query str
 carry tokens), the interface language (cookie), the browser's user agent and the app version (`APP_VERSION`, the same
 value `/api/health` shows). The workspace the user was acting in is stored as context for the admin.
 
+## Screenshot (stage 2)
+
+Optional, one image per report: PNG, JPEG, WebP or GIF, at most 3 MB. The form checks size and type in the browser;
+the server checks again with the same file-signature test as the document upload (`sniffImageType` in
+`packages/db/src/repositories/documents.ts` – name and claimed type are not trusted, so e.g. an SVG is rejected).
+The API takes it as base64 in the JSON body (`screenshot`), the column `screenshot` stores it as a data URL. The admin
+sees it in the report detail (click opens it full size) and gets it as an attachment of the admin e-mail. The form
+reminds users that no passwords or keys should be visible.
+
+## Page context and unread answers (stage 3)
+
+- **Page context only with consent.** On a project or council page (`/projects/<id>…`, `/sessions/<id>…`) the form
+  offers "Send the project/council of this page" – unchecked by default. Only when it is ticked does the request carry
+  `shareContext: true` and the id; the repository keeps it only if it belongs to the author's current workspace (a
+  foreign or made-up id is dropped) and stores it in `feedback.context`. Visitors never send one. The admin detail shows
+  it as "Page (with consent)".
+- **Storage notice.** The form says that the report is stored with the author's e-mail address to answer and can be
+  deleted on request (next to the link to `/datenschutz`).
+- **Unread answers.** `feedback.reply_seen_at` remembers when the author last opened "My reports". Answers after that
+  count as unread: a counter next to "Feedback & bugs" in the sidebar, a "new" badge on the answer. Opening the page
+  marks them as read.
+
 ## Abuse protection
 
 - Max. 10 reports per day per user, for visitors per IP address (`X-Forwarded-For` set by Caddy), with the in-memory
@@ -35,6 +57,16 @@ failed`, without content) and never fails the report. Without `ADMIN_EMAILS` or 
 the inbox. Subject `CONSYRION Fehler|Feature|Kontakt: <subject>`, body with sender, page, language, browser, version,
 the message and the link `<BETTER_AUTH_URL>/admin/feedback?id=<id>`.
 
+## Reply by e-mail (stage 2)
+
+When SMTP is configured, the reply form in the admin inbox has the option "Also send the answer by e-mail to …"
+(checked by default for visitors, who have no account; optional for users, who also see it under My reports). The
+mail goes to the report's address in the report's language (en, de, fr, es, zh; English otherwise), quotes the original
+message, links `/settings/feedback` for users and sets `Reply-To` to the first `ADMIN_EMAILS` address, so the author's
+answer reaches the team instead of the no-reply sender. It is sent after the response; a failure is logged
+(`Feedback reply e-mail failed`) and never fails the reply. Without `SMTP_URL` the option is hidden and the answer is
+only in the app.
+
 ## Access and data
 
 - Tables `feedback` and `feedback_reply` (migration `0032`), repository `packages/db/src/repositories/feedback.ts`.
@@ -44,22 +76,23 @@ the message and the link `<BETTER_AUTH_URL>/admin/feedback?id=<id>`.
   issues (checked against the stored e-mail of the user); a forged object is rejected. Non-admins get 404, like `/admin`.
 - Deleting the account deletes the user's reports (cascade); admins delete single reports on request (hard delete
   including replies). The privacy policy (`/datenschutz`) has a section on feedback data.
+- Data export (`/api/privacy/export`, workspace owner): contains `feedback` and `feedbackReplies` – only the exporting
+  user's own reports and the replies to them (without the replying admin's id), never the members' reports.
 
 ## API
 
-| Method                           | Path                                                                                      | Who            |
-| -------------------------------- | ----------------------------------------------------------------------------------------- | -------------- |
-| POST                             | `/api/feedback` – `{ kind, subject, text, page?, email? (visitors), website (honeypot) }` | anyone         |
-| GET                              | `/api/feedback/mine`                                                                      | signed-in user |
-| GET                              | `/api/admin/feedback?kind=&state=` – `{ reports, newCount }`                              | platform admin |
-| GET / PATCH `{ state }` / DELETE | `/api/admin/feedback/:id`                                                                 | platform admin |
-| POST                             | `/api/admin/feedback/:id/reply` – `{ text }`                                              | platform admin |
+| Method                           | Path                                                                                                            | Who            |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------- |
+| POST                             | `/api/feedback` – `{ kind, subject, text, page?, screenshot? (base64), email? (visitors), website (honeypot) }` | anyone         |
+| GET                              | `/api/feedback/mine`                                                                                            | signed-in user |
+| GET                              | `/api/admin/feedback?kind=&state=` – `{ reports, newCount }`                                                    | platform admin |
+| GET / PATCH `{ state }` / DELETE | `/api/admin/feedback/:id`                                                                                       | platform admin |
+| POST                             | `/api/admin/feedback/:id/reply` – `{ text, email? }` → `{ id, createdAt, emailed }`                             | platform admin |
 
-## Follow-ups (not in stage 1)
+## Follow-ups
 
-- Screenshot upload (image ≤ 3 MB, same checks as document upload); the column `screenshot` is reserved.
-- Optional e-mail to the user when an admin replies, and a notification badge ("bell") for unread answers.
-- Session/project ID with the user's consent when reporting from such a page.
+- Done in stage 2: screenshot upload, reply by e-mail, own reports in the data export.
+- Done in stage 3: unread-answer badge, page context with consent, storage notice.
 - Shared rate-limit store for several web instances (the limiter is per process).
 - Admin: create a GitHub issue from a report (after confirmation, without personal data); AI summary on the admin key.
 - Automatic deletion of old, finished reports (retention period to be decided).

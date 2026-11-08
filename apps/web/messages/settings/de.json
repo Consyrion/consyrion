@@ -7,7 +7,9 @@
       "billing": "Abrechnung & Nutzung",
       "account": "Konto",
       "apiTokens": "API-Tokens",
-      "feedback": "Meine Meldungen"
+      "feedback": "Meine Meldungen",
+      "skills": "Skills",
+      "roleProfiles": "Fachprofile"
     },
     "pages": {
       "account": {
@@ -39,7 +41,7 @@
       },
       "integrations": {
         "title": "Integrationen",
-        "description": "Sende Entscheidungen per E-Mail, an Telegram oder Confluence und verbinde optional GitHub: Councils lesen die Repository-Dateien, die du in einem Projekt auswählst, als Kontext, und freigegebene Entscheidungen werden als Draft-Pull-Requests gebaut.",
+        "description": "Nutze CONSYRION AI aus den Tools, mit denen du arbeitest – Claude Code, Cursor, VS Code, Telegram –, sende Entscheidungen per E-Mail oder an Confluence und verbinde GitHub für Draft-Pull-Requests.",
         "connected": "GitHub verbunden.",
         "githubText": "Minimale Rechte: Du wählst die Repositories auf GitHub. CONSYRION AI liest Code, schreibt nur in neue Branches und öffnet Draft-Pull-Requests. Es merged nie.",
         "addInstallation": "Weitere Installation hinzufügen",
@@ -49,7 +51,8 @@
         "notInPlan": "GitHub ist in deinem aktuellen Plan ({plan}) nicht enthalten. Es ist ab dem Pro-Plan verfügbar – <link>siehe Abrechnung & Nutzung</link>.",
         "ownersOnly": "Nur Owner können GitHub verbinden.",
         "allRepositories": "alle Repositories",
-        "selectedRepositories": "ausgewählte Repositories"
+        "selectedRepositories": "ausgewählte Repositories",
+        "manageTitle": "Verbindungen verwalten"
       },
       "billing": {
         "title": "Abrechnung und Nutzung"
@@ -91,6 +94,7 @@
       "colCalls": "Aufrufe",
       "colFailed": "Fehlgeschlagen",
       "colInput": "Input-Tokens",
+      "colCachedInput": "davon Cache",
       "colOutput": "Output-Tokens",
       "colCost": "≈ Kosten",
       "pricesTitle": "Deine Anbieterpreise (optional, für die Schätzung)",
@@ -289,7 +293,255 @@
       "colPlan": "Plan",
       "stripeTitle": "Stripe und Pro-Preis",
       "catalogTitle": "Plankatalog",
-      "catalogText": "Limits werden serverseitig durchgesetzt. Limits ab 1’000’000 bedeuten unbegrenzt. Der Pro-Preis und sein Stripe-Preis werden oben festgelegt. CONSYRION AI rechnet nie KI-Tokens ab."
+      "catalogText": "Limits werden serverseitig durchgesetzt. Limits ab 1’000’000 bedeuten unbegrenzt. Der Pro-Preis und sein Stripe-Preis werden oben festgelegt. CONSYRION AI rechnet nie KI-Tokens ab.",
+      "demo": {
+        "title": "Demo-Projekt",
+        "description": "Jeder Workspace bekommt einmalig eine Kopie des hier gewählten Councils zum Ansehen, in seiner Sprache (sonst Englisch, dann Deutsch). Wählbar sind nur fertige Councils deines eigenen Workspaces. Jeder neue Kunde sieht den kompletten Council-Text (Vorschläge, Debatte, Urteil) – wähle ein Council ohne vertrauliche Inhalte. Skill-Wissen und Dokumente werden nicht kopiert.",
+        "none": "Keine Demo",
+        "locale": {
+          "de": "Deutsch",
+          "en": "Englisch",
+          "fr": "Französisch",
+          "es": "Spanisch",
+          "zh": "Chinesisch"
+        }
+      },
+      "intake": {
+        "title": "Anforderungserfassung",
+        "description": "Nur Zählwerte, kein Text – Anforderungslisten und Urteile der letzten {days} Tage (#245).",
+        "ratio": "Vorgeschlagen : übernommen",
+        "ratioDetail": "{proposed} Aussagen gefunden, {kept} übernommen, in {lists} Listen – Ziel höchstens 2 : 1",
+        "added": "Von Nutzern ergänzt",
+        "splitParts": "{n} Teile aufgeteilter Anforderungen",
+        "onlyOne": "Nur an einer unbestätigbaren Anforderung gescheitert",
+        "onlyOneDetail": "von den Urteilen ohne qualifizierten Vorschlag ({verdicts} Urteile insgesamt)"
+      },
+      "skillHub": {
+        "title": "SkillHub-Prüfung",
+        "text": "Für die Öffentlichkeit eingereichte Skills. Rot ist nie freigebbar; Gelb und Grün brauchen deine Freigabe, außer die Auto-Freigabe ist an.",
+        "queueTitle": "Prüf-Warteschlange",
+        "queueText": "Inhalte erscheinen als reiner Text. Eine Freigabe gilt genau für diese Version (Content-Hash).",
+        "tab": {
+          "pending_review": "Wartend",
+          "quarantined": "Gesperrt",
+          "published": "Öffentlich"
+        },
+        "loading": "Lädt…",
+        "empty": "Nichts vorhanden.",
+        "error": "Etwas ist schiefgelaufen.",
+        "scan": "Scan",
+        "ai": "KI",
+        "light": {
+          "green": "grün",
+          "yellow": "gelb",
+          "red": "rot"
+        },
+        "aiSkipped": "KI übersprungen: {reason}",
+        "hidden": "verborgen",
+        "suspended": "Publisher gesperrt",
+        "open": "Öffnen",
+        "close": "Schließen",
+        "field": {
+          "summary": "Zusammenfassung",
+          "changelog": "Changelog",
+          "blocks": "Anforderungs-Bausteine",
+          "weights": "Gewichte",
+          "rules": "Session-Regeln",
+          "knowledge": "Wissen",
+          "owner": "Autor"
+        },
+        "scanFindings": "Statischer Scan",
+        "aiFindings": "KI-Prüfung",
+        "note": "Hinweis an den Autor",
+        "noteHint": "Pflicht beim Ablehnen, Sperren, Verbergen oder Sperren des Publishers.",
+        "approve": "Freigeben",
+        "reject": "Ablehnen",
+        "quarantine": "Sperren",
+        "restore": "Zurück in die Prüfung",
+        "hide": "Verbergen",
+        "unhide": "Wieder zeigen",
+        "suspend": "Publisher sperren",
+        "unsuspend": "Publisher entsperren",
+        "done": {
+          "approve": "Veröffentlicht.",
+          "reject": "Abgelehnt.",
+          "quarantine": "Gesperrt.",
+          "restore": "Wieder in Prüfung.",
+          "hide": "Verborgen.",
+          "unhide": "Wieder sichtbar.",
+          "suspend": "Publisher gesperrt.",
+          "unsuspend": "Publisher entsperrt.",
+          "rescan": "{rescanned, plural, one {# Version neu geprüft} other {# Versionen neu geprüft}}, {quarantined, plural, one {# gesperrt} other {# gesperrt}}."
+        },
+        "errors": {
+          "red": "Rote Versionen sind nie freigebbar – der Autor reicht eine neue Version ein.",
+          "hash_mismatch": "Diese Version hat sich geändert – lade sie neu.",
+          "note_missing": "Gib dem Autor einen Grund an.",
+          "publisher_suspended": "Der Publisher ist gesperrt.",
+          "invalid_transition": "Dieser Schritt ist im aktuellen Zustand nicht möglich."
+        },
+        "reviewer": {
+          "title": "KI-Prüfer",
+          "text": "Zweites Signal nach dem statischen Scan. Statisch rote Inhalte gehen nie an das Modell.",
+          "loading": "Lädt…",
+          "error": "Etwas ist schiefgelaufen.",
+          "saved": "Gespeichert.",
+          "enabled": "Modell-Prüfung an (Kill-Switch)",
+          "provider": "Anbieter",
+          "chooseProvider": "Wählen…",
+          "model": "Modell",
+          "modelHint": "Modell-ID wie beim Anbieter gelistet.",
+          "perReview": "Tokens pro Prüfung (Deckel)",
+          "perMonth": "Tokens pro Monat (Deckel)",
+          "used": "Diesen Monat verbraucht: {used}",
+          "key": "API-Key des Prüfers",
+          "keySet": "Ein Key ist gespeichert. Gib einen neuen ein, um ihn zu ersetzen.",
+          "keyMissing": "Kein Key – jede Version geht in die manuelle Prüfung.",
+          "autoApprove": "Versionen automatisch veröffentlichen, wenn beide Prüfungen grün sind",
+          "autoApproveHint": "Standardmäßig aus. Jede automatische Freigabe wird protokolliert; jederzeit abschaltbar.",
+          "exception": "Plattform-Key – dokumentierte Ausnahme vom BYOK-Grundsatz, vom Nutzer am 08.11.2026 freigegeben (ADR 0368): nur für diese Prüfung, verschlüsselt, nie wieder angezeigt.",
+          "save": "Speichern",
+          "removeKey": "Key entfernen"
+        },
+        "reports": {
+          "title": "Offene Meldungen",
+          "text": "Meldungen angemeldeter Nutzer. Sie verbergen einen Skill nie von selbst – öffne den Skill in der Warteschlange, um ihn zu verbergen oder zu sperren.",
+          "loading": "Lädt…",
+          "empty": "Keine offenen Meldungen.",
+          "error": "Etwas ist schiefgelaufen.",
+          "openOnSkill": "{n, plural, one {# offene Meldung zu diesem Skill} other {# offene Meldungen zu diesem Skill}}",
+          "resolve": "Erledigt",
+          "dismiss": "Verwerfen"
+        },
+        "rescan": "Mit den aktuellen Regeln neu prüfen",
+        "official": {
+          "title": "Offizielle Skills (@consyrion)",
+          "text": "Mit CONSYRION AI ausgeliefert und im öffentlichen Katalog gezeigt. Sie müssen den Scan grün bestehen; hier ohne Deploy verbergen.",
+          "loading": "Lädt…",
+          "error": "Etwas ist schiefgelaufen.",
+          "hidden": "verborgen",
+          "hide": "Verbergen",
+          "show": "Zeigen"
+        }
+      }
+    },
+    "connect": {
+      "categories": {
+        "aiClients": {
+          "title": "KI-Clients",
+          "description": "Frag CONSYRION AI mitten in der Arbeit – über den MCP-Server."
+        },
+        "apps": {
+          "title": "Apps",
+          "description": "Entscheidungen von unterwegs anfragen und verfolgen."
+        },
+        "delivery": {
+          "title": "Zustellung & Code",
+          "description": "Wohin Entscheidungen gehen und wo sie gebaut werden."
+        }
+      },
+      "planned": "Geplant",
+      "proBadge": "Pro",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "back": "Alle Integrationen",
+      "detailTitle": "{name} verbinden",
+      "whatTitle": "Was du damit machst",
+      "setupTitle": "Einrichten",
+      "proOnly": "Gehostet auf app.consyrion.com ab dem Pro-Plan enthalten, selbst gehostet immer. <link>Preise ansehen</link>",
+      "safety": "Freigeben, Bauen und Löschen bleiben immer in der App. Ein Token handelt mit deiner Rolle in diesem Workspace; Councils laufen auf deinen eigenen KI-Keys und kosten dort Tokens.",
+      "items": {
+        "claude-code": {
+          "name": "Claude Code",
+          "by": "Terminal · MCP",
+          "summary": "Frag CONSYRION AI direkt im Terminal, wenn beim Programmieren eine Entscheidung ansteht.",
+          "what": "Claude Code ruft ask_consyrion auf, startet ein Council auf deinen Keys und holt mit get_decision das Ergebnis samt Umsetzungs-Brief – ohne das Terminal zu verlassen.",
+          "steps": {
+            "token": "Erstelle unter <link>Einstellungen → API-Tokens</link> ein Token („Nur Councils“ reicht) und setze es im Befehl unten anstelle des Platzhalters ein.",
+            "add": "Füge den Server im Terminal hinzu:",
+            "check": "Prüfe in Claude Code mit <code>/mcp</code>, dass „consyrion“ verbunden ist.",
+            "ask": "Frag einfach: „Frag CONSYRION, ob wir PostgreSQL oder SQLite nehmen sollen.“ Claude zeigt dir vorher Anforderungen und Budget."
+          }
+        },
+        "cursor": {
+          "name": "Cursor",
+          "by": "Editor · MCP",
+          "summary": "CONSYRION AI als Werkzeug im Cursor-Agent – Entscheidungen holen, ohne den Editor zu wechseln.",
+          "what": "Der Cursor-Agent kann Projekte vorbereiten, Councils starten und das Ergebnis als Umsetzungs-Brief direkt im Projekt verwenden.",
+          "steps": {
+            "token": "Erstelle unter <link>Einstellungen → API-Tokens</link> ein Token und setze es unten anstelle des Platzhalters ein.",
+            "open": "Öffne in Cursor Einstellungen → MCP → „Add new MCP server“ oder direkt die Datei <code>~/.cursor/mcp.json</code>.",
+            "paste": "Füge diese Konfiguration ein und speichere:",
+            "ask": "Im Agent-Chat erscheint „consyrion“ mit seinen Werkzeugen. Frag z. B.: „Lass CONSYRION entscheiden: Queue oder Cron?“"
+          }
+        },
+        "vscode": {
+          "name": "VS Code",
+          "by": "Editor · MCP (Copilot Chat)",
+          "summary": "CONSYRION AI im Agent-Modus von Copilot Chat nutzen.",
+          "what": "Im Agent-Modus kann Copilot Chat die CONSYRION-Werkzeuge aufrufen: Entscheidungen lesen, Councils starten und das Ergebnis im Projekt umsetzen.",
+          "steps": {
+            "token": "Erstelle unter <link>Einstellungen → API-Tokens</link> ein Token und setze es unten anstelle des Platzhalters ein.",
+            "paste": "Lege im Projekt die Datei <code>.vscode/mcp.json</code> an:",
+            "start": "Klicke in der Datei über „consyrion“ auf „Start“ (oder Befehlspalette → „MCP: List Servers“).",
+            "ask": "Wechsle in Copilot Chat in den Agent-Modus; unter den Werkzeugen erscheint „consyrion“."
+          }
+        },
+        "claude-desktop": {
+          "name": "Claude Desktop",
+          "by": "Desktop-App · MCP",
+          "summary": "CONSYRION AI in der Claude-App auf Mac oder Windows.",
+          "what": "Claude Desktop verbindet sich über die kleine Brücke mcp-remote (braucht Node.js) mit deinem Workspace und kann dieselben Werkzeuge nutzen wie Claude Code.",
+          "steps": {
+            "token": "Erstelle unter <link>Einstellungen → API-Tokens</link> ein Token und setze es unten anstelle des Platzhalters ein.",
+            "open": "Öffne in Claude Desktop Einstellungen → Entwickler → „Konfiguration bearbeiten“.",
+            "paste": "Füge den Server in <code>claude_desktop_config.json</code> ein:",
+            "restart": "Starte Claude Desktop neu; „consyrion“ erscheint unter den Werkzeugen."
+          }
+        },
+        "telegram": {
+          "name": "Telegram",
+          "by": "Eigener Bot · Chat",
+          "summary": "Stell eine Frage per /frage und bekomm das Urteil samt PDF in den Chat.",
+          "what": "Dein eigener Telegram-Bot nimmt Fragen an, zeigt Anforderungen und Budget, startet das Council erst nach deinem Tipp auf „Start“ und schickt das Ergebnis zurück.",
+          "steps": {
+            "bot": "Erstelle bei @BotFather einen Bot nur für CONSYRION AI:",
+            "chat": "Schreib dem Bot eine Nachricht und hol dir deine Chat-ID (z. B. über @userinfobot).",
+            "connect": "Trag Bot-Token und private Chat-ID unter <link>Telegram-Verbindung</link> weiter unten ein.",
+            "allow": "Klicke auf „Fragen über Telegram erlauben“ – der Bot begrüßt dich.",
+            "ask": "Frag im Chat; Zeilen mit „- “ sind feste Anforderungen:"
+          }
+        },
+        "vscode-extension": {
+          "name": "VS-Code-Erweiterung",
+          "by": "Erweiterung",
+          "summary": "Entscheidungen, Freigaben und generierte Änderungen direkt in VS Code. Marketplace-Veröffentlichung geplant."
+        },
+        "chat-connectors": {
+          "name": "claude.ai & ChatGPT",
+          "by": "Connector · OAuth",
+          "summary": "Anmeldung per OAuth für die Web-Connectors von claude.ai und ChatGPT – nächste Stufe."
+        },
+        "github": {
+          "name": "GitHub",
+          "by": "GitHub App",
+          "summary": "Councils lesen ausgewählte Repository-Dateien; freigegebene Entscheidungen werden Draft-Pull-Requests."
+        },
+        "email": {
+          "name": "E-Mail",
+          "by": "Zustellung",
+          "summary": "Fertige Entscheidungen mit PDF per E-Mail an dich oder dein Team."
+        },
+        "confluence": {
+          "name": "Confluence",
+          "by": "Zustellung",
+          "summary": "Entscheidungen als Seite in deinem Confluence-Space ablegen."
+        }
+      },
+      "publicTitle": "Integrationen",
+      "publicDescription": "Womit du CONSYRION AI verbinden kannst: Claude Code, Cursor, VS Code, Claude Desktop, Telegram, GitHub, E-Mail und Confluence – mit Anleitung zum Einrichten.",
+      "signIn": "Anmelden",
+      "dashboard": "Zum Dashboard"
     }
   },
   "executionScreen": {
@@ -340,6 +592,7 @@
     "errorChecks": "Der CI-Status konnte nicht geladen werden",
     "loading": "Laden…",
     "startTitle": "Execution Council starten",
+    "buildBudget": "Token-Budget für den Build",
     "startText": "Der freigegebene Vorschlag wird zu einem Aufgabenplan; die Modelle des Councils (oder das von dir gewählte) setzen die Aufgaben um, Tests laufen nur in einem isolierten Container oder in den GitHub Actions deines Repositorys, Fehler bekommen eine begrenzte Reparaturschleife, und andere Modelle reviewen den Code. Du prüfst den Plan, bevor Code geschrieben wird. Nichts wird gemerged oder deployed. Standardbudget: {budget} Tokens.",
     "whoBuilds": "Wer baut es?",
     "whoBuildsNew": "Wer baut den neuen Lauf?",
@@ -365,6 +618,15 @@
     "overrideReason": "Begründung für das Veröffentlichen trotzdem",
     "overridePlaceholder": "z. B. instabiler Test, manuell geprüft",
     "publishAnyway": "Draft trotzdem veröffentlichen",
+    "ciRisksIntro": "<strong>Änderungen, die deine CI ausführt.</strong> Der Draft-PR landet in deinem Repository, und Workflows laufen dort mit den Secrets des Repositorys. Sieh dir diese Dateien vor dem Veröffentlichen an – generierter Code kann durch Text in angehängten Dokumenten oder Repository-Dateien gesteuert werden:",
+    "ciRisksConfirm": "Ich habe diese Änderungen angesehen; sie senden keine Secrets oder Daten nach außen.",
+    "ciRisk": {
+      "package_scripts": "Scripts in package.json geändert",
+      "lockfile": "Lockfile geändert (Abhängigkeiten werden in der CI installiert)",
+      "build_config": "Build-/CI-Konfiguration oder Skript geändert",
+      "test_setup": "Test-Setup geändert (läuft vor jedem Test)",
+      "network_call": "Test enthält einen neuen Netzwerkaufruf"
+    },
     "retryOnly": "Nur {tasks} erneut versuchen.",
     "finishedKept": "Erledigte Aufgaben ({tasks}) und ihre Dateien bleiben, wie sie sind.",
     "waitingAfter": "Wartende Aufgaben ({tasks}) starten danach.",
@@ -424,7 +686,64 @@
       "runFailed": "Der letzte Testlauf in der Sandbox ist fehlgeschlagen.",
       "highFindings": "{n, plural, one {# Review-Befund} other {# Review-Befunde}} mit hoher Schwere – vor dem Mergen prüfen.",
       "criticalFindings": "{n, plural, one {# kritischer Review-Befund} other {# kritische Review-Befunde}}: {list}"
-    }
+    },
+    "buildText": {
+      "badStructure": "Die Antwort hatte nicht die geforderte Struktur",
+      "noRuntime": "Keine Container-Umgebung verfügbar – der Befehl wurde nicht ausgeführt.",
+      "installNoSandbox": "Nicht ausgeführt: Der Installationsschritt konnte nicht starten (keine Sandbox auf diesem Server).",
+      "installEnded": "Nicht ausgeführt: Der Installationsschritt endete mit {status}.",
+      "rejected": "Abgelehnte Dateien:",
+      "kind": {
+        "implement": "Umsetzung",
+        "plan": "Plan",
+        "review": "Review",
+        "repair": "Reparatur"
+      },
+      "outcome": {
+        "ok": "ok",
+        "error": "Fehler"
+      },
+      "testKind": {
+        "test": "Tests",
+        "repair": "Reparatur {n}",
+        "install": "{base} – Installation"
+      },
+      "testStatus": {
+        "failed": "fehlgeschlagen",
+        "error": "Fehler",
+        "timeout": "Zeitüberschreitung",
+        "not_run": "nicht ausgeführt"
+      },
+      "check": {
+        "success": "bestanden",
+        "failure": "fehlgeschlagen",
+        "neutral": "neutral",
+        "cancelled": "abgebrochen",
+        "skipped": "übersprungen",
+        "timed_out": "Zeitüberschreitung",
+        "action_required": "Aktion nötig",
+        "queued": "in der Warteschlange",
+        "in_progress": "läuft",
+        "completed": "abgeschlossen",
+        "pending": "ausstehend"
+      },
+      "focus": {
+        "quality": "Codequalität und Korrektheit",
+        "security": "Sicherheit (Injection, Geheimnisse, Zugriffsrechte, Abhängigkeiten)"
+      },
+      "sandbox": {
+        "none": "keine (GitHub Actions)",
+        "docker": "Container"
+      }
+    },
+    "buildProof": {
+      "verified": "nachgewiesen – CI grün",
+      "failed": "nicht nachgewiesen – CI fehlgeschlagen",
+      "pending": "Nachweis offen – CI läuft noch"
+    },
+    "prototypeBadge": "Prototyp-/Mess-Build",
+    "prototypeNotice": "Dies ist ein Prototyp-/Mess-Build – keine fertige Lösung. Er dient dazu, die Anforderungen zu messen, die das Council nicht bestätigen konnte; trage die Messergebnisse im Final Verdict ein. Er ist keine reguläre Freigabe.",
+    "prototypeStartTitle": "Prototyp-/Mess-Build starten"
   },
   "auth": {
     "failed": "Anmeldung fehlgeschlagen",
@@ -452,6 +771,21 @@
     "verifyDoneText": "Deine Adresse ist bestätigt. Melde dich an, um weiterzumachen.",
     "verifyFailedTitle": "Link ungültig oder abgelaufen",
     "verifyFailedText": "Dieser Bestätigungslink funktioniert nicht mehr. Melde dich mit E-Mail und Passwort an, dann senden wir dir einen neuen.",
+    "forgotPassword": "Passwort vergessen?",
+    "oauthNotLinked": "Zu dieser E-Mail-Adresse gibt es schon ein CONSYRION-AI-Konto mit Passwort. Melde dich mit E-Mail und Passwort an und verbinde Google oder GitHub danach unter Einstellungen → Konto. Passwort vergessen? Setze es zurück.",
+    "resetTitle": "Passwort zurücksetzen",
+    "resetRequestText": "Gib deine E-Mail-Adresse ein. Wir senden dir einen Link für ein neues Passwort.",
+    "resetSend": "Link senden",
+    "resetSent": "Wenn es zu {email} ein Konto gibt, ist der Link unterwegs. Er ist 60 Minuten gültig.",
+    "resetInvalidTitle": "Link ungültig oder abgelaufen",
+    "resetInvalidText": "Dieser Link funktioniert nicht mehr. Fordere einen neuen an.",
+    "resetRequestAgain": "Neuen Link anfordern",
+    "resetMismatch": "Die beiden Passwörter stimmen nicht überein.",
+    "resetNewText": "Wähle ein neues Passwort. Danach sind alle bisherigen Anmeldungen beendet.",
+    "resetDone": "Dein Passwort ist geändert. Melde dich mit dem neuen Passwort an.",
+    "resetNewPassword": "Neues Passwort",
+    "resetConfirm": "Neues Passwort wiederholen",
+    "resetSave": "Passwort speichern",
     "shell": {
       "home": "CONSYRION AI Startseite",
       "tagline": "Debattieren. Entscheiden. Umsetzen.",
@@ -496,5 +830,273 @@
       "signedInAs": "Angemeldet als {email}. Die Einladung funktioniert nur für die Adresse, an die sie gesendet wurde.",
       "signedOut": "<signIn>Melde dich an</signIn> oder <signUp>erstelle ein Konto</signUp> mit der eingeladenen E-Mail-Adresse und öffne diesen Link dann erneut."
     }
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Entscheidungspakete, die einen Council vorausfüllen: Perspektiven, Anforderungs-Bausteine, Gewichte und Regeln. Ein Skill entscheidet nie – Anforderungen bestätigst und Freigaben erteilst du wie gewohnt.",
+    "error": "Das hat nicht geklappt. Bitte versuche es erneut.",
+    "saved": "Skill gespeichert.",
+    "imported": "Skill importiert – er ist vorerst privat.",
+    "ignoredTitle": "Nicht übernommen: {fields}.",
+    "ignoredText": "Diese Felder gehören nicht zum Skill-Format und wurden nicht gespeichert. Alles andere wurde gespeichert.",
+    "newerSchema": "Dieser Skill wurde mit einer neueren Version von CONSYRION AI erstellt (Skill-Format {version}). Aktualisiere CONSYRION AI, um ihn zu importieren.",
+    "shared": "Mit deinem Team geteilt.",
+    "unshared": "Der Skill ist wieder privat.",
+    "archived": "Skill archiviert. Councils, die ihn genutzt haben, behalten ihre Version.",
+    "versionShort": "v{version}",
+    "edit": "Bearbeiten",
+    "shareTeam": "Mit Team teilen",
+    "makePrivate": "Privat machen",
+    "teamNeedsPro": "Teilen mit dem Team ist in Pro enthalten.",
+    "export": "Exportieren",
+    "archive": "Archivieren",
+    "archiveConfirm": "Endgültig archivieren",
+    "cancel": "Abbrechen",
+    "ownTitle": "Deine Skills",
+    "ownText": "{n} von {max} eigenen Skills in deinem Plan. Offizielle Skills zählen nicht.",
+    "ownTextUnlimited": "Unbegrenzt eigene Skills in deinem Plan.",
+    "import": "skill.json importieren",
+    "new": "Neuer Skill",
+    "limitReached": "Das Limit deines Plans ist erreicht. Archiviere einen Skill oder wechsle zu Pro.",
+    "noOwn": "Noch keine eigenen Skills. Lege einen neuen an oder dupliziere einen offiziellen, um ihn anzupassen.",
+    "editTitle": "Skill bearbeiten",
+    "newTitle": "Neuer Skill",
+    "editorHint": "Speichern legt eine neue Version an. Der Server prüft den Inhalt: keine Keys, Passwörter oder E-Mail-Adressen und kein Text, der die Regeln des Councils ändern will.",
+    "noSuggestion": "kein Vorschlag",
+    "modelsValue": "{n} Modelle",
+    "save": "Speichern",
+    "previewTitle": "Vorschau – das füllt dieser Skill vor",
+    "previewHint": "Vor dem Start lässt sich alles noch ändern.",
+    "previewBlocks": "Anforderungs-Bausteine (Vorschläge)",
+    "previewWeights": "Gewichte",
+    "modeDefault": "Standard des Modus",
+    "safetyNote": "Ein Skill bestätigt nie Anforderungen, überspringt nie die unabhängige Prüfung und gibt nie etwas frei.",
+    "officialTitle": "Offizielle Skills",
+    "officialText": "Von CONSYRION AI mitgeliefert, nur lesbar. Dupliziere einen, um ihn als eigenen Skill anzupassen.",
+    "visibility": {
+      "private": "privat",
+      "team": "Team",
+      "official": "offiziell"
+    },
+    "category": {
+      "architecture": "Architektur",
+      "data_protection": "Datenschutz",
+      "vendor": "Anbieterwahl",
+      "security": "Sicherheit",
+      "cost": "Kosten",
+      "other": "Sonstiges"
+    },
+    "field": {
+      "name": "Name",
+      "summary": "Kurzbeschreibung",
+      "category": "Kategorie",
+      "mode": "Vorgeschlagener Modus",
+      "models": "Vorgeschlagene Anzahl Modelle",
+      "roles": "Perspektiven",
+      "blocks": "Anforderungs-Bausteine",
+      "blocksHint": "Einer pro Zeile. Auszufüllende Werte in geschweifte Klammern setzen, z. B. „Monatliche Kosten höchstens '{amount}' CHF.“",
+      "useWeights": "Gewichte im Urteil festlegen",
+      "sessionRules": "Sitzungsregeln",
+      "knowledge": "Fachwissen / Checkliste",
+      "knowledgeHint": "Geht als Kontext an die Modelle – nie als Anweisung.",
+      "changelog": "Was hat sich geändert? (optional)",
+      "changelogHint": "Kurze Notiz für die Versionsliste und SKILL.md – höchstens 500 Zeichen."
+    },
+    "criteria": {
+      "technicalQuality": "Technische Qualität",
+      "security": "Sicherheit",
+      "maintainability": "Wartbarkeit",
+      "operatingCost": "Betriebskosten",
+      "implementationSpeed": "Umsetzungstempo"
+    },
+    "picker": {
+      "label": "Skill verwenden",
+      "none": "Kein Skill",
+      "group": {
+        "own": "Deine Skills",
+        "team": "Team-Skills",
+        "official": "Offizielle Skills"
+      }
+    },
+    "setup": {
+      "prefilled": "Vorausgefüllt aus dem Skill „{name}“ (v{version}). Du kannst alles ändern.",
+      "blocksOpen": "{n, plural, one {# Baustein} other {# Bausteine}} des Skills „{name}“ noch offen – nur ein Hinweis, der Start ist nicht gesperrt.",
+      "blocksOpenLink": "Bausteine ansehen",
+      "modelsRecommended": "Der Skill empfiehlt {n} Modelle – wähle sie selbst (deine Keys). {selected} von {n} gewählt."
+    },
+    "intake": {
+      "label": "Anforderungs-Bausteine von {name}",
+      "title": "Bausteine aus dem Skill „{name}“",
+      "text": "Nur Vorschläge: Werte eintragen und die passenden Bausteine hinzufügen. Zu Anforderungen werden sie erst, wenn du die Liste bestätigst.",
+      "add": "Als Anforderung hinzufügen",
+      "added": "Hinzugefügt",
+      "summary": "Der Skill „{name}“ schlägt {n} Bausteine vor – {adopted} übernommen, {open} offen.",
+      "summaryDismissed": "{n} bewusst verworfen.",
+      "view": "Bausteine ansehen",
+      "hide": "Bausteine ausblenden",
+      "status": {
+        "adopted": "übernommen",
+        "open": "offen",
+        "dismissed": "verworfen"
+      },
+      "dismiss": "Verwerfen",
+      "reopen": "Wieder öffnen",
+      "adoptHint": "Ein Baustein ändert deine Anforderungen: Liste bearbeiten, Werte eintragen und erneut bestätigen. Nichts wird automatisch übernommen.",
+      "adoptEdit": "Anforderungen bearbeiten, um Bausteine hinzuzufügen"
+    },
+    "duplicate": "Duplizieren",
+    "duplicated": "Private Kopie von „{name}“ angelegt – du kannst sie jetzt ändern.",
+    "copyName": "{name} (Kopie)",
+    "forkedFrom": "Kopie von {name} (v{version})",
+    "versions": "Versionen",
+    "hideVersions": "Versionen ausblenden",
+    "versionsLabel": "Versionen von {name}",
+    "noChangelog": "kein Changelog",
+    "hub": {
+      "publish": "Veröffentlichen…",
+      "withdraw": "Aus dem SkillHub zurückziehen",
+      "withdrawn": "Aus dem SkillHub zurückgezogen. Councils behalten die genutzte Version.",
+      "status": {
+        "hidden": "von der Moderation verborgen",
+        "public": "öffentlich · v{version}",
+        "draft": "nicht eingereicht",
+        "scanning": "wird geprüft",
+        "pending_review": "in Prüfung",
+        "published": "öffentlich",
+        "rejected": "abgelehnt",
+        "quarantined": "gesperrt",
+        "withdrawn": "zurückgezogen"
+      },
+      "panelLabel": "„{name}“ im SkillHub veröffentlichen",
+      "title": "Im SkillHub veröffentlichen",
+      "intro": "Mach diese Version für alle öffentlich. Vorher wird sie automatisch geprüft und dann von einem Admin freigegeben. Spätere Änderungen erzeugen neue Versionen mit eigener Prüfung.",
+      "error": "Etwas ist schiefgelaufen. Bitte versuch es erneut.",
+      "resultSubmitted": "Eingereicht als {address}. Ein Admin prüft sie – öffentlich wird sie erst nach der Freigabe.",
+      "resultBlocked": "Diese Version wurde von der automatischen Prüfung gesperrt und kann nicht veröffentlicht werden. Ändere den Text und reiche eine neue Version ein.",
+      "finding": {
+        "red": "Gesperrt",
+        "yellow": "Zu prüfen"
+      },
+      "kind": {
+        "secret": "Schlüssel, Token oder Passwort",
+        "personal_data": "personenbezogene Daten",
+        "instruction": "Anweisung an das Council oder seine Prüfer",
+        "encoded_content": "kodierter Text",
+        "obfuscation": "versteckte oder ähnlich aussehende Zeichen",
+        "link": "Link",
+        "markup": "HTML- oder Markdown-Link",
+        "code": "Befehle oder Skripte",
+        "bias": "extreme Gewichtung"
+      },
+      "close": "Schließen",
+      "loading": "Lädt…",
+      "notEligible": "Du kannst noch nicht veröffentlichen:",
+      "problem": {
+        "plan": "Veröffentlichen ist in Pro enthalten.",
+        "email_unverified": "Bestätige deine E-Mail-Adresse.",
+        "account_too_new": "Dein Konto muss mindestens 14 Tage alt sein (ab {date}).",
+        "suspended": "Dein Publisher-Konto ist gesperrt."
+      },
+      "handle": "Publisher-Handle",
+      "handleHint": "Erscheint als @handle bei jedem öffentlichen Skill. 3–32 Kleinbuchstaben, Ziffern oder Bindestriche. Später nicht änderbar.",
+      "claim": "Handle speichern",
+      "cancel": "Abbrechen",
+      "address": "Adresse",
+      "addressHint": "Öffentliche Adresse: {address}",
+      "listed": "Im öffentlichen Katalog und in der Suche zeigen",
+      "listedHint": "Nicht gelistete Skills sind nur per Link erreichbar – das ist kein Zugriffsschutz.",
+      "changelog": "Was diese Version enthält oder ändert",
+      "changelogHint": "Pflicht – steht auf der öffentlichen Seite.",
+      "license": "Ich veröffentliche diesen Skill unter {license} und habe die Rechte dazu.",
+      "reviewNote": "Der Text wird automatisch geprüft, auch von einem externen KI-Dienst, den CONSYRION AI betreibt. Keine personenbezogenen Daten, Schlüssel oder vertraulichen Inhalte aufnehmen.",
+      "submit": "Zur Prüfung einreichen",
+      "errors": {
+        "handle_format": "3–32 Kleinbuchstaben, Ziffern oder einzelne Bindestriche.",
+        "handle_reserved": "Dieses Handle ist reserviert – es würde eine offizielle oder fremde Identität nahelegen.",
+        "handle_set": "Dein Handle ist schon gesetzt und kann nicht geändert werden.",
+        "handle_taken": "Dieses Handle ist schon vergeben.",
+        "handle_missing": "Wähle zuerst dein Publisher-Handle.",
+        "license_missing": "Stimme der Lizenz zu, um zu veröffentlichen.",
+        "changelog_missing": "Beschreibe, was diese Version enthält oder ändert.",
+        "already_submitted": "Diese Version wurde schon eingereicht. Speichere eine neue Version, um Änderungen einzureichen.",
+        "slug_format": "3–60 Kleinbuchstaben, Ziffern oder einzelne Bindestriche.",
+        "slug_reserved": "Diese Adresse ist reserviert.",
+        "slug_taken": "Du nutzt diese Adresse schon für einen anderen Skill.",
+        "not_public": "Dieser Skill ist nicht öffentlich."
+      }
+    }
+  },
+  "roleProfiles": {
+    "title": "Fachprofile",
+    "description": "Schärfe, worauf eine Rolle im 12 Minds Council achtet: Leitfrage, Prüflinsen, Grenzen und Quellen. Ein Profil ist eine Perspektive – nie ein zusätzliches Modell oder eine Stimme.",
+    "perspectiveNotModel": "Eine Perspektive ist kein unabhängiges KI-Modell: Drei Rollen auf einem Modell bleiben ein Modell und eine Stimme. Profile ändern, worauf eine Rolle achtet – nie die Zahl der Prüfer, die Anforderungsprüfung oder die Freigabe.",
+    "error": "Etwas ist schiefgegangen. Bitte versuche es erneut.",
+    "saved": "Fachprofil gespeichert.",
+    "shared": "Mit dem Team geteilt.",
+    "unshared": "Jetzt privat.",
+    "archived": "Fachprofil deaktiviert. Councils, die es genutzt haben, behalten ihre Version.",
+    "ignoredTitle": "Nicht übernommen: {fields}",
+    "versionShort": "v{version}",
+    "forRole": "Für die Rolle: {role}",
+    "show": "Anzeigen",
+    "hide": "Ausblenden",
+    "edit": "Bearbeiten",
+    "shareTeam": "Mit Team teilen",
+    "makePrivate": "Privat machen",
+    "shareNeedsAdmin": "Nur Admins oder Inhaber können ein Profil mit dem Team teilen.",
+    "archive": "Deaktivieren",
+    "archiveConfirm": "Wirklich deaktivieren",
+    "cancel": "Abbrechen",
+    "own": "Deine Profile und die deines Teams",
+    "new": "Neues Profil",
+    "noOwn": "Noch keine eigenen Profile. Lege ein neues Profil an.",
+    "editTitle": "Fachprofil bearbeiten",
+    "newTitle": "Neues Fachprofil",
+    "noPersons": "Beschreibe eine Perspektive, keine Person: keine echten Namen, keine nachgeahmten Persönlichkeiten, keine erfundenen Zitate.",
+    "role": "Rolle im 12 Minds Council",
+    "name": "Name",
+    "coreQuestion": "Leitfrage",
+    "lenses": "Prüflinsen",
+    "lensesHint": "3–8 Prüflinsen, eine pro Zeile.",
+    "notSuitableFor": "Nicht geeignet für",
+    "sources": "Quellen",
+    "noSources": "Keine Quellen.",
+    "sourcesHint": "Wähle „Eigene Aussage“, wenn du keine Quelle belegen kannst. Eine belegte Quelle braucht einen https-Link und das Prüfdatum.",
+    "sourceTitle": "Titel",
+    "sourceStatus": "Status",
+    "sourceUrl": "Link (https)",
+    "sourceCheckedAt": "Geprüft am",
+    "removeSource": "Quelle entfernen",
+    "addSource": "Quelle hinzufügen",
+    "save": "Speichern",
+    "curated": "Kuratierte Profile",
+    "curatedHint": "Von CONSYRION AI mitgeliefert, schreibgeschützt. Eigene Einschätzung des Teams, ohne Personen und Links.",
+    "checkedAt": "geprüft am {date}",
+    "visibility": {
+      "private": "privat",
+      "team": "Team",
+      "curated": "kuratiert"
+    },
+    "status": {
+      "own_statement": "Eigene Aussage",
+      "unconfirmed": "Unbestätigt",
+      "verified": "Belegt",
+      "outdated": "Veraltet"
+    },
+    "pickerTitle": "Fachprofile (optional)",
+    "pickerNote": "Ein Profil schärft, worauf diese Rolle achtet. Es fügt kein Modell, keine Stimme und keinen Prüfer hinzu.",
+    "pickerNone": "Kein Profil"
+  },
+  "deletion": {
+    "title": "Was das Löschen entfernt – und was nicht",
+    "removedProject": "Aus der Datenbank entfernt: das Projekt mit Briefing, Dokumenten und Anforderungen, alle Councils mit Vorschlägen, Debatten, Entscheidungen und Freigaben, Build-Pläne, erzeugter Code, Testläufe und Verbrauchsdaten.",
+    "removedWorkspace": "Aus der Datenbank entfernt: alle Projekte und Councils dieses Workspaces, Dokumente, erzeugter Code, die verschlüsselten API-Keys, Integrationen und Zustell-Verbindungen, Einladungen, API-Tokens, Assistenten-Chats, Skills, Rollenprofile und das Audit-Protokoll des Workspaces. Mitglieder verlieren den Zugriff; ihre Konten bleiben.",
+    "auditProject": "Das Audit-Protokoll des Workspaces behält kurze Einträge zu diesem Projekt (wer hat wann was getan, ohne Inhalte der Vorschläge), bis der Workspace gelöscht wird. Die Assistenten-Chats des Workspaces werden mit dem Projekt nicht gelöscht.",
+    "auditWorkspace": "Ein Eintrag bleibt: dass dieser Workspace gelöscht wurde, von wem und wann – ohne Inhalte.",
+    "feedback": "Deine Feedback-Meldungen gehören zu deinem Konto und bleiben, bis du sie oder dein Konto löschst.",
+    "backups": "Datensicherungen (auf dem Server und auf einem Sicherungsspeicher in Deutschland) enthalten die Daten noch, bis sie nach 30 Tagen automatisch gelöscht werden.",
+    "external": "Außerhalb von CONSYRION AI – das können wir nicht löschen: Pull Requests und Branches auf GitHub (dort im Repository schließen oder löschen), per E-Mail, Telegram oder Confluence versendete Berichte (sie bleiben bei den Empfängern) und alles, was du exportiert oder heruntergeladen hast.",
+    "privacy": "Mehr in der Datenschutzerklärung",
+    "running": "Bereits laufende Modellaufrufe können vom Anbieter noch abgerechnet werden (eigener Key)."
   }
 }

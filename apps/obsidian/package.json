@@ -1,0 +1,17 @@
+{
+  "name": "consyrion-obsidian",
+  "version": "0.1.0",
+  "description": "Send selected notes to a CONSYRION AI council and save the decision report as a new note.",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=browser --format=cjs --target=es2022 --external:obsidian --outfile=dist/main.js && node scripts/copy-manifest.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "obsidian": "^1.8.7"
+  }
+}

@@ -23,6 +23,23 @@ import { createProject, getProject, updateBrief } from "./projects";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const projectId = z.string().regex(/^prj_[\w]+$/, "Unknown project");
+/**
+ * Requirements text of a brief: one requirement per line. Models often send a list instead of one text (live test
+ * 08.11.26, "Make it a council" – the card was dropped as invalid); a list is joined into "- " lines.
+ */
+const requirementsText = z
+  .union([z.string(), z.array(z.string())])
+  .transform((v) =>
+    Array.isArray(v)
+      ? v
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .map((x) => (x.startsWith("- ") ? x : `- ${x}`))
+          .join("\n")
+      : v.trim(),
+  )
+  .pipe(z.string().max(20_000))
+  .default("");
 
 export const ACTION_SCHEMAS = {
   /** A new project saved as draft (not ready for a council). */
@@ -31,14 +48,14 @@ export const ACTION_SCHEMAS = {
     type: z.enum(["idea", "architecture", "repository", "business", "technology_choice"]).default("idea"),
     idea: z.string().trim().min(20).max(20_000),
     goal: z.string().trim().max(5_000).default(""),
-    requirements: z.string().trim().max(20_000).default(""),
+    requirements: requirementsText,
   }),
   /** A new brief version of an existing project (earlier versions stay). */
   draft_brief: z.object({
     projectId,
     idea: z.string().trim().min(20).max(20_000),
     goal: z.string().trim().max(5_000).default(""),
-    requirements: z.string().trim().max(20_000).default(""),
+    requirements: requirementsText,
   }),
   /** Requirements added to the brief; they are unconfirmed until the user confirms the requirement list. */
   propose_requirements: z.object({ projectId, requirements: z.array(text(500)).min(1).max(20) }),

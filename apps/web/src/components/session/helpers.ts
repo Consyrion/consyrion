@@ -19,6 +19,10 @@ export interface ProposalContent {
   /** Absent in proposals from before the feasibility check (#121). */
   solvesRequirements?: boolean;
   requirementConflicts?: string[];
+  /** #273 stage 2: the author's own next-step suggestion; absent in proposals written before it. */
+  cheapestTest?: { assumption: string; method: string; successCriterion: string };
+  stopCriteria?: string[];
+  revisitTriggers?: string[];
 }
 
 export const PROVIDER_LABELS: Record<string, string> = {
@@ -83,6 +87,7 @@ const VERDICT_REASONS: ReadonlyArray<readonly [prefix: string, key: string]> = [
   ["Needs verification – the council could not confirm", "needsVerification"],
   ["This proposal does not meet every confirmed requirement", "notQualified"],
   ["Too few independent models checked this proposal", "limitedReview"],
+  ["Architecture candidate – performance proof open:", "architectureCandidate"],
   ["This verdict uses a result this version does not know", "unknownOutcome"],
 ];
 
@@ -101,6 +106,12 @@ const GATE_CAUSES: ReadonlyArray<readonly [RegExp, string]> = [
   [/^(\S+) disputed: (\d+) of (\d+) evaluators confirm it, (\d+) found it not met\.$/, "disputed"],
   [/^(\S+) not confirmed: (\d+) of (\d+) evaluators? could not confirm it\.$/, "notConfirmed"],
   [/^(\S+) not confirmed: (\d+) of (\d+) evaluators? gave no valid answer\.$/, "noAnswer"],
+  [/^The author states that this proposal does not meet every requirement \(not decisive on its own\)\.$/, "authorDeclines"],
+  // #249 part 2: "Architecture candidate – performance proof open: R5, R7 can only be confirmed by measuring …".
+  [
+    /^Architecture candidate – performance proof open: ([A-Z]\d+(?:, [A-Z]\d+)*) can only be confirmed by measuring the running implementation; .*$/,
+    "architectureCandidate",
+  ],
 ];
 
 /**
@@ -168,6 +179,8 @@ export function useGateText() {
       const m = re.exec(text);
       if (!m) continue;
       if (key === "disputed") return t("disputed", { id: m[1]!, pass: Number(m[2]), n: Number(m[3]), fail: Number(m[4]) });
+      if (key === "authorDeclines") return t("authorDeclines");
+      if (key === "architectureCandidate") return t("architectureCandidate", { ids: m[1]! });
       return t(key as "notMet", { id: m[1]!, k: Number(m[2]), n: Number(m[3]) });
     }
     return text;
@@ -180,6 +193,67 @@ export function useVerdictReason() {
   return (reason: string | null | undefined) => {
     if (!reason) return reason ?? null;
     const key = VERDICT_REASONS.find(([prefix]) => reason.startsWith(prefix))?.[1];
+    // #511: the architecture candidate reason names the open measurement requirements ("R1, R3").
+    if (key === "architectureCandidate") return t("architectureCandidate", { ids: /^Architecture candidate – performance proof open: ([A-Z]\d+(?:, [A-Z]\d+)*) /.exec(reason)?.[1] ?? "–" });
     return key ? t(key as never) : reason;
+  };
+}
+
+/**
+ * Text audit 08.11.26: the evaluation tab printed the verdict's English ineligibility reasons ("Not qualified: R2 not
+ * confirmed: …"). Known reasons are rebuilt in the interface language, gate causes through useGateText; anything else
+ * stays as sent. The patterns avoid the engine's literal wording (scripts/check-client-bundle.mjs markers).
+ */
+const INELIGIBLE: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^Missing independent scores$/, "missingScores"],
+  [/^Security score (\S+) below minimum (\S+)$/, "securityLow"],
+  [/^(\d+) unresolved blocking objection\(s\)$/, "blocking"],
+  [/^Total (\S+) below minimum (\S+)$/, "totalLow"],
+  [/^Not qualified: the proposal is missing from the requirement gate$/, "notInGate"],
+  [/^Not qualified: (.+)$/, "notQualified"],
+  [/^Not an implementable (?:solution)\x3a the proposal itself states that the hard requirements cannot be met together$/, "declaredUnsolvable"],
+  [/^Not an implementable (?:solution)\x3a (\d+) of (\d+) independent evaluators? found a hard requirement unmet$/, "hardUnmet"],
+];
+
+export function useIneligibleReason() {
+  const t = useTranslations("evaluationScreen.ineligible");
+  const gate = useGateText();
+  return (text: string) => {
+    for (const [re, key] of INELIGIBLE) {
+      const m = re.exec(text);
+      if (!m) continue;
+      if (key === "securityLow" || key === "totalLow") return t(key, { score: m[1]!, min: m[2]! });
+      if (key === "blocking") return t("blocking", { count: Number(m[1]) });
+      if (key === "notQualified") return t("notQualified", { cause: gate.cause(m[1]!) });
+      if (key === "hardUnmet") return t("hardUnmet", { k: Number(m[1]), n: Number(m[2]) });
+      return t(key as "missingScores");
+    }
+    return text;
+  };
+}
+
+/**
+ * Text audit 08.11.26: the formula showed the raw term "mean_independent_score(criterion)". Rebuilt from the matrix
+ * weights with translated criterion names; evaluator vote weights name the model instead of the participant id.
+ */
+export function useReadableFormula() {
+  const t = useTranslations("evaluationScreen.formulaText");
+  return (view: View, formula: string, weights: Record<string, number>, criterionLabel: (c: string) => string) => {
+    const list = Object.entries(weights)
+      .map(([c, w]) => `${criterionLabel(c)} ${w} %`)
+      .join(", ");
+    const m = /evaluator vote weights (\{.*\})$/.exec(formula);
+    let votes = "";
+    if (m) {
+      try {
+        const parsed = JSON.parse(m[1]!) as Record<string, number>;
+        votes = Object.entries(parsed)
+          .map(([id, w]) => `${view.participants.find((p) => p.id === id)?.modelId ?? id} ×${w}`)
+          .join(", ");
+      } catch {
+        votes = "";
+      }
+    }
+    return t("text", { weighted: votes ? "yes" : "no", weights: list, votes });
   };
 }

@@ -1,5 +1,7 @@
 import { DomainError } from "./errors";
 import { detectMeasure, type RequirementMeasure } from "./requirement-measure";
+import type { RequirementSplitRef } from "./requirement-split";
+import { measurableOnlyAfterImplementation, needsBuildVerification } from "./requirement-testability";
 
 /**
  * Requirement intake (#190): data contract, confirmation and binding checks. The user reviews, edits and confirms the
@@ -44,6 +46,17 @@ export interface RequirementItem {
   candidateKey: string | null;
   /** A time, monthly cost or availability limit found in the wording (requirement-measure.ts); evaluators estimate it. */
   measure?: RequirementMeasure | null;
+  /**
+   * "build": only the implementation can prove it (tests/CI); checked as a verification plan, verified in the build.
+   * "measurement" (#249 part 2): only measuring the running implementation can prove it; checked as a measurement plan,
+   * the proposal is at best an architecture candidate (gate version 3+). Read it through `requirementVerification`.
+   */
+  verification?: "build" | "measurement" | null;
+  /**
+   * Part of a split requirement (#216): the original statement it came from and its position. Shown as "part b of …";
+   * the id stays positional (R1…Rn) and every part is checked on its own.
+   */
+  splitFrom?: RequirementSplitRef | null;
 }
 
 export interface ExcludedRequirement {
@@ -56,6 +69,7 @@ export interface ExcludedRequirement {
 export const REQUIREMENT_LIMITS = { maxItems: 100, maxItemChars: 1_000, maxCandidates: 150, minReasonChars: 3 } as const;
 
 export {
+  CLIENT_CONTEXT_EXCLUSION_REASON,
   CONTEXT_EXCLUSION_REASON,
   DOCUMENT_EXCLUSION_REASON,
   DUPLICATE_EXCLUSION_REASON,
@@ -90,7 +104,8 @@ export interface RequirementProposal {
 
 /** What the user submits when confirming. */
 export interface RequirementConfirmationInput {
-  items: ReadonlyArray<{ text: string; candidateKey?: string | null }>;
+  /** `splitFrom`: the original text of a requirement the user split into parts (#216); parts share it. */
+  items: ReadonlyArray<{ text: string; candidateKey?: string | null; splitFrom?: string | null }>;
   excluded: ReadonlyArray<{ candidateKey: string; reason: string }>;
   /** Required – and only allowed – when the list is empty: the user states that the brief has no hard requirement. */
   noHardRequirements?: boolean;
@@ -124,7 +139,10 @@ export function buildConfirmedRequirements(
 
   const items: RequirementItem[] = [];
   const keptKeys = new Set<string>();
+  // #216: the parts of one split share their candidate – it counts as taken over ("split into …"), never as excluded.
+  const splitKeys = new Map<string, string>();
   const texts = new Set<string>();
+  const splitGroups = new Map<string, number[]>();
   for (const entry of input.items) {
     const text = entry.text.replace(/\s+/g, " ").trim();
     if (!text) {
@@ -136,10 +154,17 @@ export function buildConfirmedRequirements(
     if (texts.has(normalized)) problems.push(`Listed twice: "${short(text)}"`);
     texts.add(normalized);
     const candidate = entry.candidateKey ? byKey.get(entry.candidateKey) : undefined;
+    const original = entry.splitFrom?.replace(/\s+/g, " ").trim().slice(0, REQUIREMENT_LIMITS.maxItemChars) || null;
     if (candidate) {
       if (excludedKeys.has(candidate.key)) problems.push(`Both kept and excluded: "${short(candidate.text)}"`);
-      if (keptKeys.has(candidate.key)) problems.push(`Taken over twice: "${short(candidate.text)}"`);
+      const sameSplit = original !== null && splitKeys.get(candidate.key) === original;
+      if (keptKeys.has(candidate.key) && !sameSplit) problems.push(`Taken over twice: "${short(candidate.text)}"`);
       keptKeys.add(candidate.key);
+      if (original !== null) splitKeys.set(candidate.key, original);
+    }
+    if (original !== null) {
+      const group = `${candidate?.key ?? ""}\u0000${original}`;
+      splitGroups.set(group, [...(splitGroups.get(group) ?? []), items.length]);
     }
     items.push({
       id: `R${items.length + 1}`,
@@ -148,6 +173,20 @@ export function buildConfirmedRequirements(
       source: candidate ? candidate.source : { kind: "user" },
       candidateKey: candidate ? candidate.key : null,
       measure: detectMeasure(text),
+      ...(needsBuildVerification(text)
+        ? { verification: "build" as const }
+        : measurableOnlyAfterImplementation(text)
+          ? { verification: "measurement" as const }
+          : {}),
+      ...(original !== null ? { splitFrom: { text: original, part: 0, of: 0 } } : {}),
+    });
+  }
+  // Number the parts of every split in list order; a "split" into one part is just the requirement.
+  for (const indexes of splitGroups.values()) {
+    indexes.forEach((index, n) => {
+      const item = items[index]!;
+      if (indexes.length < 2) delete item.splitFrom;
+      else item.splitFrom = { text: item.splitFrom!.text, part: n + 1, of: indexes.length };
     });
   }
   for (const entry of excluded) {

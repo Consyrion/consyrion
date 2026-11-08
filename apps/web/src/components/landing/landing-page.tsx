@@ -103,6 +103,9 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
             <a href="#pricing" className="hover:text-text">
               {t("nav.pricing")}
             </a>
+            <Link href="/integrations" className="hover:text-text max-xl:hidden">
+              {t("nav.integrations")}
+            </Link>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {/* Narrow screens: the section links, language and sign-in live in this menu (ChatGPT QA 07.11.26). */}
@@ -112,6 +115,9 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
                   {t(`nav.${{ how: "how", overview: "overview", byok: "keys", delivery: "delivery", "open-source": "openSource", pricing: "pricing" }[id]}`)}
                 </a>
               ))}
+              <Link href="/integrations" className="rounded-lg px-3 py-2 text-muted hover:bg-surface-2 hover:text-text">
+                {t("nav.integrations")}
+              </Link>
               {signedIn ? null : (
                 <Link href="/sign-in" className="rounded-lg px-3 py-2 text-muted hover:bg-surface-2 hover:text-text">
                   {t("nav.signIn")}
@@ -376,6 +382,9 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
             </Link>
             <Link href="/datenschutz" className="hover:text-text">
               {t("footer.datenschutz")}
+            </Link>
+            <Link href="/integrations" className="hover:text-text">
+              {t("footer.integrations")}
             </Link>
             <Link href="/feedback?from=/" className="hover:text-text">
               {t("footer.feedback")}

@@ -6,6 +6,7 @@ import { newId } from "../ids";
 import { councilSession, deliveryConnection, deliveryLog, project } from "../schema";
 import { recordAudit } from "./audit";
 import type { ActorContext } from "./context";
+import { assertNotDemoSession } from "./demo";
 
 /** Connections a decision can be sent to (#165). Secrets are encrypted like provider keys and never returned. */
 export const deliveryConnectionInput = z.discriminatedUnion("kind", [
@@ -186,6 +187,8 @@ export async function setProjectDeliveryDefault(
   sessionId: string,
   value: { target: "email" | "telegram" | "confluence"; connectionId?: string | null; recipients?: string[] },
 ) {
+  // The demo project is read-only (owner decision 08.11.26, review of #374).
+  await assertNotDemoSession(db, ctx, sessionId);
   assertCan(ctx.role, "project:write");
   const [session] = await db
     .select({ projectId: councilSession.projectId })

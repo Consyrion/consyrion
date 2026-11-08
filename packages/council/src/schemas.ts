@@ -26,6 +26,19 @@ export const proposalContentSchema = z.object({
   solvesRequirements: z.boolean(),
   /** The hard requirements that conflict; empty when the proposal solves them. */
   requirementConflicts: list,
+  /**
+   * #273 stage 2: what to test, when to stop, when to decide again – the author's own suggestion, not a confirmed gate.
+   * Optional here so proposals stored before keep parsing; providers still receive them as fields (empty = not stated).
+   */
+  cheapestTest: z
+    .object({
+      assumption: text.describe("Your riskiest assumption, in one sentence; empty if none stands out"),
+      method: text.describe("The smallest experiment or measurement that would test it; empty if you cannot name a concrete one"),
+      successCriterion: text.describe("The observable result that would confirm the assumption; empty if not stated"),
+    })
+    .optional(),
+  stopCriteria: list.describe("Observable signals that should stop or pause this proposal; empty if none").optional(),
+  revisitTriggers: list.describe("New facts, dates or measurements that should trigger a new council; empty if none").optional(),
 });
 export type ProposalContent = z.infer<typeof proposalContentSchema>;
 
@@ -146,6 +159,22 @@ export const evaluationSchemaV2 = z.object({
     }),
   ),
   ranking: list,
+});
+
+/**
+ * #246 (split evaluator): a later call of a split Final Verdict – the same requirement checks as `evaluationSchemaV2`
+ * for the requirement ids of this call, no scores and no ranking (the first call writes those). Title and summary are
+ * restated so the checks bind to the proposal they name, exactly as in the first call.
+ */
+export const evaluationChecksSchema = z.object({
+  evaluations: z.array(
+    z.object({
+      proposalLabel: text,
+      proposalTitle: text,
+      proposalSummary: text,
+      requirementChecks: evaluationSchemaV2.shape.evaluations.element.shape.requirementChecks,
+    }),
+  ),
 });
 
 const UNSUPPORTED_KEYWORDS = new Set([

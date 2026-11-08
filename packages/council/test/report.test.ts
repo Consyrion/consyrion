@@ -170,8 +170,8 @@ describe("decision report for outcomes the gate does not approve (#181, stage 1)
     const unknown = buildDecisionReport(withDecision({ outcome: "qualified", recommendedProposalId: null, gateVersion: 1, matrix: { proposals: [] } }));
     expect(unknown.outcomeText).toMatch(/does not know/);
     expect(unknown.decisionFormat?.approvable).toBe(false);
-    const newer = buildDecisionReport(withDecision({ outcome: "recommended", recommendedProposalId: "B", gateVersion: 3, matrix: { somethingNew: true } }));
-    expect(newer.outcomeText).toMatch(/gate version 3/);
+    const newer = buildDecisionReport(withDecision({ outcome: "recommended", recommendedProposalId: "B", gateVersion: 4, matrix: { somethingNew: true } }));
+    expect(newer.outcomeText).toMatch(/gate version 4/);
     expect(newer.evaluationMatrix).toBeNull();
     expect(reportToMarkdown(newer)).toContain("Leading proposal (not approvable)");
     const legacy = buildDecisionReport(withDecision({ outcome: "recommended", recommendedProposalId: "B", gateVersion: 1, matrix: null }));
@@ -186,14 +186,23 @@ describe("decision report for outcomes the gate does not approve (#181, stage 1)
 
 describe("readable evaluation matrix (#181 live test)", () => {
   it("names evaluators by model instead of participant id, and marks the majority vote as information only", () => {
-    const formula = 'total = Σ vote-weighted mean_independent_score(criterion) × weight(criterion) / 100; weights {"security":25}; evaluator vote weights {"par_73548610ca7c4001a7c6d93366f1a4ab":5,"par_00000000000000000000000000000000":5}';
+    const formula =
+      'total = Σ vote-weighted mean_independent_score(criterion) × weight(criterion) / 100; weights {"security":25}; evaluator vote weights {"par_73548610ca7c4001a7c6d93366f1a4ab":5,"par_00000000000000000000000000000000":5}';
     const report = buildDecisionReport({
       ...view,
       participants: [{ id: "par_73548610ca7c4001a7c6d93366f1a4ab", provider: "anthropic", modelId: "claude-haiku-5-5" }],
-      decision: { outcome: "needs_verification", recommendedProposalId: null, gateVersion: 1, matrix: { formula, weights: {}, proposals: [], tiedProposalIds: [], majorityVoteWinnerId: "A" } },
+      decision: {
+        outcome: "needs_verification",
+        recommendedProposalId: null,
+        gateVersion: 1,
+        matrix: { formula, weights: {}, proposals: [], tiedProposalIds: [], majorityVoteWinnerId: "A" },
+      },
     } as unknown as SessionView);
     expect(report.evaluationMatrix!.formula).toContain('{"anthropic/claude-haiku-5-5":5,"par_00000000000000000000000000000000":5}');
     expect(reportToMarkdown(report)).toContain("Majority vote (for information only – it never overrides the requirement check): A");
+    // Confluence test 09.11.26: the formula reads as a sentence with criterion names, also in German.
+    expect(reportToMarkdown(report)).not.toContain("mean_independent_score");
+    expect(reportToMarkdown(report, "de")).toContain("Gewichte: Sicherheit 25 %; Stimmgewichte: anthropic/claude-haiku-5-5 5/10");
   });
 });
 
@@ -207,15 +216,22 @@ describe("decision report in the interface language (#322)", () => {
     expect(de).toContain("Verbrauchte Tokens: 0 von 400'000");
     expect(de).toContain("Django-PWA mit PostgreSQL-Exclusion-Constraint und Warm-Standby");
     expect(de).not.toContain("## Remaining risks");
+    // Telegram live test 08.11.26: the report says what each proposal is, right after the outcome.
+    expect(de).toContain("### Die Vorschläge");
+    expect(de).toMatch(/\*\*Vorschlag A\*\* – /);
+    expect(de).not.toMatch(/evaluators \(model judgement\)|could not confirm it/);
     // Night test R2-01 (08.11.26): no raw status values in the German report.
     expect(de).not.toMatch(/Status: [a-z]+_[a-z]+/);
-    expect(de).toMatch(/Status: (?:wartet auf Freigabe|läuft|freigegeben|abgelehnt|Änderungen angefordert|in der Warteschlange|abgebrochen|fehlgeschlagen)/);
+    expect(de).toMatch(
+      /Status: (?:wartet auf Freigabe|wartet auf deine Prüfung · kein freigebbarer Vorschlag|läuft|freigegeben|abgelehnt|Änderungen angefordert|in der Warteschlange|abgebrochen|fehlgeschlagen)/,
+    );
     // English stays exactly as before.
     expect(reportToMarkdown(report)).toBe(reportToMarkdown(report, "en"));
   });
 
-  it("falls back to English for languages without a report translation", () => {
-    expect(reportLocale("zh")).toBe("en");
+  it("falls back to English for languages without a report translation; Chinese has one since #268", () => {
+    expect(reportLocale("zh")).toBe("zh");
+    expect(reportLocale("ja")).toBe("en");
     expect(reportLocale("fr")).toBe("fr");
     expect(reportTranslator("es")("Proposal {label}", { label: "B" })).toBe("Propuesta B");
     expect(reportTranslator("fr")("A text without translation")).toBe("A text without translation");

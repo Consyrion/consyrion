@@ -38,6 +38,8 @@ export interface Script {
   mixedUpEvaluations?: number;
   /** As evaluator, always restates the title `as` for the proposal titled `of` – one mix-up among correct ones (#145). */
   mixesUpTitle?: { of: string; as: string };
+  /** #246: checks every confirmed requirement in every call, ignoring the <requirement_scope> of a split evaluation. */
+  ignoresRequirementScope?: boolean;
   /** As evaluator, never returns a valid evaluation (e.g. a provider that keeps breaking the structure). */
   failsEvaluation?: boolean;
   /** This model finds the hard requirements contradictory: its proposals are findings, not solutions (#121). */
@@ -99,6 +101,8 @@ export function proposal(title: string, solves = true) {
 export class ScriptedAdapter implements ProviderAdapter {
   readonly provider = "anthropic" as const;
   readonly requests: GenerateRequest[] = [];
+  /** #246: the <requirement_scope> of every evaluation call, in order (null = unsplit). */
+  readonly evaluationScopes: Array<string | null> = [];
   private invalidLeft: number;
   private truncatedLeft: number;
   private silentLeftUsed = 0;
@@ -284,7 +288,8 @@ export class ScriptedAdapter implements ProviderAdapter {
           };
         } else json = { status: "partial", agreements: ["use an API"], disagreements: ["storage"], outstandingRisks: [] };
         break;
-      case "evaluation": {
+      case "evaluation":
+      case "evaluation_checks": {
         if (this.script.failsEvaluation) {
           json = { evaluations: "not a list" };
           break;
@@ -294,7 +299,12 @@ export class ScriptedAdapter implements ProviderAdapter {
         // Gate version 2 asks for one check per confirmed requirement id listed in the brief (#181).
         const v2 = JSON.stringify(request.jsonSchema!.schema).includes("requirementChecks");
         const block = /<confirmed_requirements[^>]*>([\s\S]*?)<\/confirmed_requirements>/.exec(`${request.system ?? ""}\n${prompt}`)?.[1] ?? "";
-        const requirementIds = [...block.matchAll(/^(R\d+): /gm)].map((m) => m[1]!);
+        // #246: a split evaluation names the ids of this call in <requirement_scope>; only those are checked.
+        // Since #244 the step instructions follow the brief in the user message instead of the system prompt.
+        const scoped = /<requirement_scope>([^<]*)<\/requirement_scope>/.exec(`${request.system ?? ""}\n${prompt}`)?.[1];
+        const scopeIds = scoped ? new Set(scoped.split(",").map((x) => x.trim())) : null;
+        const requirementIds = [...block.matchAll(/^(R\d+): /gm)].map((m) => m[1]!).filter((id) => !scopeIds || this.script.ignoresRequirementScope || scopeIds.has(id));
+        this.evaluationScopes.push(scoped ?? null);
         // Measured requirements ([estimate: at most|at least N …]): a range that keeps the limit for PASS, misses it for
         // FAIL and straddles it for UNKNOWN, unless the script gives its own estimate.
         const limits = new Map(

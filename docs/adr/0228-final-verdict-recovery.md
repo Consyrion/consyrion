@@ -72,3 +72,13 @@ Counter-arguments I see myself:
    step, never automatic.
 
 No live BYOK calls are needed for 1; 2 needs one approved test council (~0.20 $).
+
+## Update 08.11.2026 – split evaluator built (#246)
+
+Step 2 is built as a split **by requirement groups** (alternative C, as specified in #246) instead of per proposal:
+groups keep the per-call output bounded for any number of requirements, while a split per proposal would still overflow
+with many requirements. The split happens only when one call does not fit (councils that fit keep exactly one call, so
+the 95 % case costs nothing extra). G1 (refusal above the limit) is replaced by more calls, shown before the start and
+counted in estimate, minimum budget, reserve and hard budget. Details: `docs/council-engine.md`, section
+"Final Verdict size check (#228) and split evaluator (#246)".
+

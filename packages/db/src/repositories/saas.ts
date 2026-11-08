@@ -3,7 +3,9 @@ import {
   DEFAULT_PLAN_CATALOG,
   DomainError,
   isSelfHosted,
+  isUnlimited,
   SELF_HOSTED_ENTITLEMENTS,
+  UNLIMITED,
   validateEntitlements,
   type Entitlements,
   type PlanKey,
@@ -11,18 +13,20 @@ import {
 import { and, asc, count, eq, gte, isNull, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import {
+  assistantUsage,
   councilSession,
   developmentPlan,
   invitation,
   membership,
   organization,
   planDefinition,
+  planUsage,
   project,
   subscription,
-  testRun,
   usageRecord,
   user,
 } from "../schema";
+import { newId } from "../ids";
 import { recordAudit } from "./audit";
 
 /** Plan catalog; seeded from the defaults on first use so the admin can edit it afterwards. */
@@ -180,19 +184,10 @@ export async function usageThisMonth(db: Database, organizationId: string) {
   const [projects] = await db
     .select({ n: count() })
     .from(project)
-    .where(and(eq(project.organizationId, organizationId), sql`${project.status} <> 'archived'`));
-  const [sessions] = await db
-    .select({ n: count() })
-    .from(councilSession)
-    .where(and(eq(councilSession.organizationId, organizationId), gte(councilSession.createdAt, since)));
-  const [executions] = await db
-    .select({ n: count() })
-    .from(developmentPlan)
-    .where(and(eq(developmentPlan.organizationId, organizationId), gte(developmentPlan.createdAt, since)));
-  const [sandbox] = await db
-    .select({ ms: sql<number>`coalesce(sum(${testRun.durationMs}), 0)::int` })
-    .from(testRun)
-    .where(and(eq(testRun.organizationId, organizationId), gte(testRun.createdAt, since), sql`${testRun.status} <> 'not_run'`));
+    // The read-only demo project never counts against the plan (owner decision 08.11.26).
+    .where(and(eq(project.organizationId, organizationId), sql`${project.status} not in ('archived', 'deleting')`, eq(project.isDemo, false)));
+  // #201: counted from the plan usage ledger – deleting projects, sessions or builds gives back no monthly runs.
+  const booked = await monthlyPlanUsage(db, organizationId, since);
   const models = await db
     .select({
       provider: usageRecord.provider,
@@ -200,6 +195,7 @@ export async function usageThisMonth(db: Database, organizationId: string) {
       calls: sql<number>`count(*)::int`,
       inputTokens: sql<number>`coalesce(sum(${usageRecord.inputTokens}), 0)::int`,
       outputTokens: sql<number>`coalesce(sum(${usageRecord.outputTokens}), 0)::int`,
+      cachedInputTokens: sql<number>`coalesce(sum(${usageRecord.cachedInputTokens}), 0)::int`,
       failed: sql<number>`count(*) filter (where ${usageRecord.outcome} <> 'ok')::int`,
     })
     .from(usageRecord)
@@ -210,14 +206,68 @@ export async function usageThisMonth(db: Database, organizationId: string) {
     members: members!.n,
     pendingInvitations: pendingInvites!.n,
     projects: projects!.n,
-    sessions: sessions!.n,
-    executions: executions!.n,
-    sandboxMinutes: Math.ceil((sandbox?.ms ?? 0) / 60_000),
+    sessions: booked.session,
+    executions: booked.execution,
+    sandboxMinutes: Math.ceil(booked.sandbox_ms / 60_000),
     models,
   };
 }
 
-export type LimitCheck = "member" | "project" | "session" | "execution" | "github" | "mcp";
+/** #201: the ledger's totals since `since` per kind (refunds are negative entries). */
+async function monthlyPlanUsage(db: Database, organizationId: string, since: Date) {
+  const rows = await db
+    .select({ kind: planUsage.kind, total: sql<number>`coalesce(sum(${planUsage.amount}), 0)::int` })
+    .from(planUsage)
+    .where(and(eq(planUsage.organizationId, organizationId), gte(planUsage.createdAt, since)))
+    .groupBy(planUsage.kind);
+  const total = (kind: (typeof rows)[number]["kind"]) => Math.max(0, Number(rows.find((r) => r.kind === kind)?.total ?? 0));
+  return { session: total("session"), execution: total("execution"), sandbox_ms: total("sandbox_ms") };
+}
+
+/**
+ * #201: books one council or build start on the plan usage ledger, inside the caller's transaction. The workspace row
+ * is locked first, so concurrent starts on the last free slot are serialised: the second one sees the first booking
+ * and is refused. Idempotent per run id – a retry of the same start books nothing twice.
+ */
+export async function consumeMonthlyRun(tx: Database, organizationId: string, kind: "session" | "execution", refId: string): Promise<void> {
+  await tx.select({ id: organization.id }).from(organization).where(eq(organization.id, organizationId)).for("update");
+  const [already] = await tx
+    .select({ id: planUsage.id })
+    .from(planUsage)
+    .where(and(eq(planUsage.organizationId, organizationId), eq(planUsage.kind, kind), eq(planUsage.refId, refId)));
+  if (already) return;
+  const { plan, entitlements: e } = await getEntitlements(tx, organizationId);
+  const limit = kind === "session" ? e.maxSessionsPerMonth : e.maxExecutionsPerMonth;
+  const used = (await monthlyPlanUsage(tx, organizationId, monthStart()))[kind];
+  if (!isUnlimited(limit) && used >= limit)
+    throw new DomainError(
+      "FORBIDDEN",
+      `${kind === "session" ? `Your plan allows ${limit} council session(s) per month` : `Your plan allows ${limit} Execution Council run(s) per month`} (plan: ${plan}). Upgrade under Settings → Billing.`,
+    );
+  await tx.insert(planUsage).values({ id: newId("plu"), organizationId, kind, amount: 1, refId });
+}
+
+/** #201: books sandbox time of one test run (milliseconds). Idempotent per test run id. */
+export async function recordSandboxUsage(db: Database, organizationId: string, testRunId: string, durationMs: number): Promise<void> {
+  if (durationMs <= 0) return;
+  await db
+    .insert(planUsage)
+    .values({ id: newId("plu"), organizationId, kind: "sandbox_ms", amount: Math.round(durationMs), refId: testRunId })
+    .onConflictDoNothing();
+}
+
+/**
+ * #201 refund policy: a council stopped before its first model call gives its slot back – one negative entry, once.
+ * Anything that already called a model stays counted (the provider has billed the user's own key anyway).
+ */
+export async function refundMonthlyRun(db: Database, organizationId: string, kind: "session" | "execution", refId: string): Promise<void> {
+  await db
+    .insert(planUsage)
+    .values({ id: newId("plu"), organizationId, kind, amount: -1, refId: `${refId}:refund` })
+    .onConflictDoNothing();
+}
+
+export type LimitCheck = "member" | "project" | "session" | "execution" | "github" | "mcp" | "assistant";
 
 /** Server-side plan gate; throws with a clear upgrade message. */
 export async function assertEntitlement(db: Database, organizationId: string, check: LimitCheck, extra: { participants?: number } = {}) {
@@ -248,6 +298,20 @@ export async function assertEntitlement(db: Database, organizationId: string, ch
     case "mcp":
       if (!e.mcp) fail("The MCP server is included in Pro");
       break;
+    case "assistant": {
+      // #281: answered questions of the whole workspace since 00:00 UTC, from the usage ledger – deleting a chat does not
+      // reset it, a failed answer does not count, second opinions and summaries are not questions.
+      const limit = e.maxAssistantQuestionsPerDay ?? UNLIMITED;
+      if (isUnlimited(limit)) break;
+      const now = new Date();
+      const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const [row] = await db
+        .select({ n: count() })
+        .from(assistantUsage)
+        .where(and(eq(assistantUsage.organizationId, organizationId), eq(assistantUsage.kind, "answer"), gte(assistantUsage.createdAt, since)));
+      if (Number(row?.n ?? 0) >= limit) fail(`Your plan allows ${limit} assistant question(s) per day for the workspace`);
+      break;
+    }
   }
 }
 

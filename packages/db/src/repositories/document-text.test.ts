@@ -71,4 +71,23 @@ describe("document text extraction (PDF, DOCX, PPTX)", () => {
   it("a DOCX without a document body is refused", async () => {
     await expect(extractDocumentText("empty.docx", await zip({ "other.xml": "<x/>" }))).rejects.toThrow(/no document body/);
   });
+
+  it("stops a zip bomb whose declared size is forged, by counting the bytes really unpacked (#401)", async () => {
+    // 60 MB of text compresses to a few kB. The declared sizes (local header + central directory) are then set to
+    // 1 kB, so a check on the declared size alone would pass and the whole stream would be inflated.
+    const body = `<w:document><w:body><w:p><w:r><w:t>${"A".repeat(60_000_000)}</w:t></w:r></w:p></w:body></w:document>`;
+    const z = new JSZip();
+    z.file("word/document.xml", body, { createFolders: false });
+    const bytes = await z.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    // One entry: its local header starts the file; the end-of-central-directory record (last 22 bytes) points to
+    // its central directory header.
+    const centralDirectory = view.getUint32(bytes.length - 22 + 16, true);
+    expect(view.getUint32(0, true)).toBe(0x04034b50);
+    expect(view.getUint32(centralDirectory, true)).toBe(0x02014b50);
+    view.setUint32(22, 1000, true);
+    view.setUint32(centralDirectory + 24, 1000, true);
+    expect(bytes.length).toBeLessThan(1_000_000);
+    await expect(extractDocumentText("bomb.docx", bytes)).rejects.toThrow(/more than 50 MB/);
+  });
 });

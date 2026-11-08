@@ -10,3 +10,4 @@ export { DeepSeekAdapter } from "./adapters/deepseek";
 export { COMPATIBLE_PROVIDERS, OpenAICompatibleAdapter } from "./adapters/openai-compatible";
 export * from "./model-filter";
 export * from "./strength/artificial-analysis";
+export * from "./tools";

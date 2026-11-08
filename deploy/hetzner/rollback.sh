@@ -38,7 +38,16 @@ if [ -f /opt/consyrion/app/deploy/hetzner/rollback-guard.sh ]; then
 fi
 rm -rf /opt/consyrion/app.failed && mv /opt/consyrion/app /opt/consyrion/app.failed && mv /opt/consyrion/app.prev /opt/consyrion/app
 cd /opt/consyrion/app
-APP_VERSION="$PREVIOUS" docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml up -d --remove-orphans
+COMPOSE=(docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml)
+# The Docker socket only when the sandbox is on (#398); releases before #398 mount it in compose.yml itself.
+if grep -qE '^SANDBOX_DISABLED=(false|0|no)$' /opt/consyrion/secrets/deploy.env && [ -f deploy/hetzner/compose.sandbox.yml ]; then
+  COMPOSE+=(-f deploy/hetzner/compose.sandbox.yml)
+fi
+APP_VERSION="$PREVIOUS" "${COMPOSE[@]}" up -d --remove-orphans
+# Same as deploy.sh: Caddy keeps the old bind-mounted Caddyfile unless it is recreated.
+if ! cmp -s deploy/hetzner/Caddyfile /opt/consyrion/app.failed/deploy/hetzner/Caddyfile; then
+  APP_VERSION="$PREVIOUS" "${COMPOSE[@]}" up -d --no-deps --force-recreate caddy
+fi
 wait_healthy
 echo "$(date -u +%FT%TZ) $PREVIOUS (rollback)" >>/opt/consyrion/RELEASES
 echo "== rolled back to $PREVIOUS"

@@ -88,8 +88,10 @@ export default function DatenschutzPage() {
         <p>
           Wenn Sie uns über das Formular „Feedback“ bzw. „Kontakt & Feedback“ schreiben, speichern wir Art, Betreff und Text der Nachricht, Ihre E-Mail-Adresse
           (bei angemeldeten Nutzern die des Kontos, sonst die von Ihnen angegebene), die Seite, von der Sie schreiben (ohne Parameter), die Sprache der
-          Oberfläche, die Browser-Kennung und die App-Version sowie unsere Antworten. Zweck: Bearbeitung und Beantwortung Ihrer Anfrage und Verbesserung des
-          Dienstes (Vertrag bzw. berechtigtes Interesse). Die Nachricht geht zusätzlich per E-Mail an unsere Administratoren.
+          Oberfläche, die Browser-Kennung und die App-Version, einen von Ihnen freiwillig angehängten Screenshot sowie unsere Antworten. Zweck: Bearbeitung und
+          Beantwortung Ihrer Anfrage und Verbesserung des Dienstes (Vertrag bzw. berechtigtes Interesse). Die Nachricht geht zusätzlich per E-Mail an unsere
+          Administratoren (mit Screenshot als Anhang); unsere Antwort senden wir Ihnen auf Wunsch auch per E-Mail an die angegebene Adresse. Ihre eigenen
+          Meldungen sind im Datenexport Ihres Arbeitsbereichs enthalten.
         </p>
         <p>
           Wir bewahren Meldungen auf, bis sie erledigt sind und wir sie nicht mehr benötigen; mit dem Löschen des Kontos werden auch Ihre Meldungen gelöscht.
@@ -102,6 +104,11 @@ export default function DatenschutzPage() {
           Kontodaten und Inhalte speichern wir, bis Sie sie oder das Konto löschen (in den Einstellungen möglich, inklusive Export aller Daten).
           Datensicherungen (auf dem Server und auf einem Sicherungsspeicher von Hetzner in Deutschland) werden nach 30 Tagen gelöscht. Abrechnungsbelege
           bewahren wir so lange auf, wie es das Gesetz verlangt (in der Schweiz 10 Jahre).
+        </p>
+        <p className="mt-3">
+          Beim Löschen eines Workspaces bleibt nur ein Protokolleintrag ohne Inhalte (dass, wann und von wem gelöscht wurde). Was Sie bereits an Dritte
+          übermittelt haben – Pull Requests auf GitHub, per E-Mail, Telegram oder Confluence versendete Berichte, heruntergeladene Exporte – liegt außerhalb
+          unseres Zugriffs und wird durch das Löschen nicht entfernt.
         </p>
       </Section>
 

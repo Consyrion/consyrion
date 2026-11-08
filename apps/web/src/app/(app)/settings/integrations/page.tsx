@@ -1,6 +1,7 @@
 import { can } from "@consyrion/core";
 import { getEntitlements, listDeliveryConnections, listGitHubIntegrations } from "@consyrion/db";
 import { getTranslations } from "next-intl/server";
+import { ConnectGrid } from "@/components/connect/connect-grid";
 import { DeliveryConnections } from "@/components/delivery";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";
@@ -37,7 +38,9 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
           <Alert tone="success">{t("connected")}</Alert>
         </div>
       ) : null}
-      <Card>
+      <ConnectGrid mcpAllowed={Boolean(entitlements.mcp)} />
+      <h2 className="mt-12 mb-4 border-t border-glass-line pt-8 font-semibold">{t("manageTitle")}</h2>
+      <Card id="github" className="scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold">GitHub</h2>
@@ -80,7 +83,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
           ))}
         </ul>
       </Card>
-      <div className="mt-6">
+      <div id="delivery" className="mt-6 scroll-mt-24">
         <DeliveryConnections
           initial={deliveryConnections.map((c) => ({ ...c, kind: c.kind as "telegram" | "confluence" }))}
           canWrite={can(actor.role, "credential:write")}

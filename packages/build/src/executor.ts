@@ -1,7 +1,7 @@
-import { timeoutSignal, withRetry, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
-import { assertEngineInstalled, toProviderJsonSchema, type AdapterResolver, type ProposalContent } from "@consyrion/council";
-import { newId, recordAudit, schema, type Database } from "@consyrion/db";
+import { timeoutSignal, withRetry, ProviderError, type TokenUsage } from "@consyrion/ai";
+import { DomainError, neutralizeWrapperTags, requirementVerification } from "@consyrion/core";
+import { assertEngineInstalled, briefLanguage, languageName, toProviderJsonSchema, type AdapterResolver, type ProposalContent } from "@consyrion/council";
+import { newId, recordAudit, recordSandboxUsage, schema, type Database } from "@consyrion/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { assertApprovalBuildable } from "./buildable";
@@ -62,7 +62,8 @@ async function call<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, partic
   } catch (error) {
     if (!(error instanceof DomainError)) throw error;
     if (error.message === CUT_OFF) {
-      const note = "Your previous answer was cut off at the output limit. Answer again: change only what the task needs, keep explanations short, and still return complete files.";
+      const note =
+        "Your previous answer was cut off at the output limit. Answer again: change only what the task needs, keep explanations short, and still return complete files.";
       return attempt(deps, plan, participant, { ...request, prompt: `${request.prompt}\n\n${note}` }, REPAIR_OUTPUT_TOKENS);
     }
     if (error.message === BAD_STRUCTURE) {
@@ -75,7 +76,13 @@ async function call<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, partic
 }
 
 /** One structured model call with the plan's own atomic token budget and usage recording. */
-async function attempt<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, participant: Participant, request: CallRequest<T>, maxOutput: number): Promise<z.output<T>> {
+async function attempt<T extends z.ZodType>(
+  deps: ExecutionDeps,
+  plan: Plan,
+  participant: Participant,
+  request: CallRequest<T>,
+  maxOutput: number,
+): Promise<z.output<T>> {
   const [current] = await deps.db.select().from(schema.developmentPlan).where(eq(schema.developmentPlan.id, plan.id));
   if (current?.status === "cancel_requested" || current?.status === "cancelled") throw new Cancelled();
   const system = request.system ?? SYSTEM;
@@ -88,7 +95,7 @@ async function attempt<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, par
   if (!reserved.length) throw new DomainError("BUDGET_EXCEEDED", "The Execution Council token budget would be exceeded");
 
   const started = Date.now();
-  let usage = { inputTokens: 0, outputTokens: 0 };
+  let usage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   let outcome: "ok" | "error" | "refusal" | "invalid_output" | "max_tokens" = "ok";
   try {
     const adapter = await deps.resolveAdapter(participant);
@@ -110,7 +117,17 @@ async function attempt<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, par
     if (result.stopReason === "max_tokens") {
       outcome = "max_tokens";
       // Content-free diagnostics: which model hit which limit with how many output tokens.
-      console.warn(JSON.stringify({ level: "warn", message: "coding answer cut off", provider: participant.provider, model: participant.modelId, schema: request.name, maxOutput, outputTokens: result.usage.outputTokens }));
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "coding answer cut off",
+          provider: participant.provider,
+          model: participant.modelId,
+          schema: request.name,
+          maxOutput,
+          outputTokens: result.usage.outputTokens,
+        }),
+      );
       throw new DomainError("PROVIDER_ERROR", CUT_OFF);
     }
     const parsed = request.schema.safeParse(result.json);
@@ -137,6 +154,7 @@ async function attempt<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, par
       modelId: participant.modelId,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
+      cachedInputTokens: usage.cachedInputTokens ?? 0,
       durationMs: Date.now() - started,
       outcome,
     });
@@ -149,7 +167,11 @@ async function attempt<T extends z.ZodType>(deps: ExecutionDeps, plan: Plan, par
 
 /** Current workspace: newest version of every path that was not deleted. */
 export async function currentFiles(db: Database, planId: string): Promise<Map<string, string>> {
-  const rows = await db.select().from(schema.codeArtifact).where(eq(schema.codeArtifact.planId, planId)).orderBy(asc(schema.codeArtifact.path), desc(schema.codeArtifact.version));
+  const rows = await db
+    .select()
+    .from(schema.codeArtifact)
+    .where(eq(schema.codeArtifact.planId, planId))
+    .orderBy(asc(schema.codeArtifact.path), desc(schema.codeArtifact.version));
   const files = new Map<string, string>();
   const seen = new Set<string>();
   for (const row of rows) {
@@ -162,7 +184,11 @@ export async function currentFiles(db: Database, planId: string): Promise<Map<st
 
 /** Differences between the imported repository state (version 0) and the current workspace. */
 export async function changedFiles(db: Database, planId: string) {
-  const rows = await db.select().from(schema.codeArtifact).where(eq(schema.codeArtifact.planId, planId)).orderBy(asc(schema.codeArtifact.path), desc(schema.codeArtifact.version));
+  const rows = await db
+    .select()
+    .from(schema.codeArtifact)
+    .where(eq(schema.codeArtifact.planId, planId))
+    .orderBy(asc(schema.codeArtifact.path), desc(schema.codeArtifact.version));
   const latest = new Map<string, (typeof rows)[number]>();
   const base = new Map<string, (typeof rows)[number]>();
   for (const row of rows) {
@@ -189,7 +215,8 @@ function filesBlock(files: Map<string, string>, limitChars = 120_000) {
       continue;
     }
     used += content.length;
-    parts.push(`<file path="${p}">\n${content}\n</file>`);
+    // Wrapper tags inside a file never close the frame (#406); other markup stays as it is.
+    parts.push(`<file path="${p}">\n${neutralizeWrapperTags(content)}\n</file>`);
   }
   return parts.join("\n") || "(empty workspace)";
 }
@@ -197,7 +224,14 @@ function filesBlock(files: Map<string, string>, limitChars = 120_000) {
 async function applyChanges(db: Database, plan: Plan, taskId: string | null, changes: z.output<typeof fileChangesSchema>["files"]) {
   const rejected: string[] = [];
   const existing = await currentFiles(db, plan.id);
-  const modes = new Map((await db.select({ path: schema.codeArtifact.path, mode: schema.codeArtifact.mode }).from(schema.codeArtifact).where(and(eq(schema.codeArtifact.planId, plan.id), eq(schema.codeArtifact.action, "base")))).map((r) => [r.path, r.mode]));
+  const modes = new Map(
+    (
+      await db
+        .select({ path: schema.codeArtifact.path, mode: schema.codeArtifact.mode })
+        .from(schema.codeArtifact)
+        .where(and(eq(schema.codeArtifact.planId, plan.id), eq(schema.codeArtifact.action, "base")))
+    ).map((r) => [r.path, r.mode]),
+  );
   for (const change of changes) {
     const safe = safeRelativePath(change.path);
     if (!safe) {
@@ -249,7 +283,11 @@ const STAGE_FOR_PLAN: Record<string, (typeof schema.stageStatus.enumValues)[numb
 
 /** Updates the plan and mirrors its status onto the session's Execution Council stage, so phase tabs stay truthful. */
 export async function setPlan(db: Database, planId: string, values: Partial<typeof schema.developmentPlan.$inferInsert>) {
-  const [plan] = await db.update(schema.developmentPlan).set(values).where(eq(schema.developmentPlan.id, planId)).returning({ sessionId: schema.developmentPlan.sessionId });
+  const [plan] = await db
+    .update(schema.developmentPlan)
+    .set(values)
+    .where(eq(schema.developmentPlan.id, planId))
+    .returning({ sessionId: schema.developmentPlan.sessionId });
   const stage = values.status ? STAGE_FOR_PLAN[values.status] : undefined;
   if (!plan || !stage) return;
   const finished = stage === "completed" || stage === "failed" || stage === "cancelled";
@@ -260,7 +298,12 @@ export async function setPlan(db: Database, planId: string, values: Partial<type
 }
 
 async function decisionContext(db: Database, plan: Plan) {
-  const [revision] = await db.select().from(schema.proposalRevision).where(eq(schema.proposalRevision.proposalId, plan.proposalId)).orderBy(desc(schema.proposalRevision.version)).limit(1);
+  const [revision] = await db
+    .select()
+    .from(schema.proposalRevision)
+    .where(eq(schema.proposalRevision.proposalId, plan.proposalId))
+    .orderBy(desc(schema.proposalRevision.version))
+    .limit(1);
   const [session] = await db.select().from(schema.councilSession).where(eq(schema.councilSession.id, plan.sessionId));
   const [brief] = await db.select().from(schema.projectBrief).where(eq(schema.projectBrief.id, session!.briefId));
   const objections = await db.select().from(schema.minorityObjection).where(eq(schema.minorityObjection.proposalId, plan.proposalId));
@@ -269,13 +312,33 @@ async function decisionContext(db: Database, plan: Plan) {
   const [list] = session!.requirementListId
     ? await db.select().from(schema.requirementList).where(eq(schema.requirementList.id, session!.requirementListId))
     : [];
-  const confirmed = list?.items.length ? `Confirmed hard requirements (list version ${list.version}): ${list.items.map((i) => `${i.id}: ${i.text}`).join("; ")}\n` : "";
-  return `<decision>\nBrief: ${brief!.idea}\n${brief!.requirements ? `Requirements: ${brief!.requirements}\n` : ""}${confirmed}Approved solution: ${JSON.stringify(content, null, 2)}\nOpen objections to respect: ${
+  const confirmed = list?.items.length
+    ? `Confirmed hard requirements (list version ${list.version}): ${list.items.map((i) => `${i.id}: ${i.text}`).join("; ")}\n`
+    : "";
+  // Night test R4: build checks were only planned in the council – this change must prove them with real tests.
+  const buildChecks = (list?.items ?? []).filter((i) => i.verification === "build");
+  const buildNote = buildChecks.length
+    ? `Build checks (must be proven by automated tests in this change; the council only checked the plan): ${buildChecks.map((i) => i.id).join(", ")}\n`
+    : "";
+  // #249 part 2 (variant B): a prototype/measurement build exists to measure requirements the council could not confirm.
+  const measured = (list?.items ?? []).filter((i) => requirementVerification(i, session!.gateVersion) === "measurement");
+  const prototypeNote =
+    plan.kind === "prototype"
+      ? `Prototype / measurement build – not a finished solution: build the smallest working version of the proposal that lets a person measure ${measured.map((i) => i.id).join(", ") || "the open requirements"} with the measurement plan the proposal names, and include the measurement harness or instructions. Do not present it as complete.\n`
+      : "";
+  // Text audit 08.11.26: plan summary, activity and review findings came back in English for a German brief.
+  const code = briefLanguage([brief!.idea, brief!.goal, brief!.requirements ?? ""].join("\n"));
+  const name = code ? languageName(code) : null;
+  const language = name
+    ? `\nAnswer language: ${name} – the language of the brief. Write every free-text value (plan summary, task titles, descriptions, acceptance criteria, review findings and summaries) in ${name}. Code, file paths, commands, identifiers and JSON keys stay as they are.`
+    : "";
+  // Untrusted text never closes the <decision> frame (#406).
+  return `<decision>\nBrief: ${neutralizeWrapperTags(brief!.idea)}\n${brief!.requirements ? `Requirements: ${neutralizeWrapperTags(brief!.requirements)}\n` : ""}${confirmed}${buildNote}${prototypeNote}${plan.kind === "prototype" ? "Proposal (prototype build, not an approved solution)" : "Approved solution"}: ${neutralizeWrapperTags(JSON.stringify(content, null, 2))}\nOpen objections to respect: ${
     objections
       .filter((o) => o.status === "accepted" || o.status === "unresolved")
-      .map((o) => o.claim)
+      .map((o) => neutralizeWrapperTags(o.claim))
       .join("; ") || "none"
-  }\n</decision>`;
+  }\n</decision>${language}`;
 }
 
 async function runTests(deps: ExecutionDeps, plan: Plan, planOutput: PlanOutput, taskId: string | null, kind: string) {
@@ -289,7 +352,14 @@ async function runTests(deps: ExecutionDeps, plan: Plan, planOutput: PlanOutput,
       results.push({ command: planOutput.installCommand, kind: `${kind}:install`, ...install });
       if (install.status !== "passed") {
         // The test step is recorded as not run, with the reason, instead of silently missing.
-        results.push({ command: planOutput.testCommand, kind, status: "not_run" as const, exitCode: null, output: `Not executed: the install step ${install.status === "not_run" ? "could not run (no sandbox)" : `ended with ${install.status}`}.`, durationMs: 0 });
+        results.push({
+          command: planOutput.testCommand,
+          kind,
+          status: "not_run" as const,
+          exitCode: null,
+          output: `Not executed: the install step ${install.status === "not_run" ? "could not run (no sandbox)" : `ended with ${install.status}`}.`,
+          durationMs: 0,
+        });
         await storeRuns(deps.db, plan, taskId, deps.sandbox.name, results);
         return install.status === "not_run" ? "not_run" : "failed";
       }
@@ -303,9 +373,37 @@ async function runTests(deps: ExecutionDeps, plan: Plan, planOutput: PlanOutput,
   }
 }
 
-async function storeRuns(db: Database, plan: Plan, taskId: string | null, sandbox: string, runs: Array<{ command: string; kind: string; status: "passed" | "failed" | "error" | "timeout" | "not_run"; exitCode: number | null; output: string; durationMs: number }>) {
+async function storeRuns(
+  db: Database,
+  plan: Plan,
+  taskId: string | null,
+  sandbox: string,
+  runs: Array<{
+    command: string;
+    kind: string;
+    status: "passed" | "failed" | "error" | "timeout" | "not_run";
+    exitCode: number | null;
+    output: string;
+    durationMs: number;
+  }>,
+) {
   for (const run of runs) {
-    await db.insert(schema.testRun).values({ id: newId("tst"), organizationId: plan.organizationId, planId: plan.id, taskId, kind: run.kind, command: run.command, sandbox, status: run.status, exitCode: run.exitCode, output: run.output, durationMs: run.durationMs });
+    const testRunId = newId("tst");
+    // #201: sandbox time goes onto the plan usage ledger, so deleting the build does not give it back.
+    if (run.status !== "not_run") await recordSandboxUsage(db, plan.organizationId, testRunId, run.durationMs);
+    await db.insert(schema.testRun).values({
+      id: testRunId,
+      organizationId: plan.organizationId,
+      planId: plan.id,
+      taskId,
+      kind: run.kind,
+      command: run.command,
+      sandbox,
+      status: run.status,
+      exitCode: run.exitCode,
+      output: run.output,
+      durationMs: run.durationMs,
+    });
   }
 }
 
@@ -322,7 +420,13 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
   if (!["queued", "planning", "running", "reviewing"].includes(plan.status)) return;
   await setPlan(db, planId, { startedAt: plan.startedAt ?? new Date(), error: null });
 
-  const participants = (await db.select().from(schema.councilParticipant).where(eq(schema.councilParticipant.sessionId, plan.sessionId)).orderBy(asc(schema.councilParticipant.position))).filter((p) => p.status === "active");
+  const participants = (
+    await db
+      .select()
+      .from(schema.councilParticipant)
+      .where(eq(schema.councilParticipant.sessionId, plan.sessionId))
+      .orderBy(asc(schema.councilParticipant.position))
+  ).filter((p) => p.status === "active");
   const planner = participants.find((p) => p.id === plan!.plannerParticipantId) ?? participants[0]!;
 
   try {
@@ -337,14 +441,33 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
     // 0. Repository base (checkpoint: base commit stored once).
     if (plan.repositoryFullName && !plan.baseCommitSha) {
       if (!deps.repository) throw new DomainError("CONFIGURATION", "The project is linked to a repository, but GitHub access is not configured on the worker");
-      const snapshot = await deps.repository.snapshot({ organizationId: plan.organizationId, sessionId: plan.sessionId, repositoryFullName: plan.repositoryFullName, baseBranch: plan.baseBranch ?? "main" });
+      const snapshot = await deps.repository.snapshot({
+        organizationId: plan.organizationId,
+        sessionId: plan.sessionId,
+        repositoryFullName: plan.repositoryFullName,
+        baseBranch: plan.baseBranch ?? "main",
+      });
       await db.transaction(async (tx) => {
         for (const file of snapshot.files) {
           const safe = safeRelativePath(file.path);
           if (!safe) continue;
-          await tx.insert(schema.codeArtifact).values({ id: newId("art"), organizationId: plan!.organizationId, planId, taskId: null, path: safe, version: 0, action: "base", content: file.content, mode: file.mode, sha256: sha256(file.content) });
+          await tx.insert(schema.codeArtifact).values({
+            id: newId("art"),
+            organizationId: plan!.organizationId,
+            planId,
+            taskId: null,
+            path: safe,
+            version: 0,
+            action: "base",
+            content: file.content,
+            mode: file.mode,
+            sha256: sha256(file.content),
+          });
         }
-        await tx.update(schema.developmentPlan).set({ baseCommitSha: snapshot.commitSha, snapshotSkipped: snapshot.skipped }).where(eq(schema.developmentPlan.id, planId));
+        await tx
+          .update(schema.developmentPlan)
+          .set({ baseCommitSha: snapshot.commitSha, snapshotSkipped: snapshot.skipped })
+          .where(eq(schema.developmentPlan.id, planId));
       });
       [plan] = await db.select().from(schema.developmentPlan).where(eq(schema.developmentPlan.id, planId));
     }
@@ -362,7 +485,10 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
       const errors = validateDag(output.tasks);
       if (errors.length) throw new DomainError("VALIDATION", `Invalid plan: ${errors.join("; ")}`);
       await db.transaction(async (tx) => {
-        await tx.update(schema.developmentPlan).set({ plan: output as unknown as Record<string, unknown>, status: "running" }).where(eq(schema.developmentPlan.id, planId));
+        await tx
+          .update(schema.developmentPlan)
+          .set({ plan: output as unknown as Record<string, unknown>, status: "running" })
+          .where(eq(schema.developmentPlan.id, planId));
         for (const [index, task] of output.tasks.entries()) {
           await tx.insert(schema.developmentTask).values({
             id: newId("tsk"),
@@ -399,12 +525,18 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
         // Interrupted run: a task left "running" by a crashed worker is retried.
         const stale = tasks.filter((t) => t.status === "running");
         if (stale.length === 0) throw new DomainError("CONFLICT", "No runnable task left");
-        await db.update(schema.developmentTask).set({ status: "pending" }).where(and(eq(schema.developmentTask.planId, planId), eq(schema.developmentTask.status, "running")));
+        await db
+          .update(schema.developmentTask)
+          .set({ status: "pending" })
+          .where(and(eq(schema.developmentTask.planId, planId), eq(schema.developmentTask.status, "running")));
         continue;
       }
       await Promise.all(
         ready.map(async (task) => {
-          await db.update(schema.developmentTask).set({ status: "running", startedAt: new Date(), attempts: task.attempts + 1 }).where(eq(schema.developmentTask.id, task.id));
+          await db
+            .update(schema.developmentTask)
+            .set({ status: "running", startedAt: new Date(), attempts: task.attempts + 1 })
+            .where(eq(schema.developmentTask.id, task.id));
           const author = participants.find((p) => p.id === task.assignedParticipantId) ?? planner;
           try {
             // Parallel tasks may touch the same file (#24). A task's output is applied only if none of its files
@@ -417,21 +549,40 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
               const candidate = await call(deps, plan!, author, {
                 name: "file_changes",
                 schema: fileChangesSchema,
-                prompt: `${decision}\n\nPlan: ${planOutput.summary}\nStack: ${planOutput.stack}; install: ${planOutput.installCommand}; tests: ${planOutput.testCommand}\n\n<task key="${task.key}">\n${task.title}\n${task.description}\nAcceptance criteria:\n- ${task.acceptanceCriteria.join("\n- ")}\n</task>\n\nCurrent workspace:\n${filesBlock(files)}${conflictNote}\n\nReturn the complete content of every file you create or change (relative paths).`,
+                prompt: `${decision}\n\nPlan: ${planOutput.summary}\nStack: ${planOutput.stack}; install: ${planOutput.installCommand}; tests: ${planOutput.testCommand}\n\n<task key="${task.key}">\n${neutralizeWrapperTags(`${task.title}\n${task.description}\nAcceptance criteria:\n- ${task.acceptanceCriteria.join("\n- ")}`)}\n</task>\n\nCurrent workspace:\n${filesBlock(files)}${conflictNote}\n\nReturn the complete content of every file you create or change (relative paths).`,
               });
               const now = await currentFiles(db, planId);
               const conflicts = candidate.files.map((f) => f.path).filter((path) => (files.get(path) ?? null) !== (now.get(path) ?? null));
               if (conflicts.length === 0) output = candidate;
-              else if (round === 0) conflictNote = `\n\nNote: another task changed ${conflicts.join(", ")} while you worked. The workspace above is current – keep those changes and add yours.`;
+              else if (round === 0)
+                conflictNote = `\n\nNote: another task changed ${conflicts.join(", ")} while you worked. The workspace above is current – keep those changes and add yours.`;
               else throw new DomainError("CONFLICT", `Conflicting parallel changes to ${conflicts.join(", ")}`);
             }
             const rejected = await applyChanges(db, plan!, task.id, output!.files);
-            await db.insert(schema.agentExecution).values({ id: newId("agx"), organizationId: plan!.organizationId, taskId: task.id, participantId: author.id, attempt: task.attempts + 1, kind: "implement", outcome: "ok", summary: `${output!.summary}${rejected.length ? `\nRejected: ${rejected.join("; ")}` : ""}` });
+            await db.insert(schema.agentExecution).values({
+              id: newId("agx"),
+              organizationId: plan!.organizationId,
+              taskId: task.id,
+              participantId: author.id,
+              attempt: task.attempts + 1,
+              kind: "implement",
+              outcome: "ok",
+              summary: `${output!.summary}${rejected.length ? `\nRejected: ${rejected.join("; ")}` : ""}`,
+            });
             await db.update(schema.developmentTask).set({ status: "done", completedAt: new Date(), error: null }).where(eq(schema.developmentTask.id, task.id));
           } catch (error) {
             if (error instanceof Cancelled) throw error;
             const message = error instanceof DomainError ? error.message : "Task failed";
-            await db.insert(schema.agentExecution).values({ id: newId("agx"), organizationId: plan!.organizationId, taskId: task.id, participantId: author.id, attempt: task.attempts + 1, kind: "implement", outcome: "error", summary: message });
+            await db.insert(schema.agentExecution).values({
+              id: newId("agx"),
+              organizationId: plan!.organizationId,
+              taskId: task.id,
+              participantId: author.id,
+              attempt: task.attempts + 1,
+              kind: "implement",
+              outcome: "error",
+              summary: message,
+            });
             await db.update(schema.developmentTask).set({ status: "failed", error: message }).where(eq(schema.developmentTask.id, task.id));
             if (error instanceof DomainError && error.code === "BUDGET_EXCEEDED") throw error;
           }
@@ -446,7 +597,7 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
       const output = await call(deps, plan!, planner, {
         name: "file_changes",
         schema: fileChangesSchema,
-        prompt: `${decision}\n\nThe tests failed. Fix the code (not the tests, unless a test is wrong).\nCommand: ${lastRun?.command}\n<output>\n${lastRun?.output}\n</output>\n\nCurrent workspace:\n${filesBlock(await currentFiles(db, planId))}`,
+        prompt: `${decision}\n\nThe tests failed. Fix the code (not the tests, unless a test is wrong).\nCommand: ${lastRun?.command}\n<output>\n${neutralizeWrapperTags(lastRun?.output ?? "")}\n</output>\n\nCurrent workspace:\n${filesBlock(await currentFiles(db, planId))}`,
       });
       await applyChanges(db, plan!, null, output.files);
       result = await runTests(deps, plan!, planOutput, null, `repair-${attempt}`);
@@ -465,13 +616,31 @@ export async function runExecution(deps: ExecutionDeps, planId: string): Promise
         schema: reviewSchema,
         prompt: `${decision}\n\nReview this change set with focus on ${focus}. Report concrete findings with file names; approve only if there is no high or critical issue.\n\n${filesBlock(await currentFiles(db, planId))}\n\nLatest test result: ${result}`,
       });
-      await db.insert(schema.codeReview).values({ id: newId("crv"), organizationId: plan!.organizationId, planId, reviewerParticipantId: reviewer.id, focus, verdict: review.verdict, findings: review.findings });
+      await db.insert(schema.codeReview).values({
+        id: newId("crv"),
+        organizationId: plan!.organizationId,
+        planId,
+        reviewerParticipantId: reviewer.id,
+        focus,
+        verdict: review.verdict,
+        findings: review.findings,
+      });
     }
     await setPlan(db, planId, { status: "completed", finishedAt: new Date() });
-    await recordAudit(db, { organizationId: plan!.organizationId, actorUserId: null, action: "execution.completed", targetType: "development_plan", targetId: planId, metadata: { tests: result } });
+    await recordAudit(db, {
+      organizationId: plan!.organizationId,
+      actorUserId: null,
+      action: "execution.completed",
+      targetType: "development_plan",
+      targetId: planId,
+      metadata: { tests: result },
+    });
   } catch (error) {
     if (error instanceof Cancelled) {
-      await db.update(schema.developmentTask).set({ status: "cancelled" }).where(and(eq(schema.developmentTask.planId, planId), eq(schema.developmentTask.status, "pending")));
+      await db
+        .update(schema.developmentTask)
+        .set({ status: "cancelled" })
+        .where(and(eq(schema.developmentTask.planId, planId), eq(schema.developmentTask.status, "pending")));
       return setPlan(db, planId, { status: "cancelled", finishedAt: new Date() });
     }
     await setPlan(db, planId, { status: "failed", error: error instanceof DomainError ? error.message : "Unexpected execution error", finishedAt: new Date() });

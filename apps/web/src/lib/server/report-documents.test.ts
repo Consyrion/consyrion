@@ -124,6 +124,238 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
     expect(first).not.toContain("Decision summary");
   });
 
+  it("puts the shared verdict status on top: screen wording, workflow and approval status apart (#268, #477)", async () => {
+    const { reportStatus } = await import("./report-status");
+    const view = {
+      session: { status: "awaiting_approval" },
+      decision: { outcome: "needs_verification", matrix: {} },
+      decisionStatus: { readable: true, approvable: false, gateVersion: 2, approvableProposalIds: [] },
+    };
+    const status = reportStatus(view, "de");
+    expect(status).toMatchObject({
+      title: "Prüfung nötig – nicht freigebbar",
+      approvable: false,
+      line: "Wartet auf deine Prüfung · Kein freigebbarer Vorschlag",
+    });
+    const blocked = { ...report, approvableProposals: [], decisionFormat: { approvable: false } };
+    const bytes = await reportPdf(markdown, meta, blocked as never, { locale: "de", status, level: "brief" });
+    const { extractText } = await import("unpdf");
+    const first = ((await extractText(new Uint8Array(bytes), { mergePages: false })).text as string[])[0]!;
+    // Status line and title come before any score.
+    const top = first.indexOf("Wartet auf deine Prüfung · Kein freigebbarer Vorschlag");
+    expect(top).toBeGreaterThanOrEqual(0);
+    expect(first.indexOf("Prüfung nötig – nicht freigebbar")).toBeGreaterThan(top);
+    expect(first).not.toContain("Empfohlen: Vorschlag A");
+    // An approvable recommendation names the proposal after the screen's title.
+    const ok = reportStatus(
+      { ...view, decision: { outcome: "recommended", matrix: {} }, decisionStatus: { readable: true, approvable: true, approvableProposalIds: ["p1"] } },
+      "de",
+    );
+    const okText = (
+      (await extractText(new Uint8Array(await reportPdf(markdown, meta, report as never, { locale: "de", status: ok, level: "brief" })), { mergePages: false }))
+        .text as string[]
+    )[0]!;
+    expect(okText).toContain("Empfohlene Lösung: Vorschlag A");
+    expect(okText).toContain("Wartet auf deine Entscheidung");
+  });
+
+  it("brief: requirements before scores, then the key disputes and next steps of the screen, decision in words (#268 part 2)", async () => {
+    const { reportStatus } = await import("./report-status");
+    const t0 = "2026-11-05T10:00:00Z";
+    // A stored council shape (test data, not a real run): B has a blocking, unanswered critical objection.
+    const view = {
+      session: { status: "changes_requested" },
+      participants: [
+        { id: "par_c", provider: "anthropic", modelId: "claude-haiku-5-5", status: "active" },
+        { id: "par_o", provider: "openai", modelId: "gpt-5-mini", status: "active" },
+      ],
+      proposals: [
+        {
+          id: "pro_a",
+          label: "A",
+          authorParticipantId: "par_c",
+          revisions: [{ version: 1, createdAt: t0, content: { title: "Pure searchTodos", assumptions: ["Lists stay below 10k items"] } }],
+        },
+        { id: "pro_b", label: "B", authorParticipantId: "par_o", revisions: [{ version: 1, createdAt: t0, content: { title: "Index" } }] },
+      ],
+      messages: [],
+      objections: [
+        {
+          id: "o_block",
+          proposalId: "pro_b",
+          raisedByParticipantId: "par_c",
+          category: "security",
+          severity: "critical",
+          claim: "Tenant data can leak",
+          evidence: "Shared cache",
+          response: null,
+          undefendedReason: "provider error (timeout)",
+          status: "unresolved",
+          blocking: true,
+          createdAt: "2026-11-05T10:06:00Z",
+        },
+      ],
+      consensus: null,
+      requirementList: { items: [{ id: "req_1", text: "Runs on Node 22 without dependencies" }] },
+      decision: {
+        outcome: "recommended",
+        recommendedProposalId: "pro_a",
+        matrix: {
+          proposals: [
+            { proposalId: "pro_a", total: 9.12 },
+            { proposalId: "pro_b", total: 6.1 },
+          ],
+        },
+      },
+      decisionStatus: { readable: true, approvable: true, gateVersion: 2, approvableProposalIds: ["pro_a"], canApproveRecommendation: true },
+      approvals: [{ action: "request_changes", comment: "Bitte kleiner", selectedProposalId: null }],
+    };
+    const status = reportStatus(view, "de");
+    expect(status.cruxes!.items[0]!.title).toBe("Streitpunkt 1 · Vorschlag B · kritisch · ungeklärt · blockiert die Freigabe");
+    expect(status.cruxes!.items[0]!.lines).toContain("“Tenant data can leak”");
+    expect(status.nextSteps!.lines[0]).toContain("Für den empfohlenen Vorschlag A");
+    const bytes = await reportPdf(markdown, meta, { ...report, approvals: [{ action: "request_changes", comment: "Bitte kleiner" }] } as never, {
+      locale: "de",
+      status,
+      level: "brief",
+    });
+    const { extractText } = await import("unpdf");
+    const all = ((await extractText(new Uint8Array(bytes), { mergePages: true })).text as string).replace(/\s+/g, " ");
+    // Gate before score: the requirement matrix comes first.
+    expect(all.indexOf("Harte Anforderungen je Vorschlag")).toBeGreaterThan(0);
+    expect(all.indexOf("Harte Anforderungen je Vorschlag")).toBeLessThan(all.indexOf("Gesamtpunktzahl (0–10)"));
+    expect(all).toContain("Entscheidende Streitpunkte");
+    expect(all).toContain("Streitpunkt 1 · Vorschlag B · kritisch · ungeklärt · blockiert die Freigabe");
+    expect(all).toContain("Keine Antwort – provider error (timeout)");
+    expect(all).toContain("Nächste Schritte");
+    expect(all).toContain("Riskanteste Annahmen");
+    // The human decision in words, never the raw action id.
+    expect(all).toContain("Änderungen angefordert – Bitte kleiner");
+    expect(all).not.toContain("request changes");
+    expect(all).not.toContain("Offene Einwände");
+  });
+
+  it("keeps a Chinese PDF English until a CJK font is embedded (#268)", async () => {
+    const { pdfLocale } = await import("./report-documents");
+    expect(pdfLocale("zh")).toBe("en");
+    expect(pdfLocale("de")).toBe("de");
+  });
+
+  it("prints a favourite mark under the verdict and the measurements as self-declarations (#249 part 2, #268)", async () => {
+    const { reportStatus } = await import("./report-status");
+    const view = {
+      session: { status: "awaiting_approval" },
+      proposals: [{ id: "pro_a", label: "A", revisions: [] }],
+      requirementList: { items: [{ id: "req_lat", text: "Latenz unter 30 ms" }] },
+      decision: {
+        id: "dec_1",
+        outcome: "needs_verification",
+        matrix: {
+          requirementGate: {
+            proposals: [
+              {
+                proposalId: "pro_a",
+                feasibility: "qualified",
+                architectureCandidate: true,
+                requirements: [{ requirementId: "req_lat", measurementPending: true }],
+              },
+            ],
+          },
+        },
+      },
+      decisionStatus: { readable: true, approvable: false, gateVersion: 3, approvableProposalIds: [] },
+      humanMark: { kind: "favorite", proposalId: "pro_a", comment: "", createdAt: "2026-11-08T12:00:00Z" },
+      measurements: [
+        {
+          id: "m1",
+          decisionId: "dec_1",
+          proposalId: "pro_a",
+          requirementId: "req_lat",
+          method: "Ping",
+          target: "< 30 ms",
+          measured: "41 ms",
+          met: false,
+          evidence: "Messprotokoll 1",
+          recordedBy: "Kim Muster",
+          createdAt: "2026-11-08T12:00:00Z",
+        },
+        {
+          id: "m2",
+          decisionId: "dec_1",
+          proposalId: "pro_a",
+          requirementId: "req_lat",
+          method: "Ping",
+          target: "< 30 ms",
+          measured: "25 ms",
+          met: true,
+          evidence: "Messprotokoll 2",
+          recordedBy: "Kim Muster",
+          createdAt: "2026-11-08T12:05:00Z",
+        },
+      ],
+    };
+    const status = reportStatus(view, "de");
+    expect(status.title).toBe("Architektur-Kandidat – Leistungsnachweis offen, nicht freigebbar");
+    expect(status.marks).toEqual(["Vorschlag A ist als Favorit markiert – nicht freigegeben; das Urteil muss weiter geprüft werden."]);
+    const lines = status.measurements!.lines.join("\n");
+    // One measured miss stays decisive, every result is a named self-declaration with its evidence.
+    expect(lines).toContain("req_lat Latenz unter 30 ms");
+    expect(lines).toContain("Messung: Selbstauskunft von Kim Muster, Beleg: Messprotokoll 1");
+    expect(status.measurements!.warn).toBe(true);
+    const bytes = await reportPdf(markdown, meta, { ...report, approvableProposals: [], decisionFormat: { approvable: false } } as never, {
+      locale: "de",
+      status,
+      level: "brief",
+    });
+    const { extractText } = await import("unpdf");
+    const all = ((await extractText(new Uint8Array(bytes), { mergePages: true })).text as string).replace(/\s+/g, " ");
+    expect(all.indexOf("Vorschlag A ist als Favorit markiert")).toBeGreaterThan(all.indexOf("Architektur-Kandidat – Leistungsnachweis offen"));
+    expect(all).toContain("Abnahme durch Messung");
+    expect(all).toContain("Messung: Selbstauskunft von Kim Muster, Beleg: Messprotokoll 2");
+  });
+
+  it("report level: the course of the council – timeline, participation and tokens, follow-ups, human decisions (#268 part 4)", async () => {
+    const { reportStatus } = await import("./report-status");
+    const view = {
+      session: { status: "changes_requested" },
+      participants: [
+        { id: "o1", provider: "anthropic", modelId: "claude-opus-5-5", status: "active" },
+        { id: "o2", provider: "anthropic", modelId: "claude-opus-5-5", status: "active" },
+        { id: "g", provider: "openai", modelId: "gpt-5.4", status: "active" },
+      ],
+      stages: [
+        { phase: "independent_thinking", status: "completed", startedAt: "2026-11-08T10:00:00Z", completedAt: "2026-11-08T10:02:00Z" },
+        { phase: "final_verdict", status: "completed", startedAt: "2026-11-08T10:10:00Z", completedAt: "2026-11-08T10:13:00Z" },
+      ],
+      proposals: [{ id: "pro_a", label: "A", authorParticipantId: "g", revisions: [] }],
+      usage: [
+        { participantId: "o1", phase: "independent_thinking", outcome: "ok", calls: 1, inputTokens: 1000, outputTokens: 200 },
+        { participantId: "g", phase: "final_verdict", outcome: "error", calls: 1, inputTokens: 0, outputTokens: 0 },
+      ],
+      decision: { id: "dec_1", outcome: "needs_verification", matrix: { followUpRounds: [{ round: 2, kind: "targeted_review", items: 3, applied: true }] } },
+      decisionStatus: { readable: true, approvable: false, gateVersion: 3, approvableProposalIds: [] },
+      approvals: [{ action: "request_changes", comment: "kleiner", createdAt: "2026-11-08T11:00:00Z" }],
+    };
+    const status = reportStatus(view, "de");
+    const bytes = await reportPdf(markdown, meta, report as never, { locale: "de", status, level: "report" });
+    const { extractText } = await import("unpdf");
+    const all = ((await extractText(new Uint8Array(bytes), { mergePages: true })).text as string).replace(/\s+/g, " ");
+    expect(all).toContain("Ablauf des Councils");
+    expect(all).toContain("Independent Thinking: 2026-11-08 10:00 UTC – 2026-11-08 10:02 UTC (2 Min.)");
+    expect(all).toContain("Beteiligung je Modell");
+    expect(all).toContain("anthropic · claude-opus-5-5 (Instanz 2/2 – eine unabhängige Stimme)");
+    expect(all).toContain("anthropic · claude-opus-5-5 (Instanz 1/2 – eine unabhängige Stimme) – Gesamt: 1000 Input- + 200 Output-Tokens");
+    expect(all).toContain("Final Verdict: kein Beitrag, 1 fehlgeschlagen");
+    expect(all).toContain("Runde 2 (gezielte Nachprüfung): 3 Prüfungen angefordert – abgeschlossen, Ergebnisse übernommen (nachgeholt)");
+    expect(all).toContain("Entscheidungsverlauf");
+    expect(all).toContain("2026-11-08 11:00 UTC · Änderungen angefordert – kleiner");
+    // The brief stays the summary alone.
+    const brief = (
+      await extractText(new Uint8Array(await reportPdf(markdown, meta, report as never, { locale: "de", status, level: "brief" })), { mergePages: true })
+    ).text as string;
+    expect(brief).not.toContain("Ablauf des Councils");
+  });
+
   it("adds a summary page with scores, the requirement matrix and 'not approvable' for the blocked proposal", async () => {
     const meta = { title: "Final Decision Report – Todo search", sessionId: "ses_test", createdAt: new Date("2026-11-05T12:00:00Z") };
     const plain = await PDFDocument.load(await reportPdf(markdown, meta));

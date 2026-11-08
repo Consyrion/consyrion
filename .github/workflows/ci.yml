@@ -17,18 +17,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Known high/critical vulnerabilities in runtime dependencies fail the build (#397).
+      - run: pnpm audit --prod --audit-level high
       - run: pnpm lint
       - run: pnpm typecheck
+      # Sandbox egress firewall (#399): the same script as on the server, so the integration test can prove that
+      # installs reach a registry but not the metadata service, the LAN or the host.
+      - name: Sandbox egress network
+        run: sudo SANDBOX_EGRESS_MARKER="$RUNNER_TEMP/sandbox-egress-firewall" bash deploy/hetzner/sandbox-network.sh
       - run: pnpm test
+        env:
+          SANDBOX_EGRESS_TEST: "1"
+          SANDBOX_EGRESS_MARKER: ${{ runner.temp }}/sandbox-egress-firewall
       - name: Rollback guard tests
         run: bash deploy/hetzner/rollback-guard.test.sh
+      - name: Post-restore scrub tests (ADR 0206)
+        run: bash deploy/hetzner/post-restore-scrub.test.sh
       - name: Check that migrations match the schema
         run: |
           pnpm db:generate
@@ -37,19 +48,56 @@ jobs:
       - name: No engine logic in the browser bundle (#189)
         run: node scripts/check-client-bundle.mjs
 
+  # Auth regression in a real browser (live bug 08.11.26): sign-up, verification link, sign-in, sign-out, a second
+  # account in the same browser and password reset against the production build, PostgreSQL and a local test mail server.
+  e2e-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: e2e
+          POSTGRES_DB: consyrion_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgres://postgres:e2e@127.0.0.1:5432/consyrion_e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
+      - run: pnpm --filter @consyrion/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @consyrion/web e2e
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-auth-traces
+          path: apps/web/test-results/
+          retention-days: 7
+
   vscode-extension:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter consyrion package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: consyrion-vsix
           path: apps/vscode/dist/consyrion.vsix
@@ -58,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build web image
         run: docker build -f Dockerfile.web -t consyrion-web .
       - name: Build worker image

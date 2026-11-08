@@ -19,8 +19,32 @@ export { CRITERIA, describeConfidenceIssue, type Confidence, type ConfidenceIssu
 export { dedupeStatements, objectionStatusText } from "./objections";
 export { MAX_TASK_ATTEMPTS, MIN_OVERRIDE_REASON } from "./readiness";
 export { countLimits, describeMeasure, detectMeasure, type MeasureUnit, type RequirementMeasure } from "./requirement-measure";
-export { measurableOnlyAfterImplementation, measurementPlanSuggestion } from "./requirement-testability";
+export {
+  measurableOnlyAfterImplementation,
+  measurementPlanSuggestion,
+  needsBuildVerification,
+  requirementCheckability,
+  requirementVerification,
+  MEASUREMENT_CHECK_GATE_VERSION,
+  type RequirementCheckability,
+} from "./requirement-testability";
 export type { StrengthSuggestion, VoteWeightWarning } from "./model-strength";
-export { suggestRoles, type RoleSuggestion, type RoleSuggestionResult } from "./role-suggestion";
+export {
+  profilesAfterApply,
+  roleSelectionSnapshot,
+  suggestRoleProfiles,
+  suggestRoles,
+  type ProfileSuggestion,
+  type RoleOrigin,
+  type RoleSelectionSnapshot,
+  type RoleSuggestion,
+  type RoleSuggestionResult,
+  type SuggestableProfile,
+} from "./role-suggestion";
 export { EXCLUSION_REASON_KEYS } from "./exclusion-reasons";
 export { findRequirementConflicts, type RequirementConflict } from "./requirement-conflicts";
+export { splitCoverageGaps, splitPartLetter, type RequirementDecomposition, type RequirementSplitRef } from "./requirement-split";
+export { coverAllParticipants, type RoleCoverage } from "./role-coverage";
+export { SKILL_PUBLICATION_LICENSE, SKILL_REPORT_REASONS, slugFromName, type SkillReviewStatus } from "./skill-publication";
+export { awaitingReviewWithoutApproval } from "./approval-status";
+export { independenceKey, independentGroupCount } from "./independence";

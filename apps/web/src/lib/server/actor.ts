@@ -25,10 +25,13 @@ export async function requireUser() {
  * Resolves the organization the request acts in. The cookie is only a preference: membership is
  * always re-checked against the database.
  */
-export async function requireActor(options: { integration?: boolean } = {}): Promise<ActorContext> {
+export async function requireActor(options: { integration?: boolean; sessionOnly?: boolean } = {}): Promise<ActorContext> {
   const requestHeaders = await headers();
   const authorization = requestHeaders.get("authorization");
   if (authorization?.startsWith("Bearer ")) {
+    // Session only (#403): creating or revoking tokens and managing the team need the signed-in person in the web app.
+    // Otherwise a leaked token could mint a fresh one (outliving its own revocation) or invite new owners.
+    if (options.sessionOnly) throw new DomainError("FORBIDDEN", "This action is only available in the web app, not with an API token");
     // Personal API token (VS Code extension, automation): bound to one workspace, membership re-checked.
     const db = await getDb();
     const { userId, organizationId, scope } = await resolveApiToken(db, authorization.slice(7).trim());

@@ -19,6 +19,19 @@ async function* iterate<T>(items: T[]) {
 const schema = { name: "proposal", schema: { type: "object", properties: { title: { type: "string" } }, required: ["title"], additionalProperties: false } };
 
 describe("AnthropicAdapter", () => {
+  it("marks the stable prefix for Anthropic's prompt cache (#244)", async () => {
+    const create = vi.fn().mockResolvedValue({ model: "c", content: [{ type: "text", text: "{}" }], stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 } });
+    const adapter = new AnthropicAdapter({ apiKey: "k", client: { messages: { create } } as unknown as Anthropic });
+    await adapter.generate({ model: "c", system: "sys", messages: [{ role: "user", content: "<brief>B</brief>\n\ntask" }], maxOutputTokens: 10, cachePrefix: "<brief>B</brief>" });
+    expect(create.mock.calls[0]![0].messages[0].content).toEqual([
+      { type: "text", text: "<brief>B</brief>", cache_control: { type: "ephemeral" } },
+      { type: "text", text: "\n\ntask" },
+    ]);
+    // Without a matching prefix the message stays a plain string.
+    await adapter.generate({ model: "c", messages: [{ role: "user", content: "other" }], maxOutputTokens: 10, cachePrefix: "<brief>B</brief>" });
+    expect(create.mock.calls[1]![0].messages[0].content).toBe("other");
+  });
+
   it("maps requests and parses structured output", async () => {
     const create = vi.fn().mockResolvedValue({
       model: "claude-test",

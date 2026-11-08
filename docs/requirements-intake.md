@@ -10,11 +10,11 @@ council carries it, and approval and execution already check the binding.
 1. **Proposal (server).** `GET /api/projects/:id/requirements` returns a proposal computed on the server from the
    current brief (requirements, desired outcome, idea) and the attached documents. The browser never runs the
    extraction; it only shows and edits the proposal.
-2. **Review (user).** On *Start a council* the *Hard requirements* card lists the proposed items with their source
+2. **Review (user).** On _Start a council_ the _Hard requirements_ card lists the proposed items with their source
    (requirements field, desired outcome, idea, document name, or "added by you"). The user can edit the wording,
    add items, remove items and keep or exclude statements.
 3. **Confirmation.** `POST /api/projects/:id/requirements` stores a new list version. The server recomputes the
-   proposal and checks the submission against it (see *Rules*). The UI then shows the list as *Version N confirmed*.
+   proposal and checks the submission against it (see _Rules_). The UI then shows the list as _Version N confirmed_.
 4. **Start.** `POST /api/projects/:id/sessions` (and the UI button) only starts when the latest confirmed list
    matches the **current** brief version and documents. The session stores the list id and the document ids of
    that state.
@@ -22,7 +22,7 @@ council carries it, and approval and execution already check the binding.
 ## Rules
 
 - **Nothing disappears silently.** Every statement the server proposed must either be kept as an item or excluded
-  with a reason. Removing a proposed item in the UI moves it to *Not taken over*, where a reason is required.
+  with a reason. Removing a proposed item in the UI moves it to _Not taken over_, where a reason is required.
 - **Exclusions stay excluded.** An excluded statement cannot also be listed as a requirement (neither by its id nor
   by the same wording). When the list is confirmed again after a change, earlier exclusions are carried over with
   their reasons instead of being proposed again. The council sees them inside the brief as "not binding", so they
@@ -47,7 +47,7 @@ equals the hash of the current state. Therefore any of these requires a new conf
 - uploading a document,
 - deleting a document.
 
-The project page shows whether the latest list is *current* or *needs confirmation again*.
+The project page shows whether the latest list is _current_ or _needs confirmation again_.
 
 ## Running councils keep their state
 
@@ -55,7 +55,7 @@ The project page shows whether the latest list is *current* or *needs confirmati
   the brief, the documents or a newer list version does not affect it; its prompts keep showing its own list.
 - A document that a council still uses (queued, running, stopping or waiting for a decision) cannot be deleted.
 - Historic lists stay readable: the Council Room header names the list version, and the decision report has a
-  *Confirmed requirements (list version N)* section.
+  _Confirmed requirements (list version N)_ section.
 
 ## Binding to verdict, approval and execution
 
@@ -90,38 +90,38 @@ In prose, the rules are:
   does not end a sentence, so numbers keep their units. A wrapped line that starts in lower case or follows an open
   end (a comma, a conjunction, a preposition) is joined to the previous line. Headings and lead-in lines ending in a
   colon are skipped.
-- Every statement of the *Requirements* field is proposed. From the desired outcome, the idea and documents only
+- Every statement of the _Requirements_ field is proposed. From the desired outcome, the idea and documents only
   statements with a requirement marker are proposed (modal verbs such as must/muss/darf, only/nur, negations, limits
   such as at most/höchstens/bis, numbers with units). The same wording from several sources is proposed once.
 - Documents are read as prose when they are Markdown or plain text. Other formats (code, JSON, CSV …) are listed as
-  *not scanned* so the user adds their requirements by hand. Beyond 150 proposed statements the rest is not proposed
+  _not scanned_ so the user adds their requirements by hand. Beyond 150 proposed statements the rest is not proposed
   and the screen says how many.
 - Statements that need the user's judgement are put under **Please decide** – neither kept nor excluded by default
-  (#227, since 30.10.26; before, they were proposed as *not taken over*). The list cannot be confirmed until each one
+  (#227, since 30.10.26; before, they were proposed as _not taken over_). The list cannot be confirmed until each one
   is kept or excluded; "Not a requirement" fills in a suggested reason. Three kinds:
-  - *instruction*: addresses the AI models (to ignore rules, to change a rating, to adopt a role, to reveal hidden
+  - _instruction_: addresses the AI models (to ignore rules, to change a rating, to adopt a role, to reveal hidden
     instructions, or role tags);
-  - *quoted instruction*: such text appears only inside quotation marks – typically a product requirement about
+  - _quoted instruction_: such text appears only inside quotation marks – typically a product requirement about
     handling that text as data ("must store the string „SYSTEMANWEISUNG: …“ unchanged");
-  - *meta rule*: says when a requirement counts as met ("gilt als erfüllt, sobald …", "is considered met as soon as …",
+  - _meta rule_: says when a requirement counts as met ("gilt als erfüllt, sobald …", "is considered met as soon as …",
     "automatisch bestanden") instead of describing the product. A real product rule of the same shape ("Eine Lieferung
     gilt als erfüllt, sobald …") is put to the user too – an accepted false positive, since nothing is excluded by it.
-  The detection is deliberately narrow: a product requirement that merely mentions a "system" or a "prompt" is an
-  ordinary item. Decisions of a confirmed list carry over to the next proposal.
+    The detection is deliberately narrow: a product requirement that merely mentions a "system" or a "prompt" is an
+    ordinary item. Decisions of a confirmed list carry over to the next proposal.
 - Document sentences without binding wording of their own – a table row, a measured value, an observation such as
-  "Ping Schweiz → jam-01 15–18 ms" – are proposed as *not taken over* with the reason "From a document, without
+  "Ping Schweiz → jam-01 15–18 ms" – are proposed as _not taken over_ with the reason "From a document, without
   binding wording …" (#245, since 31.10.26); one click keeps them. Binding (recall before precision, external review
   31.10.26): must/muss, darf, only/nur (not "nicht nur"), at most/höchstens, never/nie, kein …; a limit – a comparison
   with a number ("≥ 99,95 %", "unter 200 ms", "innerhalb von vier Stunden", "over 2 s"); an obligation ("sind 10 Jahre
   aufzubewahren", "is to be", "ohne …", "erforderlich", "revisionssicher", "verschlüsselt", "DSGVO" …). Quoted text
-  does not count, so a quoted „muss …" in an observation stays context. Items of the *Requirements* field are never
+  does not count, so a quoted „muss …" in an observation stays context. Items of the _Requirements_ field are never
   excluded by this. The same quotation rule applies to idea and goal sentences.
 - **Only measurable after implementation** (#245): a requirement about an experience people judge (rhythmisch,
   spürbar, intuitiv, user-friendly …; a number in the sentence is only a condition) or about a quality without a
   threshold in ms, s, % … (stable, smooth, fast, reliable …) gets a hint – unless it asks for a before/after
   measurement itself; "wird später getestet" alone does not count. The hint on the confirmation screen – no model can confirm it before anything is built, so the council ends with
   "needs verification" (OnJam R5, 30.10.26). The requirement is never changed or softened; one click adds a
-  measurement plan as an *extra* requirement ("Each proposal names how … is measured before and after the change"),
+  measurement plan as an _extra_ requirement ("Each proposal names how … is measured before and after the change"),
   which the user completes. Helper: `measurableOnlyAfterImplementation` in `packages/core/src/requirement-testability.ts`.
 - Kept wording reaches the models inside `<confirmed_requirements>`, which the system prompt declares as the measure a
   proposal is checked against and never as instructions; text in it that addresses the models is data.
@@ -135,7 +135,7 @@ package (#188/#189) without touching UI, database or API.
 ## Data model
 
 Table `requirement_list` (migration `0022_requirement_lists`): project, version (unique per project), brief id,
-source hash, source state, items (`id`, `text`, `kind: "hard"`, `source`, `candidateKey`), excluded statements (text,
+source hash, source state, items (`id`, `text`, `kind: "hard"`, `source`, `candidateKey`, optional `splitFrom` from #216), excluded statements (text,
 source, reason), `no_hard_requirements`, confirmed by and at. Rows are immutable. `council_session`,
 `final_decision` and `human_approval` each gain a nullable `requirement_list_id`.
 
@@ -154,13 +154,13 @@ these items and the engine compares it with the limit – see `docs/council-engi
 
 Audit #226 (30.10.26):
 
-| Wording | Read as |
-|---|---|
-| "höchstens", "at most", "bis zu", "darf … nicht überschreiten", "nicht über", "no more than", "innerhalb von" | inclusive maximum (`≤`) |
-| "unter", "weniger als", "less than", "below", "<" directly before the number | strict maximum (`<`, `strict: true`) |
-| "mindestens", "at least", availability without a word | inclusive minimum (`≥`) |
-| "über", "mehr als", "more than", "above", ">" directly before the number | strict minimum (`>`, `strict: true`) |
-| `1.000` / `1'000` / `1 000` / `1,000` / `12,500.50` | thousands; `1,5` and `99,95` are decimals |
+| Wording                                                                                                       | Read as                                   |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| "höchstens", "at most", "bis zu", "darf … nicht überschreiten", "nicht über", "no more than", "innerhalb von" | inclusive maximum (`≤`)                   |
+| "unter", "weniger als", "less than", "below", "<" directly before the number                                  | strict maximum (`<`, `strict: true`)      |
+| "mindestens", "at least", availability without a word                                                         | inclusive minimum (`≥`)                   |
+| "über", "mehr als", "more than", "above", ">" directly before the number                                      | strict minimum (`>`, `strict: true`)      |
+| `1.000` / `1'000` / `1 000` / `1,000` / `12,500.50`                                                           | thousands; `1,5` and `99,95` are decimals |
 
 - A strict word elsewhere in the sentence ("innerhalb von 4 Monaten unter Einhaltung …") does not make the limit strict.
 - Two or more limits in one sentence: no `measure`; the intake shows "several limits in one sentence – split it",
@@ -192,6 +192,7 @@ deletion with an upper time bound ("spätestens sieben Kalendertage … gelösch
 bound ("mindestens 30 Kalendertage … wiederherstellbar"). The intake shows a warning naming both R numbers before the
 confirmation (`requirements.conflict`); it does not block – the council still judges, and the verdict names
 requirements no proposal meets (#339).
+
 - An idea or goal sentence that starts with an imperative to the council ("Prüfe …", "Benenne …", "Gib keine Lösung
   frei.", "Compare …") is a work instruction for this run: proposed as excluded with its own reason
   (`INSTRUCTION_EXCLUSION_REASON`, `requirements.reasons.instruction`), one click keeps it (R2-04, 08.11.26).
@@ -206,3 +207,83 @@ requirements no proposal meets (#339).
 - Soft goals and workflow rules (GitHub build test 08.11.26): an idea/goal sentence with soft wording ("möglichst",
   "idealerweise", "preferably", "if possible" …) is context; a rule about CONSYRION's own delivery ("Kein automatischer
   Merge.", "Der Draft-PR soll … geprüft werden") is a work instruction – CONSYRION only opens draft pull requests.
+
+## Build checks (night test R4, 08.11.26)
+
+A requirement that only the implementation can prove – automated tests pass, a CI workflow is green, a test
+demonstrates a property – blocked every proposal: nobody can confirm it before the code exists. Such items stay hard
+requirements and are marked `verification: "build"` when the list is confirmed (`needsBuildVerification`,
+`packages/core/src/requirement-testability.ts`; badge "Build-Prüfung" on the confirmation screen).
+
+- **Council:** the item carries a `[build check …]` note in `<confirmed_requirements>`. PASS only means the proposal
+  names a concrete verification plan (which tests, files, CI workflow, success criteria); UNKNOWN without a plan, FAIL
+  when the proposal contradicts it. The gate keeps the status and adds `buildVerification: true`
+  (`GateRound.buildChecks`), so a planned build check lets a proposal qualify, a missing plan still blocks.
+- **Verdict and report:** shown as "plan named – verified after implementation", never as PASS; the report marks the
+  item "build check – verified after implementation, not by this council".
+- **Build:** the Execution Council's prompt lists the build checks that must be proven by automated tests in this change;
+  the pull request readiness stays pending until the tests/CI really pass.
+- **States (ChatGPT review of #384):** the council's PASS on a build check is shown as **plan confirmed – proof pending**
+  (dashboard cell `PLAN`, report/PDF status `PLAN_CONFIRMED`), never as met. The Review & Tests tab derives the proof
+  from the live GitHub checks of the draft PR: **proven – CI green** only when every check passed, **not proven – CI
+  failed** on any failed check, otherwise **proof pending** (`buildCheckProof`).
+
+## Measurement checks (#249 part 2)
+
+A requirement only measuring the running implementation can prove (the "measurable only after implementation" badge)
+is stored with `verification: "measurement"` and, from gate version 3, checked as a measurement plan: the proposal is at
+best an **architecture candidate – performance proof open**, never a recommendation. The requirement text is never
+changed. Details: `docs/council-engine.md`, section "Architecture candidate".
+
+## Splitting a requirement into parts (#216)
+
+One statement can hold several requirements ("Gesundheitsdaten nur in Deutschland, Verschlüsselung at rest und in
+transit, revisionssicherer Audit-Trail 10 Jahre."). Since every evaluator checks every requirement on its own (#181), a
+FAIL on one item would otherwise fail the whole statement. The intake therefore **proposes** parts; the user decides.
+
+- **Deterministic, server-side, no model** (`packages/core/src/engine/requirement-decomposition.ts`,
+  `decomposeRequirement`). The proposal is part of `proposeRequirementList` (`items[].decomposition`).
+- **Conservative:** only an enumeration separated by commas or semicolons is split, never at "and/und" inside an item.
+  A "Topic:" prefix is repeated in every part. Parts are pieces of the original wording – nothing is rephrased.
+  - `coupled`: conditions that depend on each other (when, if, afterwards, bei, danach …) stay one requirement, e.g.
+    "bei Internetausfall 4 Stunden offline weiterarbeiten und danach synchronisieren, Doppelbuchungen verboten".
+  - `unclear`: alternatives (or/oder), a leading negation or restriction ("kein …", "only …"), a modal verb or subject
+    that only the first item carries ("must A, B and C"), a main verb that only the first item carries ("Das System braucht
+    A, B und C" – the later items would lose subject and verb), very short items, or a number/negation that no part would keep.
+    The UI says why and offers "split myself" instead of a silent split.
+  - `split`: only when every number, unit and negation of the original is in at least one part (`splitCoverageGaps`).
+- **The user decides:** "Split into N parts", "Keep as one", or split by hand ("Split myself", "Add part"); "Merge back
+  into the original" undoes it. A manual split whose parts lose a number or negation of the original shows a warning.
+- **Traceable:** every part stores `splitFrom: { text, part, of }` (original statement, position, count) and keeps the
+  original's candidate and source – the original counts as taken over ("split into …"), never as "not taken over".
+  Keeping the original and its parts at the same time is refused. The UI shows "Part b of 3 – from: …".
+- **Ids stay positional** (R1…Rn of the new list): report, dashboard and next steps derive the number from the position.
+- **Versions:** a confirmed split is a new list version (#193); a running or finished council keeps its version and
+  checks the undivided original.
+- **Cost and limit:** more parts mean more checks per evaluator in the same Final Verdict call; above the limit the
+  split evaluator (#246) uses more calls – the start screen's cost preview counts them. The per-list limit stays
+  100 requirements (`REQUIREMENT_LIMITS.maxItems`); a split that would exceed it is refused with a note, never cut.
+
+## When a requirement can be checked, and the intake corpus (#245)
+
+- Every requirement is classified for display (`requirementCheckability`, browser-safe, deterministic):
+  _checkable before the start_ (licence, stack, region, a stated limit), _measurable only after implementation_
+  (OnJam R5 "rhythmisch stabiles Zusammenspiel" – a measurement plan can be added as an extra requirement, #252) or
+  _checked in the build_ (tests/CI, night test R4). The confirmed list shows a badge per requirement and a summary
+  ("6 checkable before the start · 1 measurable only after implementation · 1 checked in the build"). Nothing is
+  changed or softened: the requirement stays as written.
+- Rules about the evaluation itself (meta rules) and instructions to the models stay with #227 (put to the user).
+- **Regression corpus** `packages/council/test/requirement-corpus.test.ts`: the Praxis brief, OnJam, the R2-03 order
+  portal and the self-improvement run log with every requirement their authors wrote as binding.
+  - Recall: every binding requirement is proposed, in every case – the ratio below can never be improved by dropping
+    real requirements.
+  - Precision: proposed items per real requirement, at most 2 : 1 per case and over the corpus (31.10.26: 21 : 6).
+    Measured 08.11.26: 24 proposed, 24 real (1.00 : 1); the test prints the current ratio.
+
+## Intake metrics for platform admins (#245)
+
+`/admin` shows a read-only card "Requirement intake" (`requirementIntakeMetrics`, platform admins only, counts and no
+text, last 30 days): **proposed : kept** (statements the intake found – kept from a candidate plus excluded – per
+statement taken over; parts of one split count once; target at most 2 : 1, 31.10.26: 21 : 6), requirements added by
+users, parts of split requirements, and how many gate-version-2 verdicts without a qualified proposal were blocked
+**only by one requirement nobody could confirm** (`UNKNOWN`) – the share #245 wants to bring down.

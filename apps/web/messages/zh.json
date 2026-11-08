@@ -17,7 +17,8 @@
       "skip": "跳到内容",
       "openSource": "开源",
       "pricing": "价格",
-      "menu": "菜单"
+      "menu": "菜单",
+      "integrations": "集成"
     },
     "cta": {
       "start": "开始决策",
@@ -130,7 +131,8 @@
       "agb": "条款",
       "datenschutz": "隐私",
       "source": "源代码",
-      "feedback": "联系与反馈"
+      "feedback": "联系与反馈",
+      "integrations": "集成"
     },
     "why": {
       "title": "为什么选择 CONSYRION AI？",
@@ -343,6 +345,38 @@
         "high": "高",
         "medium": "中",
         "low": "低"
+      },
+      "none": "没有已记录的决定性分歧：没有保存任何异议，Consensus Round 也没有留下未决事项。这不是编造的共识——只表示没有模型提出过已保存的异议。",
+      "filterAria": "筛选争议点",
+      "filter": {
+        "all": "全部（{n}）",
+        "open": "未决（{n}）",
+        "critical": "高/严重（{n}）",
+        "resolved": "已解决（{n}）"
+      },
+      "filterEmpty": "没有符合此筛选的争议点。",
+      "notStored": "未保存",
+      "stepsAria": "此争议点的经过",
+      "step": {
+        "raised": "提出异议",
+        "answered": "回答",
+        "conceded": "已承认",
+        "unanswered": "未回答",
+        "noAnswer": "未保存回答",
+        "reviewed": "独立审查",
+        "notReviewed": "未审查",
+        "revised": "修订为 v{version}",
+        "notRevised": "未修订"
+      },
+      "showSources": "查看依据",
+      "hideSources": "隐藏依据",
+      "src": {
+        "objection": "异议",
+        "message": "原始消息",
+        "round": "第 {n} 轮",
+        "versions": "方案版本",
+        "versionsText": "当时：{then} · 现在：{now}",
+        "review": "审查"
       }
     },
     "dashboard": {
@@ -360,7 +394,8 @@
         "repeat_evaluation": "重新进行缺失的评估",
         "request_changes": "要求修改需求说明",
         "reject": "拒绝",
-        "request_more_debate": "要求继续辩论"
+        "request_more_debate": "要求继续辩论",
+        "mark_favorite": "将架构候选标记为首选（不批准）"
       },
       "outcome": {
         "recommended": "推荐方案",
@@ -370,7 +405,8 @@
         "needs_verification": "需要核实 – 不可批准",
         "provisional": "暂定首选 – 审查有限，不可批准",
         "conflict": "没有方案能满足这些要求",
-        "not_approvable": "不可批准"
+        "not_approvable": "不可批准",
+        "architecture_candidate": "架构候选——性能证明待定，不可批准"
       },
       "facts": {
         "title": "审查事实",
@@ -419,9 +455,11 @@
         "FAIL": "未满足",
         "DISPUTED": "有争议",
         "UNKNOWN": "未确认",
+        "PLAN": "验证计划已确认——待证明",
         "noAnswer": "无回答",
         "noEvaluation": "无评估",
-        "count": "{n} / {of} 确认"
+        "count": "{n} / {of} 确认",
+        "MEASURE": "测量计划已确认——待测量"
       },
       "cell": {
         "aria": "评估者对此要求的理由",
@@ -485,7 +523,8 @@
       "verify": {
         "title": "在任何不可逆步骤之前解决",
         "source": "council 中未确认的要求和未解决的异议",
-        "empty": "没有未决事项——所有要求均已确认，没有未解决的异议。"
+        "empty": "没有未决事项——所有要求均已确认，没有未解决的异议。",
+        "raisedBy": "由 {model} 提出"
       },
       "assumptions": {
         "title": "风险最高的假设——优先测试",
@@ -506,7 +545,25 @@
       },
       "note": "仅根据已存储的 council 陈述生成，没有任何新生成内容。测试计划只是计划：它不会确认任何要求，未经你的决定不会构建或启动任何内容。",
       "introChosen": "针对你选择的方案 {label}：在不可逆步骤之前检查什么、测试什么、何时停止以及何时再次咨询 Council。",
-      "introTie": "没有唯一的推荐（领先的方案过于接近）。针对得分最高的方案 {label}：在你选择之前需要检查什么。"
+      "introTie": "没有唯一的推荐（领先的方案过于接近）。针对得分最高的方案 {label}：在你选择之前需要检查什么。",
+      "counter": {
+        "title": "最有力的反方观点",
+        "source": "最重要的未决或已成立异议，与“争议焦点”一致",
+        "empty": "没有针对此方案的未决或已成立异议。",
+        "rightIf": "如果以下理由成立，它就是对的：{text}",
+        "noReason": "未保存相关理由。"
+      },
+      "notYet": "目前还不能批准或构建：请先解决上面的未决事项，然后开始新的 Council 或重新评审。",
+      "aiSuggestion": "AI 建议",
+      "test": {
+        "title": "成本最低的有效测试",
+        "source": "作者自己的建议（AI）——是计划，不是已确认的检查",
+        "empty": "作者未说明。",
+        "assumption": "风险最大的假设：{text}",
+        "method": "测试：{text}",
+        "success": "满足以下条件即确认：{text}",
+        "noSuccess": "成功标准：未说明。"
+      }
     }
   },
   "scene": {
@@ -674,6 +731,16 @@
       "quality_assurance_expert": "如何证明它可行，什么会在无人察觉时出错？",
       "maintainability_reviewer": "一年后团队还能理解并修改它吗？",
       "independent_critical_thinker": "其他人忽略了什么——有没有更简单或更安全的方法？"
+    },
+    "titleAlternative": "备选：为本项目推荐的视角",
+    "introAlternative": "技能“{name}”已启用——其 {n} 个视角已在下方选中。根据你的需求说明和要求得出的此建议仅为备选。",
+    "replace": "替换为 {n} 个视角",
+    "add": "补充缺少的 {n} 个",
+    "effect": "应用后，将用这 {n} 个视角替换你当前的选择（{current} 个已启用）。",
+    "effectAlternative": "“替换”会把 {current} 个已启用视角换成这 {n} 个；“补充”会保留它们并新增 {missing} 个。",
+    "profile": {
+      "suggested": "建议的配置文件:{name}",
+      "choose": "此角色有 {n} 个你自己的配置文件——请在下方选择一个"
     }
   },
   "assistant": {
@@ -706,6 +773,7 @@
     "loading": "加载中……",
     "noChats": "还没有聊天。",
     "delete": "删除聊天“{title}”",
+    "download": "将对话“{title}”下载为 Markdown",
     "privacy": "你的聊天仅为你保存——其他成员和管理员都无法阅读。删除后将永久移除。",
     "model": "回答问题的模型",
     "modelNote": "仅限你自己密钥下的模型。每个问题会在该密钥上产生几次调用；每条回答下方显示所用 token。",
@@ -713,6 +781,7 @@
     "shortcut": "快捷键：⌘/Ctrl + J 打开和关闭助手，Esc 关闭。",
     "usedTools": "已读取：{tools}",
     "tokens": "{n} 个 token",
+    "cost": "≈ {amount}",
     "open": "打开 AI 助手（⌘/Ctrl + J）",
     "actions": {
       "types": {
@@ -762,10 +831,100 @@
         "teams": "Microsoft Teams",
         "email": "电子邮件"
       },
-      "copyAgain": "再次复制"
+      "copyAgain": "再次复制",
+      "summaryPdf": "PDF",
+      "summaryWord": "Word"
     },
     "stop": "停止",
     "stopped": "已停止——此回答未保存任何内容。",
-    "readingTool": "正在读取 {tool} …"
+    "readingTool": "正在读取 {tool} …",
+    "toolNames": {
+      "list_projects": "项目",
+      "list_sessions": "决策",
+      "get_session": "该决策",
+      "list_open_steps": "待办步骤",
+      "get_project": "该项目",
+      "list_documents": "文档",
+      "get_build_status": "构建状态",
+      "search": "搜索结果"
+    },
+    "export": {
+      "you": "你",
+      "assistant": "助手",
+      "exported": "导出时间",
+      "links": "页面",
+      "actions": "建议的操作",
+      "checks": "交叉核查"
+    },
+    "ask": "询问 AI",
+    "askAboutDecision": "总结这项决策：结论、理由、未解决的异议，以及我下一步该做什么。",
+    "reviewer": "第二意见",
+    "reviewerNone": "不使用第二意见",
+    "reviewerNote": "当你点击回答下方的“第二意见”时，此模型会用相同的只读工具、使用你的密钥检查该回答（消耗 token）。",
+    "limits": "助手的 token 上限",
+    "limitDaily": "每天",
+    "limitMonthly": "每月",
+    "limitNone": "无上限",
+    "usage": "已用：今天 {today} 个 token，本月 {month} 个。",
+    "saveLimits": "保存上限",
+    "settingsSaved": "已保存。",
+    "secondOpinion": "第二意见",
+    "secondOpinionBusy": "正在检查 …",
+    "secondOpinionTitle": "第二意见",
+    "downloadPdf": "将对话“{title}”下载为 PDF",
+    "document": {
+      "summaryTitle": "客户摘要",
+      "summaryTitleProject": "客户摘要：{project}",
+      "summarySubtitle": "AI 摘要 · {date}",
+      "summaryNote": "由 AI 模型根据此 CONSYRION AI 工作区的数据撰写，并在导出前由用户审阅。这不是 council 的结论。",
+      "chatSubtitle": "助手对话 · 导出于 {date}",
+      "chatNote": "AI 助手的回答通过只读工具来自工作区数据；模型的陈述不是事实核查。",
+      "lostCharacters": "此 PDF 无法显示部分字符（显示为 ?）。Word 文件包含完整文本。"
+    },
+    "summaryHint": "对话较长：模型不再读取最早的 {count} 条消息。摘要可保留其内容（使用你的密钥调用一次，消耗 token）。",
+    "summaryCreate": "生成摘要",
+    "summaryBusy": "正在生成摘要 …",
+    "summaryDone": "摘要已保存，涵盖之前的 {count} 条消息。",
+    "chatModeLabel": "聊天模式",
+    "modeSingle": "单个模型",
+    "modeCouncil": "Council 聊天",
+    "councilAddModel": "添加模型",
+    "councilRemoveModel": "移除 {model}",
+    "councilPickModels": "选择 2 到 4 个模型——每个模型以自己的身份回答。问题以 @模型 开头则只问该模型。",
+    "councilHint": "每个模型各自回答；@模型 只问该模型。",
+    "councilEstimate": "{n, plural, other {# 个回答}}最多约 {answers} 个 token（通常更少）· 含交叉验证最多约 {check}（交叉验证仅在点击时进行）",
+    "councilFailures": "并非所有模型都已回答：{list}",
+    "perspective": "视角",
+    "perspectiveNone": "无",
+    "perspectiveTitle": "单一视角：{role}——未经验证",
+    "perspectives": {
+      "security": "安全",
+      "cost": "成本",
+      "product": "产品",
+      "architecture": "架构",
+      "operations": "运维",
+      "legal": "法律与合规"
+    },
+    "crossCheck": "交叉核查",
+    "crossCheckBusy": "核查中 …",
+    "crossCheckConfirm": "{n, plural, other {# 个其他模型将核查}}此回答 · ≈ {tokens} 个令牌",
+    "crossCheckRun": "立即核查",
+    "crossCheckCancel": "取消",
+    "checkVerdict": {
+      "confirmed": "已确认",
+      "contradicted": "有异议",
+      "unverifiable": "无法核查"
+    },
+    "checkSummary": {
+      "confirmed": "其他模型已确认",
+      "contradicted": "有异议 – 请阅读反对意见",
+      "unverified": "未经验证"
+    },
+    "checkSensitive": "医疗、法律或安全：务必由专业人士核查",
+    "makeCouncil": "转为正式 council",
+    "makeCouncilPrompt": "把这次 council 对话转为正式 council：根据我的问题起草项目（想法和目标），把各模型一致的观点作为需求，把每个未解决的分歧作为必须核查的需求。",
+    "makeCouncilNote": "{model} 会回答一次并附带操作卡片（项目草稿、需求）。不会自动启动：你确认需求后，在表单中查看成本估算并启动 council。",
+    "limitReserveNote": "每个问题会先预留预计的令牌（简短问题约 {min}），若会超出限额则被拒绝；之后只计算实际令牌。",
+    "limitTooSmall": "此限额小于一个问题（约 {min} 个令牌）——任何问题都无法通过。"
   }
 }

@@ -3,6 +3,12 @@ import { DomainError } from "@consyrion/core";
 import {
   acceptActionProposals,
   addAssistantMessage,
+  releaseAssistantQuestion,
+  reserveAssistantQuestion,
+  settleAssistantQuestion,
+  assertAssistantBudget,
+  assertEntitlement,
+  getAssistantPreference,
   createAssistantChat,
   decryptCredentialForUse,
   getAssistantChat,
@@ -14,7 +20,8 @@ import { NextResponse } from "next/server";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
-import { runAssistant, type AssistantEvent } from "@/lib/server/assistant";
+import { assistantToolMode, estimateAnswerTokens, runAssistant, type AssistantEvent } from "@/lib/server/assistant";
+import { withCosts } from "@/lib/server/assistant-cost";
 import { assistantTools } from "@/lib/server/assistant-tools";
 import { getDb } from "@/lib/server/db";
 import { getKeyring } from "@/lib/server/keyring";
@@ -36,12 +43,21 @@ export const POST = handle(async (request: Request, { params }: Params) => {
   const content = typeof body.content === "string" ? body.content.trim() : "";
   if (!content) throw new DomainError("VALIDATION", "Ask a question");
   if (content.length > 4_000) throw new DomainError("VALIDATION", "The question is too long (max. 4000 characters)");
+  const db = await getDb();
+  // #281: without a model in the request the user's default model from the assistant settings answers.
+  if (typeof body.credentialId !== "string" || typeof body.modelId !== "string" || !body.modelId.trim()) {
+    const pref = await getAssistantPreference(db, actor);
+    if (pref.credentialId && pref.modelId) [body.credentialId, body.modelId] = [pref.credentialId, pref.modelId];
+  }
   if (typeof body.credentialId !== "string" || typeof body.modelId !== "string" || !body.modelId.trim())
     throw new DomainError("VALIDATION", "Choose a model from your AI providers");
+  // The user's own daily/monthly assistant limits (#281), checked before anything is stored or called.
+  await assertAssistantBudget(db, actor);
+  // The plan's daily question limit for the workspace (#281), set by the platform admin.
+  await assertEntitlement(db, actor.organizationId, "assistant");
   const context = body.context && typeof body.context === "object" ? (body.context as { kind?: unknown; id?: unknown; label?: unknown }) : null;
   const contextKind = typeof context?.kind === "string" ? context.kind.slice(0, 20) : null;
   const contextId = typeof context?.id === "string" ? context.id.slice(0, 60) : null;
-  const db = await getDb();
 
   // Check the key first: an unknown or foreign credential is a clear 404, not a broken chat row (500 before 06.11.26).
   const { provider, secret } = await decryptCredentialForUse(db, actor, getKeyring(), body.credentialId);
@@ -52,7 +68,24 @@ export const POST = handle(async (request: Request, { params }: Params) => {
       : (await getAssistantChat(db, actor, id)).chat;
   if (id !== "new" && (chat.credentialId !== body.credentialId || chat.modelId !== body.modelId))
     await setAssistantChatModel(db, actor, chat.id, body.credentialId, body.modelId);
-  const history = id === "new" ? [] : (await getAssistantChat(db, actor, chat.id)).messages.map((m) => ({ role: m.role, content: m.content }));
+  // #280: with a stored summary, the messages it covers are passed as that summary; second opinions stay out of the history.
+  // #241 stage 3: after a council chat (answers of several models) each answer keeps its model label, so a follow-up
+  // like "make it a council" knows who said what.
+  const earlier =
+    id === "new"
+      ? []
+      : (await getAssistantChat(db, actor, chat.id)).messages.filter((m) => !m.reviewOf && (!chat.summaryUntil || m.createdAt > chat.summaryUntil));
+  const several = new Set(earlier.filter((m) => m.role === "assistant" && m.model).map((m) => m.model)).size > 1;
+  const history = earlier.map((m) => ({ role: m.role, content: several && m.role === "assistant" && m.model ? `[${m.model}] ${m.content}` : m.content }));
+  // #510: the plan's daily question is reserved under a workspace lock before the model runs (parallel requests).
+  const reservation = await reserveAssistantQuestion(
+    db,
+    actor,
+    estimateAnswerTokens(
+      history.reduce((n, m) => n + m.content.length, 0),
+      content.length,
+    ),
+  );
   await addAssistantMessage(db, actor, chat.id, { role: "user", content });
 
   const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
@@ -72,13 +105,21 @@ export const POST = handle(async (request: Request, { params }: Params) => {
         tools: assistantTools(db, actor),
         decisionSection,
         signal: request.signal,
+        mode: assistantToolMode(),
+        summary: id === "new" ? null : chat.summary,
         onEvent,
       });
     } catch (error) {
+      // No answer, no question used (#510): the reservation is given back.
+      await releaseAssistantQuestion(db, actor, reservation);
       if (error instanceof ProviderError) throw new DomainError("PROVIDER_ERROR", `${provider}/${modelId}: ${error.message}`);
       throw error;
     }
-    const { actions } = acceptActionProposals(result.actions);
+    const { actions, rejected } = acceptActionProposals(result.actions);
+    // Dropped suggestions are logged by type and reason only (no content), so silent losses become visible (live test 08.11.26).
+    if (rejected.length) console.warn("[assistant] action suggestions dropped", JSON.stringify(rejected));
+    // Usage ledger first (ChatGPT review 08.11.26): counts toward the limits even if the chat is deleted later.
+    await settleAssistantQuestion(db, actor, reservation, result.usage);
     const message = await addAssistantMessage(db, actor, chat.id, {
       role: "assistant",
       content: result.answer,
@@ -89,7 +130,8 @@ export const POST = handle(async (request: Request, { params }: Params) => {
       inputTokens: result.usage.inputTokens,
       outputTokens: result.usage.outputTokens,
     });
-    return { chatId: chat.id, title: chat.title, message };
+    const [priced] = await withCosts(db, actor, [message]);
+    return { chatId: chat.id, title: chat.title, message: priced! };
   };
 
   if (!request.headers.get("accept")?.includes("text/event-stream")) return NextResponse.json(await ask());

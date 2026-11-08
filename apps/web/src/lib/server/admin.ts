@@ -13,14 +13,20 @@ export function platformAdminEmails(env: Record<string, string | undefined> = pr
     .filter(Boolean);
 }
 
-/** Options for `resolvePlatformAdmin`: a verified address is required whenever the server verifies addresses. */
+/**
+ * Options for `resolvePlatformAdmin`: a verified address is always required (#404). Google/GitHub sign-ins count as
+ * verified; a password account is verified through the e-mail link, which needs SMTP. Only a self-hosted server without
+ * SMTP may opt out explicitly with PLATFORM_ADMIN_ALLOW_UNVERIFIED=true – then the e-mail list alone decides, and
+ * whoever registers an unclaimed admin address first becomes admin.
+ */
 export function platformAdminOptions(env: Record<string, string | undefined> = process.env) {
-  return { requireVerifiedEmail: emailVerificationEnabled(env) };
+  const optOut = env.PLATFORM_ADMIN_ALLOW_UNVERIFIED?.trim().toLowerCase() === "true" && !emailVerificationEnabled(env);
+  return { requireVerifiedEmail: !optOut };
 }
 
 /**
- * Platform administrators are configured by e-mail (PLATFORM_ADMIN_EMAILS). When e-mail verification is on (SMTP
- * configured) the address must be verified too; otherwise anyone could register an unclaimed admin address.
+ * Platform administrators are configured by e-mail (PLATFORM_ADMIN_EMAILS) and need a verified address (see
+ * platformAdminOptions); otherwise anyone could register an unclaimed admin address.
  */
 export function isPlatformAdmin(
   user: { email: string; emailVerified?: boolean | null } | null | undefined,

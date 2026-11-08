@@ -3,7 +3,7 @@
  * uses SKIP LOCKED and lock heartbeats, and interrupted sessions resume from their last checkpoint.
  */
 import { EXECUTION_JOB, executionJobHandlers } from "@consyrion/build";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv, redactSecrets } from "@consyrion/core";
 import { startCouncilWorker, workerCapacityFromEnv } from "@consyrion/council";
 import { createDatabase } from "@consyrion/db";
 
@@ -28,7 +28,7 @@ await startCouncilWorker({
   ...capacity,
   extraHandlers: executionJobHandlers(handle.db, keyring),
   signal: controller.signal,
-  onError: (error) => console.error("[worker]", error instanceof Error ? error.message : error),
+  onError: (error) => console.error("[worker]", redactSecrets(error instanceof Error ? error.message : String(error))),
 });
 await handle.close();
 console.info("[worker] stopped");

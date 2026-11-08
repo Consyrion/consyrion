@@ -52,11 +52,61 @@ describe("app authentication", () => {
   it("only accepts installations the GitHub user can access", async () => {
     const gh = fakeGitHub({
       "POST /login/oauth/access_token": () => ({ access_token: "user-token" }),
-      "GET /user/installations": () => ({ installations: [{ id: 7, account: { login: "acme", type: "Organization" }, repository_selection: "selected" }] }),
+      "GET /user/installations": () => ({ installations: [{ id: 7, account: { login: "acme", type: "User" }, repository_selection: "selected" }] }),
+      "GET /user": () => ({ login: "Acme" }),
     });
     const fetchImpl: FetchLike = (input, init) => gh.fetchImpl(input.replace("https://github.com", "https://api.github.com"), init);
     await expect(verifyUserInstallation(config, "code", 7, fetchImpl)).resolves.toMatchObject({ accountLogin: "acme" });
     await expect(verifyUserInstallation(config, "code", 8, fetchImpl)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("refuses a personal-account installation of somebody else (#394)", async () => {
+    const gh = fakeGitHub({
+      "POST /login/oauth/access_token": () => ({ access_token: "user-token" }),
+      "GET /user/installations": () => ({ installations: [{ id: 7, account: { login: "victim", type: "User" }, repository_selection: "all" }] }),
+      "GET /user": () => ({ login: "collaborator" }),
+    });
+    const fetchImpl: FetchLike = (input, init) => gh.fetchImpl(input.replace("https://github.com", "https://api.github.com"), init);
+    await expect(verifyUserInstallation(config, "code", 7, fetchImpl)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  describe("organization installations (#394)", () => {
+    const org = (userRepos: Array<{ full_name: string; permissions: { admin: boolean } }>, installationTotal = 2) => {
+      const gh = fakeGitHub({
+        "POST /login/oauth/access_token": () => ({ access_token: "user-token" }),
+        "GET /user/installations": () => ({ installations: [{ id: 7, account: { login: "acme", type: "Organization" }, repository_selection: "selected" }] }),
+        "POST /app/installations/7/access_tokens": () => ({ token: "app-token" }),
+        "GET /installation/repositories": () => ({ total_count: installationTotal, repositories: [] }),
+        "GET /user/installations/7/repositories": () => ({ total_count: userRepos.length, repositories: userRepos }),
+      });
+      const fetchImpl: FetchLike = (input, init) => gh.fetchImpl(input.replace("https://github.com", "https://api.github.com"), init);
+      return { gh, fetchImpl };
+    };
+
+    it("accepts a user with admin rights on every repository of the installation", async () => {
+      const { gh, fetchImpl } = org([
+        { full_name: "acme/a", permissions: { admin: true } },
+        { full_name: "acme/b", permissions: { admin: true } },
+      ]);
+      await expect(verifyUserInstallation(config, "code", 7, fetchImpl)).resolves.toMatchObject({ accountLogin: "acme", accountType: "Organization" });
+      // The repository count comes from the app's own token, not from the user.
+      expect(gh.calls.find((c) => c.path.startsWith("/installation/repositories"))?.auth).toBe("Bearer app-token");
+    });
+
+    it("refuses a user who can only read one repository", async () => {
+      const { fetchImpl } = org([{ full_name: "acme/a", permissions: { admin: false } }]);
+      await expect(verifyUserInstallation(config, "code", 7, fetchImpl)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("refuses a user who is admin of some but not all repositories", async () => {
+      const { fetchImpl } = org([{ full_name: "acme/a", permissions: { admin: true } }]);
+      await expect(verifyUserInstallation(config, "code", 7, fetchImpl)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("refuses an installation without repositories", async () => {
+      const { fetchImpl } = org([], 0);
+      await expect(verifyUserInstallation(config, "code", 7, fetchImpl)).rejects.toMatchObject({ code: "VALIDATION" });
+    });
   });
 });
 
@@ -235,6 +285,24 @@ describe("repository context for Decision councils", () => {
     expect(suggested).not.toContain("src/x.ts");
   });
 
+  it("suggests sub-folder READMEs and docs only when their path matches the brief (#242)", () => {
+    const files = [
+      { path: "README.md", size: 500, sha: "s" },
+      { path: "CHANGELOG.md", size: 300, sha: "s" },
+      { path: "docs/messenger.md", size: 400, sha: "s" },
+      { path: "web-landing/README.md", size: 400, sha: "s" },
+      { path: "docs/legal/README.md", size: 400, sha: "s" },
+      { path: "docs/latency.md", size: 400, sha: "s" },
+      { path: "audio/jitter/README.md", size: 400, sha: "s" },
+    ];
+    const suggested = suggestContextFiles(files, "Wie senken wir die Latenz und den Jitter beim gemeinsamen Musizieren?");
+    expect(suggested).toEqual(expect.arrayContaining(["README.md", "docs/latency.md", "audio/jitter/README.md"]));
+    expect(suggested).not.toEqual(expect.arrayContaining(["docs/messenger.md"]));
+    for (const unrelated of ["docs/messenger.md", "web-landing/README.md", "docs/legal/README.md"]) expect(suggested).not.toContain(unrelated);
+    // Top-level documentation stays suggested even without a match.
+    expect(suggested).toContain("CHANGELOG.md");
+  });
+
   it("suggests the files the brief names first, also code (night test 07.11.26)", () => {
     const files = [
       { path: "README.md", size: 500, sha: "s" },
@@ -262,5 +330,19 @@ describe("repository context for Decision councils", () => {
     expect(doc).toContain("- logo.png");
     expect(doc).toContain("## File: docs/latency.md\n\n```\n# Latency\nRound trip through the hub 13 ms.\n```");
     expect(doc).not.toContain("ghp_");
+  });
+});
+
+describe("secret filter for repository snapshots (#408)", () => {
+  it("skips more secret files and credential-like content", async () => {
+    const { isReadablePath } = await import("../src");
+    for (const path of ["infra/prod.tfvars", "terraform.tfstate", "terraform.tfstate.backup", ".netrc", ".git-credentials", "web/.htpasswd", "kubeconfig", ".kube/config", ".docker/config.json", "keys/service-account-prod.json", "id_ecdsa"])
+      expect(isReadablePath(path), path).toBe(false);
+    for (const path of ["src/config.ts", "docs/terraform.md", "service.json"]) expect(isReadablePath(path), path).toBe(true);
+    expect(containsSecret(`const key = "sk_live_${"a".repeat(24)}"`)).toBe(true);
+    expect(containsSecret("https://hooks.slack.com/services/T000/B000/XXXXXXXXXXXXXXXXXXXXXXXX")).toBe(true);
+    expect(containsSecret("token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U")).toBe(true);
+    expect(containsSecret('{ "type": "service_account", "private_key_id": "0123456789abcdef0123456789abcdef" }')).toBe(true);
+    expect(containsSecret("const answer = 42; // stripe test key goes in env")).toBe(false);
   });
 });

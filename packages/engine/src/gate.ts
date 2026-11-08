@@ -46,10 +46,15 @@ function statusOf(n: number, pass: number, fail: number): RequirementStatus {
  */
 export const MIN_INDEPENDENT_EVALUATORS = 2;
 
-function feasibilityOf(content: unknown, n: number, statuses: RequirementStatus[]): GateProposalResult["feasibility"] {
+/**
+ * #249 part 2 (owner decision 08.11.26, gate version 3): a measurement check (only measuring the running implementation
+ * can prove it) is never met by a plan. With such a requirement in the round a proposal is at best an architecture
+ * candidate – needs_verification, never qualified – however many evaluators confirmed the plan.
+ */
+function feasibilityOf(content: unknown, n: number, statuses: RequirementStatus[], measurementPending = false): GateProposalResult["feasibility"] {
   if (formallyIncomplete(content)) return "incomplete";
   if (statuses.some((s) => s === "FAIL")) return "fail";
-  if (n < MIN_INDEPENDENT_EVALUATORS || statuses.some((s) => s !== "PASS")) return "needs_verification";
+  if (n < MIN_INDEPENDENT_EVALUATORS || measurementPending || statuses.some((s) => s !== "PASS")) return "needs_verification";
   return "qualified";
 }
 
@@ -90,27 +95,43 @@ function median(values: number[]): number {
   return v.length % 2 ? v[mid]! : (v[mid - 1]! + v[mid]!) / 2;
 }
 
-function requirementResult(requirementId: string, expected: string[], raw: RawRequirementCheck[], measure?: GateMeasure): GateRequirementResult {
+/**
+ * Contract 6: one statement per independence group. All instances of a group are judged together with the same rule
+ * as one evaluator's repeated checks – any FAIL is FAIL, PASS only when every stated check of the group is a confirmed
+ * PASS, otherwise UNKNOWN; open only when no instance gave a valid check. The lists name every instance of the group,
+ * the counts are groups.
+ */
+function requirementResult(requirementId: string, units: string[][], raw: RawRequirementCheck[], measure?: GateMeasure): GateRequirementResult {
   const checks = measure ? raw.map((c) => measuredCheck(c, measure)) : raw;
+  const expected = units.flat();
   const pass: string[] = [];
   const fail: string[] = [];
   const unknown: string[] = [];
   const open: string[] = [];
   const conflicts: string[] = [];
-  for (const evaluator of expected) {
-    const own = checks.filter((c) => c.evaluatorParticipantId === evaluator);
+  let passUnits = 0;
+  let failUnits = 0;
+  for (const unit of units) {
+    const own = checks.filter((c) => unit.includes(c.evaluatorParticipantId));
     const { statement, conflict } = statementOf(own);
-    if (conflict) conflicts.push(evaluator);
-    if (statement === "PASS") pass.push(evaluator);
-    else if (statement === "FAIL") fail.push(evaluator);
-    else if (statement === "UNKNOWN") unknown.push(evaluator);
-    else open.push(evaluator);
+    if (conflict) conflicts.push(...unit);
+    if (statement === "PASS") {
+      pass.push(...unit);
+      passUnits++;
+    } else if (statement === "FAIL") {
+      fail.push(...unit);
+      failUnits++;
+    } else if (statement === "UNKNOWN") unknown.push(...unit);
+    else open.push(...unit);
   }
-  const result: GateRequirementResult = { requirementId, status: statusOf(expected.length, pass.length, fail.length), pass, fail, unknown, open, conflicts };
+  const result: GateRequirementResult = { requirementId, status: statusOf(units.length, passUnits, failUnits), pass, fail, unknown, open, conflicts };
   if (measure) {
     // One range per evaluator (its widest stated range), so a repeated check does not count twice in the median.
     const ranges = expected.flatMap((evaluator) => {
-      const own = raw.filter((c) => c.evaluatorParticipantId === evaluator).map(validEstimate).filter((e): e is { low: number; high: number } => e !== null);
+      const own = raw
+        .filter((c) => c.evaluatorParticipantId === evaluator)
+        .map(validEstimate)
+        .filter((e): e is { low: number; high: number } => e !== null);
       return own.length ? [{ low: Math.min(...own.map((e) => e.low)), high: Math.max(...own.map((e) => e.high)) }] : [];
     });
     // Why an UNKNOWN evaluator is UNKNOWN: its range crosses the limit, or it gave no usable estimate at all.
@@ -154,30 +175,31 @@ function rangeText(e: NonNullable<GateRequirementResult["estimate"]>): string {
   return `estimates ${exact(e.low)}–${exact(e.high)}${unit} (median ${exact(e.median)}), limit ${limit}`;
 }
 
-function causesOf(requirements: GateRequirementResult[], n: number): string[] {
+function causesOf(requirements: GateRequirementResult[], n: number, g: (ids: string[]) => number): string[] {
   const causes: string[] = [];
   for (const r of requirements) {
     if (r.estimate && r.status !== "PASS") {
       const e = r.estimate;
       // Measured requirement: the numbers say why (model estimates, not a guarantee).
-      const who = r.status === "FAIL" || r.status === "DISPUTED" ? `${r.fail.length} of ${n} evaluators expect the limit to be missed` : null;
+      const who = r.status === "FAIL" || r.status === "DISPUTED" ? `${g(r.fail)} of ${n} evaluators expect the limit to be missed` : null;
       const parts = [
         who,
         e.straddling ? `${e.straddling} of ${n} evaluators' ranges reach across the limit` : null,
         e.withoutEstimate ? `${e.withoutEstimate} of ${n} evaluators gave no usable estimate` : null,
-        r.open.length ? `${r.open.length} of ${n} evaluators gave no valid answer` : null,
+        g(r.open) ? `${g(r.open)} of ${n} evaluators gave no valid answer` : null,
       ].filter(Boolean);
-      causes.push(`${r.requirementId} ${r.status === "FAIL" ? "not met" : r.status === "DISPUTED" ? "disputed" : "not confirmed"}: ${rangeText(r.estimate)}; ${parts.join("; ")} (model estimates).`);
+      causes.push(
+        `${r.requirementId} ${r.status === "FAIL" ? "not met" : r.status === "DISPUTED" ? "disputed" : "not confirmed"}: ${rangeText(r.estimate)}; ${parts.join("; ")} (model estimates).`,
+      );
       continue;
     }
-    if (r.status === "FAIL") causes.push(`${r.requirementId} not met according to ${r.fail.length} of ${n} evaluators (model judgement).`);
-    else if (r.status === "DISPUTED")
-      causes.push(`${r.requirementId} disputed: ${r.pass.length} of ${n} evaluators confirm it, ${r.fail.length} found it not met.`);
+    if (r.status === "FAIL") causes.push(`${r.requirementId} not met according to ${g(r.fail)} of ${n} evaluators (model judgement).`);
+    else if (r.status === "DISPUTED") causes.push(`${r.requirementId} disputed: ${g(r.pass)} of ${n} evaluators confirm it, ${g(r.fail)} found it not met.`);
     else if (r.status === "UNKNOWN") {
       // Named separately (#181 live test): "could not confirm" is a stated judgement, "no valid answer" a missing check.
       const parts = [
-        r.unknown.length ? `${r.unknown.length} of ${n} evaluators could not confirm it` : null,
-        r.open.length ? `${r.open.length} of ${n} evaluators gave no valid answer` : null,
+        g(r.unknown) ? `${g(r.unknown)} of ${n} evaluators could not confirm it` : null,
+        g(r.open) ? `${g(r.open)} of ${n} evaluators gave no valid answer` : null,
       ].filter(Boolean);
       causes.push(`${r.requirementId} not confirmed: ${parts.join("; ")}.`);
     }
@@ -187,55 +209,90 @@ function causesOf(requirements: GateRequirementResult[], n: number): string[] {
 
 export function evaluateGate({ round, checks, deliveredEvaluatorIds }: GateInput): GateResult {
   const requirementIds = [...new Set(round.requirementIds)];
+  const groupOf = (id: string) => round.participantGroups?.[id] ?? `participant:${id}`;
+  const countGroups = (ids: string[]) => new Set(ids.map(groupOf)).size;
   const evaluated = round.proposals.map((p) => {
-    const expected = [...new Set(p.expectedEvaluatorIds.filter((id) => id !== p.authorParticipantId))];
+    // Contract 6: instances of the author's independence group never evaluate its proposal; the rest count per group.
+    const authorGroup = groupOf(p.authorParticipantId);
+    const expected = [...new Set(p.expectedEvaluatorIds.filter((id) => id !== p.authorParticipantId && groupOf(id) !== authorGroup))];
+    const units = [...new Set(expected.map(groupOf))].map((group) => expected.filter((id) => groupOf(id) === group));
+    const n = units.length;
     const counted = checks.filter(
       (c) => c.valid && c.proposalId === p.proposalId && c.revisionId === p.revisionId && expected.includes(c.evaluatorParticipantId),
     );
-    const requirements = requirementIds.map((id) =>
-      requirementResult(
+    const buildChecks = new Set(round.buildChecks ?? []);
+    const measurementChecks = new Set(round.measurementChecks ?? []);
+    const requirements = requirementIds.map((id) => {
+      const result: GateRequirementResult = requirementResult(
         id,
-        expected,
+        units,
         counted.filter((c) => c.requirementId === id),
         round.measures?.[id],
-      ),
-    );
+      );
+      if (buildChecks.has(id)) result.buildVerification = true;
+      if (measurementChecks.has(id)) result.measurementPending = true;
+      return result;
+    });
+    const measurementPending = requirements.some((r) => r.measurementPending);
     const authorDeclines = (p.content as { solvesRequirements?: unknown } | null)?.solvesRequirements === false;
     const causes: string[] = [];
     const feasibility = feasibilityOf(
       p.content,
-      expected.length,
+      n,
       requirements.map((r) => r.status),
+      measurementPending,
     );
     if (feasibility === "incomplete") causes.push("Incomplete draft: no architecture or no named components – nothing that could be built.");
-    else causes.push(...causesOf(requirements, expected.length));
-    if (expected.length === 0) causes.push("No independent evaluator was expected for this proposal.");
+    else causes.push(...causesOf(requirements, n, countGroups));
+    if (n === 0) causes.push("No independent evaluator was expected for this proposal.");
     // Every check passed, but too few evaluators gave them: the only reason this proposal is not qualified.
-    const limitedReview =
-      feasibility === "needs_verification" && expected.length > 0 && requirements.length > 0 && requirements.every((r) => r.status === "PASS");
+    const allPass = feasibility === "needs_verification" && n > 0 && requirements.length > 0 && requirements.every((r) => r.status === "PASS");
+    const limitedReview = allPass && n < MIN_INDEPENDENT_EVALUATORS;
     if (limitedReview)
       causes.push(
-        `Limited review: only ${expected.length} independent evaluator checked this proposal and confirmed every requirement; a recommendation needs at least ${MIN_INDEPENDENT_EVALUATORS}.`,
+        `Limited review: only ${n} independent evaluator checked this proposal and confirmed every requirement; a recommendation needs at least ${MIN_INDEPENDENT_EVALUATORS}.`,
+      );
+    // Enough evaluators confirmed everything, but a measurement check only has its plan confirmed (#249 part 2).
+    const architectureCandidate = allPass && !limitedReview && measurementPending;
+    if (architectureCandidate)
+      causes.push(
+        `Architecture candidate – performance proof open: ${requirements
+          .filter((r) => r.measurementPending)
+          .map((r) => r.requirementId)
+          .join(", ")} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement.`,
       );
     if (authorDeclines) causes.push("The author states that this proposal does not meet every requirement (not decisive on its own).");
     // Conflict-of-interest signal: every non-PASS statement of a not-qualified proposal comes from one evaluator and
     // nothing is open. The verdict uses it when that evaluator authored the proposal that would win instead. The
     // author's own "does not solve" does not switch this protection off – otherwise it would be a veto again (#181).
     const blockers = new Set(requirements.flatMap((r) => (r.status === "PASS" ? [] : [...r.fail, ...r.unknown])));
+    // Contract 6: one blocking group; named by its instance that authored a proposal (the conflict of interest), else
+    // by its first instance.
+    const authors = new Set(round.proposals.map((x) => x.authorParticipantId));
     const soleBlocker =
-      (feasibility === "fail" || feasibility === "needs_verification") && blockers.size === 1 && requirements.every((r) => r.open.length === 0)
-        ? [...blockers][0]!
+      (feasibility === "fail" || feasibility === "needs_verification") && countGroups([...blockers]) === 1 && requirements.every((r) => r.open.length === 0)
+        ? ([...blockers].find((id) => authors.has(id)) ?? [...blockers][0]!)
         : null;
     // Would the missing statements change the result if they were given as PASS? Then this proposal was not compared
     // on equal terms – also when its evaluators delivered an evaluation but left checks for it out.
     const bestCase = feasibilityOf(
       p.content,
-      expected.length,
-      requirements.map((r) => statusOf(expected.length, r.pass.length + r.open.length, r.fail.length)),
+      n,
+      // Without the measurement rule: a missing evaluator that decides between "architecture candidate" and "not
+      // confirmed" also means the proposals were not compared on equal terms (stricter, never looser).
+      requirements.map((r) => statusOf(n, countGroups(r.pass) + countGroups(r.open), countGroups(r.fail))),
     );
     const openEvaluators = bestCase === feasibility ? [] : [...new Set(requirements.flatMap((r) => r.open))];
     return {
-      result: { proposalId: p.proposalId, feasibility, requirements, causes: feasibility === "qualified" ? [] : causes, soleBlocker, limitedReview },
+      result: {
+        proposalId: p.proposalId,
+        feasibility,
+        requirements,
+        causes: feasibility === "qualified" ? [] : causes,
+        soleBlocker,
+        limitedReview,
+        ...(round.measurementChecks ? { architectureCandidate } : {}),
+      },
       openEvaluators,
     };
   });
@@ -248,7 +305,8 @@ export function evaluateGate({ round, checks, deliveredEvaluatorIds }: GateInput
   for (const p of round.proposals) {
     const result = proposals.find((r) => r.proposalId === p.proposalId)!;
     if (result.feasibility === "fail" || result.feasibility === "incomplete") continue;
-    for (const id of p.expectedEvaluatorIds) if (id !== p.authorParticipantId && !delivered.has(id)) missing.add(id);
+    const authorGroup = groupOf(p.authorParticipantId);
+    for (const id of p.expectedEvaluatorIds) if (id !== p.authorParticipantId && groupOf(id) !== authorGroup && !delivered.has(id)) missing.add(id);
   }
   const comparisonComplete = missing.size === 0;
   return {
@@ -272,13 +330,19 @@ function summaryOf(proposals: GateProposalResult[]): string | null {
     limited > 0
       ? `${limited === 1 ? "1 proposal" : `${limited} proposals`} passed every check, but too few independent evaluators took part (at least ${MIN_INDEPENDENT_EVALUATORS} per proposal are needed for a recommendation): ${limited === 1 ? "a provisional favourite" : "provisional favourites"}, not a recommendation. `
       : "";
+  const candidates = proposals.filter((p) => p.architectureCandidate).length;
+  const architecture =
+    candidates > 0
+      ? `${candidates === 1 ? "1 proposal" : `${candidates} proposals`} passed every check, but a requirement can only be confirmed by measuring the running implementation: ${candidates === 1 ? "an architecture candidate" : "architecture candidates"} with the performance proof open, not a recommendation. `
+      : "";
   const text = summaryText(proposals);
-  return text ? breadth + text : breadth.trim() || null;
+  const lead = breadth + architecture;
+  return text ? lead + text : lead.trim() || null;
 }
 
 function summaryText(all: GateProposalResult[]): string | null {
-  // A provisional favourite is named in its own sentence; the rest speaks about the other proposals only.
-  const proposals = all.filter((p) => !p.limitedReview);
+  // A provisional favourite or an architecture candidate is named in its own sentence; the rest speaks about the others.
+  const proposals = all.filter((p) => !p.limitedReview && !p.architectureCandidate);
   if (proposals.length === 0) return null;
   const other = proposals.length < all.length ? "other " : "";
   const unmet = proposals.filter((p) => p.feasibility === "fail").length;

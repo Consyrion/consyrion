@@ -1,5 +1,5 @@
 import { createSession, listSessions, type SessionInput } from "@consyrion/council";
-import { beginIdempotency, completeIdempotency, idempotencyRequestHash, releaseIdempotency } from "@consyrion/db";
+import { beginIdempotency, completeIdempotency, idempotencyRequestHash, releaseIdempotency, recordClientCouncilStart } from "@consyrion/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
@@ -30,6 +30,8 @@ export const POST = handle(async (request: Request, { params }: Params) => {
   try {
     // Model ids are checked against the live list of each selected key before anything runs (#144).
     const session = await createSession(db, actor, projectId, input, modelCatalog(db, actor));
+    // #429: started with an API token (integration or full) = a client, counted in the daily client budget.
+    if (request.headers.get("authorization")?.startsWith("Bearer ")) await recordClientCouncilStart(db, actor, session.id, "api");
     if (reservation) await completeIdempotency(db, reservation.id, session.id);
     return NextResponse.json({ session }, { status: 201 });
   } catch (error) {

@@ -35,6 +35,7 @@ version they belong to (`requirement_list_id`, null for older runs). See `docs/r
 | M4 Build | `development_plan`, `development_task`, `agent_execution`, `code_artifact`, `test_run`, `code_review` |
 | M5 GitHub | `github_integration` (plus repository columns on `project` and `development_plan`) |
 | M6 SaaS | `plan_definition`, `subscription`, `invitation`, `api_token`, `model_price_hint` – no AI credits (BYOK only, #30) |
+| Skills (#363, #368) | `skill` (+ SkillHub: `public_version`, `slug`, `listed`, `hidden_at/_reason`), `skill_version` (immutable content + hash; SkillHub review: `review_status`, `scan_result`, `ai_review`, licence, reviewer, `published_at`), `skill_publisher` (handle per account, suspension), `skill_report`, `skill_moderation_log` (audit of every review step) – rules in `packages/core/src/skill-publication.ts` |
 | Feedback (#295) | `feedback` (user or visitor e-mail, kind, subject, text, page/locale/agent/app version, state), `feedback_reply` – platform-wide, read by platform admins only (`docs/feedback.md`) |
 
 Design rules for all tables:

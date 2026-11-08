@@ -9,6 +9,11 @@ import { getDb } from "@/lib/server/db";
 import { requireGitHubConfig } from "@/lib/server/github";
 import { rateLimit } from "@/lib/server/rate-limit";
 
+type ProjectDocument = Awaited<ReturnType<typeof listDocuments>>[number];
+type GithubOrigin = Extract<NonNullable<ProjectDocument["origin"]>, { kind: "github" }>;
+/** The project's repository context document (not the files an MCP client sent, #331). */
+const isGithubContext = (d: ProjectDocument): d is ProjectDocument & { origin: GithubOrigin } => d.origin?.kind === "github";
+
 /** The linked repository of a project with a read-only client scoped to it. */
 async function linked(db: Database, actor: ActorContext, projectId: string) {
   const project = await getProject(db, actor, projectId);
@@ -32,7 +37,7 @@ export const GET = handle(async (_request: Request, { params }: { params: Promis
   const { project, client, repo } = await linked(db, actor, projectId);
   const tree = await readRepositoryTree(client, repo);
   const brief = [project.brief?.idea, project.brief?.goal, project.brief?.requirements].filter(Boolean).join("\n");
-  const current = (await listDocuments(db, actor, projectId)).find((d) => d.origin?.kind === "github") ?? null;
+  const current = (await listDocuments(db, actor, projectId)).find(isGithubContext) ?? null;
   return NextResponse.json({
     repository: repo.fullName,
     branch: repo.defaultBranch,

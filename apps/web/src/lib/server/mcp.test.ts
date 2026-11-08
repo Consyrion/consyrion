@@ -100,7 +100,7 @@ describe("MCP endpoint", () => {
       return ((await res.json()) as { result: { tools: Array<{ name: string }> } }).result.tools.map((t) => t.name);
     };
     const readTools = await names(tokens.read);
-    expect(readTools).toEqual(["list_projects", "list_decisions", "get_decision", "list_open_steps", "list_models", "get_requirements", "preview_council"]);
+    expect(readTools).toEqual(["list_projects", "list_decisions", "get_decision", "list_open_steps", "list_models", "get_requirements", "preview_council", "list_skills"]);
     const all = await names(tokens.integration);
     expect(all).toEqual([...readTools, "ask_consyrion", "create_project_draft", "update_brief", "propose_requirements", "start_council"]);
     expect(all.some((n) => /approve|reject|build|delete|archive|key|billing|member|confirm/.test(n))).toBe(false);
@@ -131,6 +131,14 @@ describe("MCP endpoint", () => {
     await expect(ask.run({ question: "Postgres oder SQLite?", context: "Sync-Dienst", tokenBudget: 100_000 })).rejects.toThrow(/participants/);
   });
 
+  it("ask_consyrion accepts file excerpts (#331): path + content, at most 20, no other fields", async () => {
+    const actor = await resolveActor(handle.db, "u", orgId);
+    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrion")!;
+    const files = (ask.inputSchema.properties as Record<string, { maxItems?: number; items?: { required?: string[]; additionalProperties?: boolean } }>).files!;
+    expect(files.maxItems).toBe(20);
+    expect(files.items).toMatchObject({ required: ["path", "content"], additionalProperties: false });
+  });
+
   it("a refused ask_consyrion start leaves no active project behind (QA 07.11.26)", async () => {
     const actor = await resolveActor(handle.db, "u", orgId);
     const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrion")!;
@@ -148,5 +156,15 @@ describe("MCP endpoint", () => {
       }),
     ).rejects.toBeDefined();
     expect(await active()).toBe(before);
+  });
+
+  it("refuses batches above 20 messages (#405)", async () => {
+    await setSubscriptionPlan(handle.db, "admin", orgId, "pro");
+    const batch = Array.from({ length: 21 }, (_, i) => ({ jsonrpc: "2.0", id: i, method: "ping" }));
+    const response = await rpc(tokens.read, batch);
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: { code: number } }).error.code).toBe(-32600);
+    const ok = await rpc(tokens.read, batch.slice(0, 2));
+    expect(ok.status).toBe(200);
   });
 });

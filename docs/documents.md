@@ -25,7 +25,9 @@ At most 10 documents per project. The text extraction runs on the server (`packa
 
 The stored size (`sizeBytes`, shown as "kB text") is the size of the text the models read; the cost preview uses it.
 The audit event `document.uploaded` also records the size of the uploaded file. An Office file is unpacked only up to
-50 MB (protection against zip bombs).
+50 MB (protection against zip bombs): the bytes really inflated are counted while streaming and the read stops at the
+limit, because the sizes a ZIP file declares can be forged (#401). Uploads are refused by their `Content-Length` before
+the body is buffered, limited to 10 per user and minute, and Caddy caps every request body at 20 MB.
 
 ## Images: described first
 
@@ -58,8 +60,9 @@ context for councils*, shown when a repository is linked and the GitHub App is c
 
 1. *Choose files from the repository* lists the readable text files of the default branch at its current commit
    (the snapshot filters apply: no build output, dependencies, binaries or secret-looking paths; at most 100 kB per
-   file). README-like files and Markdown documentation whose path matches the brief are preselected up to about
-   60 kB – a deterministic suggestion, no model decides what is read.
+   file). Files the brief names, top-level README-like files and Markdown documentation whose path matches the brief
+   are preselected up to about 60 kB – a deterministic suggestion, no model decides what is read. Documentation in
+   sub-folders without a match (e.g. `docs/legal/README.md` for a latency question) is not suggested (#242).
 2. *Use as context* reads exactly those files at that commit (refused if the branch moved meanwhile), leaves out files
    with credential-like content and names them, and stores **one** document `Repository owner_name @ sha.md`: header
    with repository and commit, the file tree (first 400 paths), then each file. At most 60 files and 180 kB.
@@ -68,6 +71,20 @@ context for councils*, shown when a repository is linked and the GitHub App is c
    state, so a new context means confirming the requirements again; a running council keeps the one it started with.
 4. A new context replaces the previous one. The token use shows on the start screen: the context is read by every
    model call (about 4 characters per token).
+5. **Saved state (#242):** once saved, the section shows it at the top without reading the repository again –
+   "Saved: owner/repo @ sha · n files · size · ≈ tokens per model call" – with *Change* (reload the list, the saved
+   selection stays chosen) and *Remove* (asks first; deletes the context document). Saving asks first too, because the
+   requirements must be confirmed again; success and errors appear next to the buttons and the list closes after
+   saving. If the branch moved since the saved commit, the list says so ("saved → current") and saving updates the
+   context to the new commit.
 
 API: `GET /api/projects/{id}/repository/context` (files, suggestion, current context) and `POST` with
 `{ commitSha, paths }`. Issues of the repository are not read yet (the GitHub App has no `issues:read` permission).
+
+## Files sent by an MCP client (#331)
+
+`ask_consyrion` may carry file excerpts (`files: [{ path, content }]`, ≤ 20 files, ≤ 200 kB together). They are stored
+like the repository context – one generated Markdown document with a section per file, `role: "context"`, never a
+source of requirements – with origin `{ kind: "client", client: "mcp", paths }` (`addClientFileContext` in
+`packages/db/src/repositories/documents.ts`). It counts toward the 10 documents per project. See `docs/mcp.md`.
+

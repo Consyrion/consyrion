@@ -10,7 +10,7 @@ export const GET = handle(async () => {
 });
 
 export const POST = handle(async (request: Request) => {
-  const actor = await requireActor();
+  const actor = await requireActor({ sessionOnly: true });
   const body = (await readJson(request)) as { name?: string; days?: number; scope?: string };
   // New tokens are integration tokens unless full access is asked for explicitly (#101).
   const result = await createApiToken(await getDb(), actor, { name: String(body.name ?? ""), days: Number(body.days ?? 90), scope: body.scope });

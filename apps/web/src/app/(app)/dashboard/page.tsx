@@ -1,9 +1,9 @@
 import { getExecutionView, listExecutions } from "@consyrion/build";
 import { getSessionView, listSessionParticipants, listSessions } from "@consyrion/council";
 import { can, COUNCIL_PHASE_LABELS, COUNCIL_PHASES, type CouncilPhase } from "@consyrion/core";
-import { listCredentials, listProjects } from "@consyrion/db";
+import { ensureDemoProject, listCredentials, listProjects } from "@consyrion/db";
 import { sql } from "@consyrion/db/sql";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ActivityNetwork } from "@/components/dashboard/activity-network";
@@ -144,6 +144,8 @@ function PanelHeading({ title, href, children }: { title: string; href?: string;
 
 export default async function DashboardPage() {
   const actor = await requirePageActor();
+  // Owner decision 08.11.26: every workspace gets one read-only demo project the first time it opens the app.
+  await ensureDemoProject(await getDb(), actor, await getLocale());
   const t = await getTranslations("dashboard");
   const tStatus = await getTranslations("decisions.status");
   const statusOf = (status: string) => ({ text: tStatus.has(status) ? tStatus(status) : status, tone: STATUS_TONE[status] ?? ("neutral" as const) });

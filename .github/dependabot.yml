@@ -1,0 +1,26 @@
+# Dependency updates (#397). Security updates are opened right away; regular version updates weekly and grouped,
+# so they do not flood the pull request list. Merging stays a human/agent decision after green CI.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Types must match what actually runs: Node 24 (.nvmrc) and the extension's minimum VS Code (engines.vscode in
+      # apps/vscode/package.json – vsce refuses @types/vscode newer than that). Raise these together with the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/vscode"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

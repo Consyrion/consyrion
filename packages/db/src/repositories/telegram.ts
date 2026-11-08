@@ -31,6 +31,9 @@ export async function enableTelegramInbound(db: Database, ctx: ActorContext, key
   assertCan(ctx.role, "credential:write");
   assertCan(ctx.role, "decision:run");
   const row = await telegramConnection(db, ctx, connectionId);
+  // #408: questions run as the person who enables them, so only the person who connected this chat may do it –
+  // otherwise an admin could connect their own chat and have an owner switch it on, then act as that owner.
+  if (row.createdById !== ctx.userId) throw new DomainError("FORBIDDEN", "Only the person who connected this Telegram chat can switch on questions");
   const chatId = row.config.chatId ?? "";
   if (!/^\d{3,20}$/.test(chatId))
     throw new DomainError(
@@ -145,6 +148,7 @@ export async function finishedTelegramRequests(db: Database) {
       userId: telegramRequest.userId,
       connectionId: telegramRequest.connectionId,
       sessionId: telegramRequest.sessionId,
+      question: telegramRequest.question,
       sessionStatus: councilSession.status,
     })
     .from(telegramRequest)

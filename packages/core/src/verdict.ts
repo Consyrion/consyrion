@@ -69,6 +69,13 @@ export interface VerdictConfig {
    * feasibility gate stays one evaluator, one check – a single strong model must not overrule a hard requirement.
    */
   evaluatorWeights?: Readonly<Record<string, number>>;
+  /**
+   * Independence group per participant (user decision 08.11.26, `independenceKey`): instances of one model through
+   * different keys share a group. A group is ONE voice – its instances' weights are split among them, it never scores
+   * or ranks a proposal written by its own group, and it counts once as an independent evaluator. Missing = every
+   * participant its own group (the behaviour before).
+   */
+  evaluatorGroups?: Readonly<Record<string, string>>;
 }
 
 export interface ProposalVerdict {
@@ -218,6 +225,15 @@ function evaluatorWeight(config: VerdictConfig, participantId: string) {
   return typeof w === "number" && Number.isFinite(w) ? Math.min(10, Math.max(1, Math.round(w))) : 1;
 }
 
+const groupOf = (config: VerdictConfig, participantId: string) => config.evaluatorGroups?.[participantId] ?? participantId;
+
+/** Weight of one instance as a share of its group's voice: its own weight divided by the instances of its group. */
+function voiceWeight(config: VerdictConfig, participantId: string) {
+  const group = groupOf(config, participantId);
+  const size = config.evaluatorGroups ? Object.values(config.evaluatorGroups).filter((g) => g === group).length : 1;
+  return evaluatorWeight(config, participantId) / Math.max(1, size);
+}
+
 function aggregateWith(
   proposals: ReadonlyArray<ProposalInput>,
   scores: ReadonlyArray<ScoreInput>,
@@ -233,13 +249,16 @@ function aggregateWith(
   extraIssues: ReadonlyArray<ConfidenceIssue> = [],
   gate?: RequirementGate,
 ): VerdictResult {
-  const independent = scores.filter((s) => s.evaluatorParticipantId !== s.authorParticipantId);
+  // An instance of the author's model is no independent evaluator of that proposal (user decision 08.11.26).
+  const independent = scores.filter((s) => groupOf(config, s.evaluatorParticipantId) !== groupOf(config, s.authorParticipantId));
   const borda = new Map<string, number>();
-  const meanVoteWeight = votes.length ? votes.reduce((a, v) => a + evaluatorWeight(config, v.evaluatorParticipantId), 0) / votes.length : 1;
+  const meanVoteWeight = votes.length ? votes.reduce((a, v) => a + voiceWeight(config, v.evaluatorParticipantId), 0) / votes.length : 1;
   for (const vote of votes) {
-    const ranked = vote.ranking.filter((id) => proposals.some((p) => p.proposalId === id && p.authorParticipantId !== vote.evaluatorParticipantId));
+    const ranked = vote.ranking.filter((id) =>
+      proposals.some((p) => p.proposalId === id && groupOf(config, p.authorParticipantId) !== groupOf(config, vote.evaluatorParticipantId)),
+    );
     // Relative to the mean weight of the voters, so equal weights give exactly the plain Borda points.
-    const w = evaluatorWeight(config, vote.evaluatorParticipantId) / meanVoteWeight;
+    const w = voiceWeight(config, vote.evaluatorParticipantId) / meanVoteWeight;
     ranked.forEach((id, index) => borda.set(id, (borda.get(id) ?? 0) + (ranked.length - index - 1) * w));
   }
 
@@ -247,7 +266,7 @@ function aggregateWith(
     .sort((a, b) => a.proposalId.localeCompare(b.proposalId))
     .map(({ proposalId, authorParticipantId, solvesRequirements }) => {
       const own = independent.filter((s) => s.proposalId === proposalId);
-      const evaluators = new Set(own.map((s) => s.evaluatorParticipantId)).size;
+      const evaluators = new Set(own.map((s) => groupOf(config, s.evaluatorParticipantId))).size;
       const criterionMeans: Partial<Record<Criterion, number>> = {};
       const criterionSpread: Partial<Record<Criterion, number>> = {};
       let total = 0;
@@ -260,8 +279,8 @@ function aggregateWith(
           continue;
         }
         // Weighted mean (#140); with equal weights exactly the plain mean.
-        const weightSum = rows.reduce((a, s) => a + evaluatorWeight(config, s.evaluatorParticipantId), 0);
-        const mean = rows.reduce((a, s) => a + s.score * evaluatorWeight(config, s.evaluatorParticipantId), 0) / weightSum;
+        const weightSum = rows.reduce((a, s) => a + voiceWeight(config, s.evaluatorParticipantId), 0);
+        const mean = rows.reduce((a, s) => a + s.score * voiceWeight(config, s.evaluatorParticipantId), 0) / weightSum;
         criterionMeans[criterion] = roundScore(mean);
         criterionSpread[criterion] = Math.max(...values) - Math.min(...values);
         total += (mean * config.weights[criterion]) / 100;
@@ -287,7 +306,7 @@ function aggregateWith(
         else if (!implementable) reasons.push(...entry.causes.map((cause) => `Not qualified: ${cause}`));
       } else {
         const checks = votes
-          .filter((v) => v.evaluatorParticipantId !== authorParticipantId)
+          .filter((v) => groupOf(config, v.evaluatorParticipantId) !== groupOf(config, authorParticipantId))
           .flatMap((v) => (v.requirementChecks ?? []).filter((c) => c.proposalId === proposalId).slice(0, 1));
         const failed = checks.filter((c) => !c.meets).length;
         const declaredUnsolvable = solvesRequirements === false;
@@ -303,7 +322,9 @@ function aggregateWith(
         criterionSpread,
         total: roundedTotal,
         independentEvaluators: evaluators,
-        expectedEvaluators: participantIds ? participantIds.filter((id) => id !== authorParticipantId).length : null,
+        expectedEvaluators: participantIds
+          ? new Set(participantIds.filter((id) => groupOf(config, id) !== groupOf(config, authorParticipantId)).map((id) => groupOf(config, id))).size
+          : null,
         implementable,
         requirementChecks,
         securityBelowMinimum: security !== undefined && security < config.minSecurityScore,

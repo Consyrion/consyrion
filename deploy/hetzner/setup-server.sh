@@ -47,8 +47,9 @@ fi
 docker info --format '{{json .Runtimes}}' | grep -q runsc || { echo "runsc is not registered with Docker" >&2; exit 1; }
 
 echo "== sandbox images (pre-pulled)"
-docker pull -q node:22-alpine
-docker pull -q python:3.12-alpine
+# Same digests as SANDBOX_IMAGES in packages/build/src/sandbox.ts (#399) – update both together.
+docker pull -q node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+docker pull -q python:3.12-alpine@sha256:e064671ca452259bab50e8e2c7bd896e39e9a343bb06ca25234adf6fe18d0fc7
 
 echo "== firewall: only SSH, HTTP, HTTPS"
 ufw default deny incoming

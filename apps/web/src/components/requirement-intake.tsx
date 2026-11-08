@@ -7,12 +7,20 @@ import {
   EXCLUSION_REASON_KEYS,
   findRequirementConflicts,
   measurableOnlyAfterImplementation,
+  needsBuildVerification,
+  requirementCheckability,
   measurementPlanSuggestion,
+  splitCoverageGaps,
+  type RequirementDecomposition,
   type RequirementMeasure,
+  type RequirementSplitRef,
 } from "@consyrion/core/browser";
 import { useTranslations } from "next-intl";
+import { skillBlockStatuses, useDismissedSkillBlocks } from "./skills/skill-block-status";
+import { SkillBlocks, SkillBlocksSummary } from "./skills/skill-blocks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SplitOrigin, SplitSuggestion } from "./requirement-split";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "./ui/button";
 import { control } from "./ui/field";
@@ -35,13 +43,23 @@ export interface IntakeProposal {
   current: boolean;
   latest: {
     version: number;
-    items: Array<{ id: string; text: string; measure?: RequirementMeasure | null }>;
+    items: Array<{ id: string; text: string; measure?: RequirementMeasure | null; splitFrom?: RequirementSplitRef | null }>;
     excluded: Array<{ text: string; reason: string }>;
     noHardRequirements: boolean;
     briefVersion: number;
     confirmedAt: string;
   } | null;
-  items: Array<{ text: string; candidateKey: string | null; source: IntakeSource; isNew: boolean; sourceGone: boolean }>;
+  items: Array<{
+    text: string;
+    candidateKey: string | null;
+    source: IntakeSource;
+    isNew: boolean;
+    sourceGone: boolean;
+    /** #216: original text when this item is a part of a split requirement. */
+    splitFrom?: string | null;
+    /** #216: the server's split suggestion for this item (deterministic). */
+    decomposition?: RequirementDecomposition | null;
+  }>;
   excluded: Array<{ candidateKey: string; text: string; source: IntakeSource; reason: string }>;
   /** #227: statements that read like instructions to the models or rules about the evaluation – the user decides.
    *  Required (night test R2-03, 08.11.26): the page did not pass it, so these statements were invisible and the
@@ -62,7 +80,12 @@ interface Row {
   source: IntakeSource;
   isNew: boolean;
   sourceGone: boolean;
+  splitFrom?: string | null;
+  decomposition?: RequirementDecomposition | null;
 }
+
+/** Same limit as the server (REQUIREMENT_LIMITS.maxItems): a split never takes the list over it silently. */
+const MAX_ITEMS = 100;
 
 type Translate = ReturnType<typeof useTranslations>;
 
@@ -79,7 +102,21 @@ function localReason(t: Translate, reason: string) {
 let counter = 0;
 const uid = () => `row-${++counter}`;
 
-export function RequirementIntake({ projectId, proposal, canWrite }: { projectId: string; proposal: IntakeProposal; canWrite: boolean }) {
+export function RequirementIntake({
+  projectId,
+  proposal,
+  canWrite,
+  skill,
+}: {
+  projectId: string;
+  proposal: IntakeProposal;
+  canWrite: boolean;
+  /**
+   * Requirement building blocks of the chosen skill (#363) – offered as proposals, never confirmed on their own.
+   * `storageKey` keeps the blocks the user dismissed (#420), per project and skill version, in this browser.
+   */
+  skill?: { name: string; blocks: string[]; storageKey?: string } | null;
+}) {
   const t = useTranslations("requirements");
   const router = useRouter();
   const [editing, setEditing] = useState(!proposal.current);
@@ -93,10 +130,32 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
   const addRequirement = (text: string) =>
     setRows((r) => [...r, { uid: uid(), text, candidateKey: null, source: { kind: "user" }, isNew: true, sourceGone: false }]);
   const update = (key: string, text: string) => setRows((r) => r.map((row) => (row.uid === key ? { ...row, text } : row)));
+  // #216: split a row into parts that keep their origin; merge them back; add a part by hand.
+  const splitRow = (row: Row, parts: string[]) =>
+    setRows((r) => r.flatMap((x) => (x.uid === row.uid ? parts.map((text) => ({ ...row, uid: uid(), text, splitFrom: row.text, decomposition: null })) : [x])));
+  const sameSplit = (a: Row, b: Row) => Boolean(a.splitFrom) && a.splitFrom === b.splitFrom && a.candidateKey === b.candidateKey;
+  const mergeSplit = (part: Row) =>
+    setRows((r) => {
+      const first = r.findIndex((x) => sameSplit(x, part));
+      const merged: Row = { ...part, uid: uid(), text: part.splitFrom!, splitFrom: null, decomposition: null };
+      return r.flatMap((x, i) => (i === first ? [merged] : sameSplit(x, part) ? [] : [x]));
+    });
+  const addPart = (part: Row) =>
+    setRows((r) => {
+      const last = r.map((x) => sameSplit(x, part)).lastIndexOf(true);
+      return [...r.slice(0, last + 1), { ...part, uid: uid(), text: "" }, ...r.slice(last + 1)];
+    });
+  const keepWhole = (row: Row) => setRows((r) => r.map((x) => (x.uid === row.uid ? { ...x, decomposition: null } : x)));
+
   const remove = (row: Row) => {
+    // Removing one part of a split keeps the others; only the last part removes the statement.
+    if (row.splitFrom && rows.some((x) => x.uid !== row.uid && sameSplit(x, row))) {
+      setRows((r) => r.filter((x) => x.uid !== row.uid));
+      return;
+    }
     setRows((r) => r.filter((x) => x.uid !== row.uid));
     // A proposed statement is never dropped silently: it moves to "not taken over" and needs a reason.
-    if (row.candidateKey) setExcluded((e) => [...e, { candidateKey: row.candidateKey!, text: row.text, source: row.source, reason: "" }]);
+    if (row.candidateKey) setExcluded((e) => [...e, { candidateKey: row.candidateKey!, text: row.splitFrom ?? row.text, source: row.source, reason: "" }]);
   };
   const keep = (candidateKey: string) => {
     const entry = excluded.find((e) => e.candidateKey === candidateKey);
@@ -121,7 +180,7 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
         method: "POST",
         body: JSON.stringify({
           sourceHash: proposal.source.hash,
-          items: rows.map((r) => ({ text: r.text, candidateKey: r.candidateKey })),
+          items: rows.map((r) => ({ text: r.text, candidateKey: r.candidateKey, splitFrom: r.splitFrom ?? null })),
           excluded: excluded.map((e) => ({ candidateKey: e.candidateKey, reason: e.reason })),
           noHardRequirements: rows.length === 0 ? noHard : undefined,
         }),
@@ -139,6 +198,11 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
   }
 
   const latest = proposal.latest;
+  // #420: block status against what the user sees – the rows being edited, else the confirmed list.
+  const [dismissedBlocks, setBlockDismissed] = useDismissedSkillBlocks(skill?.storageKey ?? null);
+  const blockStatuses = skill
+    ? skillBlockStatuses(skill.blocks, editing ? rows.map((r) => r.text) : (latest?.items.map((i) => i.text) ?? []), dismissedBlocks)
+    : [];
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -155,14 +219,25 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
 
       {!proposal.current && latest ? (
         <div className="mt-3">
-          <Alert tone="warning">
-            {t("changed", { version: latest.version, briefVersion: latest.briefVersion })}
-          </Alert>
+          <Alert tone="warning">{t("changed", { version: latest.version, briefVersion: latest.briefVersion })}</Alert>
         </div>
+      ) : null}
+
+      {skill ? (
+        <SkillBlocksSummary
+          skillName={skill.name}
+          blocks={skill.blocks}
+          statuses={blockStatuses}
+          editing={editing}
+          canWrite={canWrite}
+          onEdit={() => setEditing(true)}
+          onDismiss={setBlockDismissed}
+        />
       ) : null}
 
       {!editing && latest ? (
         <div className="mt-4 space-y-3 text-sm">
+          {latest.items.length ? <CheckabilitySummary texts={latest.items.map((i) => i.text)} /> : null}
           {latest.items.length === 0 ? (
             <p className="text-muted">{t("confirmedNone")}</p>
           ) : (
@@ -172,6 +247,16 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
                   <span className="font-mono text-xs text-muted">{item.id}</span>
                   <span>
                     {item.text}
+                    {item.splitFrom ? <SplitOrigin original={item.splitFrom.text} part={item.splitFrom.part} of={item.splitFrom.of} /> : null}
+                    {requirementCheckability(item.text) === "after_implementation" ? (
+                      <span className="ml-2 inline-block">
+                        <Badge tone="warning">{t("checkability.after_implementation")}</Badge>
+                      </span>
+                    ) : requirementCheckability(item.text) === "build" ? (
+                      <span className="ml-2 inline-block">
+                        <Badge tone="accent">{t("checkability.build")}</Badge>
+                      </span>
+                    ) : null}
                     {item.measure ? (
                       <span className="ml-2 inline-block">
                         <Badge tone="accent">{t("estimated", { measure: describeMeasure(item.measure) })}</Badge>
@@ -220,38 +305,85 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
       {editing ? (
         <div className="mt-4 space-y-4">
           <ol className="space-y-2">
-            {rows.map((row, index) => (
-              <li key={row.uid} className="rounded-lg border border-line bg-surface-2 p-3">
-                <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                  <span className="font-mono">R{index + 1}</span>
-                  <span>{sourceLabel(t, row.source)}</span>
-                  {row.isNew ? <Badge tone="primary">{t("new")}</Badge> : null}
-                  {row.sourceGone ? <Badge tone="warning">{t("sourceGone")}</Badge> : null}
-                  <MeasureHint text={row.text} />
-                </div>
-                {measurableOnlyAfterImplementation(row.text) ? (
-                  <AfterImplementationHint
-                    text={row.text}
-                    planned={rows.some((r) => r.text === measurementPlanSuggestion(row.text))}
-                    onAdd={canWrite ? () => addRequirement(measurementPlanSuggestion(row.text)) : undefined}
-                  />
-                ) : null}
-                <div className="flex gap-2">
-                  <textarea
-                    aria-label={t("rowLabel", { n: index + 1 })}
-                    value={row.text}
-                    disabled={!canWrite}
-                    onChange={(e) => update(row.uid, e.target.value)}
-                    className={`${control} min-h-12`}
-                  />
-                  {canWrite ? (
-                    <Button variant="ghost" className="px-2" onClick={() => remove(row)} aria-label={t("removeLabel", { n: index + 1 })}>
-                      {t("remove")}
+            {rows.map((row, index) => {
+              const siblings = row.splitFrom ? rows.filter((x) => sameSplit(x, row)) : [];
+              const isLastPart = siblings.at(-1)?.uid === row.uid;
+              const gaps = isLastPart
+                ? splitCoverageGaps(
+                    row.splitFrom!,
+                    siblings.map((x) => x.text),
+                  )
+                : [];
+              return (
+                <li key={row.uid} className="rounded-lg border border-line bg-surface-2 p-3">
+                  <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span className="font-mono">R{index + 1}</span>
+                    <span>{sourceLabel(t, row.source)}</span>
+                    {row.isNew ? <Badge tone="primary">{t("new")}</Badge> : null}
+                    {row.sourceGone ? <Badge tone="warning">{t("sourceGone")}</Badge> : null}
+                    <MeasureHint text={row.text} />
+                    {row.text.trim() && requirementCheckability(row.text) === "before" ? <Badge tone="neutral">{t("checkability.before")}</Badge> : null}
+                  </div>
+                  {row.splitFrom ? <SplitOrigin original={row.splitFrom} part={siblings.indexOf(row) + 1} of={siblings.length} /> : null}
+                  {!row.splitFrom && row.decomposition ? (
+                    <SplitSuggestion
+                      decomposition={row.decomposition}
+                      canWrite={canWrite}
+                      wouldExceed={rows.length + (row.decomposition.kind === "split" ? row.decomposition.parts.length : 2) - 1 > MAX_ITEMS}
+                      onSplit={(parts) => splitRow(row, parts)}
+                      onManualSplit={() => splitRow(row, [row.text, ""])}
+                      onKeep={() => keepWhole(row)}
+                    />
+                  ) : null}
+                  {measurableOnlyAfterImplementation(row.text) ? (
+                    <AfterImplementationHint
+                      text={row.text}
+                      planned={rows.some((r) => r.text === measurementPlanSuggestion(row.text))}
+                      onAdd={canWrite ? () => addRequirement(measurementPlanSuggestion(row.text)) : undefined}
+                    />
+                  ) : null}
+                  <div className="flex gap-2">
+                    <textarea
+                      aria-label={t("rowLabel", { n: index + 1 })}
+                      value={row.text}
+                      disabled={!canWrite}
+                      onChange={(e) => update(row.uid, e.target.value)}
+                      className={`${control} min-h-12`}
+                    />
+                    {canWrite ? (
+                      <Button variant="ghost" className="px-2" onClick={() => remove(row)} aria-label={t("removeLabel", { n: index + 1 })}>
+                        {t("remove")}
+                      </Button>
+                    ) : null}
+                  </div>
+                  {canWrite && isLastPart ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button variant="ghost" className="px-2 py-1 text-xs" disabled={rows.length >= MAX_ITEMS} onClick={() => addPart(row)}>
+                        {t("split.addPart")}
+                      </Button>
+                      <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => mergeSplit(row)}>
+                        {t("split.merge")}
+                      </Button>
+                    </div>
+                  ) : null}
+                  {canWrite && !row.splitFrom && !row.decomposition && row.text.trim() ? (
+                    <Button
+                      variant="ghost"
+                      className="mt-1 px-2 py-1 text-xs"
+                      disabled={rows.length >= MAX_ITEMS}
+                      onClick={() => splitRow(row, [row.text, ""])}
+                    >
+                      {t("split.manual")}
                     </Button>
                   ) : null}
-                </div>
-              </li>
-            ))}
+                  {gaps.length ? (
+                    <div className="mt-2">
+                      <Alert tone="warning">{t("split.gaps", { tokens: gaps.join(", ") })}</Alert>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ol>
           {/* Night test R2-04: contradicting requirements are pointed out before a paid council finds them. */}
           {findRequirementConflicts(rows.map((r) => r.text)).map((c) => (
@@ -264,13 +396,14 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
               {t("add")}
             </Button>
           ) : null}
+          {canWrite && skill ? (
+            <SkillBlocks skillName={skill.name} blocks={skill.blocks} statuses={blockStatuses} onAdd={addRequirement} onDismiss={setBlockDismissed} />
+          ) : null}
 
           {toDecide.length ? (
             <div role="region" aria-label={t("toDecideLabel")}>
               <h3 className="text-sm font-medium">{t("toDecide", { n: toDecide.length })}</h3>
-              <p className="mt-1 text-xs text-muted">
-                {t("toDecideText")}
-              </p>
+              <p className="mt-1 text-xs text-muted">{t("toDecideText")}</p>
               <ul className="mt-2 space-y-2">
                 {toDecide.map((entry) => (
                   <li key={entry.candidateKey} className="rounded-lg border border-warning/50 p-3 text-sm">
@@ -299,9 +432,7 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
           {excluded.length ? (
             <div>
               <h3 className="text-sm font-medium">{t("excludedTitle")}</h3>
-              <p className="mt-1 text-xs text-muted">
-                {t("excludedText")}
-              </p>
+              <p className="mt-1 text-xs text-muted">{t("excludedText")}</p>
               <ul className="mt-2 space-y-2">
                 {excluded.map((entry) => (
                   <li key={entry.candidateKey} className="rounded-lg border border-line p-3 text-sm">
@@ -329,20 +460,12 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
           ) : null}
 
           {proposal.pendingImages?.length ? (
-            <Alert tone="warning">
-              {t("pendingImages", { names: proposal.pendingImages.map((n) => `"${n}"`).join(", ") })}
-            </Alert>
+            <Alert tone="warning">{t("pendingImages", { names: proposal.pendingImages.map((n) => `"${n}"`).join(", ") })}</Alert>
           ) : null}
           {proposal.unscannedDocuments.length ? (
-            <Alert tone="warning">
-              {t("unscanned", { names: proposal.unscannedDocuments.map((d) => d.name).join(", ") })}
-            </Alert>
+            <Alert tone="warning">{t("unscanned", { names: proposal.unscannedDocuments.map((d) => d.name).join(", ") })}</Alert>
           ) : null}
-          {proposal.notProposed > 0 ? (
-            <Alert tone="warning">
-              {t("notProposed", { n: proposal.notProposed })}
-            </Alert>
-          ) : null}
+          {proposal.notProposed > 0 ? <Alert tone="warning">{t("notProposed", { n: proposal.notProposed })}</Alert> : null}
 
           {rows.length === 0 && canWrite ? (
             <label className="flex items-center gap-2 text-sm">
@@ -375,9 +498,28 @@ export function RequirementIntake({ projectId, proposal, canWrite }: { projectId
  * #226: what the gate will do with the numbers of a requirement while it is still being edited – one limit is
  * estimated by the models; several limits in one sentence are not checked as numbers until the sentence is split.
  */
+/** #245: how many confirmed requirements can be checked before the start, only after implementation, or in the build. */
+function CheckabilitySummary({ texts }: { texts: string[] }) {
+  const t = useTranslations("requirements");
+  const kinds = texts.map(requirementCheckability);
+  const count = (k: string) => kinds.filter((x) => x === k).length;
+  return (
+    <p className="text-xs text-muted" data-testid="checkability-summary">
+      {t("checkability.summary", { before: count("before"), after: count("after_implementation"), build: count("build") })}
+    </p>
+  );
+}
+
 function MeasureHint({ text }: { text: string }) {
   const t = useTranslations("requirements");
   const measure = detectMeasure(text);
+  // Night test R4: tests/CI can only be proven by the build – the council checks the verification plan instead.
+  if (needsBuildVerification(text))
+    return (
+      <span title={t("buildCheckHint")}>
+        <Badge tone="accent">{t("buildCheck")}</Badge>
+      </span>
+    );
   if (measure) return <Badge tone="accent">{t("estimated", { measure: describeMeasure(measure) })}</Badge>;
   if (countLimits(text) > 1) return <Badge tone="warning">{t("splitLimits")}</Badge>;
   return null;

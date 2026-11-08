@@ -1,12 +1,23 @@
+import { PROVIDER_IDS, PROVIDER_LABELS } from "@consyrion/ai";
 import { stripeStatus } from "@consyrion/billing";
-import { countNewFeedback, getPlanCatalog, getSubscription, platformOverview, resolvePlatformAdmin } from "@consyrion/db";
+import {
+  countNewFeedback,
+  requirementIntakeMetrics,
+  getDemoTemplates,
+  getPlanCatalog,
+  listDemoCandidates,
+  getSubscription,
+  platformOverview,
+  resolvePlatformAdmin,
+} from "@consyrion/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { AdminPlanEditor, AdminPlanSelect, AdminStripeSetup } from "@/components/saas";
+import { AdminDemoTemplates, AdminPlanEditor, AdminPlanSelect, AdminStripeSetup } from "@/components/saas";
+import { SkillHubAdmin } from "@/components/skills/skill-hub-admin";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge, Card, PageHeader } from "@/components/ui/surface";
-import { requireUser } from "@/lib/server/actor";
+import { requirePageActor, requireUser } from "@/lib/server/actor";
 import { isPlatformAdmin, platformAdminEmails, platformAdminOptions } from "@/lib/server/admin";
 import { getDb } from "@/lib/server/db";
 
@@ -24,9 +35,17 @@ export default async function AdminPage() {
   const db = await getDb();
   const tf = await getTranslations("feedback.admin");
   const admin = await resolvePlatformAdmin(db, user.id, platformAdminEmails(), platformAdminOptions());
-  const [overview, catalog, stripe, newFeedback] = await Promise.all([platformOverview(db), getPlanCatalog(db), stripeStatus(db), countNewFeedback(db, admin)]);
+  const [overview, catalog, stripe, newFeedback, intake] = await Promise.all([
+    platformOverview(db),
+    getPlanCatalog(db),
+    stripeStatus(db),
+    countNewFeedback(db, admin),
+    requirementIntakeMetrics(db, admin, { days: 30 }),
+  ]);
   const organizations = overview.list;
   const plans = await Promise.all(organizations.map((o) => getSubscription(db, o.id)));
+  const actor = await requirePageActor();
+  const [demoTemplates, demoCandidates] = await Promise.all([getDemoTemplates(db), listDemoCandidates(db, actor)]);
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
@@ -43,6 +62,32 @@ export default async function AdminPage() {
           </Card>
         ))}
       </div>
+      {/* #245: how well the requirement intake proposes – counts only, never text, last 30 days. */}
+      <Card className="mt-6" data-testid="intake-metrics">
+        <h2 className="font-semibold">{t("intake.title")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("intake.description", { days: intake.days })}</p>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div>
+            <dt className="text-sm text-muted">{t("intake.ratio")}</dt>
+            <dd className="text-2xl font-semibold">
+              {intake.kept ? `${format.number(intake.proposed / intake.kept, { maximumFractionDigits: 2 })} : 1` : "–"}
+            </dd>
+            <dd className="text-xs text-muted">{t("intake.ratioDetail", { proposed: intake.proposed, kept: intake.kept, lists: intake.lists })}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted">{t("intake.added")}</dt>
+            <dd className="text-2xl font-semibold">{intake.userAdded}</dd>
+            <dd className="text-xs text-muted">{t("intake.splitParts", { n: intake.splitParts })}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted">{t("intake.onlyOne")}</dt>
+            <dd className="text-2xl font-semibold">
+              {intake.onlyOneUnconfirmable} / {intake.withoutQualified}
+            </dd>
+            <dd className="text-xs text-muted">{t("intake.onlyOneDetail", { verdicts: intake.verdicts })}</dd>
+          </div>
+        </dl>
+      </Card>
       <Card className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -82,6 +127,18 @@ export default async function AdminPage() {
             </tbody>
           </table>
         </div>
+      </Card>
+      <Card className="mt-6">
+        <h2 className="mb-3 font-semibold">{t("demo.title")}</h2>
+        <AdminDemoTemplates
+          templates={demoTemplates}
+          candidates={demoCandidates.map((c) => ({ sessionId: c.sessionId, projectName: c.projectName, createdAt: c.createdAt.toISOString() }))}
+        />
+      </Card>
+      <Card className="mt-6" data-testid="skillhub-admin">
+        <h2 className="font-semibold">{t("skillHub.title")}</h2>
+        <p className="mt-1 mb-3 text-sm text-muted">{t("skillHub.text")}</p>
+        <SkillHubAdmin providers={PROVIDER_IDS.map((id) => ({ id, label: PROVIDER_LABELS[id] }))} />
       </Card>
       <Card className="mt-6">
         <h2 className="mb-3 font-semibold">{t("stripeTitle")}</h2>

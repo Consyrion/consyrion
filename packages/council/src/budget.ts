@@ -1,4 +1,4 @@
-import { outputTokensFor } from "@consyrion/core";
+import { finalVerdictCallItems, outputTokensFor } from "@consyrion/core";
 import type { SessionContext } from "./context";
 import { schema } from "@consyrion/db";
 import { eq } from "drizzle-orm";
@@ -29,15 +29,24 @@ export async function verdictReserve(ctx: SessionContext): Promise<number> {
   // Each evaluator scores every proposal but its own; the scorecard limit grows with them (#172). With the S1 gate it
   // also checks every confirmed requirement per proposal, and the Final Verdict call sizes its output limit by that –
   // the reserve must use the same count, or the earlier phases leave too little and an evaluation is refused (#181).
+  // A split evaluation (#246) sends the prompt once per call and reserves each call's own output.
   const scored = Math.max(1, proposals.length > 0 ? proposals.length - 1 : participants.length - 1);
-  const items = scored * (await requirementsPerProposal(ctx));
-  return participants.reduce((sum, p) => sum + input + outputTokensFor(p.provider, ctx.policy.maxOutputTokens, "evaluation", items), 0);
+  const calls = finalVerdictCallItems(scored, await requirementsPerProposal(ctx));
+  return participants.reduce(
+    (sum, p) =>
+      sum +
+      calls.reduce(
+        (s, items, index) => s + input + outputTokensFor(p.provider, ctx.policy.maxOutputTokens, index === 0 ? "evaluation" : "evaluation_checks", items),
+        0,
+      ),
+    0,
+  );
 }
 
 /** Requirements each S1 evaluation checks per proposal (at least 1); 1 for councils without the S1 gate. */
 async function requirementsPerProposal(ctx: SessionContext): Promise<number> {
   const listId = ctx.session.requirementListId;
-  if (ctx.session.gateVersion !== 2 || !listId) return 1;
+  if (ctx.session.gateVersion < 2 || !listId) return 1;
   const [list] = await ctx.db.select({ items: schema.requirementList.items }).from(schema.requirementList).where(eq(schema.requirementList.id, listId));
   return Math.max(1, list?.items.length ?? 0);
 }

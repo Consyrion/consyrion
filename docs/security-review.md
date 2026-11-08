@@ -16,12 +16,12 @@ Reviewed 25.10.2026 against the brief's security requirements. Status: ✅ imple
 | GitHub | ✅ | Repo-scoped short-lived tokens, verified installation ownership, signed state, webhook signatures |
 | Stripe | ✅ | Signed webhooks with replay window; no AI billing |
 | Auth | ⚠️ | Better Auth sessions, OAuth, rate limit in production, 12+ char passwords. ⏳ e-mail verification, 2FA |
-| API tokens | ✅ | Hashed, expiring, revocable, one workspace, membership re-checked |
+| API tokens | ✅ | Hashed, expiring, revocable, one workspace, membership re-checked; a token cannot mint tokens or manage the team (#403) |
 | Web hardening | ✅ | CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer/Permissions policy, no `x-powered-by` |
-| Logging | ✅ | Redaction of secret keys and token patterns (tested) |
+| Logging | ✅ | Redaction of secret keys and token patterns incl. `cns_`/`cni_`/`cnr_`, shared by web, worker and packages (`redactSecrets`, #403) |
 | Rate limiting | ⚠️ | Auth (Better Auth) and key/model endpoints (in-memory per instance). ⏳ shared store for many instances |
 | Data protection | ⚠️ | Export, deletion. ⏳ retention periods, DPA, legal review (Swiss nDSG / GDPR) |
-| Dependencies | ⏳ | Add `pnpm audit` / Dependabot in the repository settings |
+| Dependencies | ✅ | `pnpm audit --prod --audit-level high` fails CI; Dependabot (npm + GitHub Actions, weekly, grouped); actions pinned by commit SHA (#397) |
 
-Recommended before public launch: e-mail verification, Dependabot, external penetration test, lawyer review
+Recommended before public launch: external penetration test, lawyer review
 of privacy policy/terms and the trademark question (CONSYRION_BRAND_CHECK.md).

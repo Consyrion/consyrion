@@ -27,6 +27,12 @@
     "email": "Tu correo electrónico",
     "emailHint": "Solo lo usamos para responderte.",
     "honeypot": "Deja este campo vacío",
+    "screenshot": "Captura de pantalla (opcional)",
+    "screenshotHint": "PNG, JPEG, WebP o GIF, hasta 3 MB. Asegúrate de que no se vean contraseñas ni claves.",
+    "screenshotChoose": "Elegir imagen",
+    "screenshotChange": "Elegir otra imagen",
+    "screenshotNone": "Ninguna imagen seleccionada",
+    "screenshotRemove": "Quitar",
     "attached": "Se adjunta automáticamente: página {page}, idioma de la interfaz, navegador y versión de la aplicación.",
     "privacy": "Guardamos tu mensaje, tu correo electrónico y estos datos para responderte y mejorar CONSYRION AI.",
     "privacyLink": "Política de privacidad",
@@ -41,13 +47,15 @@
       "fields": "Revisa los campos marcados.",
       "subject": "Escribe un asunto (máx. 120 caracteres).",
       "text": "Escribe un mensaje (máx. 4000 caracteres).",
-      "email": "Escribe un correo electrónico válido."
+      "email": "Escribe un correo electrónico válido.",
+      "screenshot": "Elige una imagen PNG, JPEG, WebP o GIF de 3 MB como máximo."
     },
     "mine": {
       "title": "Mis reportes",
       "empty": "Todavía no has enviado ningún reporte.",
       "reply": "Respuesta del equipo de CONSYRION AI",
-      "deleteNote": "¿Quieres que borremos un reporte? Escríbenos y lo eliminamos con todas sus respuestas."
+      "deleteNote": "¿Quieres que borremos un reporte? Escríbenos y lo eliminamos con todas sus respuestas.",
+      "new": "nuevo"
     },
     "admin": {
       "title": "Bandeja de comentarios",
@@ -86,7 +94,18 @@
       "deleteConfirm": "¿Eliminar definitivamente este reporte y todas sus respuestas?",
       "deleteYes": "Eliminar definitivamente",
       "cancel": "Cancelar",
-      "error": "La acción ha fallado. Inténtalo de nuevo."
-    }
+      "error": "La acción ha fallado. Inténtalo de nuevo.",
+      "screenshot": "Captura adjunta (haz clic para abrirla)",
+      "screenshotAlt": "Captura de pantalla adjunta al reporte",
+      "replyByMail": "Enviar también la respuesta por correo a {email}",
+      "replyNoMail": "No hay servidor de correo configurado (SMTP_URL): la respuesta solo aparece en la aplicación.",
+      "replySent": "Respuesta guardada.",
+      "replySentMail": "Respuesta guardada; se está enviando por correo a {email}.",
+      "context": "Página (con consentimiento)"
+    },
+    "unreadReplies": "{count, plural, one {# respuesta nueva} other {# respuestas nuevas}} a tus mensajes",
+    "shareProject": "Enviar el proyecto de esta página (solo su identificador; nos ayuda a encontrar el problema)",
+    "shareSession": "Enviar el council de esta página (solo su identificador; nos ayuda a encontrar el problema)",
+    "storage": "Guardamos tu mensaje con tu correo para poder responderte; puedes pedir que se borre en cualquier momento."
   }
 }

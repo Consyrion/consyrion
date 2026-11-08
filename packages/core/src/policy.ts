@@ -167,7 +167,7 @@ export function buildPolicy(mode: DecisionMode, overrides: PolicyOverrides = {})
 }
 
 /** Number of model calls per phase for a given number of participants. Used for the cost preview. */
-export function estimateCalls(policy: WorkflowPolicy, participants: number) {
+export function estimateCalls(policy: WorkflowPolicy, participants: number, requirements = 0) {
   const n = participants;
   const roles = policy.roles.length;
   const independentThinking = n;
@@ -176,7 +176,8 @@ export function estimateCalls(policy: WorkflowPolicy, participants: number) {
   const twelveMinds = policy.debateRounds * (roles + (policy.rebuttals ? n : 0)) + roles;
   const minorityReview = n + (policy.independentVerification ? 2 : 1);
   const consensusRound = policy.consensusRounds * n + (policy.allowHybrid ? 2 : 0);
-  const finalVerdict = n;
+  // #246: an evaluation that does not fit into one answer is split into several calls per evaluator.
+  const finalVerdict = n * finalVerdictCallItems(Math.max(0, n - 1), requirements).length;
   const total = independentThinking + openCouncil + twelveMinds + minorityReview + consensusRound + finalVerdict;
   return { independentThinking, openCouncil, twelveMinds, minorityReview, consensusRound, finalVerdict, total };
 }
@@ -207,7 +208,7 @@ export const PROVIDER_MIN_OUTPUT_TOKENS: Readonly<Record<string, number>> = {
  * 8,000 in 10 of its Independent Thinking calls and gpt-5-mini at 4,000 in 5 (call-report, 27.–30.10.26, #243), so
  * both start these answers at 16,000. Only the reservation grows – the budget is charged with the tokens actually used.
  */
-export const LARGE_ANSWER_SCHEMAS: ReadonlySet<string> = new Set(["proposal", "revision", "hybrid", "evaluation"]);
+export const LARGE_ANSWER_SCHEMAS: ReadonlySet<string> = new Set(["proposal", "revision", "hybrid", "evaluation", "evaluation_checks"]);
 export const PROVIDER_MIN_LARGE_OUTPUT_TOKENS: Readonly<Record<string, number>> = { anthropic: 8_000, openai: 16_000, deepseek: 16_000 };
 
 /**
@@ -218,6 +219,7 @@ export const PROVIDER_MIN_LARGE_OUTPUT_TOKENS: Readonly<Record<string, number>> 
 export const OUTPUT_TOKENS_PER_ITEM: Readonly<Record<string, number>> = {
   role_review: 2_000,
   evaluation: 1_500,
+  evaluation_checks: 1_500,
   open_council: 800,
   answers: 500,
   rebuttals: 500,
@@ -236,29 +238,72 @@ export const MAX_CALL_OUTPUT_TOKENS = 32_000;
 export const EVALUATION_TOKENS_PER_ITEM_MEASURED = 1_250;
 
 /**
- * Does each evaluator's Final Verdict fit into one call (#228, ADR 0228)? Every evaluator checks the proposals of all
- * other models against every confirmed requirement in one answer of at most `MAX_CALL_OUTPUT_TOKENS`. A council that
- * cannot fit is refused before any model is paid; one above three quarters gets a warning.
+ * #246 (split evaluator): share of one call a group of a split Final Verdict may fill. Below the 75 % "tight" mark, so
+ * no group of a split evaluation sits at the edge of the limit like the single call it replaces.
+ */
+export const SPLIT_GROUP_FILL = 0.75;
+
+/** Requirements one Final Verdict call of an evaluator checks for `foreign` proposals (#246). All when they fit (#228). */
+export function finalVerdictGroupSize(foreign: number, requirements: number): number {
+  const all = Math.max(1, requirements);
+  if (foreign <= 0 || foreign * all * EVALUATION_TOKENS_PER_ITEM_MEASURED <= MAX_CALL_OUTPUT_TOKENS) return all;
+  return Math.max(1, Math.floor((MAX_CALL_OUTPUT_TOKENS * SPLIT_GROUP_FILL) / (EVALUATION_TOKENS_PER_ITEM_MEASURED * foreign)));
+}
+
+/**
+ * The requirement ids an evaluator checks per call (#246): one group – the unchanged single call – whenever the whole
+ * evaluation fits into one answer (#228); otherwise balanced groups in list order, each well below the call limit. The
+ * first call also writes the scores and the ranking, the others only the requirement checks. Pure and deterministic:
+ * the same list and number of proposals always give the same groups (also on resume).
+ */
+export function splitRequirementIds(requirementIds: readonly string[], foreign: number): string[][] {
+  if (requirementIds.length === 0) return [[]];
+  const size = finalVerdictGroupSize(foreign, requirementIds.length);
+  const calls = Math.ceil(requirementIds.length / size);
+  const per = Math.ceil(requirementIds.length / calls);
+  const groups: string[][] = [];
+  for (let i = 0; i < requirementIds.length; i += per) groups.push(requirementIds.slice(i, i + per));
+  return groups;
+}
+
+/** Items (foreign proposals × requirements) of each Final Verdict call of one evaluator, first call first (#246). */
+export function finalVerdictCallItems(foreign: number, requirements: number): number[] {
+  const ids = Array.from({ length: Math.max(1, requirements) }, (_, i) => `R${i + 1}`);
+  return splitRequirementIds(ids, foreign).map((group) => Math.max(1, foreign) * group.length);
+}
+
+/**
+ * Does each evaluator's Final Verdict fit (#228, ADR 0228; #246)? Every evaluator checks the proposals of all other
+ * models against every confirmed requirement. Up to the call limit (`MAX_CALL_OUTPUT_TOKENS`) that is one answer –
+ * above three quarters with a warning. Beyond it the checks are split into several calls per evaluator (#246); only a
+ * council in which not even one requirement per call fits is refused before any model is paid.
  */
 export function finalVerdictFit(participants: number, requirements: number) {
   const foreign = Math.max(0, participants - 1);
   const items = foreign * Math.max(1, requirements);
   const needed = items * EVALUATION_TOKENS_PER_ITEM_MEASURED;
   const maxRequirements = foreign ? Math.floor(MAX_CALL_OUTPUT_TOKENS / (EVALUATION_TOKENS_PER_ITEM_MEASURED * foreign)) : Infinity;
+  const callsPerEvaluator = finalVerdictCallItems(foreign, requirements).length;
+  const split = callsPerEvaluator > 1;
   return {
     items,
     needed,
     limit: MAX_CALL_OUTPUT_TOKENS,
-    fits: needed <= MAX_CALL_OUTPUT_TOKENS,
-    tight: needed > MAX_CALL_OUTPUT_TOKENS * 0.75,
+    fits: foreign * EVALUATION_TOKENS_PER_ITEM_MEASURED <= MAX_CALL_OUTPUT_TOKENS,
+    tight: !split && needed > MAX_CALL_OUTPUT_TOKENS * 0.75,
     maxRequirements,
+    split,
+    callsPerEvaluator,
+    requirementsPerCall: finalVerdictGroupSize(foreign, requirements),
   };
 }
 
-/** The refusal and warning texts of `finalVerdictFit`, the same on the start screen and in the API error. */
+/** The refusal, split and warning texts of `finalVerdictFit`, the same on the start screen and in the API error. */
 export function finalVerdictFitMessage(fit: ReturnType<typeof finalVerdictFit>, participants: number, requirements: number): string | null {
   if (!fit.fits)
-    return `${participants} models × ${requirements} requirements do not fit into one Final Verdict evaluation (about ${fit.needed.toLocaleString("en-US")} of at most ${fit.limit.toLocaleString("en-US")} output tokens per evaluator): the checks would be cut off. With ${participants} models use at most ${fit.maxRequirements} requirements – split or merge requirements, or use fewer models.`;
+    return `${participants} models are too many for one Final Verdict evaluation: even a single requirement does not fit into one call (about ${fit.needed.toLocaleString("en-US")} of at most ${fit.limit.toLocaleString("en-US")} output tokens). Use fewer models.`;
+  if (fit.split)
+    return `${participants} models × ${requirements} requirements do not fit into one Final Verdict evaluation, so each evaluator checks them in ${fit.callsPerEvaluator} calls of at most ${fit.requirementsPerCall} requirements. The brief and the proposals are sent once per call: the estimate, the minimum budget and the hard budget include these calls. Fewer requirements or models need fewer calls.`;
   if (fit.tight)
     return `${participants} models × ${requirements} requirements fill most of one Final Verdict evaluation (about ${fit.needed.toLocaleString("en-US")} of ${fit.limit.toLocaleString("en-US")} output tokens per evaluator). A verbose model may be cut off; fewer requirements or models make it safer.`;
   return null;
@@ -288,16 +333,39 @@ export function outputTokensFor(provider: string, policyMaxOutput: number, schem
 }
 
 /**
+ * Night test R4 (08.11.26): a council started with 120,000 tokens for three models and five requirements failed after
+ * 7,800 tokens – "would leave too little for the Final Verdict" – although the user had accepted shortened phases.
+ * Independent Thinking cannot be shortened and the Final Verdict keeps its reserve, so below this sum the council can
+ * never finish. Same parts as the engine's reservations: every model writes one proposal, and every model evaluates
+ * the others against every requirement (budget.ts `verdictReserve`).
+ */
+export function minimumCouncilBudget(policy: WorkflowPolicy, briefChars: number, providers: readonly string[], requirements: number): number {
+  const n = Math.max(1, providers.length);
+  const briefTokens = Math.ceil(briefChars / 4);
+  const list = providers.length ? providers : [""];
+  const thinking = list.reduce((sum, p) => sum + briefTokens + 1_500 + outputTokensFor(p, policy.maxOutputTokens, "proposal"), 0);
+  const verdictInput = briefTokens + n * Math.min(policy.maxOutputTokens, 2_500) + 1_500;
+  // #246: every call of a split evaluation sends the brief and the proposals again and reserves its own output.
+  const calls = finalVerdictCallItems(Math.max(0, n - 1), requirements);
+  const verdict = list.reduce(
+    (sum, p) =>
+      sum + calls.reduce((s, items, index) => s + verdictInput + outputTokensFor(p, policy.maxOutputTokens, index === 0 ? "evaluation" : "evaluation_checks", items), 0),
+    0,
+  );
+  return Math.ceil(thinking + verdict);
+}
+
+/**
  * Rough upper bound used for the preview: every call may use its full output plus a growing context.
  * `providers` (one per participant) applies provider output minimums; without it the policy limit is used.
  */
-export function estimateTokens(policy: WorkflowPolicy, participants: number, briefChars: number, providers?: readonly string[]) {
-  const calls = estimateCalls(policy, participants).total;
+export function estimateTokens(policy: WorkflowPolicy, participants: number, briefChars: number, providers?: readonly string[], requirements = 0) {
+  const calls = estimateCalls(policy, participants, requirements).total;
   const briefTokens = Math.ceil(briefChars / 4);
   const list = providers?.length ? providers : [""];
   // Calls are spread over the participants, so the mean limit is used; large answers have their own (#147).
   const mean = (schemaName?: string) => list.reduce((sum, p) => sum + outputTokensFor(p, policy.maxOutputTokens, schemaName), 0) / list.length;
-  const perPhase = estimateCalls(policy, participants);
+  const perPhase = estimateCalls(policy, participants, requirements);
   const largeCalls = perPhase.independentThinking + perPhase.consensusRound + perPhase.finalVerdict;
   const contextPerCall = briefTokens + participants * Math.min(policy.maxOutputTokens, 2_500) + 1_500;
   const upperBound = Math.ceil(calls * contextPerCall + largeCalls * mean("proposal") + (calls - largeCalls) * mean());

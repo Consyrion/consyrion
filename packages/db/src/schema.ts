@@ -1,6 +1,14 @@
 import { relations } from "drizzle-orm";
-import { boolean, doublePrecision, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import type { ExcludedRequirement, RequirementItem } from "@consyrion/core";
+import { boolean, doublePrecision, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import type {
+  ExcludedRequirement,
+  RequirementItem,
+  RoleProfileSessionSnapshot,
+  RoleSelectionSnapshot,
+  SkillForkRef,
+  PublicationScanResult,
+  SkillSessionSnapshot,
+} from "@consyrion/core";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -74,6 +82,8 @@ export const organization = pgTable("organization", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  /** When the read-only demo project was copied into this workspace; set once, so a deleted demo never comes back. */
+  demoSeededAt: timestamp("demo_seeded_at", { withTimezone: true }),
   ...timestamps,
 });
 
@@ -119,7 +129,8 @@ export const githubIntegration = pgTable(
 /* ---------- Projects ---------- */
 
 export const projectType = pgEnum("project_type", ["idea", "architecture", "repository", "business", "technology_choice"]);
-export const projectStatus = pgEnum("project_status", ["draft", "ready", "archived"]);
+/** #197 (ADR 0197): "deleting" – deletion requested, invisible and locked until the purge job has removed the project. */
+export const projectStatus = pgEnum("project_status", ["draft", "ready", "archived", "deleting"]);
 export const projectIntent = pgEnum("project_intent", ["decision", "build", "both"]);
 
 export const project = pgTable(
@@ -139,6 +150,8 @@ export const project = pgTable(
     repositoryFullName: text("repository_full_name"),
     repositoryDefaultBranch: text("repository_default_branch"),
     /** Default delivery target of this project's decisions (#165), preselected under "Send to …". */
+    /** Read-only demo copy of a finished council (owner decision 08.11.26): no councils, approvals or builds, no plan limit. */
+    isDemo: boolean("is_demo").notNull().default(false),
     deliveryDefault: jsonb("delivery_default").$type<{ target: "email" | "telegram" | "confluence"; connectionId?: string | null; recipients?: string[] }>(),
     createdById: text("created_by_id")
       .notNull()
@@ -199,15 +212,21 @@ export const projectDocument = pgTable(
      * requirements – the repository context of a Decision council (docs/documents.md).
      */
     role: text("role").notNull().default("source"),
-    /** Where a generated document came from: the repository, commit and files of a repository context. */
-    origin: jsonb("origin").$type<{
-      kind: "github";
-      repository: string;
-      branch: string;
-      commitSha: string;
-      paths: string[];
-      skipped: Array<{ path: string; reason: string }>;
-    }>(),
+    /**
+     * Where a generated document came from: the repository, commit and files of a repository context, or the file
+     * excerpts an external client (MCP ask_consyrion, #331) sent with its question.
+     */
+    origin: jsonb("origin").$type<
+      | {
+          kind: "github";
+          repository: string;
+          branch: string;
+          commitSha: string;
+          paths: string[];
+          skipped: Array<{ path: string; reason: string }>;
+        }
+      | { kind: "client"; client: "mcp"; paths: string[] }
+    >(),
     createdById: text("created_by_id")
       .notNull()
       .references(() => user.id),
@@ -397,6 +416,12 @@ export const councilSession = pgTable(
      * insert without it and get 1, which is what they compute.
      */
     gateVersion: integer("gate_version").notNull().default(1),
+    /** Skill used to set up this council (#363): id, version, content hash and the knowledge text, frozen at the start. */
+    skill: jsonb("skill").$type<SkillSessionSnapshot>(),
+    /** Role profiles used in this council (#270): id, version, hash and content, frozen at the start. */
+    roleProfiles: jsonb("role_profiles").$type<RoleProfileSessionSnapshot[]>(),
+    /** Suggested perspectives and where each active role came from (#269), frozen at the start. Null for older runs. */
+    roleSelection: jsonb("role_selection").$type<RoleSelectionSnapshot>(),
     tokensUsed: integer("tokens_used").notNull().default(0),
     debateRoundsRun: integer("debate_rounds_run").notNull().default(0),
     error: text("error"),
@@ -715,6 +740,21 @@ export const evaluationRound = pgTable(
     proposals: jsonb("proposals")
       .$type<Array<{ proposalId: string; revisionId: string; authorParticipantId: string; expectedEvaluatorIds: string[] }>>()
       .notNull(),
+    /**
+     * #228/#229 follow-up round (owner decision 08.11.26, ADR 0228-0229): "final" for the frozen Final Verdict round 1;
+     * "completion" asks an evaluator for checks it left out, "targeted_review" asks it again about its own UNKNOWN
+     * checks. A follow-up copies requirement ids and proposals of its parent, appends its own checks and never changes
+     * round 1; a FAIL is never asked again and never replaced.
+     */
+    kind: text("kind").$type<"final" | "completion" | "targeted_review">().notNull().default("final"),
+    parentRoundId: text("parent_round_id"),
+    /** Follow-up only: exactly the (evaluator, proposal, requirement) items it asks about. */
+    items: jsonb("items").$type<Array<{ evaluatorParticipantId: string; proposalId: string; requirementId: string }>>(),
+    /** Follow-up only: the extra budget the owner confirmed for it (added to the council's budget). */
+    tokenBudget: integer("token_budget"),
+    /** Follow-up only: queued → done | failed. */
+    status: text("status").$type<"queued" | "done" | "failed">(),
+    createdById: text("created_by_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("evaluation_round_session_round_uq").on(t.sessionId, t.round)],
@@ -798,6 +838,18 @@ export const approvalAction = pgEnum("approval_action", [
   "request_changes",
   "select_alternative",
   "repeat_evaluation",
+  /**
+   * #249 part 2 / #478: a person marks a proposal of a needs-verification verdict as favourite – no approval, no build;
+   * the session keeps waiting for a decision.
+   */
+  "mark_favorite",
+  /**
+   * #249 part 2, owner decision 08.11.26 (variant B): a marked prototype/measurement build of an architecture candidate
+   * (or a qualified proposal of a needs-verification verdict) – never a finished solution, never a regular approval.
+   */
+  "approve_prototype",
+  /** #249 gate 2: every open measurement of an architecture candidate was recorded as met – the regular approval. */
+  "approve_after_measurement",
 ]);
 
 export const humanApproval = pgTable("human_approval", {
@@ -839,8 +891,11 @@ export const usageRecord = pgTable(
     phase: councilPhase("phase"),
     provider: aiProviderId("provider").notNull(),
     modelId: text("model_id").notNull(),
+    /** All input tokens, including those served from the provider's prompt cache (see TokenUsage in @consyrion/ai). */
     inputTokens: integer("input_tokens").notNull(),
     outputTokens: integer("output_tokens").notNull(),
+    /** Part of `inputTokens` read from the provider's prompt cache (#244), billed cheaper; 0 for older rows. */
+    cachedInputTokens: integer("cached_input_tokens").notNull().default(0),
     durationMs: integer("duration_ms").notNull(),
     outcome: usageOutcome("outcome").notNull(),
     /**
@@ -895,10 +950,15 @@ export const executionStatus = pgEnum("execution_status", [
 ]);
 
 /** DevelopmentPlan: one Execution Council run for an approved session. */
+/** #249 part 2: a regular build of an approved solution, or a marked prototype/measurement build (variant B). */
+export const developmentPlanKind = pgEnum("development_plan_kind", ["regular", "prototype"]);
+
 export const developmentPlan = pgTable(
   "development_plan",
   {
     id: text("id").primaryKey(),
+    /** prototype: built to measure an open requirement – never a finished solution, never "ready" (#249 part 2). */
+    kind: developmentPlanKind("kind").notNull().default("regular"),
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
@@ -1327,6 +1387,12 @@ export const assistantChat = pgTable(
     /** Optional page context the chat was started from, e.g. a session id. */
     contextKind: text("context_kind"),
     contextId: text("context_id"),
+    /**
+     * Summary of the earlier part of a long chat (#280), written by a model only when the user asked for it (costs
+     * tokens). Messages up to `summaryUntil` are then passed as this summary instead of being dropped.
+     */
+    summary: text("summary"),
+    summaryUntil: timestamp("summary_until", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1370,9 +1436,95 @@ export const assistantMessage = pgTable(
     actions: jsonb("actions").$type<AssistantActionRecord[]>(),
     inputTokens: integer("input_tokens"),
     outputTokens: integer("output_tokens"),
+    /** A second opinion (#281): the id of the answer another model checked; null for normal answers. */
+    reviewOf: text("review_of"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("assistant_message_chat_idx").on(t.chatId, t.createdAt)],
+  (t) => [
+    index("assistant_message_chat_idx").on(t.chatId, t.createdAt),
+    // One second opinion per answer, also for parallel requests (ChatGPT review 08.11.26); NULLs (normal answers) are not unique.
+    uniqueIndex("assistant_message_review_of_uq").on(t.reviewOf),
+  ],
+);
+
+/**
+ * Usage ledger of the assistant (ChatGPT review 08.11.26): one row per paid call – answer, second opinion, summary –
+ * with its tokens. Not linked to the chat, so deleting a chat (privacy) does not reset the user's limits or the plan's
+ * daily question count. Holds no content.
+ */
+export const assistantUsage = pgTable(
+  "assistant_usage",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** "answer" counts once per question for the plan quota; further answers of a council chat turn are "council_answer" (#241). */
+    kind: text("kind").$type<"answer" | "council_answer" | "second_opinion" | "summary" | "cross_check">().notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("assistant_usage_owner_idx").on(t.organizationId, t.userId, t.createdAt),
+    index("assistant_usage_org_idx").on(t.organizationId, t.kind, t.createdAt),
+  ],
+);
+
+/**
+ * Cross-check in the council chat (#241 stage 2): on the user's click, every other model of the council chat judges one
+ * answer – confirmed, contradicted or not checkable – with a short reason. Contradictions stay visible next to the
+ * answer; nothing is merged or hidden. Deleted with the chat and the answer. Tokens also go into the usage ledger.
+ */
+export const assistantCheck = pgTable(
+  "assistant_check",
+  {
+    id: text("id").primaryKey(),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => assistantChat.id, { onDelete: "cascade" }),
+    /** The answer (assistant_message) that was checked. */
+    messageId: text("message_id")
+      .notNull()
+      .references(() => assistantMessage.id, { onDelete: "cascade" }),
+    /** provider/modelId of the checking model. */
+    model: text("model").notNull(),
+    verdict: text("verdict").$type<"confirmed" | "contradicted" | "unverifiable">().notNull(),
+    reason: text("reason").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("assistant_check_chat_idx").on(t.chatId, t.createdAt), uniqueIndex("assistant_check_message_model_uq").on(t.messageId, t.model)],
+);
+
+/**
+ * Assistant settings of one user in one workspace (#281): the default model, an optional second model that gives a
+ * second opinion, and optional token limits per day and per month (only for the assistant; councils have their own
+ * budget). Only the user reads and changes them. Keys stay the workspace's own (BYOK).
+ */
+export const assistantPreference = pgTable(
+  "assistant_preference",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialId: text("credential_id").references(() => aiProviderCredential.id, { onDelete: "set null" }),
+    modelId: text("model_id"),
+    reviewerCredentialId: text("reviewer_credential_id").references(() => aiProviderCredential.id, { onDelete: "set null" }),
+    reviewerModelId: text("reviewer_model_id"),
+    dailyTokenLimit: integer("daily_token_limit"),
+    monthlyTokenLimit: integer("monthly_token_limit"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("assistant_preference_owner_uq").on(t.organizationId, t.userId)],
 );
 
 /* ---------- Feedback inbox (#295) ---------- */
@@ -1401,6 +1553,13 @@ export const feedback = pgTable(
     /** Reserved for the screenshot upload (follow-up of #295); always null for now. */
     screenshot: text("screenshot"),
     state: text("state").$type<"new" | "in_progress" | "done">().notNull().default("new"),
+    /**
+     * Project or council the report was sent from – only when the user ticked "send this page" (#295 stage 3) and only
+     * ids of the user's own workspace. Context for the admin, never an access path.
+     */
+    context: jsonb("context").$type<{ projectId?: string; sessionId?: string }>(),
+    /** When the author last looked at the replies (#295 stage 3): later replies count as unread (badge). */
+    replySeenAt: timestamp("reply_seen_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     doneAt: timestamp("done_at", { withTimezone: true }),
   },
@@ -1420,4 +1579,278 @@ export const feedbackReply = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("feedback_reply_feedback_idx").on(t.feedbackId, t.createdAt)],
+);
+
+/* ---------- Skills (#363): shareable decision packages ---------- */
+
+export const skillVisibility = pgEnum("skill_visibility", ["private", "team"]);
+export const skillReviewStatus = pgEnum("skill_review_status", ["draft", "scanning", "pending_review", "published", "rejected", "quarantined", "withdrawn"]);
+
+/** A skill of a workspace. Content lives in immutable versions; a council stores id + version + content hash. */
+export const skill = pgTable(
+  "skill",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** The author; only they see a private skill. */
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    visibility: skillVisibility("visibility").notNull().default("private"),
+    latestVersion: integer("latest_version").notNull().default(1),
+    /** Where a duplicated skill came from (#422): source id, version and content hash at the time of the copy. */
+    forkedFrom: jsonb("forked_from").$type<SkillForkRef>(),
+    /** Archived skills stay readable for councils that used them, but are no longer offered. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /**
+     * SkillHub (#368): the version that is public (reviewed and approved), or null. Edits create new versions that stay
+     * private until they pass their own review – the public page always shows this version.
+     */
+    publicVersion: integer("public_version"),
+    /** Public URL part `@handle/slug`; unique per publisher. Set on the first submission. */
+    slug: text("slug"),
+    /** Shown in the public catalog and search. Unlisted skills are reachable by link only – no access control. */
+    listed: boolean("listed").notNull().default(true),
+    /** Hidden by a moderator (never automatically by reports); the author still sees it and the reason. */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    hiddenReason: text("hidden_reason"),
+    ...timestamps,
+  },
+  (t) => [
+    index("skill_org_idx").on(t.organizationId),
+    index("skill_owner_idx").on(t.ownerUserId),
+    uniqueIndex("skill_owner_slug_uq").on(t.ownerUserId, t.slug),
+    index("skill_public_idx").on(t.publicVersion),
+  ],
+);
+
+export const skillVersion = pgTable(
+  "skill_version",
+  {
+    id: text("id").primaryKey(),
+    skillId: text("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    /** Validated SkillContent (@consyrion/core). */
+    content: jsonb("content").$type<Record<string, unknown>>().notNull(),
+    /** sha256 of the canonical JSON (skillContentHash). */
+    contentHash: text("content_hash").notNull(),
+    /** Optional short note on what changed in this version (#422); not part of the content or its hash. */
+    changelog: text("changelog"),
+    createdById: text("created_by_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** SkillHub review state (SKILL_REVIEW_STATUSES in @consyrion/core). Only `published` is public. */
+    reviewStatus: skillReviewStatus("review_status").notNull().default("draft"),
+    /** Static publication scan (scanSkillForPublication) incl. its rules version – the light an approval is bound to. */
+    scanResult: jsonb("scan_result").$type<PublicationScanResult>(),
+    /** Model review: light, reasons per field, reviewer model/prompt version, tokens used. */
+    aiReview: jsonb("ai_review").$type<Record<string, unknown>>(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    /** Licence the author accepted for this version (SKILL_PUBLICATION_LICENSE.id) and when. */
+    license: text("license"),
+    licenseAcceptedAt: timestamp("license_accepted_at", { withTimezone: true }),
+    reviewedById: text("reviewed_by_id").references(() => user.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    /** Reason shown to the author on reject, quarantine or withdrawal. */
+    reviewNote: text("review_note"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("skill_version_uq").on(t.skillId, t.version), index("skill_version_review_idx").on(t.reviewStatus)],
+);
+
+/** A SkillHub publisher: the handle in `@handle/slug` belongs to one account. Suspension blocks new submissions. */
+export const skillPublisher = pgTable("skill_publisher", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  handle: text("handle").notNull().unique(),
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+  suspendedReason: text("suspended_reason"),
+  ...timestamps,
+});
+
+export const skillReportReason = pgEnum("skill_report_reason", ["misleading", "injection", "personal_data", "impersonation", "spam", "copyright", "other"]);
+export const skillReportStatus = pgEnum("skill_report_status", ["open", "resolved", "dismissed"]);
+
+/** A report on a public skill. Goes to the admin queue; reports never change visibility on their own. */
+export const skillReport = pgTable(
+  "skill_report",
+  {
+    id: text("id").primaryKey(),
+    skillId: text("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    reporterUserId: text("reporter_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reason: skillReportReason("reason").notNull(),
+    note: text("note"),
+    status: skillReportStatus("status").notNull().default("open"),
+    resolvedById: text("resolved_by_id").references(() => user.id, { onDelete: "set null" }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("skill_report_reporter_uq").on(t.skillId, t.reporterUserId), index("skill_report_status_idx").on(t.status, t.createdAt)],
+);
+
+/** Audit log of every SkillHub review and moderation step (actor null = the system, e.g. scan or auto-approval). */
+export const skillModerationLog = pgTable(
+  "skill_moderation_log",
+  {
+    id: text("id").primaryKey(),
+    skillId: text("skill_id")
+      .notNull()
+      .references(() => skill.id, { onDelete: "cascade" }),
+    version: integer("version"),
+    actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
+    /** SKILL_MODERATION_ACTIONS in @consyrion/core. */
+    action: text("action").notNull(),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status"),
+    /** Light, reason, content hash and rules version at the time – never secrets. */
+    detail: jsonb("detail").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("skill_moderation_log_skill_idx").on(t.skillId, t.createdAt)],
+);
+
+/* ---------- Expert Library, stage 1 (#270): role profiles for the 12 Minds roles ---------- */
+
+export const roleProfileVisibility = pgEnum("role_profile_visibility", ["private", "team"]);
+
+/** A workspace's profile for one existing 12 Minds role. Content lives in immutable versions. */
+export const roleProfile = pgTable(
+  "role_profile",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** The author; only they see a private profile. */
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** The 12 Minds role (CouncilRole) of the latest version. */
+    role: text("role").notNull(),
+    name: text("name").notNull(),
+    visibility: roleProfileVisibility("visibility").notNull().default("private"),
+    latestVersion: integer("latest_version").notNull().default(1),
+    /** Deactivated profiles stay readable for councils that used them, but are no longer offered. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("role_profile_org_idx").on(t.organizationId), index("role_profile_owner_idx").on(t.ownerUserId)],
+);
+
+export const roleProfileVersion = pgTable(
+  "role_profile_version",
+  {
+    id: text("id").primaryKey(),
+    profileId: text("profile_id")
+      .notNull()
+      .references(() => roleProfile.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    /** Validated RoleProfileContent (@consyrion/core). */
+    content: jsonb("content").$type<Record<string, unknown>>().notNull(),
+    /** sha256 of the canonical JSON (roleProfileContentHash). */
+    contentHash: text("content_hash").notNull(),
+    createdById: text("created_by_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("role_profile_version_uq").on(t.profileId, t.version)],
+);
+
+/**
+ * #249 gate 2 – acceptance by measurement (owner decision 08.11.26). Append-only: a person with the approval role states
+ * the measured result of one measurement-check requirement of one proposal, with mandatory evidence. A self-declaration,
+ * shown everywhere as such ("Measurement: self-declared by <person>, evidence: …"); only the latest entry per proposal
+ * and requirement counts. Recorded only from a signed-in session, never through an API token, MCP or an agent.
+ */
+export const measurementResult = pgTable(
+  "measurement_result",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => councilSession.id, { onDelete: "cascade" }),
+    decisionId: text("decision_id")
+      .notNull()
+      .references(() => finalDecision.id, { onDelete: "cascade" }),
+    proposalId: text("proposal_id")
+      .notNull()
+      .references(() => proposal.id, { onDelete: "cascade" }),
+    requirementId: text("requirement_id").notNull(),
+    /** The prototype/measurement build the value was measured on, if any. */
+    planId: text("plan_id").references(() => developmentPlan.id, { onDelete: "set null" }),
+    method: text("method").notNull(),
+    target: text("target").notNull(),
+    measured: text("measured").notNull(),
+    met: boolean("met").notNull(),
+    evidence: text("evidence").notNull(),
+    recordedById: text("recorded_by_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("measurement_result_session_idx").on(t.sessionId, t.proposalId, t.requirementId)],
+);
+
+/** #201: what a plan-usage entry counts – a council start, a build start, or sandbox time in milliseconds. */
+export const planUsageKind = pgEnum("plan_usage_kind", ["session", "execution", "sandbox_ms"]);
+
+/**
+ * #201 – plan usage ledger (append-only). Monthly limits are counted here, not from the councils, builds and test runs
+ * that still exist: deleting a project, a session or a build must not give back a month's runs. Holds no content – no
+ * brief, prompt, report, key or code – only the workspace, the kind, the amount and the id of the run it was booked for
+ * (`refId`, unique per kind, so a retry never books twice). A refund is a negative entry with its own refId. Deleted
+ * with the workspace; projects and sessions are not referenced, so deleting them leaves the ledger as it is.
+ */
+export const planUsage = pgTable(
+  "plan_usage",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    kind: planUsageKind("kind").notNull(),
+    amount: integer("amount").notNull(),
+    refId: text("ref_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("plan_usage_ref_uq").on(t.organizationId, t.kind, t.refId), index("plan_usage_month_idx").on(t.organizationId, t.kind, t.createdAt)],
+);
+
+/**
+ * ADR 0206 (#206): ids of permanently deleted workspaces, projects and sessions – never names, content or the deleting
+ * user. The deletion list outside the database backups (DELETIONS_LOG) is the source for the post-restore scrub; this
+ * table is the second copy that restore.sh exports into that list before it restores an older dump. No foreign keys:
+ * the rows outlive what they name.
+ */
+export const deletionTombstone = pgTable(
+  "deletion_tombstone",
+  {
+    kind: text("kind").$type<"workspace" | "project" | "session">().notNull(),
+    entityId: text("entity_id").notNull(),
+    organizationId: text("organization_id").notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.entityId] })],
 );

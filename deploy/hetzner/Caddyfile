@@ -9,5 +9,10 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
+	# Largest legitimate body: an 8 MB document upload or a feedback screenshot (#401). Anything larger is refused here,
+	# before the app buffers it.
+	request_body {
+		max_size 20MB
+	}
 	reverse_proxy web:3000
 }

@@ -7,7 +7,7 @@
  */
 
 /** Raised whenever the contract changes; an engine built for another contract version is refused. */
-export const ENGINE_CONTRACT_VERSION = 4;
+export const ENGINE_CONTRACT_VERSION = 6;
 
 /** production: the real engine in packages/engine/src. test/stub: stand-ins kept for engines built elsewhere. */
 export type EngineKind = "production" | "test" | "stub";
@@ -62,6 +62,25 @@ export interface GateRound {
    * estimate, not from its PASS/FAIL. Absent for rounds frozen before contract 3 (unchanged behaviour).
    */
   measures?: Record<string, GateMeasure>;
+  /**
+   * Requirements only the implementation can prove (tests/CI, night test R4). Their PASS means "a concrete verification
+   * plan is named"; the result carries `buildVerification` so nobody shows it as verified. Absent: unchanged behaviour.
+   */
+  buildChecks?: string[];
+  /**
+   * #249 part 2 (contract 5, gate version 3): requirements only a measurement of the running implementation can prove
+   * ("rhythmically stable interplay"). Their PASS means "a concrete measurement plan is named" – never that the
+   * requirement is met. A proposal whose every other check passed is an architecture candidate, never qualified.
+   * Absent: unchanged behaviour (gate version 2).
+   */
+  measurementChecks?: string[];
+  /**
+   * Contract 6 (owner decision 08.11.26): the same model may take part through several keys, but counts as ONE
+   * independent evaluator. participant id → independence group (e.g. normalised provider/model family). Participants
+   * of the author's group never evaluate that proposal; minimum breadth, majorities and per-requirement statements count
+   * groups. Absent, or a participant missing from it: every participant is its own group (unchanged behaviour).
+   */
+  participantGroups?: Record<string, string>;
   proposals: Array<{
     proposalId: string;
     /** The frozen revision evaluated in this round. */
@@ -94,6 +113,13 @@ export interface GateRequirementResult {
   open: string[];
   /** Evaluators that stated both PASS and FAIL for this requirement (counted as FAIL). */
   conflicts: string[];
+  /** Build check (night test R4): PASS = verification plan named, the requirement itself is verified after implementation. */
+  buildVerification?: boolean;
+  /**
+   * Contract 5: measurement check (#249 part 2). PASS = measurement plan named; the requirement itself stays open until
+   * the running implementation is measured. Never shown as met.
+   */
+  measurementPending?: boolean;
   /**
    * Contract 3, measured requirements only: the counted estimates – lowest low, highest high, median of the
    * evaluators' midpoints – with the limit they were compared with; null otherwise or without any valid estimate.
@@ -126,6 +152,12 @@ export interface GateProposalResult {
    * example after a model dropped out). Then the proposal is a provisional favourite: never qualified, never approvable.
    */
   limitedReview?: boolean;
+  /**
+   * #249 part 2 (contract 5): every check passed with enough independent evaluators, but at least one requirement is a
+   * measurement check – only its plan was confirmed. An architecture candidate with the performance proof open: never
+   * qualified, never a recommendation, never regularly approvable.
+   */
+  architectureCandidate?: boolean;
 }
 
 export interface GateResult {

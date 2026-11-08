@@ -27,6 +27,12 @@
     "email": "Votre adresse e-mail",
     "emailHint": "Utilisée uniquement pour vous répondre.",
     "honeypot": "Laissez ce champ vide",
+    "screenshot": "Capture d'écran (facultatif)",
+    "screenshotHint": "PNG, JPEG, WebP ou GIF, 3 Mo maximum. Vérifiez qu'aucun mot de passe ni clé n'est visible.",
+    "screenshotChoose": "Choisir une image",
+    "screenshotChange": "Choisir une autre image",
+    "screenshotNone": "Aucune image sélectionnée",
+    "screenshotRemove": "Retirer",
     "attached": "Joints automatiquement : page {page}, langue de l’interface, navigateur et version de l’application.",
     "privacy": "Nous enregistrons votre message, votre adresse e-mail et ces informations pour vous répondre et améliorer CONSYRION AI.",
     "privacyLink": "Politique de confidentialité",
@@ -41,13 +47,15 @@
       "fields": "Veuillez vérifier les champs signalés.",
       "subject": "Saisissez un objet (120 caractères max.).",
       "text": "Saisissez un message (4000 caractères max.).",
-      "email": "Saisissez une adresse e-mail valide."
+      "email": "Saisissez une adresse e-mail valide.",
+      "screenshot": "Choisissez une image PNG, JPEG, WebP ou GIF de 3 Mo maximum."
     },
     "mine": {
       "title": "Mes signalements",
       "empty": "Vous n’avez encore envoyé aucun signalement.",
       "reply": "Réponse de l’équipe CONSYRION AI",
-      "deleteNote": "Vous souhaitez supprimer un signalement ? Écrivez-nous – nous le supprimons avec toutes les réponses."
+      "deleteNote": "Vous souhaitez supprimer un signalement ? Écrivez-nous – nous le supprimons avec toutes les réponses.",
+      "new": "nouveau"
     },
     "admin": {
       "title": "Boîte de réception des retours",
@@ -86,7 +94,18 @@
       "deleteConfirm": "Supprimer définitivement ce signalement et toutes ses réponses ?",
       "deleteYes": "Supprimer définitivement",
       "cancel": "Annuler",
-      "error": "L’action a échoué. Veuillez réessayer."
-    }
+      "error": "L’action a échoué. Veuillez réessayer.",
+      "screenshot": "Capture d'écran jointe (cliquer pour ouvrir)",
+      "screenshotAlt": "Capture d'écran jointe au signalement",
+      "replyByMail": "Envoyer aussi la réponse par e-mail à {email}",
+      "replyNoMail": "Aucun serveur e-mail n'est configuré (SMTP_URL) : la réponse s'affiche uniquement dans l'application.",
+      "replySent": "Réponse enregistrée.",
+      "replySentMail": "Réponse enregistrée et envoyée par e-mail à {email}.",
+      "context": "Page (avec accord)"
+    },
+    "unreadReplies": "{count, plural, one {# nouvelle réponse} other {# nouvelles réponses}} à tes signalements",
+    "shareProject": "Envoyer le projet de cette page (seulement son identifiant – nous aide à trouver le problème)",
+    "shareSession": "Envoyer le council de cette page (seulement son identifiant – nous aide à trouver le problème)",
+    "storage": "Nous enregistrons ton message avec ton adresse e-mail pour te répondre ; tu peux le faire supprimer à tout moment."
   }
 }

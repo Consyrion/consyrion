@@ -9,6 +9,7 @@
 | `packages/build` | `pnpm --filter @consyrion/build test` | Execution Council with scripted engineers and a fake sandbox: approval and feasibility gates, DAG order, repair loop, reviews, resume of failed tasks, GitHub flow |
 | `packages/github` | `pnpm --filter @consyrion/github test` | App JWT, webhook signatures, state, scoped tokens, snapshot and pull-request secret filters, draft PR without touching the base branch |
 | `apps/web` | `pnpm --filter @consyrion/web test` | API error mapping, no leakage of internal errors, design-system components, execution status |
+| `apps/web` (E2E) | `pnpm --filter @consyrion/web e2e` (CI job `e2e-auth`) | Auth flows in a real browser against the production build: sign-up, verification link, sign-in (verified/unverified/wrong password), sign-out, second account in the same browser, password reset ([apps/web/e2e/README.md](../apps/web/e2e/README.md)) |
 
 ## Real provider end-to-end tests
 Run locally with the user's own keys on 26 Oct 2026 (BYOK; keys are entered by the user in the app, never in the
@@ -42,3 +43,10 @@ to add cases: `packages/council/eval/README.md`.
 Twelve synthetic briefs with human-reviewed gold labels measure whether real councils decide **correctly** (false
 approvals and unnecessary blocks counted apart). Scoring is offline from exported Decision Report JSONs; live runs
 need a budget approval. Study plan, hypotheses and protocol: `docs/reference-set.md`.
+
+## Load and race tests (#510)
+- Assistant: `apps/web/src/app/api/assistant/assistant-load.test.ts` – plan quota under parallel questions, council chat,
+  token limit (measured, soft – #519), double click, abort, rate limit (details in `docs/assistant.md`).
+- Council starts (scenario 6): `packages/council/test/council-start-load.test.ts` – six parallel starts on the last two
+  free monthly slots: exactly two sessions start, every started session has exactly one booking in `plan_usage`
+  (monthly run booked in the session's transaction under the workspace lock, #201). Local only, PGlite, test key.

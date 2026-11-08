@@ -1,4 +1,5 @@
-import { contentOf, type View } from "./helpers";
+import { deriveCruxes } from "./cruxes";
+import { contentOf, modelName, type View } from "./helpers";
 import type { RequirementGateResult } from "./requirement-gate";
 
 /**
@@ -10,10 +11,22 @@ export interface NextSteps {
   proposalId: string;
   /** Requirements not confirmed for this proposal (FAIL/UNKNOWN/DISPUTED) – to settle before any irreversible step. */
   verify: Array<{ id: string; text: string; status: string }>;
-  /** Objections still open or upheld against this proposal. */
-  objections: Array<{ claim: string; severity: string; status: string }>;
+  /** Objections still open or upheld against this proposal, with the model that raised them (#273 stage 1: source). */
+  objections: Array<{ claim: string; severity: string; status: string; by: string }>;
+  /**
+   * #273 stage 1: the strongest substantiated counter-position against this proposal – the top open, unresolved or
+   * upheld key dispute (#267 `deriveCruxes`), with its own reasoning as written. Null when there is none.
+   */
+  counter: { claim: string; by: string; evidence: string | null; status: string; severity: string } | null;
   /** The author's own assumptions, as written – the cheapest thing to test first. */
   assumptions: string[];
+  /**
+   * #273 stage 2: the author's own suggestion of the cheapest useful test, stop criteria and revisit triggers – as
+   * written, empty fields dropped; null / empty when the proposal does not state them ("not stated").
+   */
+  cheapestTest: { assumption: string; method: string; successCriterion: string } | null;
+  stopCriteria: string[];
+  revisitTriggers: string[];
   /** High/critical risks with the author's mitigation: if one materialises, stop and re-check. */
   stopIf: Array<{ risk: string; mitigation: string | null }>;
   /** Points the Consensus Round left open: new facts on them justify a new council. */
@@ -34,7 +47,12 @@ export function deriveNextSteps(view: View, proposalId: string | null, gate?: Re
     });
   const objections = view.objections
     .filter((o) => o.proposalId === proposal.id && ["open", "accepted", "unresolved"].includes(o.status) && !(o as { moot?: unknown }).moot)
-    .map((o) => ({ claim: o.claim, severity: o.severity, status: o.status }));
+    .map((o) => ({ claim: o.claim, severity: o.severity, status: o.status, by: modelName(view, (o as { raisedByParticipantId?: string }).raisedByParticipantId) }));
+  // Same ranking as the Key disputes card (#267), not a second logic: blocking first, then status and severity.
+  const top = deriveCruxes(view, proposal.id, 50).find(
+    (c) => c.proposalId === proposal.id && (c.status === "open" || c.status === "unresolved" || c.status === "accepted") && !c.revision?.moot,
+  );
+  const counter = top ? { claim: top.claim.text, by: top.claim.by, evidence: top.claim.evidence, status: top.status, severity: top.severity } : null;
   const stopIf = (content.risks ?? [])
     .filter((r) => r.severity === "high" || r.severity === "critical")
     .map((r) => ({ risk: r.risk, mitigation: r.mitigation || null }));
@@ -42,6 +60,17 @@ export function deriveNextSteps(view: View, proposalId: string | null, gate?: Re
     proposalId: proposal.id,
     verify,
     objections,
+    counter,
+    cheapestTest:
+      content.cheapestTest && (content.cheapestTest.method?.trim() || content.cheapestTest.assumption?.trim())
+        ? {
+            assumption: content.cheapestTest.assumption?.trim() ?? "",
+            method: content.cheapestTest.method?.trim() ?? "",
+            successCriterion: content.cheapestTest.successCriterion?.trim() ?? "",
+          }
+        : null,
+    stopCriteria: (content.stopCriteria ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5),
+    revisitTriggers: (content.revisitTriggers ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5),
     assumptions: (content.assumptions ?? []).slice(0, 5),
     stopIf: stopIf.slice(0, 4),
     revisitWhen: ((view.consensus as { disagreements?: string[] } | null)?.disagreements ?? []).slice(0, 4),

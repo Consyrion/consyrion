@@ -172,7 +172,10 @@
       "changes_requested": "已要求修改",
       "failed": "失败",
       "cancelled": "已取消"
-    }
+    },
+    "showArchived": "显示归档项目的 {n} 个会话",
+    "hideArchived": "隐藏归档项目的会话",
+    "archivedBadge": "已归档"
   },
   "projects": {
     "metaTitle": "项目",
@@ -224,7 +227,7 @@
     "phases": "阶段",
     "executionAfterApproval": "仅在你批准后执行",
     "delete": "删除项目",
-    "deleteText": "永久删除该项目及其所有 Council 会话、决策、生成的代码和文档。",
+    "deleteText": "立即删除此项目及其全部内容：先停止正在运行的委员会和构建，然后删除所有数据（通常几秒内完成）。",
     "deleteButton": "永久删除项目",
     "overview": {
       "title": "项目概览",
@@ -252,7 +255,27 @@
       "emptyTitle": "尚无 council",
       "emptyText": "启动一个 council：多个 AI 模型独立思考、辩论并得出由你批准的裁决。之后你会在这里看到哪些模型参与了。",
       "emptyNoRights": "只有具备决策权限的成员才能启动 council"
-    }
+    },
+    "demoBadge": "演示",
+    "demo": {
+      "notice": "这是一个演示：一个已完成的委员会被复制到你的工作区，让你看到决策的样子。它是只读的，不计入你的套餐。你可以随时删除它。",
+      "cta": "创建你自己的项目"
+    },
+    "archive": {
+      "title": "归档项目",
+      "restoreTitle": "已归档的项目",
+      "archiveText": "归档的项目仍可阅读和导出，但不能启动新的委员会、批准或构建；正在运行的委员会会继续。你可以随时恢复。",
+      "restoreText": "此项目已归档。恢复后可再次启动委员会、批准和构建（会再次占用你套餐中的一个项目名额）。",
+      "archive": "归档项目",
+      "confirm": "是，归档",
+      "cancel": "取消",
+      "restore": "恢复项目",
+      "working": "保存中…",
+      "error": "无法保存更改。",
+      "banner": "此项目已归档——只读。在本页底部恢复后即可继续工作。",
+      "listTitle": "归档（{n}）"
+    },
+    "deleteCounts": "此项目：{sessions, plural, other {# 个委员会会话}}（{running} 个正在运行或排队），{documents, plural, other {# 个文档}}。"
   },
   "councilSetup": {
     "metaTitle": "配置 AI 团队",
@@ -361,7 +384,18 @@
     "size": "{n, plural, other {# 个文件}}，{size} ≈ 每次模型调用 {tokens} 个 Token",
     "limit": "最多 {files} 个文件、{size}",
     "readingFiles": "正在读取文件…",
-    "use": "用作上下文"
+    "use": "用作上下文",
+    "savedState": "已保存：{repo} @ {sha} · {n, plural, other {# 个文件}} · {size} · 每次模型调用约 {tokens} 个 token",
+    "change": "更改",
+    "remove": "移除",
+    "removed": "已移除仓库上下文。下次 council 前请重新确认需求。",
+    "removeError": "无法移除仓库上下文",
+    "removeConfirm": "移除仓库上下文？模型将不再读取这些文件，需求需要重新确认。",
+    "removeYes": "移除上下文",
+    "cancel": "取消",
+    "newerCommit": "自保存以来分支已更新（{saved} → {current}）。已保留你的选择；保存即可将上下文更新到新的 commit。",
+    "saveConfirm": "将这些文件保存为上下文？由于来源发生变化，下次 council 前需要重新确认需求。",
+    "saveYes": "保存为上下文"
   },
   "requirements": {
     "suspicion": {
@@ -427,7 +461,33 @@
     },
     "undecidedError": "至少有一条建议的陈述既未保留，也未注明理由排除。请重新加载页面，并对每条标记的陈述作出决定。",
     "conflict": "{first} 与 {second} 可能相互矛盾：最迟 {deleteDays} 天后删除，但至少保留 {retainDays} 天。没有方案能同时满足两者——请在启动委员会之前修改其中一项。",
-    "reasonMissingError": "至少有一条未采纳的陈述缺少理由（至少 3 个字符）。请补充后再次确认。"
+    "reasonMissingError": "至少有一条未采纳的陈述缺少理由（至少 3 个字符）。请补充后再次确认。",
+    "buildCheck": "构建检查",
+    "buildCheckHint": "只有实现才能证明这一点（测试、CI）。委员会检查提案是否给出具体的验证计划；由构建来证明。",
+    "split": {
+      "proposal": "包含 {n} 个可独立检查的部分：",
+      "proposalNote": "每个部分保留原有措辞、数字和否定，并指向原文。只有在你选择后才会拆分。",
+      "apply": "拆分为 {n} 个部分",
+      "keep": "保持不拆分",
+      "coupled": "相互关联的条件——作为一项要求进行检查。",
+      "unclear": {
+        "alternatives": "包含备选项（或）——拆分可能改变含义。若各部分相互独立，请自行拆分。",
+        "shared_scope": "开头的词可能适用于所有条目（如“必须”“不得”“仅”）——若各部分相互独立，请自行拆分。",
+        "coverage": "拆分会丢失数字或否定——若各部分相互独立，请自行拆分。"
+      },
+      "manual": "自行拆分",
+      "limit": "这将超过每个列表 100 项要求的上限——请先删除或合并要求。",
+      "origin": "第 {part} 部分，共 {of} 部分——来自：“{original}”",
+      "addPart": "添加部分",
+      "merge": "合并回原文",
+      "gaps": "原文包含 {tokens}，但没有任何部分包含——请检查各部分，避免遗漏。"
+    },
+    "checkability": {
+      "before": "启动前可检查",
+      "after_implementation": "仅在实施后可测量",
+      "build": "在构建中检查",
+      "summary": "{before} 项启动前可检查 · {after} 项仅在实施后可测量 · {build} 项在构建中检查"
+    }
   },
   "voteWeights": {
     "noRanking": "尚未加载排名——中性 5",
@@ -481,7 +541,8 @@
       "plan": "你的 {plan} 套餐每个会话最多允许 {n} 个模型。",
       "roles": "请至少启用一个 12 Minds Council 角色。",
       "weights": "请修正标出的 Final Verdict 权重（每项 0–100）。",
-      "total": "权重之和必须为 100（当前为 {total}）。"
+      "total": "权重之和必须为 100（当前为 {total}）。",
+      "budgetTooSmall": "预算对该团队来说太小：至少需要 {tokens} 个 token，才能让每个模型写出一个提案，并且 Final Verdict 仍能运行。"
     },
     "models": {
       "title": "1. 选择 AI 模型",
@@ -495,9 +556,21 @@
       "unavailableHint": "此工作区中对该模型的最近一次调用被提供商拒绝（未找到模型）。它仍可选择：每次启动 council 都会重新检查，一旦模型恢复响应或 24 小时后，此提示即消失。"
     },
     "roles": {
+      "addedTitle": "{n, plural, other {# 个模型}}没有视角——已自动补充，让每个模型都给出自己的批判性审查（每个模型仍只有一票）：",
+      "addedLine": "{model}：{role}",
+      "addedToggle": "为没有角色的{n, plural, other {# 个模型}}添加额外视角",
+      "addedCost": "12 Minds Council 中{calls, plural, other {额外 # 次模型调用}}（已计入费用估算）。同一模型的两个视角不是两个独立意见——每个模型仍只有一票。",
+      "addedOff": "已关闭：{n, plural, other {# 个模型}}在 12 Minds Council 中不提供自己的批判性审查。",
       "title": "3. 12 Minds Council 视角",
       "intro": "已启用 {n} 个。视角不是独立投票：多数按模型计算。角色越少，成本越低。",
-      "modelFor": "{role} 使用的模型"
+      "modelFor": "{role} 使用的模型",
+      "origin": {
+        "skill": "来自技能",
+        "suggestion": "项目建议",
+        "own": "自行选择"
+      },
+      "vsModels": "{models, plural, other {# 个模型}} · {perspectives, plural, other {# 个视角}} · 每个提案最多由 {foreign, plural, other {# 个其他模型}}审查(前提是它们都持续回答)。视角不是投票:同一模型上的多个角色仍是一个模型。",
+      "instances": "{model}:{n} 个实例(不同的密钥)只算作 1 个独立声音 – 适用于多数投票、至少两名独立审查者的要求以及交叉检查。一个实例绝不会审查同一模型的另一个实例。"
     },
     "settings": {
       "title": "4. 会话设置",
@@ -518,9 +591,12 @@
       "estimateDocs": "总计约 <strong>{calls}</strong> 次模型调用，最多 <strong>{tokens}</strong> 个 Token（上限），{docs, plural, other {包括 # 个附加文档}}。",
       "typical": "通常约 {tokens} 个 Token（你最近 {calls} 次调用的中位数）。",
       "noTypical": "暂无典型值：此工作区之前的调用太少。",
+      "splitVerdict": "一次评估容纳不下：每个模型将分 {calls} 次调用检查需求，每次最多 {perCall} 条。每次调用都会重新发送简报和方案——估算和预算已包含这些调用。",
       "twoModels": "只有两个模型时，每个方案只有一名独立评审：本次 Council 可以给出暂定首选，但绝不会给出可批准的推荐。要获得推荐，请选择三个或更多模型。",
       "failedOften": "经常失败的模型",
       "failedRecently": "最近经常失败——{model}。",
+      "contextTooSmall": "上下文窗口过小",
+      "contextDoesNotFit": "{model}：简报、文档和所有方案约需 {input} 个 token，其上下文窗口只有 {window}。它的调用会被拒绝而不是被截断——请选择窗口更大的模型或缩小仓库上下文。",
       "overBudget": "上限超出了你 {budget} 个 Token 的预算。我接受为了给 Final Verdict 保留足够预算而缩短辩论阶段：如果预算不足，将跳过 Minority Review 和 Consensus Round，方案也不会修订——裁决将评判最初版本，并标记为已缩短。",
       "checkWeights": "开始前请检查投票权重："
     },
@@ -532,6 +608,69 @@
       "label": "模型 ID",
       "placeholder": "手动添加模型 ID",
       "add": "添加"
+    }
+  },
+  "skillHub": {
+    "nav": {
+      "catalog": "SkillHub",
+      "app": "打开应用"
+    },
+    "catalog": {
+      "metaTitle": "SkillHub——决策技能",
+      "metaDescription": "用于 CONSYRION AI Council 的已审核社区技能：视角、需求模块、权重和规则。",
+      "title": "SkillHub",
+      "intro": "社区共享的决策包。这里的每个技能都经过自动检查并由管理员批准。技能只会预填 Council——你仍需确认需求并照常批准。",
+      "search": "搜索技能",
+      "category": "类别",
+      "allCategories": "所有类别",
+      "searchButton": "搜索",
+      "empty": "暂无公开技能。",
+      "noResults": "没有符合搜索条件的技能。"
+    },
+    "detail": {
+      "reviewed": "已审核",
+      "perspectives": "视角",
+      "blocks": "需求模块（建议）",
+      "weights": "裁决权重",
+      "rules": "会话规则",
+      "knowledge": "领域知识",
+      "changelog": "此版本的更改",
+      "hash": "内容哈希",
+      "licenseText": "由 @{handle} 以 {license} 发布。使用时会创建一份注明原作的你自己的副本。",
+      "uses": "{n, plural, =0 {尚未被采用} other {已被 # 个工作区采用}}"
+    },
+    "disclaimer": "社区技能——不构成法律、医疗或财务建议，CONSYRION AI 不作任何保证。技能永远不会改变需求关卡、审核或人工批准。",
+    "actions": {
+      "adopt": "在 CONSYRION 中使用",
+      "adoptHint": "在你的工作区中创建一份私有副本（需要登录）。",
+      "adopted": "已添加到你的技能。",
+      "mySkills": "打开我的技能",
+      "report": "举报",
+      "reason": "原因",
+      "chooseReason": "选择…",
+      "note": "有什么问题？（可选）",
+      "reportHint": "举报会发送给管理员，永远不会自动隐藏技能。",
+      "sendReport": "发送举报",
+      "reported": "谢谢——管理员会查看。",
+      "signInNeeded": "请先登录。",
+      "signIn": "登录",
+      "error": "出现错误。",
+      "reasons": {
+        "misleading": "误导性",
+        "injection": "试图操纵 Council",
+        "personal_data": "个人数据",
+        "impersonation": "冒充身份",
+        "spam": "垃圾信息或广告",
+        "copyright": "版权",
+        "other": "其他"
+      },
+      "errors": {
+        "already_reported": "你已经举报过此技能。",
+        "reason_missing": "请选择原因。"
+      }
+    },
+    "footer": {
+      "license": "社区技能由作者以 CC BY 4.0 发布（以 @标识 署名）。不构成法律、财务或医疗建议。"
     }
   }
 }

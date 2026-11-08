@@ -14,6 +14,7 @@ import { GlassPanel } from "../ui/glass";
 import { Badge } from "../ui/surface";
 import { contentOf, modelName, PROVIDER_LABELS, proposalLabel, SEVERITY_TONE, STATUS_TONE, useEnumText, useRoleLabel, type View } from "./helpers";
 import { Select } from "../ui/select";
+import { PARTICIPATION_PHASES, participationMatrix, silentIn } from "./participation";
 
 /**
  * Badge of a model card: the label of its proposal once proposals are revealed, so the card matches "Proposal B" in
@@ -452,8 +453,9 @@ function Objections({ view }: { view: View }) {
           {list.map((o) => (
             <li key={o.id} className={`glass-quiet rounded-xl p-4 ${o.blocking ? "border-danger/60" : ""}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
+                {/* #167: the line is the objection, and the badge decides the objection – never the attacked statement. */}
                 <p className="font-medium">
-                  {t("proposal", { label: proposalLabel(view, o.proposalId) })}: {o.claim}
+                  {t("objectionAgainst", { label: proposalLabel(view, o.proposalId) })}: {o.claim}
                 </p>
                 <span className="flex gap-1.5">
                   <Badge tone={SEVERITY_TONE[o.severity as keyof typeof SEVERITY_TONE] ?? "neutral"}>{severityText(o.severity)}</Badge>
@@ -589,6 +591,7 @@ export function CouncilRoom({ view, onOpen }: { view: View; onOpen: (tab: "open_
         <Objections view={view} />
       </div>
       <Proposals view={view} onOpen={onOpen} />
+      <Participation view={view} />
       <div
         className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4 ${awaiting ? "border-warning/60 bg-warning/10" : "border-glass-line bg-surface/50"}`}
       >
@@ -611,5 +614,63 @@ export function CouncilRoom({ view, onOpen }: { view: View; onOpen: (tab: "open_
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** Participation per model and phase (ChatGPT P0, 09.11.26): calls, failures and stored contributions, nothing assumed. */
+function Participation({ view }: { view: View }) {
+  const t = useTranslations("councilRoom.participation");
+  const tp = useTranslations("councilRoom.participation.phase");
+  const rows = participationMatrix(view);
+  const ran = (phase: string) => view.stages.some((s) => s.phase === phase && (s.status === "completed" || s.status === "running" || s.status === "failed"));
+  if (!rows.length) return null;
+  return (
+    <GlassPanel className="overflow-x-auto p-5" aria-label={t("title")}>
+      <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">{t("title")}</h2>
+      <p className="text-sm text-muted">{t("intro")}</p>
+      <table className="mt-3 w-full min-w-[720px] text-left text-sm" data-testid="participation-matrix">
+        <thead>
+          <tr className="text-xs text-muted">
+            <th className="p-2 font-medium">{t("model")}</th>
+            {PARTICIPATION_PHASES.map((phase) => (
+              <th key={phase} className="p-2 font-medium">
+                {tp(phase)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {rows.map((row) => (
+            <tr key={row.participantId}>
+              <th className="p-2 font-medium">
+                {modelName(view, row.participantId)}
+                {row.instance ? (
+                  <span className="block text-xs font-normal text-muted">{t("instance", { index: row.instance.index, total: row.instance.total })}</span>
+                ) : null}
+              </th>
+              {PARTICIPATION_PHASES.map((phase) => {
+                const c = row.cells[phase];
+                const silent = silentIn(row, phase, ran(phase));
+                return (
+                  <td key={phase} className="p-2 align-top">
+                    {c.ok || c.contributions ? (
+                      <span className="text-success">
+                        ✓ {t("calls", { n: c.ok })}
+                        {c.contributions ? <span className="block text-xs text-muted">{t("contributions", { n: c.contributions })}</span> : null}
+                      </span>
+                    ) : silent ? (
+                      <span className="text-warning">{t("silent")}</span>
+                    ) : (
+                      <span className="text-muted">–</span>
+                    )}
+                    {c.failed ? <span className="block text-xs text-danger">✕ {t("failed", { n: c.failed })}</span> : null}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </GlassPanel>
   );
 }

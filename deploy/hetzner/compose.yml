@@ -66,6 +66,10 @@ services:
       COUNCIL_WORKER: external
       # Councils and builds run only with the engine (#188), never with the public test engine.
       CONSYRION_REQUIRE_PRODUCTION_ENGINE: "1"
+      # ADR 0206: deletion list outside the database backups (workspace deletion appends here).
+      DELETIONS_LOG: /deletions/deletions.log
+    volumes:
+      - /opt/consyrion/deletions:/deletions
     networks: [edge, db]
     depends_on:
       migrate:
@@ -96,12 +100,14 @@ services:
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
       WORKER_JOBS_PER_WORKSPACE: ${WORKER_JOBS_PER_WORKSPACE:-3}
       WORKER_MAX_BUILDS: ${WORKER_MAX_BUILDS:-1}
-    # The worker (trusted Consyrion code, no inbound port) starts sandbox containers; generated code never gets
-    # the socket, runs as uid 1000 with no capabilities, under gVisor, and without network for tests.
-    group_add: ["${DOCKER_GID:?set DOCKER_GID}"]
+      # ADR 0206: deletion list outside the database backups (project and session purges append here).
+      DELETIONS_LOG: /deletions/deletions.log
+    # No Docker socket by default (#398): it is root on the host, and with SANDBOX_DISABLED=true the worker never
+    # starts a container. With SANDBOX_DISABLED=false in deploy.env, deploy.sh/rollback.sh add compose.sandbox.yml,
+    # which mounts the socket for the sandbox.
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - /srv/consyrion/workspaces:/srv/consyrion/workspaces
+      - /opt/consyrion/deletions:/deletions
     networks: [db, egress]
     depends_on:
       migrate:

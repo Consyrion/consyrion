@@ -20,15 +20,15 @@ All endpoints are under `/api`. Authentication: browser session cookie **or** `A
 | POST `/executions/:id/pull-request`, GET `/executions/:id/checks` | Draft PR, CI status | decision:approve / read |
 | GET/POST `/credentials`, DELETE `/credentials/:id`, POST `/credentials/:id/validate`, POST `/credentials/:id/rotate`, GET `/models` | BYOK keys and live models | credential:read/write |
 | GET/POST `/team/members`, PATCH/DELETE `/team/members/:id`, DELETE `/team/invitations/:id`, POST `/invitations/accept` | Team | member:manage |
-| GET/POST `/tokens`, DELETE `/tokens/:id` | Personal API tokens | own |
+| GET/POST `/tokens`, DELETE `/tokens/:id` | Personal API tokens | own; POST/DELETE only in the web app, not with a token (#403) |
 | POST `/orgs/active`, GET `/orgs` | Workspaces | member |
 | GET `/privacy/export`, DELETE `/privacy/organization` | Export, delete workspace | owner |
 | GET/POST `/pricing`, DELETE `/pricing/:id` | Own model prices for estimates | credential:write |
 | POST `/billing/checkout`, POST `/billing/portal`, POST `/billing/webhook` | Stripe | billing:manage / signed |
-| GET `/github/install`, GET `/github/setup`, POST `/github/webhook`, GET `/github/repositories` | GitHub App | owner / signed |
+| GET `/github/install`, GET `/github/setup`, POST `/github/webhook`, GET `/github/repositories` | GitHub App | owner / signed; repositories: member+ (#402) |
 | PUT `/admin/plans/:key`, PUT `/admin/organizations/:id/plan` | Platform admin | PLATFORM_ADMIN_EMAILS |
-| POST `/feedback`, GET `/feedback/mine` | Send feedback (also visitors, 10/day), own reports with replies | anyone / own |
-| GET `/admin/feedback`, GET/PATCH/DELETE `/admin/feedback/:id`, POST `/admin/feedback/:id/reply` | Feedback inbox | PLATFORM_ADMIN_EMAILS |
+| POST `/feedback`, GET `/feedback/mine` | Send feedback (also visitors, 10/day, optional screenshot ≤ 3 MB as base64), own reports with replies | anyone / own |
+| GET `/admin/feedback`, GET/PATCH/DELETE `/admin/feedback/:id`, POST `/admin/feedback/:id/reply` (`{ text, email? }`: also e-mail the author) | Feedback inbox | PLATFORM_ADMIN_EMAILS |
 
 ## API v1 for integrations (#101)
 
@@ -40,7 +40,7 @@ All endpoints are under `/api`. Authentication: browser session cookie **or** `A
 | Scope | Prefix | May use |
 |---|---|---|
 | Integration (default) | `cni_` | projects (list, create, read, new brief version), documents (incl. image description), requirements (read, confirm), credentials and models (read, never secrets), cost preview, council start, session list/view/events/report, cancel |
-| Full access | `cns_` | everything the user's role allows, including approvals, builds, pull requests, keys, team and tokens (VS Code extension) |
+| Full access | `cns_` | everything the user's role allows, including approvals, builds, pull requests and keys (VS Code extension) – except creating/revoking tokens and managing the team, which need the web app (#403) |
 
 Every handler that accepts an integration token opts in with `requireActor({ integration: true })`; all others refuse
 it with 403 (fail closed). `apps/web/src/lib/server/actor.test.ts` pins the list, so widening it is a visible change.

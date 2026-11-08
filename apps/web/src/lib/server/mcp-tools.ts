@@ -4,11 +4,15 @@ import { createSession, getSessionView, previewSession, type SessionInput } from
 import { DECISION_MODES, DomainError } from "@consyrion/core";
 import {
   archiveProject,
+  assertClientDailyTokenBudget,
+  recordClientCouncilStart,
   createProjectForDecisionRequest,
   decryptCredentialForUse,
+  getSkillForUse,
   lastCouncilParticipants,
   latestRequirementList,
   listCredentials,
+  listSkills,
   runActionForClient,
   type ActorContext,
   type ApiTokenScope,
@@ -23,6 +27,15 @@ import { rateLimit } from "./rate-limit";
 
 /** Upper limit for a council started over MCP – lower than the app's maximum, so a client cannot spend unexpectedly. */
 export const MCP_MAX_TOKEN_BUDGET = 1_000_000;
+
+/**
+ * Upper bound of council token budgets one user may start over MCP per 24 hours (#405), default 5,000,000;
+ * operators can change it with MCP_DAILY_TOKEN_BUDGET.
+ */
+export function mcpDailyTokenBudget(env: Record<string, string | undefined> = process.env): number {
+  const configured = Number(env.MCP_DAILY_TOKEN_BUDGET);
+  return Number.isInteger(configured) && configured > 0 ? configured : 5_000_000;
+}
 
 const str = (description: string) => ({ type: "string", description });
 const PROJECT_TYPES = ["idea", "architecture", "repository", "business", "technology_choice"];
@@ -58,12 +71,13 @@ const councilInput = (withBudget: boolean) => ({
   additionalProperties: false,
 });
 
-function sessionInput(args: Record<string, unknown>): SessionInput {
+function sessionInput(args: Record<string, unknown>, extra: Partial<SessionInput> = {}): SessionInput {
   return {
     mode: args.mode as SessionInput["mode"],
     participants: Array.isArray(args.participants) ? (args.participants as SessionInput["participants"]) : [],
     tokenBudget: typeof args.tokenBudget === "number" ? args.tokenBudget : undefined,
     confirmBudget: args.confirmBudget === true ? true : undefined,
+    ...extra,
   };
 }
 
@@ -194,6 +208,16 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
     },
   ];
 
+  tools.push({
+    name: "list_skills",
+    title: "List decision skills",
+    description: "Skills (decision templates) this workspace can use: official ones and the team's or your own. Pass an id as `skill` to ask_consyrion.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    write: false,
+    run: async () => ({
+      skills: (await listSkills(db, actor)).map((s) => ({ id: s.id, name: s.name, summary: s.summary, category: s.category, version: s.version, visibility: s.visibility })),
+    }),
+  });
   if (scope === "read") return tools;
 
   const action = (type: string) => async (args: Record<string, unknown>) => {
@@ -231,6 +255,23 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
             description: `Upper token limit of the whole council (max ${MCP_MAX_TOKEN_BUDGET.toLocaleString("en-US")})`,
           },
           confirmBudget: { type: "boolean", description: "Set true only after the user accepted that phases may be shortened to stay within the budget" },
+          files: {
+            type: "array",
+            maxItems: 20,
+            description:
+              "Optional small file excerpts the decision is about (e.g. the code to change, its tests, package.json) – only what is needed, at most 200 kB together. " +
+              "The models read them as untrusted document data; they never become requirements. Without them requirements like 'existing tests stay green' cannot be verified. " +
+              "Tell the user which files you send. Never send secrets (.env, keys, credentials).",
+            items: {
+              type: "object",
+              properties: { path: str("Repository-relative path, e.g. src/lib/date.ts"), content: str("File content or the relevant excerpt (text)") },
+              required: ["path", "content"],
+              additionalProperties: false,
+            },
+          },
+          skill: str(
+            "Optional skill id from list_skills (or official:<slug>): pre-fills mode, perspectives, weights and session rules and is pinned in the verdict. Its requirement blocks are only suggestions – put the ones the user confirms into requirements",
+          ),
         },
         required: ["question", "context", "tokenBudget"],
         additionalProperties: false,
@@ -240,14 +281,41 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
         rateLimit(`mcp-council:${actor.userId}`, 5, 60_000);
         if (typeof args.tokenBudget !== "number" || args.tokenBudget > MCP_MAX_TOKEN_BUDGET)
           throw new DomainError("VALIDATION", `tokenBudget is required over MCP and may be at most ${MCP_MAX_TOKEN_BUDGET.toLocaleString("en-US")}`);
+        await assertClientDailyTokenBudget(db, actor, args.tokenBudget, mcpDailyTokenBudget());
         const list = (value: unknown) => (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []);
         let chosen = Array.isArray(args.participants) ? (args.participants as Array<{ credentialId: string; modelId: string }>) : [];
         if (!chosen.length) chosen = (await lastCouncilParticipants(db, actor)).map((p) => ({ credentialId: p.credentialId, modelId: p.modelId }));
         if (chosen.length < 2) throw new DomainError("VALIDATION", "No earlier council to copy the models from – pass 2–6 participants from list_models");
-        const { project, requirements } = await createProjectForDecisionRequest(
+        // #363 part 3: a skill pre-fills the setup; its requirement blocks never become requirements by themselves.
+        const skill = typeof args.skill === "string" && args.skill ? await getSkillForUse(db, actor, args.skill) : null;
+        const fromSkill: Partial<SessionInput> = skill
+          ? {
+              ...(skill.content.roles?.length ? { roles: skill.content.roles } : {}),
+              ...(skill.content.weights ? { weights: skill.content.weights } : {}),
+              ...(skill.content.sessionRules ? { customRules: skill.content.sessionRules } : {}),
+              skill: { id: skill.ref.skillId, version: skill.ref.version },
+            }
+          : {};
+        const mode = typeof args.mode === "string" ? args.mode : (skill?.content.council?.mode ?? "independent_expert");
+        const files = Array.isArray(args.files)
+          ? args.files
+              .filter((f): f is { path: unknown; content: unknown } => typeof f === "object" && f !== null)
+              .map((f) => ({ path: typeof f.path === "string" ? f.path : "", content: typeof f.content === "string" ? f.content : "" }))
+          : [];
+        const {
+          project,
+          requirements,
+          files: attached,
+        } = await createProjectForDecisionRequest(
           db,
           actor,
-          { question: String(args.question ?? ""), context: String(args.context ?? ""), options: list(args.options), requirements: list(args.requirements) },
+          {
+            question: String(args.question ?? ""),
+            context: String(args.context ?? ""),
+            options: list(args.options),
+            requirements: list(args.requirements),
+            files,
+          },
           "mcp",
         );
         // A refused start (budget not confirmed, unknown model, plan limit) must not leave a project behind that the
@@ -256,20 +324,29 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
           db,
           actor,
           project.id,
-          sessionInput({ ...args, mode: typeof args.mode === "string" ? args.mode : "independent_expert", participants: chosen }),
+          sessionInput({ ...args, mode, participants: chosen }, fromSkill),
           modelCatalog(db, actor),
         ).catch(async (error: unknown) => {
           await archiveProject(db, actor, project.id).catch(() => {});
           throw error;
         });
+        // #429: counts against the daily client budget (the web app never does).
+        await recordClientCouncilStart(db, actor, session.id, "mcp");
         return {
           sessionId: session.id,
           status: "queued",
           url: abs(`/sessions/${session.id}`),
           projectUrl: abs(`/projects/${project.id}`),
           requirementsConfirmed: requirements,
+          ...(attached.length ? { filesAttached: attached } : {}),
           participants: chosen.map((p) => p.modelId),
           tokenBudget: args.tokenBudget,
+          ...(skill
+            ? {
+                skill: { id: skill.ref.skillId, name: skill.ref.name, version: skill.ref.version },
+                skillRequirementBlocks: skill.content.requirementBlocks ?? [],
+              }
+            : {}),
           next: "The council runs for a few minutes. Call get_decision with this sessionId to see the phase and, at the end, the verdict.",
         };
       },
@@ -340,7 +417,9 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
         rateLimit(`mcp-council:${actor.userId}`, 5, 60_000);
         if (typeof args.tokenBudget !== "number" || args.tokenBudget > MCP_MAX_TOKEN_BUDGET)
           throw new DomainError("VALIDATION", `tokenBudget is required over MCP and may be at most ${MCP_MAX_TOKEN_BUDGET.toLocaleString("en-US")}`);
+        await assertClientDailyTokenBudget(db, actor, args.tokenBudget, mcpDailyTokenBudget());
         const session = await createSession(db, actor, String(args.projectId ?? ""), sessionInput(args), modelCatalog(db, actor));
+        await recordClientCouncilStart(db, actor, session.id, "mcp");
         return { sessionId: session.id, status: "queued", tokenBudget: args.tokenBudget, url: abs(`/sessions/${session.id}`) };
       },
     },

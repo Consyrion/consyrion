@@ -34,3 +34,20 @@ self-hosted). Hosted: Pro and up (entitlement `mcp`, shown as "MCP & Telegram").
 Code: `packages/db/src/repositories/telegram.ts` (`telegram_request`, migration 0034), `apps/web/src/lib/server/telegram-bot.ts`,
 routes `api/telegram/[connectionId]` (webhook) and `api/delivery-connections/[id]/inbound` (on/off).
 Bot texts: German and English (other languages get English).
+
+**Language (live test 08.11.26).** The bot speaks the language the interface shows when "Allow questions over Telegram"
+is clicked: the language cookie, else the browser's Accept-Language (before, without a cookie it fell back to English).
+The verdict summary and the PDF sent to the chat use the same language (`deliverDecision` `locale`). A connection
+switched on before this fix keeps its stored language until it is switched off and on again.
+
+## Language and requirement lines (night test R4, 08.11.26)
+
+- Summary, buttons, status messages, the verdict and the PDF follow the **language of the question** (German, English,
+  French, Spanish detected from common words; bot texts in German or English). The language stored when questions were
+  switched on is only the fallback for very short questions.
+- Lines starting with "- " are the hard requirements. Without such lines, later lines that read like a requirement
+  ("must", "at least", "muss", "mindestens" …) are proposed as requirements – the summary lists them and nothing starts
+  before the user taps "Start".
+- **Budget:** a line `Budget: 150000` (or `budget 150k`) sets a lower token ceiling for this question (50,000 up to
+  the default 300,000); the summary shows it before the tap, and the start still refuses a budget below the team's
+  minimum (night test R4).

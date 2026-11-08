@@ -2,8 +2,9 @@ import OpenAI from "openai";
 import { abortError, isAbortError, kindFromStatus, ProviderError } from "../errors";
 import { SDK_BACKSTOP_TIMEOUT_MS } from "../retry";
 import { parseJsonOutput } from "../json";
+import { parseToolArgs } from "../tools";
 import { isCouncilCapableModel } from "../model-filter";
-import type { DiscoveredModel, GenerateRequest, GenerateResult, ProviderAdapter, StopReason } from "../types";
+import { tokenUsage, type DiscoveredModel, type GenerateRequest, type GenerateResult, type ProviderAdapter, type StopReason } from "../types";
 
 export interface OpenAIAdapterOptions {
   apiKey: string;
@@ -52,31 +53,63 @@ export class OpenAIAdapter implements ProviderAdapter {
         model: request.model,
         max_output_tokens: request.maxOutputTokens,
         ...(request.system ? { instructions: request.system } : {}),
-        input: request.messages.map((message) =>
-          message.images?.length && message.role === "user"
-            ? {
+        input: request.messages.flatMap((message): OpenAI.Responses.ResponseInputItem[] => {
+          // Native tool calling (#284): a call is a function_call item, its result a function_call_output item.
+          if (message.toolCalls?.length)
+            return [
+              ...(message.content ? [{ role: "assistant" as const, content: message.content }] : []),
+              ...message.toolCalls.map((c) => ({ type: "function_call" as const, call_id: c.id, name: c.name, arguments: JSON.stringify(c.args) })),
+            ];
+          if (message.toolResults?.length)
+            return [
+              ...message.toolResults.map((r) => ({ type: "function_call_output" as const, call_id: r.callId, output: r.content })),
+              ...(message.content ? [{ role: "user" as const, content: message.content }] : []),
+            ];
+          if (message.images?.length && message.role === "user")
+            return [
+              {
                 role: message.role,
                 content: [
                   ...message.images.map((i) => ({ type: "input_image" as const, image_url: `data:${i.mediaType};base64,${i.data}`, detail: "auto" as const })),
                   { type: "input_text" as const, text: message.content },
                 ],
-              }
-            : { role: message.role, content: message.content },
-        ),
+              },
+            ];
+          return [{ role: message.role, content: message.content }];
+        }),
+        ...(request.tools?.length
+          ? {
+              tools: request.tools.map((t) => ({
+                type: "function" as const,
+                name: t.name,
+                description: t.description,
+                parameters: t.parameters,
+                strict: false,
+              })),
+            }
+          : {}),
         ...(request.jsonSchema
           ? { text: { format: { type: "json_schema" as const, name: request.jsonSchema.name, schema: request.jsonSchema.schema, strict: true } } }
           : {}),
       } satisfies OpenAI.Responses.ResponseCreateParamsNonStreaming;
-      const response = request.onText ? await this.stream(params, request) : await this.client.responses.create(params, { signal: request.signal });
+      // Tools use the non-streaming call (#284); the text then reaches onText once at the end.
+      const streaming = Boolean(request.onText && !request.tools?.length);
+      const response = streaming ? await this.stream(params, request) : await this.client.responses.create(params, { signal: request.signal });
       const refused = response.output.some((item) => item.type === "message" && item.content.some((part) => part.type === "refusal"));
       const text = response.output_text ?? "";
+      if (request.onText && !streaming && text) request.onText(text);
+      const toolCalls = response.output
+        .filter((item): item is OpenAI.Responses.ResponseFunctionToolCall => item.type === "function_call")
+        .map((item) => ({ id: item.call_id, name: item.name, args: parseToolArgs(item.arguments) }));
       return {
         provider: this.provider,
         model: response.model,
         text,
         json: request.jsonSchema && !refused ? parseJsonOutput(text) : undefined,
         stopReason: refused ? "refusal" : mapStatus(response.status, response.incomplete_details?.reason),
-        usage: { inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0 },
+        // input_tokens includes cached tokens (#244); input_tokens_details.cached_tokens is the cached part.
+        usage: tokenUsage(response.usage?.input_tokens ?? 0, response.usage?.output_tokens ?? 0, response.usage?.input_tokens_details?.cached_tokens),
+        ...(request.tools?.length ? { toolCalls } : {}),
       };
     } catch (error) {
       throw this.normalize(error, request.signal);

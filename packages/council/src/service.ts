@@ -1,12 +1,14 @@
 import {
   architectureChange,
   assertCan,
+  can,
   splitObjections,
   assertTransition,
   buildPolicy,
   COUNCIL_PHASES,
   COUNCIL_ROLES,
   DECISION_MODES,
+  contextFits,
   DomainError,
   estimateTokens,
   finalVerdictFit,
@@ -16,20 +18,37 @@ import {
   strengthSuggestion,
   voteWeightWarnings,
   type SessionStatus,
+  minimumCouncilBudget,
+  outputTokensFor,
+  coverAllParticipants,
+  roleSelectionSnapshot,
+  suggestRoleProfiles,
+  suggestRoles,
+  type CouncilRole,
+  type WorkflowPolicy,
 } from "@consyrion/core";
 import { isCouncilCapableModel } from "@consyrion/ai";
 import {
   assertCurrentRequirementList,
   assertEntitlement,
+  getSkillForUse,
+  listRoleProfiles,
+  snapshotRoleProfiles,
   latestRequirementList,
   lockProjectSources,
   newId,
   recordAudit,
+  consumeMonthlyRun,
+  refundMonthlyRun,
   schema,
   type ActorContext,
   type Database,
+  assertNotDemoProject,
+  assertNotDemoSession,
+  assertSessionProjectWritable,
+  recordDeletion,
 } from "@consyrion/db";
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { PROMPT_VERSION } from "./prompts";
 import { latestStrengthCatalog } from "./model-strength";
@@ -39,8 +58,11 @@ import {
   assertCanEvaluateSession,
   assertDecisionApprovable,
   assertDecisionRoundBinding,
+  checkApprovalAfterMeasurement,
+  checkPrototypeEligibility,
   decisionStatusOf,
   GATE_VERSION,
+  pendingMeasurements,
   sessionGateVersions,
 } from "./decision-format";
 import { assertEngineInstalled } from "./engine-guard";
@@ -79,6 +101,12 @@ export const sessionInput = z.object({
   roleAssignments: z.array(z.object({ role: z.enum(COUNCIL_ROLES), participantIndex: z.number().int().min(0) })).optional(),
   /** Required when the preview's upper bound exceeds the budget: the user accepted that phases may be shortened (#148). */
   confirmBudget: z.boolean().optional(),
+  /** #136 (ChatGPT review): false = no extra perspectives for models without a role; default on. */
+  extraRoles: z.boolean().optional(),
+  /** Skill the setup was filled from (#363): pinned with version and content hash in the session. */
+  skill: z.object({ id: z.string().min(1).max(200), version: z.number().int().min(1).optional() }).optional(),
+  /** Role profiles for active roles (#270): at most one per role, frozen with version and hash in the session. */
+  roleProfiles: z.array(z.string().min(1).max(200)).max(12).optional(),
 });
 export type SessionInput = z.input<typeof sessionInput>;
 
@@ -142,12 +170,21 @@ async function assertModelsCallable<P extends { credentialId: string; modelId: s
   }
 }
 
+/** #136: the policy with an extra perspective for every model that would otherwise have none, and who takes each role. */
+function withRoleCoverage(policy: WorkflowPolicy, data: SessionInput) {
+  const full = coverAllParticipants(policy.roles, data.participants.length, data.roleAssignments);
+  // Switched off by the user: the chosen roles only, round-robin as before (models without a role give no 12 Minds review).
+  const coverage = data.extraRoles === false ? { assignments: full.assignments.filter((a) => policy.roles.includes(a.role)), added: [] } : full;
+  return { coverage, policy: coverage.added.length ? { ...policy, roles: [...policy.roles, ...coverage.added.map((a) => a.role)] } : policy };
+}
+
 export async function previewSession(db: Database, ctx: ActorContext, projectId: string, input: SessionInput) {
   assertCan(ctx.role, "decision:run");
   const data = parse(sessionInput, input);
   assertCouncilModels(data.participants);
-  const { policy, errors } = buildPolicy(data.mode, data);
+  const { policy: chosen, errors } = buildPolicy(data.mode, data);
   if (errors.length) throw new DomainError("VALIDATION", errors.join("; "));
+  const { policy, coverage } = withRoleCoverage(chosen, data);
   const brief = await latestBrief(db, ctx, projectId);
   const preview = await costPreview(db, ctx, projectId, data, policy, brief);
   // The same plan gate as the start (#173), reported instead of thrown so the estimate stays visible and the UI can
@@ -159,7 +196,7 @@ export async function previewSession(db: Database, ctx: ActorContext, projectId:
       throw error;
     },
   );
-  // #228: does every evaluator's Final Verdict fit into one call? Counted on the latest confirmed list (the start
+  // #228/#246: does every evaluator's Final Verdict fit into one call, or is it split? Counted on the latest confirmed list (the start
   // checks the current one again). A refusal is reported, not thrown, so the screen can disable the start.
   const requirementCount = (await latestRequirementList(db, ctx, projectId))?.items.length ?? 0;
   const fit = finalVerdictFit(data.participants.length, requirementCount);
@@ -169,7 +206,7 @@ export async function previewSession(db: Database, ctx: ActorContext, projectId:
   const warnings = voteWeightWarnings(
     data.participants.map((p, i) => ({ model: p.modelId, weight: voteWeights[i]!.weight, suggestion: voteWeights[i]!.suggestion })),
   );
-  return { policy, ...preview, planLimit, finalVerdictSize, voteWeights, voteWeightWarnings: warnings };
+  return { policy, ...preview, planLimit, finalVerdictSize, voteWeights, voteWeightWarnings: warnings, addedRoles: coverage.added };
 }
 
 /**
@@ -221,7 +258,12 @@ async function costPreview(
     .from(schema.aiProviderCredential)
     .where(and(inArray(schema.aiProviderCredential.id, credentialIds), eq(schema.aiProviderCredential.organizationId, ctx.organizationId)));
   const providers = data.participants.map((p) => credentials.find((c) => c.id === p.credentialId)?.provider ?? "");
-  const estimate = estimateTokens(policy, data.participants.length, chars, providers);
+  const requirementTotal = (await latestRequirementList(db, ctx, projectId))?.items.length ?? 0;
+  const estimate = {
+    // #246: a split Final Verdict adds calls per evaluator; the preview counts them.
+    ...estimateTokens(policy, data.participants.length, chars, providers, requirementTotal),
+    minimumBudget: minimumCouncilBudget(policy, chars, providers, requirementTotal),
+  };
   const recent = await db
     .select({ tokens: sql<number>`(${schema.usageRecord.inputTokens} + ${schema.usageRecord.outputTokens})::int` })
     .from(schema.usageRecord)
@@ -234,7 +276,12 @@ async function costPreview(
     const median = sorted[Math.floor(sorted.length / 2)]!;
     typical = { tokens: Math.min(estimate.upperBound, median * estimate.calls), basedOnCalls: recent.length };
   }
-  return { documents: documents.length, estimate: { ...estimate, typical }, modelWarnings: await modelWarnings(db, ctx, data.participants, providers) };
+  return {
+    documents: documents.length,
+    estimate: { ...estimate, typical },
+    modelWarnings: await modelWarnings(db, ctx, data.participants, providers),
+    contextFit: await contextFitFor(db, data.participants, providers, chars, policy),
+  };
 }
 
 /** Recent calls of a model in this workspace that the preview warning is based on (#175). */
@@ -246,6 +293,35 @@ const WARNING_MIN_CALLS = 6;
  * from the workspace's own usage rows – never a hardcoded list. With three models one failing provider plus one
  * broken answer is enough to lose the whole council, so the start screen says so before the run.
  */
+/**
+ * Start screen (#243): does the largest input of a council – the brief with its documents and repository context plus
+ * every proposal (later phases show all of them) – leave room for an answer in each model's context window? The window
+ * comes from the provider's models endpoint; `fits: null` when it is not reported. Content is never cut: a model that
+ * does not fit is shown here, and its calls are refused instead of being sent to be cut off.
+ */
+async function contextFitFor(
+  db: Database,
+  participants: ReadonlyArray<{ modelId: string }>,
+  providers: ReadonlyArray<string>,
+  briefChars: number,
+  policy: ReturnType<typeof buildPolicy>["policy"],
+) {
+  const rows = participants.length
+    ? await db
+        .select({ provider: schema.aiModel.provider, modelId: schema.aiModel.modelId, contextWindow: schema.aiModel.contextWindow })
+        .from(schema.aiModel)
+        .where(inArray(schema.aiModel.modelId, [...new Set(participants.map((p) => p.modelId))]))
+    : [];
+  return participants.map((participant, index) => {
+    const provider = providers[index] ?? "";
+    const contextWindow = rows.find((r) => r.modelId === participant.modelId && r.provider === provider)?.contextWindow ?? null;
+    const proposals = participants.reduce((n, _, i) => n + outputTokensFor(providers[i] ?? "", policy.maxOutputTokens, "proposal"), 0);
+    const estimatedInput = Math.ceil(briefChars / 4) + proposals;
+    const wantedOutput = outputTokensFor(provider, policy.maxOutputTokens, "evaluation", Math.max(1, participants.length - 1));
+    return { modelId: participant.modelId, contextWindow, estimatedInput, fits: contextFits(estimatedInput, wantedOutput, contextWindow) };
+  });
+}
+
 async function modelWarnings(
   db: Database,
   ctx: ActorContext,
@@ -295,7 +371,7 @@ async function latestBrief(db: Database, ctx: ActorContext, projectId: string) {
     .select()
     .from(schema.project)
     .where(and(eq(schema.project.id, projectId), eq(schema.project.organizationId, ctx.organizationId)));
-  if (!proj) throw new DomainError("NOT_FOUND", "Project not found");
+  if (!proj || proj.status === "deleting") throw new DomainError("NOT_FOUND", "Project not found");
   if (proj.status === "archived") throw new DomainError("CONFLICT", "Project is archived");
   const [brief] = await db
     .select()
@@ -332,17 +408,26 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
   assertEngineInstalled();
   const data = parse(sessionInput, input);
   assertCouncilModels(data.participants);
-  const { policy, errors } = buildPolicy(data.mode, data);
+  const { policy: chosen, errors } = buildPolicy(data.mode, data);
   if (errors.length) throw new DomainError("VALIDATION", errors.join("; "));
+  const { policy, coverage } = withRoleCoverage(chosen, data);
+  await assertNotDemoProject(db, ctx, projectId);
   const brief = await latestBrief(db, ctx, projectId);
   // Only on a requirement list confirmed for exactly this brief version and these documents (#190).
   const requirements = await assertCurrentRequirementList(db, ctx, projectId);
   if (requirements.state.briefId !== brief.id) throw new DomainError("CONFLICT", "The brief changed. Review and confirm the requirements again.");
-  // #228: refused before any model is paid when the Final Verdict cannot fit into one call per evaluator.
+  // #228/#246: refused before any model is paid only when not even one requirement per call fits; larger lists are split.
   const fit = finalVerdictFit(data.participants.length, requirements.list.items.length);
   if (!fit.fits) throw new DomainError("VALIDATION", finalVerdictFitMessage(fit, data.participants.length, requirements.list.items.length)!);
   await assertEntitlement(db, ctx.organizationId, "session", { participants: data.participants.length });
   const { estimate } = await costPreview(db, ctx, projectId, data, policy, brief);
+  // Night test R4: below the minimum the council can never reach a verdict – refused before any model is paid,
+  // also when shortened phases were accepted.
+  if (policy.tokenBudget < estimate.minimumBudget)
+    throw new DomainError(
+      "VALIDATION",
+      `The budget of ${policy.tokenBudget.toLocaleString("en-US")} tokens is too small for this team: at least ${estimate.minimumBudget.toLocaleString("en-US")} tokens are needed so every model can write a proposal and the Final Verdict can still run. Raise the budget or choose fewer models.`,
+    );
   if (!estimate.withinBudget && !data.confirmBudget)
     throw new DomainError(
       "VALIDATION",
@@ -358,6 +443,31 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
       `At most ${MAX_CONCURRENT_SESSIONS} councils can run at the same time in a workspace. Wait for one to finish or stop it.`,
     );
 
+  // #363 part 3: the skill is resolved now (archived skills are refused for new councils) and frozen in the session.
+  const skill = data.skill ? await getSkillForUse(db, ctx, data.skill.id, data.skill.version) : null;
+  const skillSnapshot = skill ? { ...skill.ref, ...(skill.content.knowledge ? { knowledge: skill.content.knowledge } : {}) } : null;
+  // #270: chosen role profiles are resolved now (deactivated ones are refused) and frozen; each must belong to an active
+  // role. A profile only sharpens that role's prompt – participants, votes and the gate stay exactly as configured.
+  const roleProfiles = data.roleProfiles?.length ? await snapshotRoleProfiles(db, ctx, data.roleProfiles) : null;
+  const inactive = (roleProfiles ?? []).filter((p) => !policy.roles.includes(p.content.role));
+  if (inactive.length)
+    throw new DomainError("VALIDATION", `Role profile for a role that is not active in this council: ${inactive.map((p) => p.content.name).join(", ")}`);
+  // #269: what was suggested and why, and where each active role came from – recomputed here from the brief and the
+  // confirmed list this council is bound to (never taken from the client), frozen next to the roles. Display only: it
+  // changes no participant, vote, weight or gate.
+  const suggestion = suggestRoles({ idea: brief.idea, goal: brief.goal, requirements: brief.requirements, confirmed: requirements.list.items });
+  const roleSelection = roleSelectionSnapshot({
+    suggestion,
+    profileSuggestions: suggestRoleProfiles(suggestion, await listRoleProfiles(db, ctx)),
+    chosen: chosen.roles,
+    active: policy.roles,
+    skillRoles: skill?.content.roles ?? null,
+    profiles: Object.fromEntries((roleProfiles ?? []).map((p) => [p.content.role, p.profileId])) as Partial<Record<CouncilRole, string>>,
+    models: data.participants.length,
+    // API, MCP and Telegram starts may name no roles: the mode's standard team is then not "chosen by you".
+    rolesChosen: Boolean(data.roles?.length),
+  });
+
   // Credentials must belong to this organization; the provider comes from the stored credential.
   const credentialIds = [...new Set(data.participants.map((p) => p.credentialId))];
   const credentials = await db
@@ -367,20 +477,19 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
   if (credentials.length !== credentialIds.length) throw new DomainError("VALIDATION", "Unknown API key selected");
   if (data.roleAssignments) {
     const assigned = new Set(data.roleAssignments.map((a) => a.role));
-    const outside = data.roleAssignments.find((a) => !policy.roles.includes(a.role));
+    const outside = data.roleAssignments.find((a) => !chosen.roles.includes(a.role));
     if (outside) throw new DomainError("VALIDATION", `Role ${outside.role} is assigned but not part of this council's roles`);
     if (data.roleAssignments.some((a) => a.participantIndex >= data.participants.length))
       throw new DomainError("VALIDATION", "Role assigned to an unknown model");
-    if (policy.roles.some((role) => !assigned.has(role)) || assigned.size !== data.roleAssignments.length)
+    if (chosen.roles.some((role) => !assigned.has(role)) || assigned.size !== data.roleAssignments.length)
       throw new DomainError("VALIDATION", "Every active role needs exactly one model");
   }
-  // Model ids are compared case-insensitively: " GPT-4o-mini " and "gpt-4o-mini" are the same model (#144).
-  // #249 review: the same model through a second key is no second independent evaluator, so it counts once – per
-  // provider, not per key.
-  const providerOf = new Map(credentials.map((c) => [c.id, c.provider]));
-  const keys = data.participants.map((p) => `${providerOf.get(p.credentialId)}:${p.modelId.trim().toLowerCase()}`);
-  if (new Set(keys).size !== keys.length)
-    throw new DomainError("VALIDATION", "Each model may join a council only once – also with a second API key, since it would not be an independent evaluator");
+  // User decision 08.11.26 (replaces the #253 block): the same model may join again through ANOTHER key or account –
+  // each instance with its own role and profile. Instances of one model are one independent voice everywhere
+  // (independence groups: verdict, majority, judges, gate contract 6). The same model twice through the SAME key adds
+  // nothing and stays refused. Model ids are compared case-insensitively (#144).
+  const keys = data.participants.map((p) => `${p.credentialId}:${p.modelId.trim().toLowerCase()}`);
+  if (new Set(keys).size !== keys.length) throw new DomainError("VALIDATION", "The same model can join a second time only through another API key or account");
   if (catalog) data.participants = await assertModelsAvailable(data.participants, credentials, catalog);
   if (catalog?.probe) await assertModelsCallable(data.participants, credentials, catalog.probe);
 
@@ -391,6 +500,9 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
     // Checked again under the project lock (#181 review): brief, document and requirement changes take the same lock,
     // so a change either is seen here (refused) or waits until this session is stored.
     await lockProjectSources(tx, projectId);
+    // #201: the monthly slot is booked in the same transaction as the session – a deleted session never gives it back,
+    // and concurrent starts on the last free slot are serialised on the workspace row (the demo project cannot start one).
+    await consumeMonthlyRun(tx, ctx.organizationId, "session", sessionId);
     const current = await assertCurrentRequirementList(tx, ctx, projectId);
     if (current.list.id !== requirements.list.id || current.state.briefId !== requirements.state.briefId)
       throw new DomainError("CONFLICT", "The brief, the documents or the requirement list changed while starting. Review and confirm the requirements again.");
@@ -408,6 +520,9 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
       documentIds: requirements.state.documents.map((d) => d.id),
       requirementListId: requirements.list.id,
       gateVersion: GATE_VERSION,
+      skill: skillSnapshot,
+      roleProfiles,
+      roleSelection,
       createdById: ctx.userId,
     });
     const participantIds: string[] = [];
@@ -427,15 +542,15 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
         voteWeightSuggestion: weight.suggestion as unknown as Record<string, unknown>,
       });
     }
-    // Roles are spread round-robin so every model contributes perspectives.
-    for (const [index, role] of policy.roles.entries()) {
-      const explicit = data.roleAssignments?.find((a) => a.role === role)?.participantIndex;
+    // Roles are spread round-robin; models still without a role get an extra perspective (#136), so every model
+    // gives its own critical review and preference in the 12 Minds Council.
+    for (const { role, participantIndex } of coverage.assignments) {
       await tx.insert(schema.councilRoleAssignment).values({
         id: newId("rol"),
         organizationId: ctx.organizationId,
         sessionId,
         role,
-        participantId: participantIds[explicit ?? index % participantIds.length]!,
+        participantId: participantIds[participantIndex]!,
       });
     }
     for (const phase of COUNCIL_PHASES) {
@@ -455,24 +570,30 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
 }
 
 async function loadSession(db: Database, ctx: ActorContext, sessionId: string) {
-  const [session] = await db
-    .select()
+  const [row] = await db
+    .select({ session: schema.councilSession, projectStatus: schema.project.status })
     .from(schema.councilSession)
+    .innerJoin(schema.project, eq(schema.project.id, schema.councilSession.projectId))
     .where(and(eq(schema.councilSession.id, sessionId), eq(schema.councilSession.organizationId, ctx.organizationId)));
-  if (!session) throw new DomainError("NOT_FOUND", "Session not found");
-  return session;
+  // #197: a session of a project being deleted is gone for every reader and writer.
+  if (!row || row.projectStatus === "deleting") throw new DomainError("NOT_FOUND", "Session not found");
+  return row.session;
 }
 
 export async function listSessions(db: Database, ctx: ActorContext, projectId?: string) {
   assertCan(ctx.role, "project:read");
+  // #197: sessions of a project being deleted are not listed.
+  const notDeleting = ne(schema.project.status, "deleting");
   const where = projectId
-    ? and(eq(schema.councilSession.organizationId, ctx.organizationId), eq(schema.councilSession.projectId, projectId))
-    : eq(schema.councilSession.organizationId, ctx.organizationId);
+    ? and(eq(schema.councilSession.organizationId, ctx.organizationId), eq(schema.councilSession.projectId, projectId), notDeleting)
+    : and(eq(schema.councilSession.organizationId, ctx.organizationId), notDeleting);
   return db
     .select({
       id: schema.councilSession.id,
       projectId: schema.councilSession.projectId,
       projectName: schema.project.name,
+      // #197: lists hide sessions of archived projects by default.
+      projectStatus: schema.project.status,
       mode: schema.councilSession.mode,
       status: schema.councilSession.status,
       currentPhase: schema.councilSession.currentPhase,
@@ -562,6 +683,7 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
           calls: sql<number>`count(*)::int`,
           inputTokens: sql<number>`coalesce(sum(${schema.usageRecord.inputTokens}), 0)::int`,
           outputTokens: sql<number>`coalesce(sum(${schema.usageRecord.outputTokens}), 0)::int`,
+          cachedInputTokens: sql<number>`coalesce(sum(${schema.usageRecord.cachedInputTokens}), 0)::int`,
         })
         .from(schema.usageRecord)
         .where(eq(schema.usageRecord.sessionId, sessionId))
@@ -570,7 +692,7 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
       db.select().from(schema.consensusResult).where(eq(schema.consensusResult.sessionId, sessionId)),
       db.select().from(schema.projectBrief).where(eq(schema.projectBrief.id, session.briefId)),
       db
-        .select({ id: schema.project.id, name: schema.project.name, deliveryDefault: schema.project.deliveryDefault })
+        .select({ id: schema.project.id, name: schema.project.name, deliveryDefault: schema.project.deliveryDefault, isDemo: schema.project.isDemo })
         .from(schema.project)
         .where(eq(schema.project.id, session.projectId)),
     ]);
@@ -579,6 +701,26 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
     ? await db.select().from(schema.requirementList).where(eq(schema.requirementList.id, session.requirementListId))
     : [];
   const revealed = proposals.filter((p) => p.revealedAt);
+  // #249 gate 2: recorded measurements (self-declarations with evidence) and who recorded them.
+  const measurements = await db
+    .select({
+      id: schema.measurementResult.id,
+      decisionId: schema.measurementResult.decisionId,
+      proposalId: schema.measurementResult.proposalId,
+      requirementId: schema.measurementResult.requirementId,
+      planId: schema.measurementResult.planId,
+      method: schema.measurementResult.method,
+      target: schema.measurementResult.target,
+      measured: schema.measurementResult.measured,
+      met: schema.measurementResult.met,
+      evidence: schema.measurementResult.evidence,
+      recordedBy: schema.user.name,
+      createdAt: schema.measurementResult.createdAt,
+    })
+    .from(schema.measurementResult)
+    .innerJoin(schema.user, eq(schema.user.id, schema.measurementResult.recordedById))
+    .where(eq(schema.measurementResult.sessionId, sessionId))
+    .orderBy(asc(schema.measurementResult.createdAt), asc(schema.measurementResult.id));
   // Raw requirement checks of gate version 2 (#181): all of them, also those that did not count, for the evidence view.
   const requirementChecks = revealed.length
     ? await db
@@ -655,6 +797,8 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
           excluded: requirementList.excluded,
           noHardRequirements: requirementList.noHardRequirements,
           confirmedAt: requirementList.confirmedAt,
+          /** Names of the documents the list was confirmed against (context only, never requirements). */
+          documents: requirementList.sourceState.documents.map((d) => d.name),
         }
       : null,
     requirementChecks,
@@ -690,8 +834,13 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
       ? decisionStatusOf(
           decision,
           revealed.map((p) => p.id),
+          latestMeasurementsByProposal(measurements, decision.id),
         )
       : null,
+    // #249 gate 2: every recorded measurement, shown as "self-declared by <person>, evidence: …".
+    measurements,
+    // #249 part 2 / #478: the latest favourite or prototype mark on the current verdict – a human statement, not a verdict.
+    humanMark: decision ? humanMarkOf(approvals, decision.id) : null,
     previousDecisions: decisions.filter((d) => d.supersededAt),
     approvals,
     usage,
@@ -729,10 +878,16 @@ export type SessionView = Awaited<ReturnType<typeof getSessionView>>;
 export async function cancelSession(db: Database, ctx: ActorContext, sessionId: string) {
   assertCan(ctx.role, "decision:run");
   const session = await loadSession(db, ctx, sessionId);
+  // #408: a member stops only their own council; owners/admins (decision:approve) may stop any.
+  if (session.createdById !== ctx.userId && !can(ctx.role, "decision:approve"))
+    throw new DomainError("FORBIDDEN", "Only the person who started this council or an owner/admin can stop it");
   const status = session.status as SessionStatus;
   if (status === "queued") {
     assertTransition(status, "cancelled");
     await db.update(schema.councilSession).set({ status: "cancelled", finishedAt: new Date() }).where(eq(schema.councilSession.id, sessionId));
+    // #201 refund policy: stopped before its first model call – the monthly slot is given back once.
+    const [called] = await db.select({ id: schema.usageRecord.id }).from(schema.usageRecord).where(eq(schema.usageRecord.sessionId, sessionId)).limit(1);
+    if (!called) await refundMonthlyRun(db, ctx.organizationId, "session", sessionId);
   } else {
     assertTransition(status, "cancel_requested");
     await db.update(schema.councilSession).set({ status: "cancel_requested" }).where(eq(schema.councilSession.id, sessionId));
@@ -747,7 +902,18 @@ export async function cancelSession(db: Database, ctx: ActorContext, sessionId: 
 }
 
 export const approvalInput = z.object({
-  action: z.enum(["approve", "reject", "request_more_debate", "request_changes", "select_alternative", "repeat_evaluation"]),
+  action: z.enum([
+    "approve",
+    "reject",
+    "request_more_debate",
+    "request_changes",
+    "select_alternative",
+    "repeat_evaluation",
+    // #249 part 2 / #478 – only from a signed-in session (the web route refuses API tokens for these).
+    "mark_favorite",
+    "approve_prototype",
+    "approve_after_measurement",
+  ]),
   comment: z.string().trim().max(5_000).default(""),
   selectedProposalId: z.string().optional(),
 });
@@ -776,6 +942,9 @@ const PHASES_AFTER_DEBATE = ["twelve_minds_council", "minority_review", "consens
  * via "select alternative". Nothing here starts development – that requires an approved session (M4).
  */
 export async function submitApproval(db: Database, ctx: ActorContext, sessionId: string, input: z.input<typeof approvalInput>) {
+  await assertNotDemoSession(db, ctx, sessionId);
+  // #197: an archived project is read-only – no approval, mark or measurement.
+  await assertSessionProjectWritable(db, ctx, sessionId);
   assertCan(ctx.role, "decision:approve");
   const data = parse(approvalInput, input);
   const session = await loadSession(db, ctx, sessionId);
@@ -792,7 +961,42 @@ export async function submitApproval(db: Database, ctx: ActorContext, sessionId:
 
   let nextStatus: SessionStatus;
   let selected: string | null = null;
+  /** Marks (#249 part 2) record a human statement; the session keeps waiting for the regular decision. */
+  const loadProposal = async (id: string | undefined) => {
+    if (!id) throw new DomainError("VALIDATION", "Select a proposal");
+    const [p] = await db
+      .select()
+      .from(schema.proposal)
+      .where(and(eq(schema.proposal.id, id), eq(schema.proposal.sessionId, sessionId)));
+    if (!p) throw new DomainError("VALIDATION", "Unknown proposal");
+    if (isBlocked(p.id)) throw new DomainError("CONFLICT", "This proposal is blocked by an unresolved critical security objection");
+    return p;
+  };
   switch (data.action) {
+    case "mark_favorite":
+    case "approve_prototype": {
+      const p = await loadProposal(data.selectedProposalId);
+      const eligible = checkPrototypeEligibility(decision, p.id);
+      if (!eligible.ok) throw new DomainError("CONFLICT", eligible.reason);
+      await assertDecisionRoundBinding(db, sessionId, decision);
+      if (!data.comment)
+        throw new DomainError(
+          "VALIDATION",
+          data.action === "mark_favorite" ? "Explain why this proposal is your favourite" : "Explain what the prototype build should measure",
+        );
+      selected = p.id;
+      nextStatus = "awaiting_approval";
+      break;
+    }
+    case "approve_after_measurement": {
+      const p = await loadProposal(data.selectedProposalId);
+      const check = checkApprovalAfterMeasurement(decision, p.id, await latestMeasurements(db, decision.id, p.id));
+      if (!check.ok) throw new DomainError("CONFLICT", check.reason);
+      await assertDecisionRoundBinding(db, sessionId, decision);
+      selected = p.id;
+      nextStatus = "approved";
+      break;
+    }
     case "approve":
       if (decision.outcome !== "recommended" || !decision.recommendedProposalId)
         throw new DomainError("CONFLICT", "There is no recommended solution to approve; select an alternative or request more debate");
@@ -869,7 +1073,8 @@ export async function submitApproval(db: Database, ctx: ActorContext, sessionId:
       break;
     }
   }
-  assertTransition(session.status as SessionStatus, nextStatus);
+  // A mark keeps the status; every other action is a transition of the state machine.
+  if (nextStatus !== session.status) assertTransition(session.status as SessionStatus, nextStatus);
 
   await db.transaction(async (tx) => {
     await tx.insert(schema.humanApproval).values({
@@ -883,10 +1088,11 @@ export async function submitApproval(db: Database, ctx: ActorContext, sessionId:
       comment: data.comment,
       userId: ctx.userId,
     });
-    await tx
-      .update(schema.councilSession)
-      .set({ status: nextStatus, finishedAt: nextStatus === "queued" ? null : new Date() })
-      .where(eq(schema.councilSession.id, sessionId));
+    if (nextStatus !== session.status)
+      await tx
+        .update(schema.councilSession)
+        .set({ status: nextStatus, finishedAt: nextStatus === "queued" ? null : new Date() })
+        .where(eq(schema.councilSession.id, sessionId));
     if (data.action === "request_more_debate") {
       await tx
         .update(schema.workflowStage)
@@ -915,4 +1121,178 @@ export async function submitApproval(db: Database, ctx: ActorContext, sessionId:
   if (data.action === "repeat_evaluation")
     await enqueue(db, COUNCIL_JOB, { sessionId }, `${COUNCIL_JOB}:${sessionId}:evaluation:${decision.id}`, ctx.organizationId);
   return { status: nextStatus };
+}
+
+/**
+ * Recorded measurements per requirement of one proposal of one verdict (#249 gate 2): requirement id → met. A single
+ * "not met" stays decisive (owner decision 08.11.26: a measured miss blocks the proposal for good); otherwise met.
+ */
+export async function latestMeasurements(db: Database, decisionId: string, proposalId: string): Promise<Map<string, boolean>> {
+  const rows = await db
+    .select({ requirementId: schema.measurementResult.requirementId, met: schema.measurementResult.met })
+    .from(schema.measurementResult)
+    .where(and(eq(schema.measurementResult.decisionId, decisionId), eq(schema.measurementResult.proposalId, proposalId)))
+    .orderBy(asc(schema.measurementResult.createdAt), asc(schema.measurementResult.id));
+  const latest = new Map<string, boolean>();
+  for (const r of rows) latest.set(r.requirementId, latest.get(r.requirementId) === false ? false : r.met);
+  return latest;
+}
+
+export const measurementInput = z.object({
+  proposalId: z.string().min(1),
+  requirementId: z.string().min(1).max(20),
+  planId: z.string().optional(),
+  method: z.string().trim().min(3).max(1_000),
+  target: z.string().trim().min(1).max(500),
+  measured: z.string().trim().min(1).max(500),
+  met: z.boolean(),
+  evidence: z.string().trim().min(3).max(2_000),
+});
+
+/**
+ * #249 gate 2 – records the measured result of one open measurement of a proposal (owner decision 08.11.26): a
+ * self-declaration with mandatory evidence by a person with the approval role, append-only and audited. The web route
+ * accepts it only from a signed-in session – never an API token, MCP or an agent. Only requirements the stored gate
+ * result marks measurementPending for this proposal, only on the current verdict of a session waiting for a decision.
+ */
+export async function recordMeasurement(db: Database, ctx: ActorContext, sessionId: string, input: z.input<typeof measurementInput>) {
+  await assertNotDemoSession(db, ctx, sessionId);
+  // #197: an archived project is read-only – no approval, mark or measurement.
+  await assertSessionProjectWritable(db, ctx, sessionId);
+  assertCan(ctx.role, "decision:approve");
+  const data = parse(measurementInput, input);
+  const session = await loadSession(db, ctx, sessionId);
+  if (session.status !== "awaiting_approval") throw new DomainError("CONFLICT", "Measurements are recorded while the session waits for a decision");
+  const [decision] = await db
+    .select()
+    .from(schema.finalDecision)
+    .where(and(eq(schema.finalDecision.sessionId, sessionId), isNull(schema.finalDecision.supersededAt)));
+  if (!decision) throw new DomainError("CONFLICT", "No verdict available");
+  const eligible = checkPrototypeEligibility(decision, data.proposalId);
+  if (!eligible.ok) throw new DomainError("CONFLICT", eligible.reason);
+  if ((await latestMeasurements(db, decision.id, data.proposalId)).get(data.requirementId) === false)
+    throw new DomainError("CONFLICT", "This requirement was measured as not met; the proposal cannot be approved after measurement.");
+  if (!pendingMeasurements(decision, data.proposalId).includes(data.requirementId))
+    throw new DomainError("VALIDATION", "This requirement has no open measurement for this proposal");
+  if (data.planId) {
+    const [plan] = await db
+      .select({ id: schema.developmentPlan.id })
+      .from(schema.developmentPlan)
+      .where(
+        and(
+          eq(schema.developmentPlan.id, data.planId),
+          eq(schema.developmentPlan.sessionId, sessionId),
+          eq(schema.developmentPlan.proposalId, data.proposalId),
+        ),
+      );
+    if (!plan) throw new DomainError("VALIDATION", "Unknown build run for this proposal");
+  }
+  const id = newId("msr");
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.measurementResult).values({
+      id,
+      organizationId: ctx.organizationId,
+      sessionId,
+      decisionId: decision.id,
+      proposalId: data.proposalId,
+      requirementId: data.requirementId,
+      planId: data.planId ?? null,
+      method: data.method,
+      target: data.target,
+      measured: data.measured,
+      met: data.met,
+      evidence: data.evidence,
+      recordedById: ctx.userId,
+    });
+    await recordAudit(tx, {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.userId,
+      action: "council.measurement_recorded",
+      targetType: "council_session",
+      targetId: sessionId,
+      // Shown as a self-declaration everywhere; the evidence text itself stays in the row, not in the audit metadata.
+      metadata: { proposalId: data.proposalId, requirementId: data.requirementId, met: data.met, selfDeclared: true },
+    });
+  });
+  return { id };
+}
+
+function latestMeasurementsByProposal(
+  rows: ReadonlyArray<{ decisionId: string; proposalId: string; requirementId: string; met: boolean }>,
+  decisionId: string,
+) {
+  const byProposal = new Map<string, Map<string, boolean>>();
+  for (const r of rows) {
+    if (r.decisionId !== decisionId) continue;
+    const own = byProposal.get(r.proposalId) ?? new Map<string, boolean>();
+    // Same rule as latestMeasurements: one measured miss stays decisive.
+    own.set(r.requirementId, own.get(r.requirementId) === false ? false : r.met);
+    byProposal.set(r.proposalId, own);
+  }
+  return byProposal;
+}
+
+/** The latest favourite/prototype mark of the current verdict (#249 part 2), or null. Rows are in creation order. */
+function humanMarkOf(
+  approvals: ReadonlyArray<{ action: string; decisionId: string; selectedProposalId: string | null; comment: string; createdAt: Date }>,
+  decisionId: string,
+): { kind: "favorite" | "prototype_build"; proposalId: string; comment: string; createdAt: Date } | null {
+  const mark = approvals.filter((a) => a.decisionId === decisionId && (a.action === "mark_favorite" || a.action === "approve_prototype")).at(-1);
+  if (!mark?.selectedProposalId) return null;
+  return {
+    kind: mark.action === "approve_prototype" ? "prototype_build" : "favorite",
+    proposalId: mark.selectedProposalId,
+    comment: mark.comment,
+    createdAt: mark.createdAt,
+  };
+}
+
+const ACTIVE_SESSION = ["queued", "running", "cancel_requested"];
+const ACTIVE_PLAN = ["queued", "planning", "awaiting_plan_approval", "running", "reviewing", "cancel_requested"];
+
+/**
+ * #198 – deletes one council session with everything that belongs to it (proposals, verdicts, approvals, measurements,
+ * builds, delivery log – cascade); the project, its briefs, requirement lists and other sessions stay. Owner decision
+ * 08.11.26: always the whole session, never a single verdict; offer the report export first; no archive. Only a session
+ * that does not run: a running council must be stopped and an active build cancelled first, so nothing can write after
+ * the deletion (checked under a lock on the session row). Queued jobs of the session are failed. The plan usage ledger
+ * (#201) is not touched. Audited with counts only.
+ */
+export async function deleteSession(db: Database, ctx: ActorContext, sessionId: string, confirmName: string) {
+  assertCan(ctx.role, "project:delete");
+  await assertNotDemoSession(db, ctx, sessionId);
+  const session = await loadSession(db, ctx, sessionId);
+  const [project] = await db.select({ name: schema.project.name }).from(schema.project).where(eq(schema.project.id, session.projectId));
+  if (project?.name !== confirmName) throw new DomainError("VALIDATION", "Type the project name to confirm");
+  await db.transaction(async (tx) => {
+    const [row] = await tx.select().from(schema.councilSession).where(eq(schema.councilSession.id, sessionId)).for("update");
+    if (!row) throw new DomainError("NOT_FOUND", "Session not found");
+    if (ACTIVE_SESSION.includes(row.status)) throw new DomainError("CONFLICT", "This council is still running. Stop it first, then delete the session.");
+    const plans = await tx
+      .select({ id: schema.developmentPlan.id, status: schema.developmentPlan.status })
+      .from(schema.developmentPlan)
+      .where(eq(schema.developmentPlan.sessionId, sessionId));
+    if (plans.some((p) => ACTIVE_PLAN.includes(p.status)))
+      throw new DomainError("CONFLICT", "A build of this session is still active. Cancel it first, then delete the session.");
+    const ids = [sessionId, ...plans.map((p) => p.id)];
+    await tx
+      .update(schema.job)
+      .set({ status: "failed", lastError: "The session was deleted.", lockedUntil: null })
+      .where(
+        and(eq(schema.job.status, "queued"), or(inArray(sql`${schema.job.payload}->>'sessionId'`, ids), inArray(sql`${schema.job.payload}->>'planId'`, ids))),
+      );
+    const decisions = await tx.select({ id: schema.finalDecision.id }).from(schema.finalDecision).where(eq(schema.finalDecision.sessionId, sessionId));
+    await tx.delete(schema.councilSession).where(eq(schema.councilSession.id, sessionId));
+    await recordAudit(tx, {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.userId,
+      action: "privacy.session_deleted",
+      targetType: "project",
+      targetId: row.projectId,
+      // Counts and ids only – no brief, verdict or report text.
+      metadata: { sessionId, verdicts: decisions.length, builds: plans.length },
+    });
+  });
+  // #206: after the delete and outside the transaction – a restored backup must not bring the session back.
+  await recordDeletion(db, { kind: "session", id: sessionId, organizationId: ctx.organizationId, deletedAt: new Date() });
 }

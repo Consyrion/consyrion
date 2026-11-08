@@ -2,36 +2,170 @@
  * Fixed wording of the decision report (Markdown, PDF, Word) in the interface language (#322). Keys are the English
  * texts, so a missing translation falls back to English and English output is unchanged. `{name}` marks a value.
  * Model output (claims, summaries, reasons) is never translated – models already answer in the brief's language.
- * Chinese stays English for now: the PDF standard fonts cover only Windows-1252, a CJK font would have to be embedded.
+ * Chinese (#268): Markdown, JSON and Word are Chinese; the PDF stays English until a CJK font is embedded.
  */
-export type ReportLocale = "en" | "de" | "fr" | "es";
+export type ReportLocale = "en" | "de" | "fr" | "es" | "zh";
 export type ReportT = (text: string, values?: Record<string, string | number>) => string;
 
-/** The report language for an interface locale; unknown or not yet supported locales (zh) give English. */
+/** The report language for an interface locale; unknown locales give English. */
 export function reportLocale(locale: string | null | undefined): ReportLocale {
-  return locale === "de" || locale === "fr" || locale === "es" ? locale : "en";
+  return locale === "de" || locale === "fr" || locale === "es" || locale === "zh" ? locale : "en";
 }
 
-const NUMBER_LOCALE: Record<ReportLocale, string> = { en: "en-US", de: "de-CH", fr: "fr-CH", es: "es-ES" };
+const NUMBER_LOCALE: Record<ReportLocale, string> = { en: "en-US", de: "de-CH", fr: "fr-CH", es: "es-ES", zh: "zh-CN" };
 export const reportNumber = (locale: ReportLocale, value: number) => value.toLocaleString(NUMBER_LOCALE[locale]);
 
 type Dictionary = Record<string, string>;
 
 const DE: Dictionary = {
+  "Course of the council": "Ablauf des Councils",
+  "Phase timeline": "Zeitleiste der Phasen",
+  "{phase}: {start} – {end} ({minutes} min)": "{phase}: {start} – {end} ({minutes} Min.)",
+  "{phase}: from {start}, not finished": "{phase}: ab {start}, nicht abgeschlossen",
+  "Follow-up check rounds": "Nachprüfrunden",
+  "Round {round} ({kind}): {items} checks requested – done, results taken over":
+    "Runde {round} ({kind}): {items} Prüfungen angefordert – abgeschlossen, Ergebnisse übernommen (nachgeholt)",
+  "Round {round} ({kind}): {items} checks requested – not finished, nothing taken over":
+    "Runde {round} ({kind}): {items} Prüfungen angefordert – nicht abgeschlossen, nichts übernommen",
+  "targeted review": "gezielte Nachprüfung",
+  completion: "Vervollständigung",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so no proposal can be approved as a finished solution yet. Mark it as favourite, approve a prototype / measurement build or record the measured result.":
+    "Architektur-Kandidat – Leistungsnachweis offen: {ids} lässt sich nur durch Messung der laufenden Umsetzung bestätigen. Das Council hat den Messplan bestätigt, nicht die Anforderung – deshalb kann noch kein Vorschlag als fertige Lösung freigegeben werden. Markiere ihn als Favorit, gib einen Prototyp-/Mess-Build frei oder trage das Messergebnis ein.",
+  "Proposal {label} is an architecture candidate: mark it as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "Vorschlag {label} ist ein Architektur-Kandidat: Markiere ihn in der App als Favorit, gib einen Prototyp-/Mess-Build frei oder trage das Messergebnis ein – als fertige Lösung wird nichts freigegeben.",
+  "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "Die Vorschläge {labels} sind Architektur-Kandidaten: Markiere einen in der App als Favorit, gib einen Prototyp-/Mess-Build frei oder trage das Messergebnis ein – als fertige Lösung wird nichts freigegeben.",
+  " (instance {index} of {of} – one independent voice)": " (Instanz {index} von {of} – eine unabhängige Stimme)",
+  "awaiting your review · no approvable proposal": "wartet auf deine Prüfung · kein freigebbarer Vorschlag",
+  "marked as favourite": "als Favorit markiert",
+  "prototype/measurement build approved": "Prototyp-/Mess-Build freigegeben",
+  "approved after measurement": "nach Messung freigegeben",
+  "{project} · session {session} · verdict {verdict} · created {date}": "{project} · Sitzung {session} · Urteil {verdict} · erstellt {date}",
+  "AI assessment – not independent factual verification": "KI-Bewertung – keine unabhängige Faktenprüfung",
+  "not every part confirmed": "nicht jeder Teil bestätigt",
+  // #249 part 2: architecture candidate and measurement checks.
+  "architecture candidate (performance proof open)": "Architektur-Kandidat (Leistungsnachweis offen)",
+  "measurement plan – not measured": "Messplan – nicht gemessen",
+  "measurement check – only measuring the running implementation confirms it, not this council":
+    "Messprüfung – nur eine Messung der laufenden Umsetzung bestätigt sie, nicht dieser Council",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement.":
+    "Architektur-Kandidat – Leistungsnachweis offen: {ids} lässt sich nur durch Messung der laufenden Umsetzung bestätigen; die Bewerter haben den Messplan bestätigt, nicht die Anforderung.",
+  "Architecture candidate – performance proof open: a requirement can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so this proposal cannot be approved as a finished solution.":
+    "Architektur-Kandidat – Leistungsnachweis offen: Eine Anforderung lässt sich nur durch Messung der laufenden Umsetzung bestätigen. Der Council hat den Messplan bestätigt, nicht die Anforderung – deshalb kann dieser Vorschlag nicht als fertige Lösung freigegeben werden.",
+  // Stored exclusion reasons (packages/core/src/exclusion-reasons.ts) – live test of #410, 08.11.26.
+  "Context of the question, not a requirement the user listed": "Kontext der Frage, keine Anforderung, die der Nutzer aufgeführt hat",
+  "Reads like an instruction to the AI models, not a product requirement": "Liest sich wie eine Anweisung an die KI-Modelle, nicht wie eine Produktanforderung",
+  "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance":
+    "Legt fest, wann eine Anforderung als erfüllt gilt, statt das Produkt zu beschreiben – der Council bewertet Vorschläge nach dem Inhalt",
+  "From the idea or goal – context, not a hard requirement. Keep it if it is one.":
+    "Aus der Idee oder dem Ziel – Kontext, keine harte Anforderung. Behalte sie, falls sie eine ist.",
+  "A work instruction to the council for this run, not a product requirement. Keep it if it is one.":
+    "Eine Arbeitsanweisung an den Council für diesen Lauf, keine Produktanforderung. Behalte sie, falls sie eine ist.",
+  "Repeats a requirement from the requirements field, so it is listed once. Keep it if it says more.":
+    "Wiederholt eine Anforderung aus dem Anforderungsfeld und steht deshalb nur einmal da. Behalte sie, falls sie mehr sagt.",
+  "From a document, without binding wording (must, only, at most, a limit …) – a description, table row or measured value. Keep it if it is a requirement.":
+    "Aus einem Dokument, ohne verbindliche Formulierung (muss, nur, höchstens, eine Grenze …) – eine Beschreibung, Tabellenzeile oder ein Messwert. Behalte sie, falls sie eine Anforderung ist.",
+  "{risk} ({severity}; mitigation: {mitigation})": "{risk} ({severity}; Gegenmaßnahme: {mitigation})",
+  "{claim} ({status})": "{claim} ({status})",
+  "{claim} – raised against v{from}; no longer applies to v{to} (not independently re-reviewed)":
+    "{claim} – erhoben gegen v{from}; trifft auf v{to} nicht mehr zu (nicht unabhängig nachgeprüft)",
+  "more debate requested": "weitere Debatte angefordert",
+  "alternative selected": "Alternative gewählt",
+  "evaluation repeated": "Bewertung wiederholt",
+  "Open in CONSYRION AI": "In CONSYRION AI öffnen",
+  "Decision: {project}": "Entscheidung: {project}",
+  "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
+    "Gesamtwert = Summe über alle Kriterien aus stimmgewichtetem Durchschnitt der unabhängigen Bewertungen × Gewicht / 100; Gewichte: {weights}; Stimmgewichte: {votes}",
+  "total = sum over all criteria of the average of the independent scores × weight / 100; weights: {weights}":
+    "Gesamtwert = Summe über alle Kriterien aus Durchschnitt der unabhängigen Bewertungen × Gewicht / 100; Gewichte: {weights}",
+  "Needs verification – there is no automatic recommendation, and nothing in this council can be approved or built.":
+    "Prüfung nötig – es gibt keine automatische Empfehlung, und in diesem Council kann nichts freigegeben oder gebaut werden.",
+  // ChatGPT review of two Telegram PDFs (08.11.26): engine causes, debate labels, consensus state, next action.
+  "Other gate: {cause}": "Weitere Prüfung: {cause}",
+  "Not qualified: {cause}": "Nicht qualifiziert: {cause}",
+  question: "Frage",
+  answer: "Antwort",
+  critique: "Kritik",
+  rebuttal: "Gegenrede",
+  moderator: "Moderation",
+  "role review failed": "Rollenprüfung fehlgeschlagen",
+  "software architect": "Softwarearchitekt",
+  "security expert": "Sicherheitsexperte",
+  "performance engineer": "Performance-Ingenieur",
+  "backend engineer": "Backend-Entwickler",
+  "frontend engineer": "Frontend-Entwickler",
+  "database architect": "Datenbankarchitekt",
+  "devops engineer": "DevOps-Ingenieur",
+  "cost analyst": "Kostenanalyst",
+  "product strategist": "Produktstratege",
+  "quality assurance expert": "Qualitätssicherung",
+  "maintainability reviewer": "Wartbarkeitsprüfer",
+  "independent critical thinker": "Unabhängiger kritischer Denker",
+  security: "Sicherheit",
+  functional: "Funktion",
+  performance: "Leistung",
+  cost: "Kosten",
+  maintainability: "Wartbarkeit",
+  other: "Sonstiges",
+  "{level} severity": "Schwere {level}",
+  "consensus reached": "Konsens erreicht",
+  "partial consensus": "teilweiser Konsens",
+  "no consensus": "kein Konsens",
+  "What you need to do now": "Was du jetzt tun musst",
+  and: "und",
+  "Approved – the build can be started in the app.": "Freigegeben – der Bau kann in der App gestartet werden.",
+  "Rejected – start a new council with a changed brief if the question is still open.":
+    "Abgelehnt – starte einen neuen Council mit geändertem Auftrag, falls die Frage noch offen ist.",
+  "Change the conflicting requirements and start a new council – nothing can be built under these requirements.":
+    "Ändere die widersprüchlichen Anforderungen und starte einen neuen Council – unter diesen Anforderungen kann nichts gebaut werden.",
+  "Check Proposal {label} and approve it in the app – nothing is built before a human approves.":
+    "Prüfe Vorschlag {label} und gib ihn in der App frei – gebaut wird erst nach deiner Freigabe.",
+  "Choose one of the approvable proposals in the app: {list}. The council left this choice to a human.":
+    "Wähle in der App einen der freigebbaren Vorschläge: {list}. Der Council überlässt diese Wahl einem Menschen.",
+  "Nothing can be approved in this council. Proposal {label} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "In diesem Council lässt sich nichts freigeben. Vorschlag {label} hat die Anforderungsprüfung bestanden – kläre die offenen Punkte unten (Einwände, unbestätigte Prüfungen) und starte einen neuen Council.",
+  "Nothing can be approved in this council. Proposals {labels} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "In diesem Council lässt sich nichts freigeben. Die Vorschläge {labels} haben die Anforderungsprüfung bestanden – kläre die offenen Punkte unten (Einwände, unbestätigte Prüfungen) und starte einen neuen Council.",
+  "No proposal meets all confirmed requirements. Change the brief or the requirements and start a new council.":
+    "Kein Vorschlag erfüllt alle bestätigten Anforderungen. Ändere den Auftrag oder die Anforderungen und starte einen neuen Council.",
+  "Proposal {label} passed the requirement check.": "Vorschlag {label} hat die Anforderungsprüfung bestanden.",
+  "Proposals {labels} passed the requirement check.": "Die Vorschläge {labels} haben die Anforderungsprüfung bestanden.",
+  "No automatic recommendation: {reasons}.": "Keine automatische Empfehlung: {reasons}.",
+  "passes the requirements": "erfüllt Anforderungen",
+  "No automatic recommendation": "Keine automatische Empfehlung",
+  "Eligible = passes the requirement check and the other gates.": "Wählbar = besteht die Anforderungsprüfung und die übrigen Prüfungen.",
+  "plan – proof pending": "Plan – Nachweis offen",
+  "Context documents (read as untrusted data, never requirements): {names}":
+    "Kontextdokumente (als nicht vertrauenswürdige Daten gelesen, nie Anforderungen): {names}",
+  "build check – verified after implementation, not by this council": "Build-Prüfung – wird nach der Umsetzung geprüft, nicht von diesem Council",
+  "Skill: {name} (version {version}, hash {hash})": "Skill: {name} (Version {version}, Prüfsumme {hash})",
+  "{id} not met according to {k} of {n} evaluators (model judgement).": "{id} laut {k} von {n} Bewertern nicht erfüllt (Einschätzung der Modelle).",
+  "{id} disputed: {pass} of {n} evaluators confirm it, {fail} found it not met.":
+    "{id} umstritten: {pass} von {n} Bewertern bestätigen sie, {fail} sehen sie als nicht erfüllt.",
+  "{id} not confirmed: {k} of {n} evaluators could not confirm it.": "{id} nicht bestätigt: {k} von {n} Bewertern konnten sie nicht bestätigen.",
+  "{id} not confirmed: {k} of {n} evaluators gave no valid answer.": "{id} nicht bestätigt: {k} von {n} Bewertern gaben keine gültige Antwort.",
+  "None of the evaluated proposals meets all confirmed requirements according to these evaluations.":
+    "Keiner der bewerteten Vorschläge erfüllt laut diesen Bewertungen alle bestätigten Anforderungen.",
+  "The proposals": "Die Vorschläge",
+  // Telegram live test 08.11.26: delivery summary.
+  Recommended: "Empfohlen",
+  "Not approvable: this verdict cannot be approved or built.": "Nicht freigebbar: Dieses Urteil kann nicht freigegeben oder gebaut werden.",
+  "Confidence: {level}": "Zuversicht: {level}",
+  reduced: "eingeschränkt",
   // R2-01 (08.11.26): session status and gate result values.
-  "queued": "in der Warteschlange",
-  "running": "läuft",
+  queued: "in der Warteschlange",
+  running: "läuft",
   "cancellation requested": "Abbruch angefordert",
-  "cancelled": "abgebrochen",
-  "failed": "fehlgeschlagen",
+  cancelled: "abgebrochen",
+  failed: "fehlgeschlagen",
   "awaiting approval": "wartet auf Freigabe",
-  "approved": "freigegeben",
-  "rejected": "abgelehnt",
+  approved: "freigegeben",
+  rejected: "abgelehnt",
   "changes requested": "Änderungen angefordert",
   "meets all requirements": "erfüllt alle Anforderungen",
   "needs verification": "muss geprüft werden",
   "misses a requirement": "verfehlt eine Anforderung",
-  "incomplete": "unvollständig",
+  incomplete: "unvollständig",
   "provisional favourite (limited review)": "vorläufiger Favorit (zu wenige Prüfer)",
   // Markdown report
   "Final Decision Report – {project}": "Abschlussbericht – {project}",
@@ -176,20 +310,154 @@ const DE: Dictionary = {
 };
 
 const FR: Dictionary = {
+  "Course of the council": "Déroulement du council",
+  "Phase timeline": "Chronologie des phases",
+  "{phase}: {start} – {end} ({minutes} min)": "{phase} : {start} – {end} ({minutes} min)",
+  "{phase}: from {start}, not finished": "{phase} : depuis {start}, non terminée",
+  "Follow-up check rounds": "Tours de vérification complémentaire",
+  "Round {round} ({kind}): {items} checks requested – done, results taken over":
+    "Tour {round} ({kind}) : {items} vérifications demandées – terminé, résultats repris (rattrapés)",
+  "Round {round} ({kind}): {items} checks requested – not finished, nothing taken over":
+    "Tour {round} ({kind}) : {items} vérifications demandées – non terminé, rien repris",
+  "targeted review": "vérification ciblée",
+  completion: "complément",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so no proposal can be approved as a finished solution yet. Mark it as favourite, approve a prototype / measurement build or record the measured result.":
+    "Candidat d’architecture – preuve de performance en attente : {ids} ne peut être confirmé qu’en mesurant l’implémentation en fonctionnement. Le council a confirmé le plan de mesure, pas l’exigence – aucune proposition ne peut donc encore être approuvée comme solution finie. Marque-la comme favorite, approuve un build prototype/de mesure ou saisis le résultat mesuré.",
+  "Proposal {label} is an architecture candidate: mark it as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "La proposition {label} est un candidat d’architecture : marque-la comme favorite dans l’app, approuve un build prototype/de mesure ou saisis le résultat mesuré – rien n’est approuvé comme solution finie.",
+  "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "Les propositions {labels} sont des candidats d’architecture : marque-en une comme favorite dans l’app, approuve un build prototype/de mesure ou saisis le résultat mesuré – rien n’est approuvé comme solution finie.",
+  " (instance {index} of {of} – one independent voice)": " (instance {index} sur {of} – une seule voix indépendante)",
+  "awaiting your review · no approvable proposal": "en attente de ton examen · aucune proposition approuvable",
+  "marked as favourite": "marquée comme favorite",
+  "prototype/measurement build approved": "build prototype/de mesure approuvé",
+  "approved after measurement": "approuvée après mesure",
+  "{project} · session {session} · verdict {verdict} · created {date}": "{project} · session {session} · verdict {verdict} · créé le {date}",
+  "AI assessment – not independent factual verification": "Évaluation par IA – pas une vérification indépendante des faits",
+  "not every part confirmed": "toutes les parties ne sont pas confirmées",
+  // #249 part 2: architecture candidate and measurement checks.
+  "architecture candidate (performance proof open)": "candidat d’architecture (preuve de performance en attente)",
+  "measurement plan – not measured": "plan de mesure – non mesuré",
+  "measurement check – only measuring the running implementation confirms it, not this council":
+    "contrôle par mesure – seule une mesure de l’implémentation en fonctionnement la confirme, pas ce Council",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement.":
+    "Candidat d’architecture – preuve de performance en attente : {ids} ne peut être confirmé qu’en mesurant l’implémentation en fonctionnement ; les évaluateurs ont confirmé le plan de mesure, pas l’exigence.",
+  "Architecture candidate – performance proof open: a requirement can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so this proposal cannot be approved as a finished solution.":
+    "Candidat d’architecture – preuve de performance en attente : une exigence ne peut être confirmée qu’en mesurant l’implémentation en fonctionnement. Le Council a confirmé le plan de mesure, pas l’exigence ; cette proposition ne peut donc pas être approuvée comme solution terminée.",
+  // Stored exclusion reasons (packages/core/src/exclusion-reasons.ts) – live test of #410, 08.11.26.
+  "Context of the question, not a requirement the user listed": "Contexte de la question, pas une exigence listée par l’utilisateur",
+  "Reads like an instruction to the AI models, not a product requirement": "Ressemble à une instruction aux modèles d’IA, pas à une exigence produit",
+  "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance":
+    "Dit quand une exigence est considérée comme remplie au lieu de décrire le produit – le council juge les propositions sur le fond",
+  "From the idea or goal – context, not a hard requirement. Keep it if it is one.":
+    "Issu de l’idée ou de l’objectif – contexte, pas une exigence stricte. Gardez-le s’il en est une.",
+  "A work instruction to the council for this run, not a product requirement. Keep it if it is one.":
+    "Une consigne de travail au council pour cette session, pas une exigence produit. Gardez-la si c’en est une.",
+  "Repeats a requirement from the requirements field, so it is listed once. Keep it if it says more.":
+    "Répète une exigence du champ des exigences, elle n’est donc listée qu’une fois. Gardez-la si elle en dit plus.",
+  "From a document, without binding wording (must, only, at most, a limit …) – a description, table row or measured value. Keep it if it is a requirement.":
+    "Issu d’un document, sans formulation contraignante (doit, seulement, au plus, une limite …) – une description, une ligne de tableau ou une valeur mesurée. Gardez-le s’il s’agit d’une exigence.",
+  "{risk} ({severity}; mitigation: {mitigation})": "{risk} ({severity} ; mesure : {mitigation})",
+  "{claim} ({status})": "{claim} ({status})",
+  "{claim} – raised against v{from}; no longer applies to v{to} (not independently re-reviewed)":
+    "{claim} – soulevée contre v{from} ; ne s’applique plus à v{to} (pas relue de manière indépendante)",
+  "more debate requested": "débat supplémentaire demandé",
+  "alternative selected": "alternative choisie",
+  "evaluation repeated": "évaluation répétée",
+  "Open in CONSYRION AI": "Ouvrir dans CONSYRION AI",
+  "Decision: {project}": "Décision : {project}",
+  "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
+    "total = somme sur tous les critères de la moyenne pondérée par les votes des notes indépendantes × poids / 100 ; poids : {weights} ; poids des votes : {votes}",
+  "total = sum over all criteria of the average of the independent scores × weight / 100; weights: {weights}":
+    "total = somme sur tous les critères de la moyenne des notes indépendantes × poids / 100 ; poids : {weights}",
+  "Needs verification – there is no automatic recommendation, and nothing in this council can be approved or built.":
+    "Vérification nécessaire – il n’y a pas de recommandation automatique, et rien ne peut être approuvé ni construit dans ce council.",
+  // ChatGPT review of two Telegram PDFs (08.11.26): engine causes, debate labels, consensus state, next action.
+  "Other gate: {cause}": "Autre contrôle : {cause}",
+  "Not qualified: {cause}": "Non qualifiée : {cause}",
+  question: "question",
+  answer: "réponse",
+  critique: "critique",
+  rebuttal: "réplique",
+  moderator: "modération",
+  "role review failed": "revue de rôle échouée",
+  "software architect": "architecte logiciel",
+  "security expert": "expert sécurité",
+  "performance engineer": "ingénieur performance",
+  "backend engineer": "développeur backend",
+  "frontend engineer": "développeur frontend",
+  "database architect": "architecte base de données",
+  "devops engineer": "ingénieur DevOps",
+  "cost analyst": "analyste des coûts",
+  "product strategist": "stratège produit",
+  "quality assurance expert": "expert assurance qualité",
+  "maintainability reviewer": "relecteur maintenabilité",
+  "independent critical thinker": "penseur critique indépendant",
+  security: "sécurité",
+  functional: "fonctionnel",
+  performance: "performance",
+  cost: "coûts",
+  maintainability: "maintenabilité",
+  other: "autre",
+  "{level} severity": "gravité {level}",
+  "consensus reached": "consensus atteint",
+  "partial consensus": "consensus partiel",
+  "no consensus": "pas de consensus",
+  "What you need to do now": "Ce que vous devez faire maintenant",
+  and: "et",
+  "Approved – the build can be started in the app.": "Approuvé – la construction peut être lancée dans l’application.",
+  "Rejected – start a new council with a changed brief if the question is still open.":
+    "Rejeté – lancez un nouveau council avec un brief modifié si la question reste ouverte.",
+  "Change the conflicting requirements and start a new council – nothing can be built under these requirements.":
+    "Modifiez les exigences contradictoires et lancez un nouveau council – rien ne peut être construit avec ces exigences.",
+  "Check Proposal {label} and approve it in the app – nothing is built before a human approves.":
+    "Vérifiez la proposition {label} et approuvez-la dans l’application – rien n’est construit avant une approbation humaine.",
+  "Choose one of the approvable proposals in the app: {list}. The council left this choice to a human.":
+    "Choisissez dans l’application l’une des propositions approuvables : {list}. Le council laisse ce choix à un humain.",
+  "Nothing can be approved in this council. Proposal {label} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "Rien ne peut être approuvé dans ce council. La proposition {label} a passé la vérification des exigences – réglez les points ouverts ci-dessous (objections, vérifications non confirmées) et lancez un nouveau council.",
+  "Nothing can be approved in this council. Proposals {labels} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "Rien ne peut être approuvé dans ce council. Les propositions {labels} ont passé la vérification des exigences – réglez les points ouverts ci-dessous (objections, vérifications non confirmées) et lancez un nouveau council.",
+  "No proposal meets all confirmed requirements. Change the brief or the requirements and start a new council.":
+    "Aucune proposition ne satisfait toutes les exigences confirmées. Modifiez le brief ou les exigences et lancez un nouveau council.",
+  "Proposal {label} passed the requirement check.": "La proposition {label} a passé la vérification des exigences.",
+  "Proposals {labels} passed the requirement check.": "Les propositions {labels} ont passé la vérification des exigences.",
+  "No automatic recommendation: {reasons}.": "Pas de recommandation automatique : {reasons}.",
+  "passes the requirements": "satisfait les exigences",
+  "No automatic recommendation": "Pas de recommandation automatique",
+  "Eligible = passes the requirement check and the other gates.": "Éligible = passe la vérification des exigences et les autres contrôles.",
+  "plan – proof pending": "plan – preuve en attente",
+  "Context documents (read as untrusted data, never requirements): {names}":
+    "Documents de contexte (lus comme données non fiables, jamais comme exigences) : {names}",
+  "build check – verified after implementation, not by this council": "vérification au build – vérifiée après l’implémentation, pas par ce conseil",
+  "Skill: {name} (version {version}, hash {hash})": "Skill : {name} (version {version}, empreinte {hash})",
+  "{id} not met according to {k} of {n} evaluators (model judgement).": "{id} non remplie selon {k} évaluateurs sur {n} (jugement des modèles).",
+  "{id} disputed: {pass} of {n} evaluators confirm it, {fail} found it not met.":
+    "{id} contestée : {pass} évaluateurs sur {n} la confirment, {fail} la jugent non remplie.",
+  "{id} not confirmed: {k} of {n} evaluators could not confirm it.": "{id} non confirmée : {k} évaluateurs sur {n} n’ont pas pu la confirmer.",
+  "{id} not confirmed: {k} of {n} evaluators gave no valid answer.": "{id} non confirmée : {k} évaluateurs sur {n} n’ont pas donné de réponse valide.",
+  "None of the evaluated proposals meets all confirmed requirements according to these evaluations.":
+    "Aucune des propositions évaluées ne remplit toutes les exigences confirmées selon ces évaluations.",
+  "The proposals": "Les propositions",
+  // Telegram live test 08.11.26: delivery summary.
+  Recommended: "Recommandée",
+  "Not approvable: this verdict cannot be approved or built.": "Non validable : ce verdict ne peut être ni validé ni construit.",
+  "Confidence: {level}": "Confiance : {level}",
+  reduced: "réduite",
   // R2-01 (08.11.26): session status and gate result values.
-  "queued": "en file d’attente",
-  "running": "en cours",
+  queued: "en file d’attente",
+  running: "en cours",
   "cancellation requested": "annulation demandée",
-  "cancelled": "annulé",
-  "failed": "échoué",
+  cancelled: "annulé",
+  failed: "échoué",
   "awaiting approval": "en attente de validation",
-  "approved": "validé",
-  "rejected": "rejeté",
+  approved: "validé",
+  rejected: "rejeté",
   "changes requested": "modifications demandées",
   "meets all requirements": "remplit toutes les exigences",
   "needs verification": "à vérifier",
   "misses a requirement": "manque une exigence",
-  "incomplete": "incomplet",
+  incomplete: "incomplet",
   "provisional favourite (limited review)": "favori provisoire (examen limité)",
   "Final Decision Report – {project}": "Rapport de décision final – {project}",
   "Mode: {mode} · Brief version {version} · Status: {status}": "Mode : {mode} · Version du brief {version} · Statut : {status}",
@@ -313,20 +581,154 @@ const FR: Dictionary = {
 };
 
 const ES: Dictionary = {
+  "Course of the council": "Desarrollo del council",
+  "Phase timeline": "Cronología de las fases",
+  "{phase}: {start} – {end} ({minutes} min)": "{phase}: {start} – {end} ({minutes} min)",
+  "{phase}: from {start}, not finished": "{phase}: desde {start}, sin terminar",
+  "Follow-up check rounds": "Rondas de verificación adicional",
+  "Round {round} ({kind}): {items} checks requested – done, results taken over":
+    "Ronda {round} ({kind}): {items} verificaciones solicitadas – terminada, resultados incorporados (recuperados)",
+  "Round {round} ({kind}): {items} checks requested – not finished, nothing taken over":
+    "Ronda {round} ({kind}): {items} verificaciones solicitadas – sin terminar, no se incorporó nada",
+  "targeted review": "revisión dirigida",
+  completion: "compleción",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so no proposal can be approved as a finished solution yet. Mark it as favourite, approve a prototype / measurement build or record the measured result.":
+    "Candidato de arquitectura – prueba de rendimiento pendiente: {ids} solo puede confirmarse midiendo la implementación en funcionamiento. El council confirmó el plan de medición, no el requisito, así que todavía no se puede aprobar ninguna propuesta como solución terminada. Márcala como favorita, aprueba un build de prototipo/medición o registra el resultado medido.",
+  "Proposal {label} is an architecture candidate: mark it as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "La propuesta {label} es un candidato de arquitectura: márcala como favorita en la app, aprueba un build de prototipo/medición o registra el resultado medido – nada se aprueba como solución terminada.",
+  "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "Las propuestas {labels} son candidatos de arquitectura: marca una como favorita en la app, aprueba un build de prototipo/medición o registra el resultado medido – nada se aprueba como solución terminada.",
+  " (instance {index} of {of} – one independent voice)": " (instancia {index} de {of} – una sola voz independiente)",
+  "awaiting your review · no approvable proposal": "esperando tu revisión · ninguna propuesta aprobable",
+  "marked as favourite": "marcada como favorita",
+  "prototype/measurement build approved": "build de prototipo/medición aprobado",
+  "approved after measurement": "aprobada tras la medición",
+  "{project} · session {session} · verdict {verdict} · created {date}": "{project} · sesión {session} · veredicto {verdict} · creado {date}",
+  "AI assessment – not independent factual verification": "Evaluación de IA – no es una verificación independiente de los hechos",
+  "not every part confirmed": "no se confirmaron todas las partes",
+  // #249 part 2: architecture candidate and measurement checks.
+  "architecture candidate (performance proof open)": "candidata de arquitectura (prueba de rendimiento pendiente)",
+  "measurement plan – not measured": "plan de medición – sin medir",
+  "measurement check – only measuring the running implementation confirms it, not this council":
+    "comprobación por medición – solo medir la implementación en funcionamiento la confirma, no este Council",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement.":
+    "Candidata de arquitectura – prueba de rendimiento pendiente: {ids} solo se puede confirmar midiendo la implementación en funcionamiento; los evaluadores confirmaron el plan de medición, no el requisito.",
+  "Architecture candidate – performance proof open: a requirement can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so this proposal cannot be approved as a finished solution.":
+    "Candidata de arquitectura – prueba de rendimiento pendiente: un requisito solo se puede confirmar midiendo la implementación en funcionamiento. El Council confirmó el plan de medición, no el requisito, por lo que esta propuesta no se puede aprobar como solución terminada.",
+  // Stored exclusion reasons (packages/core/src/exclusion-reasons.ts) – live test of #410, 08.11.26.
+  "Context of the question, not a requirement the user listed": "Contexto de la pregunta, no un requisito que el usuario haya listado",
+  "Reads like an instruction to the AI models, not a product requirement": "Parece una instrucción a los modelos de IA, no un requisito de producto",
+  "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance":
+    "Dice cuándo un requisito cuenta como cumplido en lugar de describir el producto – el council juzga las propuestas por su contenido",
+  "From the idea or goal – context, not a hard requirement. Keep it if it is one.":
+    "De la idea o el objetivo – contexto, no un requisito estricto. Consérvalo si lo es.",
+  "A work instruction to the council for this run, not a product requirement. Keep it if it is one.":
+    "Una instrucción de trabajo al council para esta ejecución, no un requisito de producto. Consérvala si lo es.",
+  "Repeats a requirement from the requirements field, so it is listed once. Keep it if it says more.":
+    "Repite un requisito del campo de requisitos, por eso aparece una sola vez. Consérvalo si dice más.",
+  "From a document, without binding wording (must, only, at most, a limit …) – a description, table row or measured value. Keep it if it is a requirement.":
+    "De un documento, sin redacción vinculante (debe, solo, como máximo, un límite …) – una descripción, una fila de tabla o un valor medido. Consérvalo si es un requisito.",
+  "{risk} ({severity}; mitigation: {mitigation})": "{risk} ({severity}; mitigación: {mitigation})",
+  "{claim} ({status})": "{claim} ({status})",
+  "{claim} – raised against v{from}; no longer applies to v{to} (not independently re-reviewed)":
+    "{claim} – planteada contra v{from}; ya no aplica a v{to} (no revisada de nuevo de forma independiente)",
+  "more debate requested": "se pidió más debate",
+  "alternative selected": "alternativa elegida",
+  "evaluation repeated": "evaluación repetida",
+  "Open in CONSYRION AI": "Abrir en CONSYRION AI",
+  "Decision: {project}": "Decisión: {project}",
+  "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
+    "total = suma sobre todos los criterios de la media ponderada por votos de las puntuaciones independientes × peso / 100; pesos: {weights}; pesos de voto: {votes}",
+  "total = sum over all criteria of the average of the independent scores × weight / 100; weights: {weights}":
+    "total = suma sobre todos los criterios de la media de las puntuaciones independientes × peso / 100; pesos: {weights}",
+  "Needs verification – there is no automatic recommendation, and nothing in this council can be approved or built.":
+    "Necesita verificación – no hay recomendación automática y en este council no se puede aprobar ni construir nada.",
+  // ChatGPT review of two Telegram PDFs (08.11.26): engine causes, debate labels, consensus state, next action.
+  "Other gate: {cause}": "Otro control: {cause}",
+  "Not qualified: {cause}": "No cualificada: {cause}",
+  question: "pregunta",
+  answer: "respuesta",
+  critique: "crítica",
+  rebuttal: "réplica",
+  moderator: "moderación",
+  "role review failed": "revisión de rol fallida",
+  "software architect": "arquitecto de software",
+  "security expert": "experto en seguridad",
+  "performance engineer": "ingeniero de rendimiento",
+  "backend engineer": "desarrollador backend",
+  "frontend engineer": "desarrollador frontend",
+  "database architect": "arquitecto de bases de datos",
+  "devops engineer": "ingeniero DevOps",
+  "cost analyst": "analista de costes",
+  "product strategist": "estratega de producto",
+  "quality assurance expert": "experto en calidad",
+  "maintainability reviewer": "revisor de mantenibilidad",
+  "independent critical thinker": "pensador crítico independiente",
+  security: "seguridad",
+  functional: "funcional",
+  performance: "rendimiento",
+  cost: "costes",
+  maintainability: "mantenibilidad",
+  other: "otro",
+  "{level} severity": "gravedad {level}",
+  "consensus reached": "consenso alcanzado",
+  "partial consensus": "consenso parcial",
+  "no consensus": "sin consenso",
+  "What you need to do now": "Lo que debes hacer ahora",
+  and: "y",
+  "Approved – the build can be started in the app.": "Aprobado – la construcción puede iniciarse en la app.",
+  "Rejected – start a new council with a changed brief if the question is still open.":
+    "Rechazado – inicia un nuevo council con un encargo modificado si la pregunta sigue abierta.",
+  "Change the conflicting requirements and start a new council – nothing can be built under these requirements.":
+    "Cambia los requisitos contradictorios e inicia un nuevo council – con estos requisitos no se puede construir nada.",
+  "Check Proposal {label} and approve it in the app – nothing is built before a human approves.":
+    "Revisa la propuesta {label} y apruébala en la app – no se construye nada antes de una aprobación humana.",
+  "Choose one of the approvable proposals in the app: {list}. The council left this choice to a human.":
+    "Elige en la app una de las propuestas aprobables: {list}. El council deja esta elección a una persona.",
+  "Nothing can be approved in this council. Proposal {label} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "En este council no se puede aprobar nada. La propuesta {label} superó la comprobación de requisitos – aclara los puntos abiertos de abajo (objeciones, comprobaciones sin confirmar) e inicia un nuevo council.",
+  "Nothing can be approved in this council. Proposals {labels} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "En este council no se puede aprobar nada. Las propuestas {labels} superaron la comprobación de requisitos – aclara los puntos abiertos de abajo (objeciones, comprobaciones sin confirmar) e inicia un nuevo council.",
+  "No proposal meets all confirmed requirements. Change the brief or the requirements and start a new council.":
+    "Ninguna propuesta cumple todos los requisitos confirmados. Cambia el encargo o los requisitos e inicia un nuevo council.",
+  "Proposal {label} passed the requirement check.": "La propuesta {label} superó la comprobación de requisitos.",
+  "Proposals {labels} passed the requirement check.": "Las propuestas {labels} superaron la comprobación de requisitos.",
+  "No automatic recommendation: {reasons}.": "Sin recomendación automática: {reasons}.",
+  "passes the requirements": "cumple los requisitos",
+  "No automatic recommendation": "Sin recomendación automática",
+  "Eligible = passes the requirement check and the other gates.": "Elegible = supera la comprobación de requisitos y los demás controles.",
+  "plan – proof pending": "plan – prueba pendiente",
+  "Context documents (read as untrusted data, never requirements): {names}":
+    "Documentos de contexto (leídos como datos no fiables, nunca como requisitos): {names}",
+  "build check – verified after implementation, not by this council": "comprobación en el build – se verifica tras la implementación, no por este consejo",
+  "Skill: {name} (version {version}, hash {hash})": "Skill: {name} (versión {version}, huella {hash})",
+  "{id} not met according to {k} of {n} evaluators (model judgement).": "{id} no cumplido según {k} de {n} evaluadores (juicio de los modelos).",
+  "{id} disputed: {pass} of {n} evaluators confirm it, {fail} found it not met.":
+    "{id} discutido: {pass} de {n} evaluadores lo confirman, {fail} lo consideran no cumplido.",
+  "{id} not confirmed: {k} of {n} evaluators could not confirm it.": "{id} no confirmado: {k} de {n} evaluadores no pudieron confirmarlo.",
+  "{id} not confirmed: {k} of {n} evaluators gave no valid answer.": "{id} no confirmado: {k} de {n} evaluadores no dieron una respuesta válida.",
+  "None of the evaluated proposals meets all confirmed requirements according to these evaluations.":
+    "Ninguna de las propuestas evaluadas cumple todos los requisitos confirmados según estas evaluaciones.",
+  "The proposals": "Las propuestas",
+  // Telegram live test 08.11.26: delivery summary.
+  Recommended: "Recomendada",
+  "Not approvable: this verdict cannot be approved or built.": "No aprobable: este veredicto no puede aprobarse ni construirse.",
+  "Confidence: {level}": "Confianza: {level}",
+  reduced: "reducida",
   // R2-01 (08.11.26): session status and gate result values.
-  "queued": "en cola",
-  "running": "en curso",
+  queued: "en cola",
+  running: "en curso",
   "cancellation requested": "cancelación solicitada",
-  "cancelled": "cancelado",
-  "failed": "fallido",
+  cancelled: "cancelado",
+  failed: "fallido",
   "awaiting approval": "pendiente de aprobación",
-  "approved": "aprobado",
-  "rejected": "rechazado",
+  approved: "aprobado",
+  rejected: "rechazado",
   "changes requested": "cambios solicitados",
   "meets all requirements": "cumple todos los requisitos",
   "needs verification": "requiere verificación",
   "misses a requirement": "incumple un requisito",
-  "incomplete": "incompleto",
+  incomplete: "incompleto",
   "provisional favourite (limited review)": "favorito provisional (revisión limitada)",
   "Final Decision Report – {project}": "Informe de decisión final – {project}",
   "Mode: {mode} · Brief version {version} · Status: {status}": "Modo: {mode} · Versión del encargo {version} · Estado: {status}",
@@ -449,7 +851,277 @@ const ES: Dictionary = {
   "Total: {input} input + {output} output tokens": "Total: {input} tokens de entrada + {output} tokens de salida",
 };
 
-const DICTIONARIES: Record<ReportLocale, Dictionary> = { en: {}, de: DE, fr: FR, es: ES };
+/** Chinese (#268): fixed report wording; the PDF embeds a CJK font for it (see report-documents). */
+const ZH: Dictionary = {
+  "Course of the council": "council 过程",
+  "Phase timeline": "阶段时间线",
+  "{phase}: {start} – {end} ({minutes} min)": "{phase}:{start} – {end}({minutes} 分钟)",
+  "{phase}: from {start}, not finished": "{phase}:自 {start} 起,尚未完成",
+  "Follow-up check rounds": "补充检查轮次",
+  "Round {round} ({kind}): {items} checks requested – done, results taken over": "第 {round} 轮({kind}):请求了 {items} 项检查 – 已完成,结果已采纳(已补做)",
+  "Round {round} ({kind}): {items} checks requested – not finished, nothing taken over": "第 {round} 轮({kind}):请求了 {items} 项检查 – 未完成,未采纳任何结果",
+  "targeted review": "定向复查",
+  completion: "补全",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so no proposal can be approved as a finished solution yet. Mark it as favourite, approve a prototype / measurement build or record the measured result.":
+    "架构候选 – 性能证明待定:{ids} 只能通过测量运行中的实现来确认。council 确认的是测量计划,而不是需求本身,因此目前还没有提案能作为完成的方案获批。请将其标记为首选、批准原型/测量构建,或记录测量结果。",
+  "Proposal {label} is an architecture candidate: mark it as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "提案 {label} 是架构候选:请在应用中将其标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
+  "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
+    "提案 {labels} 是架构候选:请在应用中将其中一个标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
+  " (instance {index} of {of} – one independent voice)": "(实例 {index}/{of} – 一个独立声音)",
+  "awaiting your review · no approvable proposal": "等待你的审查 · 没有可批准的提案",
+  "marked as favourite": "已标记为首选",
+  "prototype/measurement build approved": "已批准原型/测量构建",
+  "approved after measurement": "测量后已批准",
+  "{project} · session {session} · verdict {verdict} · created {date}": "{project} · 会话 {session} · 裁决 {verdict} · 创建于 {date}",
+  "AI assessment – not independent factual verification": "AI 评估 – 不是独立的事实核查",
+  "not every part confirmed": "并非每个部分都已确认",
+  "architecture candidate (performance proof open)": "架构候选(性能证明待定)",
+  "measurement plan – not measured": "测量计划 – 尚未测量",
+  "measurement check – only measuring the running implementation confirms it, not this council": "测量检查 – 只有测量运行中的实现才能确认,而不是本次 council",
+  "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement.":
+    "架构候选 – 性能证明待定:{ids} 只能通过测量运行中的实现来确认;评估者确认的是测量计划,而不是需求本身。",
+  "Architecture candidate – performance proof open: a requirement can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so this proposal cannot be approved as a finished solution.":
+    "架构候选 – 性能证明待定:有一项需求只能通过测量运行中的实现来确认。council 确认的是测量计划,而不是需求本身,因此该提案不能作为完成的方案获批。",
+  "Context of the question, not a requirement the user listed": "问题的背景,不是用户列出的需求",
+  "Reads like an instruction to the AI models, not a product requirement": "读起来像是给 AI 模型的指令,而不是产品需求",
+  "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance":
+    "说明的是需求何时算作满足,而不是描述产品 – council 按实质评判提案",
+  "From the idea or goal – context, not a hard requirement. Keep it if it is one.": "来自想法或目标 – 是背景,不是硬性需求。如果它确实是需求,请保留。",
+  "A work instruction to the council for this run, not a product requirement. Keep it if it is one.":
+    "是给本次 council 的工作指令,不是产品需求。如果它确实是需求,请保留。",
+  "Repeats a requirement from the requirements field, so it is listed once. Keep it if it says more.":
+    "重复了需求字段中的一项需求,因此只列出一次。如果它包含更多内容,请保留。",
+  "From a document, without binding wording (must, only, at most, a limit …) – a description, table row or measured value. Keep it if it is a requirement.":
+    "来自文档,没有约束性措辞(必须、只能、最多、某个上限……)– 是描述、表格行或测量值。如果它是需求,请保留。",
+  "{risk} ({severity}; mitigation: {mitigation})": "{risk}({severity};缓解措施:{mitigation})",
+  "{claim} ({status})": "{claim}({status})",
+  "{claim} – raised against v{from}; no longer applies to v{to} (not independently re-reviewed)": "{claim} – 针对 v{from} 提出;不再适用于 v{to}(未经独立复核)",
+  "more debate requested": "已要求更多辩论",
+  "alternative selected": "已选择替代方案",
+  "evaluation repeated": "已重复评估",
+  "Open in CONSYRION AI": "在 CONSYRION AI 中打开",
+  "Decision: {project}": "决策:{project}",
+  "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
+    "总分 = 所有标准上独立评分的投票加权平均值 × 权重 / 100 之和;权重:{weights};投票权重:{votes}",
+  "total = sum over all criteria of the average of the independent scores × weight / 100; weights: {weights}":
+    "总分 = 所有标准上独立评分的平均值 × 权重 / 100 之和;权重:{weights}",
+  "Needs verification – there is no automatic recommendation, and nothing in this council can be approved or built.":
+    "需要核实 – 没有自动推荐,本次 council 中没有任何内容可以获批或构建。",
+  "Other gate: {cause}": "其他关卡:{cause}",
+  "Not qualified: {cause}": "未达标:{cause}",
+  question: "提问",
+  answer: "回答",
+  critique: "批评",
+  rebuttal: "反驳",
+  moderator: "主持人",
+  "role review failed": "角色审查失败",
+  "software architect": "软件架构师",
+  "security expert": "安全专家",
+  "performance engineer": "性能工程师",
+  "backend engineer": "后端工程师",
+  "frontend engineer": "前端工程师",
+  "database architect": "数据库架构师",
+  "devops engineer": "DevOps 工程师",
+  "cost analyst": "成本分析师",
+  "product strategist": "产品策略师",
+  "quality assurance expert": "质量保证专家",
+  "maintainability reviewer": "可维护性审查员",
+  "independent critical thinker": "独立批判性思考者",
+  security: "安全",
+  functional: "功能",
+  performance: "性能",
+  cost: "成本",
+  maintainability: "可维护性",
+  other: "其他",
+  "{level} severity": "{level}严重程度",
+  "consensus reached": "已达成共识",
+  "partial consensus": "部分共识",
+  "no consensus": "未达成共识",
+  "What you need to do now": "你现在需要做什么",
+  and: "和",
+  "Approved – the build can be started in the app.": "已批准 – 可以在应用中启动构建。",
+  "Rejected – start a new council with a changed brief if the question is still open.": "已拒绝 – 如果问题仍未解决,请用修改后的任务说明启动新的 council。",
+  "Change the conflicting requirements and start a new council – nothing can be built under these requirements.":
+    "修改相互冲突的需求并启动新的 council – 在这些需求下无法构建任何内容。",
+  "Check Proposal {label} and approve it in the app – nothing is built before a human approves.":
+    "检查提案 {label} 并在应用中批准 – 在人工批准之前不会构建任何内容。",
+  "Choose one of the approvable proposals in the app: {list}. The council left this choice to a human.":
+    "请在应用中从可批准的提案中选择一个:{list}。council 把这个选择留给了人。",
+  "Nothing can be approved in this council. Proposal {label} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "本次 council 中没有任何内容可以获批。提案 {label} 通过了需求检查 – 请先解决下面的未决事项(异议、未确认的检查),然后启动新的 council。",
+  "Nothing can be approved in this council. Proposals {labels} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
+    "本次 council 中没有任何内容可以获批。提案 {labels} 通过了需求检查 – 请先解决下面的未决事项(异议、未确认的检查),然后启动新的 council。",
+  "No proposal meets all confirmed requirements. Change the brief or the requirements and start a new council.":
+    "没有任何提案满足所有已确认的需求。请修改任务说明或需求,然后启动新的 council。",
+  "Proposal {label} passed the requirement check.": "提案 {label} 通过了需求检查。",
+  "Proposals {labels} passed the requirement check.": "提案 {labels} 通过了需求检查。",
+  "No automatic recommendation: {reasons}.": "没有自动推荐:{reasons}。",
+  "passes the requirements": "满足需求",
+  "No automatic recommendation": "没有自动推荐",
+  "Eligible = passes the requirement check and the other gates.": "合格 = 通过需求检查和其他关卡。",
+  "plan – proof pending": "计划 – 证明待定",
+  "Context documents (read as untrusted data, never requirements): {names}": "背景文档(作为不可信数据读取,绝不作为需求):{names}",
+  "build check – verified after implementation, not by this council": "构建检查 – 在实现后验证,而不是由本次 council 验证",
+  "Skill: {name} (version {version}, hash {hash})": "技能:{name}(版本 {version},哈希 {hash})",
+  "{id} not met according to {k} of {n} evaluators (model judgement).": "根据 {n} 位评估者中的 {k} 位,{id} 未满足(模型判断)。",
+  "{id} disputed: {pass} of {n} evaluators confirm it, {fail} found it not met.": "{id} 存在争议:{n} 位评估者中 {pass} 位确认满足,{fail} 位认为未满足。",
+  "{id} not confirmed: {k} of {n} evaluators could not confirm it.": "{id} 未确认:{n} 位评估者中有 {k} 位无法确认。",
+  "{id} not confirmed: {k} of {n} evaluators gave no valid answer.": "{id} 未确认:{n} 位评估者中有 {k} 位没有给出有效回答。",
+  "None of the evaluated proposals meets all confirmed requirements according to these evaluations.":
+    "根据这些评估,所评估的提案中没有一个满足所有已确认的需求。",
+  "The proposals": "提案",
+  Recommended: "推荐",
+  "Not approvable: this verdict cannot be approved or built.": "不可批准:此裁决不能获批或构建。",
+  "Confidence: {level}": "置信度:{level}",
+  reduced: "降低",
+  queued: "排队中",
+  running: "运行中",
+  "cancellation requested": "已请求取消",
+  cancelled: "已取消",
+  failed: "失败",
+  "awaiting approval": "等待批准",
+  approved: "已批准",
+  rejected: "已拒绝",
+  "changes requested": "已要求修改",
+  "meets all requirements": "满足所有需求",
+  "needs verification": "需要核实",
+  "misses a requirement": "未满足某项需求",
+  incomplete: "不完整",
+  "provisional favourite (limited review)": "暂定首选(审查有限)",
+  "Final Decision Report – {project}": "最终决策报告 – {project}",
+  "Mode: {mode} · Brief version {version} · Status: {status}": "模式:{mode} · 任务说明版本 {version} · 状态:{status}",
+  "Participants: {list}": "参与者:{list}",
+  " (failed)": "(失败)",
+  "Vote weights: {list}": "投票权重:{list}",
+  " (suggested {n})": "(建议 {n})",
+  "Valid participation: {line}": "有效参与:{line}",
+  "short: {list}": "不足:{list}",
+  "no valid contribution": "没有有效贡献",
+  Outcome: "结果",
+  "**Not approvable:** this verdict cannot be approved or built.": "**不可批准:**此裁决不能获批或构建。",
+  "Conflicting requirements": "相互冲突的需求",
+  "Requirement check (model judgements with reasons, not a fact check)": "需求检查(附理由的模型判断,不是事实核查)",
+  "Proposal {label}": "提案 {label}",
+  "Confirmed requirements (list version {version})": "已确认的需求(清单版本 {version})",
+  "Not taken over:": "未采纳:",
+  "**Architecture change:** revision v{to} replaced the solution of v{from}": "**架构变更:**修订 v{to} 替换了 v{from} 的方案",
+  "; it resembles Proposal {list}": ";它类似于提案 {list}",
+  "Leading proposal (not approvable)": "领先提案(不可批准)",
+  "Recommended solution": "推荐方案",
+  "Author: {author}": "作者:{author}",
+  Architecture: "架构",
+  Advantages: "优点",
+  Disadvantages: "缺点",
+  "Rationale (independent evaluators)": "理由(独立评估者)",
+  "Evaluation matrix": "评估矩阵",
+  "Formula: {formula}": "公式:{formula}",
+  Proposal: "提案",
+  Total: "总分",
+  Implementable: "可实施",
+  Eligible: "合格",
+  Evaluators: "评估者",
+  Notes: "备注",
+  yes: "是",
+  no: "否",
+  "Majority vote (for information only – it never overrides the requirement check): {winner}": "多数投票(仅供参考 – 绝不会覆盖需求检查):{winner}",
+  "no clear majority": "没有明确多数",
+  "**Low confidence:**": "**低置信度:**",
+  "Evaluation failed – {name}": "评估失败 – {name}",
+  "**Limited review depth:**": "**审查深度有限:**",
+  Debate: "辩论",
+  "round {n}": "第 {n} 轮",
+  Evidence: "证据",
+  "Remaining risks": "剩余风险",
+  "No longer applicable after the revision": "修订后不再适用",
+  "Objections (Minority Review)": "异议(Minority Review)",
+  "NOT DEFENDED": "未辩护",
+  none: "无",
+  "Disagreements that remain between the models are listed under Consensus Round.": "模型之间仍然存在的分歧列在 Consensus Round 下。",
+  "Alternatives not chosen": "未选择的替代方案",
+  " (hybrid)": "(混合)",
+  "Next steps": "下一步",
+  "Status: {status}": "状态:{status}",
+  "Based on: {list}": "依据:{list}",
+  "Agreements:": "共识:",
+  "Disagreements:": "分歧:",
+  "Human decisions": "人工决定",
+  "Tokens used: {used} of {budget}": "已用 token:{used} / {budget}",
+  "Objection by {by} against Proposal {proposal}: {claim}": "{by} 对提案 {proposal} 的异议:{claim}",
+  " Reasoning: {text}": " 理由:{text}",
+  "objection open": "异议未决",
+  "objection refuted": "异议被驳回",
+  "objection resolved by the proposal": "异议已由提案解决",
+  "objection accepted": "异议成立",
+  "objection unresolved": "异议未解决",
+  " – blocks approval": " – 阻止批准",
+  "A solution is recommended.": "推荐了一个方案。",
+  "No solution meets the requirements and gates.": "没有方案满足需求和关卡。",
+  "Tie – the leading solutions are too close to call; a human must choose.": "平局 – 领先的方案过于接近,无法判定;必须由人来选择。",
+  "Insufficient independent evidence for a decision.": "独立证据不足,无法做出决定。",
+  "No solution can meet these requirements: the council found that the hard requirements conflict. The finding can be confirmed; nothing can be built under these requirements – changed requirements need a new council and a new approval.":
+    "没有方案能满足这些需求:council 发现硬性需求相互冲突。可以确认这一结论;在这些需求下无法构建任何内容 – 修改后的需求需要新的 council 和新的批准。",
+  "No verdict yet.": "尚无裁决。",
+  "This verdict cannot be approved or built.": "此裁决不能获批或构建。",
+  "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.":
+    "需要核实 – council 无法确认有提案满足每一项需求。它不能获批或构建。",
+  "This proposal does not meet every confirmed requirement according to the evaluations (or it could not be confirmed). It cannot be approved or built. Change the brief or the requirements and start a new council.":
+    "根据评估,该提案未满足每一项已确认的需求(或无法确认)。它不能获批或构建。请修改任务说明或需求,然后启动新的 council。",
+  "Too few independent models checked this proposal (at least 2 are needed). It is a provisional favourite and cannot be approved or built. Start a new council with at least 3 models.":
+    "检查该提案的独立模型太少(至少需要 2 个)。它是暂定首选,不能获批或构建。请用至少 3 个模型启动新的 council。",
+  "This verdict uses a result this version does not know. It cannot be approved or built here.": "此裁决使用了本版本不认识的结果。在这里不能获批或构建。",
+  "Session {id} · {date}": "会话 {id} · {date}",
+  "Decision summary": "决策摘要",
+  "Recommended: Proposal {label}": "推荐:提案 {label}",
+  "No approvable recommendation": "没有可批准的推荐",
+  "Overall score (0–10)": "总分(0–10)",
+  "not approvable": "不可批准",
+  recommended: "推荐",
+  "Scores per criterion": "各标准得分",
+  "Criterion (weight)": "标准(权重)",
+  "Technical quality": "技术质量",
+  Security: "安全",
+  Maintainability: "可维护性",
+  "Operating cost": "运营成本",
+  Speed: "速度",
+  "Highlighted: highest value per criterion among approvable proposals; grey = not approvable.": "高亮:可批准提案中每项标准的最高值;灰色 = 不可批准。",
+  "Hard requirements by proposal": "各提案的硬性需求",
+  Requirement: "需求",
+  "OK met": "OK 满足",
+  "x not met": "x 未满足",
+  "? unconfirmed": "? 未确认",
+  "! disputed": "! 有争议",
+  "Open objections": "未决异议",
+  critical: "严重",
+  high: "高",
+  medium: "中",
+  low: "低",
+  "none open": "无未决",
+  "Your decision": "你的决定",
+  "Not decided yet. Nothing is built before a human approves.": "尚未决定。在人工批准之前不会构建任何内容。",
+  "Scores and requirement checks are model judgements with reasons, not a fact check. Full text: “PDF – Report”; every check: “PDF – Full audit”.":
+    "得分和需求检查是附理由的模型判断,不是事实核查。全文:“PDF – 报告”;每项检查:“PDF – 完整审计”。",
+  "Scores and requirement checks are model judgements with reasons, not a fact check. Details follow on the next pages.":
+    "得分和需求检查是附理由的模型判断,不是事实核查。详细内容见后续页面。",
+  "Audit appendix": "审计附录",
+  "Every stored requirement check (requirement × proposal × evaluator), also checks that did not count, and every model call per phase. Versions: brief v{brief}, requirements v{requirements}, gate v{gate}. Model statements, not a fact check.":
+    "每一项已存储的需求检查(需求 × 提案 × 评估者),包括未计入的检查,以及每个阶段的每次模型调用。版本:任务说明 v{brief},需求 v{requirements},关卡 v{gate}。模型陈述,不是事实核查。",
+  "Requirement checks ({n})": "需求检查({n})",
+  "No requirement checks are stored for this session.": "本会话没有存储任何需求检查。",
+  "estimate {value}": "估计 {value}",
+  "did not count: {reason}": "未计入:{reason}",
+  invalid: "无效",
+  "Model calls per phase": "每个阶段的模型调用",
+  Model: "模型",
+  Phase: "阶段",
+  Calls: "调用",
+  Failed: "失败",
+  "Input tok.": "输入 token",
+  "Output tok.": "输出 token",
+  "Total: {input} input + {output} output tokens": "合计:{input} 输入 + {output} 输出 token",
+};
+
+const DICTIONARIES: Record<ReportLocale, Dictionary> = { en: {}, de: DE, fr: FR, es: ES, zh: ZH };
 
 /** Translator for one report language: English text in, translated text out (English when no translation exists). */
 export function reportTranslator(locale: ReportLocale = "en"): ReportT {
@@ -458,4 +1130,37 @@ export function reportTranslator(locale: ReportLocale = "en"): ReportT {
     const template = dictionary[text] ?? text;
     return values ? template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match)) : template;
   };
+}
+
+/** Raw values that must never reach a non-English report: statuses, roles, debate types, gate outcomes. */
+const RAW_VALUES =
+  /\b(?:awaiting_approval|changes_requested|cancel_requested|needs_verification|no_qualifying_solution|insufficient_evidence|not_qualified|no_consensus|role_failed|software_architect|security_expert|performance_engineer|backend_engineer|frontend_engineer|database_architect|devops_engineer|cost_analyst|product_strategist|quality_assurance_expert|maintainability_reviewer|independent_critical_thinker)\b/g;
+/** Fixed English engine fragments that have a translation; finding one in a German report means a path skipped it. */
+const ENGINE_FRAGMENTS = [
+  /Addressed by the author in v\d/g,
+  /Not independently re-reviewed/g,
+  /scored higher but is blocked/g,
+  /evaluators could not confirm it/g,
+  /evaluators gave no valid answer/g,
+  /not met according to \d+ of \d+ evaluators/g,
+  /\bNot qualified: /g,
+  /\bOther gate: /g,
+  /Architecture candidate – performance proof open/g,
+  /can only be confirmed by measuring the running implementation/g,
+  /No independent reviewer was available/g,
+  /Context of the question, not a requirement the user listed/g,
+  /Status: (?:partial|consensus|no_consensus)\b/g,
+  /\(\w+\/(?:low|medium|high|critical)\)|\[\w+\/(?:low|medium|high|critical)\]/g,
+];
+
+/**
+ * Language check of a finished report before it is delivered (ChatGPT review 08.11.26): lists engine wording that
+ * stayed English or raw values in a report that should be in `locale`. Model output is not judged – models answer
+ * in the brief's language and may quote English. English reports always pass.
+ */
+export function reportLanguageIssues(text: string, locale: ReportLocale): string[] {
+  if (locale === "en") return [];
+  const found = new Set<string>();
+  for (const pattern of [RAW_VALUES, ...ENGINE_FRAGMENTS]) for (const match of text.matchAll(pattern)) found.add(match[0]);
+  return [...found];
 }

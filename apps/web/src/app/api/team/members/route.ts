@@ -14,7 +14,7 @@ export const GET = handle(async () => {
 
 /** Creates an invitation; the link (with the one-time token) is returned once to the inviter. */
 export const POST = handle(async (request: Request) => {
-  const actor = await requireActor();
+  const actor = await requireActor({ sessionOnly: true });
   const { token, id } = await createInvitation(await getDb(), actor, (await readJson(request)) as { email: string; role: string });
   return NextResponse.json({ id, link: `${publicOrigin(request)}/invite/${token}` }, { status: 201 });
 });

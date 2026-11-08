@@ -1,6 +1,6 @@
 import { assertCan, canAssignRole, DomainError, isOrgRole, type OrgRole } from "@consyrion/core";
 import { createHash, randomBytes } from "node:crypto";
-import { and, asc, count, eq, gte, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, isNull } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
 import { invitation, membership, organization, user } from "../schema";
@@ -60,25 +60,45 @@ export async function revokeInvitation(db: Database, ctx: ActorContext, invitati
     .where(and(eq(invitation.id, invitationId), eq(invitation.organizationId, ctx.organizationId), isNull(invitation.acceptedAt)))
     .returning({ id: invitation.id });
   if (!updated[0]) throw new DomainError("NOT_FOUND", "Invitation not found");
+  await recordAudit(db, { organizationId: ctx.organizationId, actorUserId: ctx.userId, action: "member.invitation_revoked", targetType: "invitation", targetId: invitationId });
 }
 
-export async function acceptInvitation(db: Database, userId: string, token: string) {
+/**
+ * Joins the workspace of an invitation. With `requireVerifiedEmail` (whenever the server verifies addresses, #404) the
+ * account's address must be verified: otherwise whoever holds the link could register the invited address and join.
+ */
+export async function acceptInvitation(db: Database, userId: string, token: string, options: { requireVerifiedEmail?: boolean } = {}) {
   const [invite] = await db.select().from(invitation).where(eq(invitation.tokenHash, hash(token)));
   if (!invite || invite.revokedAt || invite.acceptedAt || invite.expiresAt < new Date()) throw new DomainError("NOT_FOUND", "This invitation is invalid or expired");
   const [account] = await db.select().from(user).where(eq(user.id, userId));
   if (!account || account.email.toLowerCase() !== invite.email) throw new DomainError("FORBIDDEN", `This invitation is for ${invite.email}. Sign in with that address.`);
+  if (options.requireVerifiedEmail && !account.emailVerified) throw new DomainError("FORBIDDEN", `Confirm ${invite.email} first (link in your inbox), then open the invitation again.`);
   await db.transaction(async (tx) => {
+    // Claim the invitation first and only if it is still open, so the same link cannot be used twice in parallel.
+    const claimed = await tx
+      .update(invitation)
+      .set({ acceptedAt: new Date() })
+      .where(and(eq(invitation.id, invite.id), isNull(invitation.acceptedAt), isNull(invitation.revokedAt)))
+      .returning({ id: invitation.id });
+    if (!claimed[0]) throw new DomainError("NOT_FOUND", "This invitation is invalid or expired");
     await tx.insert(membership).values({ id: newId("mem"), organizationId: invite.organizationId, userId, role: invite.role }).onConflictDoNothing();
-    await tx.update(invitation).set({ acceptedAt: new Date() }).where(eq(invitation.id, invite.id));
     await recordAudit(tx, { organizationId: invite.organizationId, actorUserId: userId, action: "member.joined", targetType: "membership", targetId: userId, metadata: { role: invite.role } });
   });
   const [org] = await db.select({ id: organization.id, name: organization.name }).from(organization).where(eq(organization.id, invite.organizationId));
   return org!;
 }
 
-async function ownerCount(db: Database, organizationId: string) {
-  const [row] = await db.select({ n: count() }).from(membership).where(and(eq(membership.organizationId, organizationId), eq(membership.role, "owner")));
-  return row!.n;
+/**
+ * Owners of a workspace, locked for the rest of the transaction (#404): two owners demoting or removing each other at
+ * the same moment must not leave the workspace without an owner. The second transaction waits and then sees one owner.
+ */
+async function lockedOwnerCount(tx: Pick<Database, "select">, organizationId: string) {
+  const rows = await tx
+    .select({ id: membership.id })
+    .from(membership)
+    .where(and(eq(membership.organizationId, organizationId), eq(membership.role, "owner")))
+    .for("update");
+  return rows.length;
 }
 
 export async function changeMemberRole(db: Database, ctx: ActorContext, membershipId: string, role: string) {
@@ -87,8 +107,10 @@ export async function changeMemberRole(db: Database, ctx: ActorContext, membersh
   const [target] = await db.select().from(membership).where(and(eq(membership.id, membershipId), eq(membership.organizationId, ctx.organizationId)));
   if (!target) throw new DomainError("NOT_FOUND", "Member not found");
   if (!canAssignRole(ctx.role, role as OrgRole) || !canAssignRole(ctx.role, target.role)) throw new DomainError("FORBIDDEN", "You cannot change this member's role");
-  if (target.role === "owner" && role !== "owner" && (await ownerCount(db, ctx.organizationId)) <= 1) throw new DomainError("CONFLICT", "The workspace needs at least one owner");
-  await db.update(membership).set({ role: role as OrgRole }).where(eq(membership.id, membershipId));
+  await db.transaction(async (tx) => {
+    if (target.role === "owner" && role !== "owner" && (await lockedOwnerCount(tx, ctx.organizationId)) <= 1) throw new DomainError("CONFLICT", "The workspace needs at least one owner");
+    await tx.update(membership).set({ role: role as OrgRole }).where(eq(membership.id, membershipId));
+  });
   await recordAudit(db, { organizationId: ctx.organizationId, actorUserId: ctx.userId, action: "member.role_changed", targetType: "membership", targetId: membershipId, metadata: { from: target.role, to: role } });
 }
 
@@ -100,7 +122,9 @@ export async function removeMember(db: Database, ctx: ActorContext, membershipId
     assertCan(ctx.role, "member:manage");
     if (!canAssignRole(ctx.role, target.role)) throw new DomainError("FORBIDDEN", "You cannot remove this member");
   }
-  if (target.role === "owner" && (await ownerCount(db, ctx.organizationId)) <= 1) throw new DomainError("CONFLICT", "The last owner cannot leave or be removed");
-  await db.delete(membership).where(eq(membership.id, membershipId));
+  await db.transaction(async (tx) => {
+    if (target.role === "owner" && (await lockedOwnerCount(tx, ctx.organizationId)) <= 1) throw new DomainError("CONFLICT", "The last owner cannot leave or be removed");
+    await tx.delete(membership).where(eq(membership.id, membershipId));
+  });
   await recordAudit(db, { organizationId: ctx.organizationId, actorUserId: ctx.userId, action: self ? "member.left" : "member.removed", targetType: "membership", targetId: membershipId });
 }

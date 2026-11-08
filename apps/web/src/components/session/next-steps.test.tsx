@@ -22,6 +22,7 @@ const content = (over: Record<string, unknown>) => ({
 });
 
 const view = {
+  participants: [{ id: "par_x", provider: "openai", modelId: "gpt-5-mini", status: "active" }],
   proposals: [
     {
       id: "pro_a",
@@ -42,7 +43,7 @@ const view = {
     { id: "pro_b", label: "B", revisions: [{ version: 1, content: content({}) }] },
   ],
   objections: [
-    { id: "o1", proposalId: "pro_a", severity: "critical", status: "accepted", claim: "Tenant data can leak" },
+    { id: "o1", proposalId: "pro_a", severity: "critical", status: "accepted", claim: "Tenant data can leak", evidence: "The cache key has no tenant id", raisedByParticipantId: "par_x" },
     { id: "o2", proposalId: "pro_a", severity: "high", status: "refuted", claim: "Too slow" },
   ],
   requirementList: { version: 1, items: [{ id: "req_1", text: "Runs on Node 22" }, { id: "req_2", text: "Existing tests keep passing" }], excluded: [] },
@@ -87,5 +88,83 @@ describe("next steps (#273): stored statements only", () => {
     expect(html).toContain("Not specified by the author.");
     expect(html).toContain("no open disagreement recorded");
     expect(deriveNextSteps(view, null, gate)).toBeNull();
+  });
+});
+
+describe("next steps stage 1 (#273): counter-position and 'not yet', stored data only", () => {
+  it("takes the strongest open or upheld objection as the counter-position, with its own reasoning", () => {
+    const steps = deriveNextSteps(view, "pro_a", gate)!;
+    expect(steps.counter).toMatchObject({ claim: "Tenant data can leak", evidence: "The cache key has no tenant id", status: "accepted", severity: "critical" });
+    // A refuted objection is never the counter-position; a proposal without objections has none.
+    expect(deriveNextSteps(view, "pro_b", gate)!.counter).toBeNull();
+  });
+
+  it("shows it with 'would be right if', and says nothing can be approved or built while blocked", () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+        <NextStepsCard view={view} steps={deriveNextSteps(view, "pro_a", gate)!} mode="blocked" />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("Strongest counter-position");
+    expect(html).toContain("It would be right if this reasoning holds: The cache key has no tenant id");
+    expect(html).toContain("Nothing can be approved or built yet");
+    const recommended = renderToStaticMarkup(
+      <NextIntlClientProvider locale="de" messages={messagesFor("de")}>
+        <NextStepsCard view={view} steps={deriveNextSteps(view, "pro_b", gate)!} mode="recommended" />
+      </NextIntlClientProvider>,
+    );
+    expect(recommended).toContain("Kein offener oder bestätigter Einwand gegen diesen Vorschlag.");
+    expect(recommended).not.toContain("Noch kann nichts freigegeben");
+  });
+});
+
+describe("next steps stage 2 (#273): the author's test, stop criteria and revisit triggers", () => {
+  const withFields = {
+    ...view,
+    proposals: [
+      {
+        id: "pro_c",
+        label: "C",
+        revisions: [
+          {
+            version: 1,
+            content: content({
+              cheapestTest: { assumption: "Teams accept tags instead of folders", method: "Two-week trial with one team", successCriterion: "80 % of new tasks get a tag" },
+              stopCriteria: ["Search gets slower than 300 ms", " "],
+              revisitTriggers: ["More than 50 teams"],
+            }),
+          },
+        ],
+      },
+      ...view.proposals,
+    ],
+  } as unknown as View;
+
+  it("takes the fields as written, drops empty ones and marks them as the author's AI suggestion", () => {
+    const steps = deriveNextSteps(withFields, "pro_c", gate)!;
+    expect(steps.cheapestTest).toEqual({ assumption: "Teams accept tags instead of folders", method: "Two-week trial with one team", successCriterion: "80 % of new tasks get a tag" });
+    expect(steps.stopCriteria).toEqual(["Search gets slower than 300 ms"]);
+    expect(steps.revisitTriggers).toEqual(["More than 50 teams"]);
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={messagesFor("en")}>
+        <NextStepsCard view={withFields} steps={steps} mode="recommended" />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("Cheapest useful test");
+    expect(html).toContain("a plan, not a confirmed check");
+    expect(html).toContain("Confirmed if: 80 % of new tasks get a tag");
+    expect(html).toContain("Search gets slower than 300 ms <span class=\"text-muted\">(AI suggestion)</span>");
+  });
+
+  it("says 'not stated' for proposals written before stage 2, never inventing a test", () => {
+    const steps = deriveNextSteps(view, "pro_a", gate)!;
+    expect(steps.cheapestTest).toBeNull();
+    expect(steps.stopCriteria).toEqual([]);
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="de" messages={messagesFor("de")}>
+        <NextStepsCard view={view} steps={steps} mode="recommended" />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("Vom Autor nicht angegeben.");
   });
 });

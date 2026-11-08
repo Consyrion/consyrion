@@ -53,7 +53,8 @@ Open http://localhost:3000, create an account and add your provider keys under
 - **Workspaces**: team invitations, workspace switcher, data export and deletion; self-hosted installations
   (`SELF_HOSTED=true`) have no plans or limits. Optional hosted-service mode with plans and Stripe (`docs/saas.md`)
 
-- **VS Code extension** and personal API tokens (`docs/vscode.md`); Docker images, health endpoint, redacted logs,
+- **VS Code extension** and personal API tokens (`docs/vscode.md`); **Obsidian plugin** – selected note text to a
+  council, report as a new note (`docs/obsidian.md`); Docker images, health endpoint, redacted logs,
   CSP and rate limits (`docs/deployment.md`, `docs/operations.md`, `docs/security-review.md`)
 
 To look at every screen without provider keys, sign up locally and run
@@ -93,7 +94,7 @@ you change – `pnpm format <files>` / `pnpm format:check <files>`. The existing
 - [Concept](docs/KONZEPT.md) · [Architecture](docs/architecture.md) · [Data model](docs/data-model.md)
 - [Security: credentials & tenancy](docs/security.md) · [Testing](docs/testing.md) · [Roadmap](docs/roadmap.md)
 - [Council engine](docs/council-engine.md) · [Engine](docs/engine.md) · [Requirement intake](docs/requirements-intake.md) · [Execution Council](docs/execution-council.md) · [GitHub App](docs/github-app.md) · [SaaS](docs/saas.md)
-- [Design system](docs/design/consyrion-futuristic-glassmorphism.md) · [API](docs/api.md) · [VS Code](docs/vscode.md) · [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Security review](docs/security-review.md) · [Release checklist](docs/release-checklist.md)
+- [Design system](docs/design/consyrion-futuristic-glassmorphism.md) · [API](docs/api.md) · [VS Code](docs/vscode.md) · [Obsidian](docs/obsidian.md) · [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Security review](docs/security-review.md) · [Release checklist](docs/release-checklist.md)
 - [Self-hosting](docs/self-hosting.md) · [Feedback inbox](docs/feedback.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
 - Contributor and agent rules: [CLAUDE.md](CLAUDE.md)
 
@@ -124,6 +125,8 @@ change settings – see `docs/assistant.md`.
 Use CONSYRION AI from Claude Code, Claude Desktop, Cursor or VS Code: `POST /api/mcp` with an API token (Pro and up on
 the hosted app, always when self-hosted). Read decisions, prepare projects and requirements, start councils on your own
 keys with a budget limit – approving, building and deleting stay in the app. See `docs/mcp.md`.
+
+**Demo project:** every workspace gets one read-only copy of a finished council chosen by the platform admin, so new customers see a decision before spending a token. See `docs/demo-project.md`.
 
 ## Questions over Telegram
 

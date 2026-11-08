@@ -1,5 +1,8 @@
 import { listDeliveries } from "@consyrion/db";
+import { reportLocale } from "@consyrion/council";
+import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { isLocale, LOCALE_COOKIE, localeFromAcceptLanguage } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
@@ -19,6 +22,9 @@ export const GET = handle(async (_request: Request, { params }: Params) => {
 export const POST = handle(async (request: Request, { params }: Params) => {
   const actor = await requireActor();
   rateLimit(`deliver:${actor.userId}`, 20, 60_000);
-  const result = await deliverDecision(await getDb(), actor, getKeyring(), (await params).id, (await readJson(request)) as DeliverInput);
+  // Confluence test 09.11.26: the page came out in English from a German interface – the sender's language now counts.
+  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const locale = reportLocale(isLocale(chosen) ? chosen : localeFromAcceptLanguage((await headers()).get("accept-language")));
+  const result = await deliverDecision(await getDb(), actor, getKeyring(), (await params).id, (await readJson(request)) as DeliverInput, { locale });
   return NextResponse.json(result);
 });

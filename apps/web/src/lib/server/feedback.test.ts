@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { clientIp, feedbackAdminRecipients, feedbackMail, notifyAdminsAboutFeedback } = await import("./feedback");
+const { clientIp, feedbackAdminRecipients, feedbackMail, feedbackReplyMail, notifyAdminsAboutFeedback, screenshotAttachment, sendFeedbackReplyMail } =
+  await import("./feedback");
 const { rateLimit } = await import("./rate-limit");
 
 const report = {
@@ -54,5 +55,44 @@ describe("feedback e-mail to the admins (#295)", () => {
     for (let i = 0; i < 10; i++) rateLimit(key, 10, 86_400_000, now + i);
     expect(() => rateLimit(key, 10, 86_400_000, now + 11)).toThrow(/too many/i);
     expect(() => rateLimit(key, 10, 86_400_000, now + 86_400_000)).not.toThrow();
+  });
+});
+
+describe("feedback stage 2 (#295): screenshot attachment and reply e-mail", () => {
+  it("attaches a stored screenshot to the admin mail and ignores malformed values", () => {
+    const png = `data:image/png;base64,${Buffer.from("png-bytes").toString("base64")}`;
+    const mail = feedbackMail({ ...report, screenshot: png }, { to: ["a@x.test"], from: "x", appUrl: "" });
+    expect(mail.attachments).toEqual([{ filename: "screenshot.png", content: Buffer.from("png-bytes"), contentType: "image/png" }]);
+    expect(mail.text).toContain("Screenshot: angehängt");
+    expect(feedbackMail(report, { to: [], from: "x", appUrl: "" }).attachments).toEqual([]);
+    expect(screenshotAttachment("data:image/svg+xml;base64,PHN2Zz4=")).toBeNull();
+    expect(screenshotAttachment("data:image/jpeg;base64,AAAA")?.filename).toBe("screenshot.jpg");
+  });
+
+  it("writes the reply in the report's language, quotes the message and links My reports only for accounts", () => {
+    const base = { email: "alice@example.test", subject: "Verdict\r\nBcc: x@y", text: "Line 1\nLine 2", reply: "Fixed!", hasAccount: true };
+    const de = feedbackReplyMail({ ...base, locale: "de" }, { from: "CONSYRION AI <no-reply@x.test>", replyTo: "team@x.test", appUrl: "https://app.x.test/" });
+    expect(de.to).toEqual(["alice@example.test"]);
+    expect(de.replyTo).toBe("team@x.test");
+    expect(de.subject).toBe("Re: Verdict Bcc: x@y");
+    expect(de.text).toContain("Das Team von CONSYRION AI hat auf deine Nachricht geantwortet:");
+    expect(de.text).toContain("> Line 1\n> Line 2");
+    expect(de.text).toContain("https://app.x.test/settings/feedback");
+    const visitor = feedbackReplyMail({ ...base, locale: "fr-CH", hasAccount: false }, { from: "x", appUrl: "https://app.x.test" });
+    expect(visitor.text).toContain("L'équipe CONSYRION AI");
+    expect(visitor.text).not.toContain("/settings/feedback");
+    expect(feedbackReplyMail({ ...base, locale: null }, { from: "x", appUrl: "" }).text).toContain("The CONSYRION AI team");
+  });
+
+  it("sends the reply with Reply-To of the first admin, skips without SMTP and never throws", async () => {
+    const reply = { email: "g@x.test", locale: "en", subject: "Hi", text: "Q", reply: "A", hasAccount: false };
+    const sendMail = vi.fn(async () => {});
+    expect(await sendFeedbackReplyMail(reply, { env: { ADMIN_EMAILS: "root@x.test" }, sendMail })).toBe("sent");
+    expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ to: ["g@x.test"], replyTo: "root@x.test" }));
+    expect(await sendFeedbackReplyMail(reply, { env: {}, sendMail: null })).toBe("skipped");
+    const failing = vi.fn(async () => {
+      throw new Error("smtp down");
+    });
+    expect(await sendFeedbackReplyMail(reply, { env: {}, sendMail: failing })).toBe("failed");
   });
 });

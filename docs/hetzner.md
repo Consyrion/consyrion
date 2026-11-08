@@ -17,7 +17,7 @@ AI providers whose keys the user connected (BYOK) – Hetzner does not change th
 | Worker (councils + Execution Council)   | `consyrion-worker:<version>` (`Dockerfile.worker`)                 | `db`, `egress`                     | no                |
 | PostgreSQL 17                           | `postgres:17-alpine`                                               | `db` (internal, no internet)       | no                |
 | Migrations (one-shot before web/worker) | worker image, `migrate`                                            | `db`                               | no                |
-| Code sandbox                            | `node:22-alpine` / `python:3.12-alpine` under **gVisor (`runsc`)** | none for tests, bridge for install | no                |
+| Code sandbox                            | `node:22-alpine` / `python:3.12-alpine` (pinned by digest) under **gVisor (`runsc`)** | none for tests, own egress network for install (#399) | no                |
 
 Files: `deploy/hetzner/compose.yml`, `Caddyfile`, `setup-server.sh`, `deploy.sh`, `rollback.sh`, `backup.sh`,
 `restore-test.sh`, `check.sh`. No Kubernetes; the job queue is the PostgreSQL `job` table (SKIP LOCKED + lock
@@ -33,10 +33,34 @@ SKIP LOCKED, so replicas share the queue safely. A queued session shows how many
 **Sandbox isolation.** Generated code never sees the Docker socket, app secrets or other tenants' data: each
 run is a fresh container with uid 1000, all capabilities dropped, `no-new-privileges`, 1 CPU / 1 GB / 256 pids,
 no network for tests, and gVisor as a user-space kernel between the code and the host
-(`SANDBOX_DOCKER_RUNTIME=runsc`). The worker itself (trusted CONSYRION code, no inbound port) holds the Docker
-socket to start these containers; its workspaces live in `/srv/consyrion/workspaces` at the same path on host and
+(`SANDBOX_DOCKER_RUNTIME=runsc`). The worker itself (trusted CONSYRION code, no inbound port) starts these containers
+through the host's Docker socket – but only when the sandbox is on (#398): the socket is root-equivalent, so it is
+mounted from `deploy/hetzner/compose.sandbox.yml`, which `deploy.sh` and `rollback.sh` add only when `deploy.env`
+contains `SANDBOX_DISABLED=false`. The hosted default (`SANDBOX_DISABLED=true`) runs the worker without socket and
+without the docker group. To switch the sandbox on, set `SANDBOX_DISABLED=false` in
+`/opt/consyrion/secrets/deploy.env` (not only in `app.env`: the compose file reads it from `deploy.env`, and only
+there does it also add the socket) and deploy again; its workspaces live in `/srv/consyrion/workspaces` at the same path on host and
 in the container, owned by uid 1000 like the sandbox user. Without a container runtime tests are reported as
 "not run", never as passed.
+
+**Sandbox hardening (#399).** Only relevant with `SANDBOX_DISABLED=false` – the hosted default is unchanged.
+- Installs run on the network `consyrion-sandbox-egress` (subnet `172.31.250.0/24`), never on Docker's default bridge.
+  `deploy/hetzner/sandbox-network.sh` creates it and adds iptables rules: `DOCKER-USER` drops 10/8, 172.16/12,
+  192.168/16, 169.254/16 (metadata), 100.64/10, loopback and multicast for that subnet, and `INPUT` drops everything
+  from its bridge (`cnr-sbx0`) to the host. Public registries stay reachable. IPv6 is off on that network.
+- The script writes the boot id to `/srv/consyrion/workspaces/.sandbox-egress-firewall`. The worker refuses an install
+  (status error, nothing runs) while the network is missing or the marker is from an earlier boot – iptables rules do
+  not survive a reboot. `deploy.sh` runs the script and installs `consyrion-sandbox-net.service`, which re-runs it
+  after every boot.
+- Containers run with `--read-only`, `--tmpfs /tmp` (256 MB) and `--ulimit nofile=1024:2048`, besides the existing
+  limits. The workspace bind mount has no quota: the worker refuses to start with less than `SANDBOX_MIN_FREE_MB`
+  (2048) free and stops a container whose workspace grows beyond `SANDBOX_WORKSPACE_MAX_MB` (2048, measured with
+  `du` every 5 s). A hard quota needs XFS project quotas on `/srv/consyrion/workspaces` (not set up).
+- Images are pinned by digest (`SANDBOX_IMAGES` in `packages/build/src/sandbox.ts`, pre-pulled by `setup-server.sh`);
+  update both together.
+- Switching the sandbox on (server, as root, only after asking the owner): set `SANDBOX_DISABLED=false` in
+  `deploy.env`, then deploy – `deploy.sh` sets up network, firewall and the boot unit. Check:
+  `iptables -S DOCKER-USER | grep 172.31.250` and `cat /srv/consyrion/workspaces/.sandbox-egress-firewall`.
 
 ## Costs (Hetzner list prices, checked 26 Oct 2026, EUR excl. VAT, incl. IPv4)
 
@@ -83,6 +107,7 @@ AI usage is **not** part of these costs – customers pay their providers direct
 | Task                              | Command                                                                                              |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Deploy a new version              | `./deploy/hetzner/deploy.sh <IP>` – builds on the server, pre-deploy backup, migrations, health wait |
+| Smoke check after a deploy        | `SMOKE_BASE_URL=https://app.consyrion.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrion/web e2e:smoke` – e-mail sign-in with a test account must land on `/dashboard` |
 | Roll back to the previous version | `./deploy/hetzner/rollback.sh <IP>` – refused below the running release's minimum (rollback guard)   |
 | Status / logs                     | `ssh … 'cd /opt/consyrion/app && docker compose -p consyrion ps'` · `docker logs consyrion-worker-1` |
 | Restart the worker                | `docker restart consyrion-worker-1` (running councils resume from their checkpoint)                  |
@@ -92,6 +117,14 @@ AI usage is **not** part of these costs – customers pay their providers direct
 
 **Rollback.** Migrations only move forward. If the release you roll back added a migration, restore the
 pre-deploy backup (`consyrion-…-pre-<version>.dump`) into the database first, then run `rollback.sh`.
+
+**Restore (ADR 0206).** Restore a backup only with `/opt/consyrion/app/deploy/hetzner/restore.sh --yes <dump>`: it backs up
+the current database, stops web and worker, restores, then runs `post-restore-scrub.sh` so workspaces, projects and
+sessions deleted after the dump was taken are removed again (with their queued jobs) before the app starts; if the scrub
+fails, the app stays stopped. The scrub reads the deletion list `/opt/consyrion/deletions/deletions.log` (ids and times
+only, never rotated; mirrored to the Storage Box by `deletions-sync.sh` without `--delete`). If the server is lost, fetch
+`deletions.log` from the Storage Box first. After a manual `pg_restore`, always run
+`post-restore-scrub.sh consyrion-postgres-1` (`--dry-run` shows the counts first).
 
 **Rollback guard (#181).** Every release declares two numbers in `deploy/hetzner/RELEASE_LEVEL`: `release_level`
 (what it can safely handle) and `min_rollback_level` (the lowest level it may be rolled back to). Before switching,

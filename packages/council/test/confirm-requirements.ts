@@ -9,7 +9,7 @@ export async function confirmProposedRequirements(db: Database, actor: ActorCont
   if (proposal.current && proposal.latest) return proposal.latest;
   return confirmRequirementList(db, actor, projectId, {
     sourceHash: proposal.source.hash,
-    items: proposal.items.map((i) => ({ text: i.text, candidateKey: i.candidateKey })),
+    items: proposal.items.map((i) => ({ text: i.text, candidateKey: i.candidateKey, splitFrom: i.splitFrom ?? null })),
     // #227: statements put to the user are excluded with the suggested reason – what the older default did.
     excluded: [...proposal.excluded, ...proposal.toDecide.map((e) => ({ candidateKey: e.candidateKey, reason: e.suggestedReason }))].map((e) => ({
       candidateKey: e.candidateKey,

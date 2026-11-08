@@ -9,13 +9,20 @@ import { REFERENCE_CASES, type ReferenceCase, type VerdictClass } from "./refere
 /** The report fields the scorer reads; a stored report JSON is enough. */
 export type ScoredReport = Pick<DecisionReport, "outcome" | "requirementsConflict" | "tokens"> & {
   decisionFormat: { approvable: boolean } | null;
+  /** Gate version 3 (#249 part 2): an architecture candidate is named per proposal; absent in older reports. */
+  requirementGate?: { proposals: Array<{ feasibility: string }> } | null;
 };
+
+const ARCHITECTURE_CANDIDATE = "architecture candidate (performance proof open)";
 
 export function classifyReport(report: ScoredReport): VerdictClass {
   if (!report.outcome) return "no_verdict";
   if (report.requirementsConflict) return "requirements_conflict";
   // A recommendation the server will not let anyone approve (limited review #249, unknown format) is not one.
   if (report.outcome === "recommended") return report.decisionFormat?.approvable === false ? "needs_verification" : "recommended";
+  // #249 part 2: no recommendation, but a proposal passed every check up to a measurement still open.
+  if (report.outcome === "needs_verification" && report.requirementGate?.proposals.some((p) => p.feasibility === ARCHITECTURE_CANDIDATE))
+    return "architecture_candidate";
   return report.outcome as VerdictClass;
 }
 

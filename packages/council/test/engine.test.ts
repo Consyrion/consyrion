@@ -76,7 +76,13 @@ function council(scripts: Record<string, Script>) {
   const adapters = new Map(Object.entries(scripts).map(([model, script]) => [model, new ScriptedAdapter(script)]));
   return {
     adapters,
-    deps: { db: handle.db, resolveAdapter: async (p: { modelId: string }) => adapters.get(p.modelId)!, random: () => 0.5 },
+    deps: {
+      db: handle.db,
+      resolveAdapter: async (p: { modelId: string }) => adapters.get(p.modelId)!,
+      random: () => 0.5,
+      // The quick provider retries must not wait in real time: they made the overload test flaky on slow CI (5 s timeout).
+      retrySleep: async () => {},
+    },
     participants: Object.keys(scripts).map((modelId) => ({ credentialId, modelId })),
   };
 }
@@ -287,6 +293,17 @@ describe("council engine", () => {
     const failed = (await getSessionView(handle.db, actor, second)).participants.find((p) => p.modelId === "m1")!;
     expect(failed.status).toBe("failed");
     expect(failed.failureReason).toContain("overloaded or unavailable (HTTP 503)");
+  });
+
+  it("a member stops only their own council; owners/admins any (#408)", async () => {
+    const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" } });
+    const id = await start(c.participants);
+    await handle.db.insert(schema.user).values({ id: "mem408", name: "Member", email: "mem408@example.test" });
+    await handle.db.insert(schema.membership).values({ id: "mem_408", organizationId: actor.organizationId, userId: "mem408", role: "member" });
+    const member = await resolveActor(handle.db, "mem408", actor.organizationId);
+    await expect(cancelSession(handle.db, member, id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await cancelSession(handle.db, actor, id);
+    expect((await getSessionView(handle.db, actor, id)).session.status).toBe("cancelled");
   });
 
   it("stops waiting for the late retry when the session is cancelled (#146)", async () => {
@@ -545,15 +562,11 @@ describe("council engine", () => {
     expect((view.proposals[0]!.revisions[0]!.content as { title: string }).title).toBe("Monolith");
   });
 
-  it("stops at the token budget server-side", async () => {
+  it("refuses a budget below the minimum before any model is paid (night test R4)", async () => {
     const c = council({ m1: { title: "Monolith", usage: 4_000 }, m2: { title: "Microservices", usage: 4_000 } });
-    const id = await start(c.participants, { tokenBudget: 30_000 });
-    await runSession(c.deps, id);
-    const view = await getSessionView(handle.db, actor, id);
-    expect(view.session.status).toBe("failed");
-    expect(view.session.error).toMatch(/budget/i);
-    // Reservations are atomic, so even parallel calls never push the counter past the budget.
-    expect(view.session.tokensUsed).toBeLessThanOrEqual(30_000);
+    await expect(start(c.participants, { tokenBudget: 30_000 })).rejects.toThrow(/too small for this team: at least [\d,]+ tokens/);
+    const preview = await previewSession(handle.db, actor, projectId, { mode: "independent_expert", participants: c.participants, tokenBudget: 30_000 });
+    expect(preview.estimate.minimumBudget).toBeGreaterThan(30_000);
   });
 
   it("keeps the budget for the Final Verdict: debate phases are shortened, the council still ends with a verdict (#148)", async () => {
@@ -578,7 +591,8 @@ describe("council engine", () => {
 
   it("requires a confirmation to start when the upper bound exceeds the budget (#148)", async () => {
     const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" }, m3: { title: "Serverless" }, m4: { title: "Event sourcing" } });
-    const input = { mode: "independent_expert" as const, participants: c.participants, tokenBudget: 100_000 };
+    // Above the minimum (night test R4), below the upper bound.
+    const input = { mode: "independent_expert" as const, participants: c.participants, tokenBudget: 120_000 };
     const preview = await previewSession(handle.db, actor, projectId, input);
     expect(preview.estimate.withinBudget).toBe(false);
     // No earlier calls in this workspace: no typical value is claimed.
@@ -695,9 +709,9 @@ describe("council engine", () => {
     const approve = () => submitApproval(handle.db, actor, id, { action: "approve" });
     const alternative = () => submitApproval(handle.db, actor, id, { action: "select_alternative", selectedProposalId: other.id, comment: "Preferred" });
 
-    for (const gateVersion of [3, null]) {
+    for (const gateVersion of [4, null]) {
       await change({ gateVersion });
-      await expect(approve()).rejects.toMatchObject({ code: "CONFLICT", message: expect.stringMatching(gateVersion ? /gate version 3/ : /no format version/) });
+      await expect(approve()).rejects.toMatchObject({ code: "CONFLICT", message: expect.stringMatching(gateVersion ? /gate version 4/ : /no format version/) });
       await expect(alternative()).rejects.toMatchObject({ code: "CONFLICT" });
       expect((await getSessionView(handle.db, actor, id)).decisionStatus).toMatchObject({
         approvable: false,
@@ -732,13 +746,13 @@ describe("council engine", () => {
     const id = await startV1(c.participants);
     await runSession(c.deps, id);
     const [decision] = await handle.db.select().from(schema.finalDecision).where(eq(schema.finalDecision.sessionId, id));
-    await handle.db.update(schema.finalDecision).set({ gateVersion: 3 }).where(eq(schema.finalDecision.id, decision!.id));
+    await handle.db.update(schema.finalDecision).set({ gateVersion: 4 }).where(eq(schema.finalDecision.id, decision!.id));
     await expect(submitApproval(handle.db, actor, id, { action: "request_more_debate", comment: "Again" })).rejects.toMatchObject({
       code: "CONFLICT",
-      message: expect.stringMatching(/gate version 3/),
+      message: expect.stringMatching(/gate version 4/),
     });
     await expect(submitApproval(handle.db, actor, id, { action: "repeat_evaluation" })).rejects.toMatchObject({
-      message: expect.stringMatching(/gate version 3/),
+      message: expect.stringMatching(/gate version 4/),
     });
     // A job that is queued anyway (e.g. enqueued by the newer release before a rollback) fails before any model call.
     await handle.db.update(schema.councilSession).set({ status: "queued" }).where(eq(schema.councilSession.id, id));
@@ -747,11 +761,11 @@ describe("council engine", () => {
     await runSession(c.deps, id);
     const view = await getSessionView(handle.db, actor, id);
     expect(view.session.status).toBe("failed");
-    expect(view.session.error).toMatch(/gate version 3.*must not run or re-evaluate/);
+    expect(view.session.error).toMatch(/gate version 4.*must not run or re-evaluate/);
     expect([...c.adapters.values()].reduce((n, a) => n + a.requests.length, 0)).toBe(calls);
     // The newer decision stays untouched – no silent downgrade, no new version-1 decision.
     const decisions = await handle.db.select().from(schema.finalDecision).where(eq(schema.finalDecision.sessionId, id));
-    expect(decisions.map((d) => [d.gateVersion, d.supersededAt])).toEqual([[3, null]]);
+    expect(decisions.map((d) => [d.gateVersion, d.supersededAt])).toEqual([[4, null]]);
   });
 
   it("never runs a council started for a newer gate version, even before any verdict exists (#181, stage 1b)", async () => {
@@ -762,13 +776,13 @@ describe("council engine", () => {
     const id = await start(c.participants);
     const [created] = await handle.db.select().from(schema.councilSession).where(eq(schema.councilSession.id, id));
     // This release starts councils for the gate it computes.
-    expect(created!.gateVersion).toBe(2);
+    expect(created!.gateVersion).toBe(3);
     // Queued by a newer release before a rollback: no decision yet, only the session knows its version.
-    await handle.db.update(schema.councilSession).set({ gateVersion: 3 }).where(eq(schema.councilSession.id, id));
+    await handle.db.update(schema.councilSession).set({ gateVersion: 4 }).where(eq(schema.councilSession.id, id));
     await runSession(c.deps, id);
     const view = await getSessionView(handle.db, actor, id);
     expect(view.session.status).toBe("failed");
-    expect(view.session.error).toMatch(/gate version 3.*must not run or re-evaluate/);
+    expect(view.session.error).toMatch(/gate version 4.*must not run or re-evaluate/);
     expect([...c.adapters.values()].reduce((n, a) => n + a.requests.length, 0)).toBe(0);
     expect(await handle.db.select().from(schema.finalDecision).where(eq(schema.finalDecision.sessionId, id))).toHaveLength(0);
   });
@@ -994,20 +1008,22 @@ describe("council engine", () => {
       /Not available for the selected API key: gpt-does-not-exist-9/,
     );
     // Duplicates are compared case-insensitively after trimming.
-    await expect(create([ok, { credentialId, modelId: " GPT-4o-mini " }])).rejects.toThrow(/only once/);
-    // #249 review: the same model through a second key of the same provider is no second independent evaluator.
+    await expect(create([ok, { credentialId, modelId: " GPT-4o-mini " }])).rejects.toThrow(/only through another API key or account/);
+    // User decision 08.11.26 (replaces the #249 review block): through a second key the same model may join – as one
+    // independent voice together with its other instance (independence groups).
     const secondKey = (
       await createCredential(handle.db, actor, keyring, { provider: "anthropic", label: "second key", secret: "sk-ant-test-2222222222222222" })
     ).id;
-    await expect(create([ok, { credentialId: secondKey, modelId: "gpt-4o-mini" }])).rejects.toThrow(/only once – also with a second API key/);
+    await expect(create([ok, { credentialId: secondKey, modelId: "gpt-4o-mini" }])).resolves.toMatchObject({ id: expect.any(String) });
     await expect(
       create([ok, { credentialId, modelId: "claude-haiku-5-5" }], {
         roles: ["software_architect"],
         roleAssignments: [{ role: "security_expert", participantIndex: 0 }],
       }),
     ).rejects.toThrow(/not part of this council's roles/);
+    // Only the allowed second-key start above created a job; every refused start created none.
     const jobs = await handle.db.select().from(schema.job);
-    expect(jobs).toHaveLength(0);
+    expect(jobs).toHaveLength(1);
     // The provider's own spelling is stored; a key whose models cannot be listed is not checked.
     const { id } = await create([
       { credentialId, modelId: "GPT-4O-MINI" },
@@ -1154,6 +1170,49 @@ describe("objection hygiene", () => {
 
 describe("provider failures and output limits (#172, #175)", () => {
   const usageOf = async (sessionId: string) => handle.db.select().from(schema.usageRecord).where(eq(schema.usageRecord.sessionId, sessionId));
+
+  it("never asks a model for more output than its provider says it can write (#243)", async () => {
+    await handle.db
+      .insert(schema.aiModel)
+      .values({ id: "aim_243a", provider: "anthropic", modelId: "small-out", displayName: "Small", contextWindow: 200_000, maxOutputTokens: 3_000 });
+    const c = council({ m1: { title: "Monolith" }, "small-out": { title: "Microservices" } });
+    const id = await start(c.participants);
+    await runSession(c.deps, id);
+    const requests = c.adapters.get("small-out")!.requests;
+    expect(requests.length).toBeGreaterThan(0);
+    expect(requests.every((r) => r.maxOutputTokens <= 3_000)).toBe(true);
+    // The other model keeps the usual limits.
+    expect(c.adapters.get("m1")!.requests.some((r) => r.maxOutputTokens > 3_000)).toBe(true);
+  });
+
+  it("does not send a call whose input leaves no room in the model's context window (#243)", async () => {
+    await handle.db
+      .insert(schema.aiModel)
+      .values({ id: "aim_243b", provider: "anthropic", modelId: "tiny-window", displayName: "Tiny", contextWindow: 1_500, maxOutputTokens: 1_000 });
+    const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" }, "tiny-window": { title: "Serverless" } });
+    const id = await start(c.participants);
+    await runSession(c.deps, id);
+    // Nothing was sent to the model that could not take the brief; the others carried on.
+    expect(c.adapters.get("tiny-window")!.requests).toHaveLength(0);
+    expect(c.adapters.get("m1")!.requests.length).toBeGreaterThan(0);
+  });
+
+  it("shows on the start screen which model's context window is too small (#243)", async () => {
+    await handle.db
+      .insert(schema.aiModel)
+      .values({ id: "aim_243c", provider: "anthropic", modelId: "tiny-preview", displayName: "Tiny", contextWindow: 1_500, maxOutputTokens: 1_000 });
+    await confirmProposedRequirements(handle.db, actor, projectId);
+    const preview = await previewSession(handle.db, actor, projectId, {
+      mode: "independent_expert",
+      participants: [
+        { credentialId, modelId: "m1" },
+        { credentialId, modelId: "tiny-preview" },
+      ],
+    });
+    expect(preview.contextFit.find((m) => m.modelId === "tiny-preview")).toMatchObject({ contextWindow: 1_500, fits: false });
+    // Unknown window: no guess.
+    expect(preview.contextFit.find((m) => m.modelId === "m1")).toMatchObject({ contextWindow: null, fits: null });
+  });
 
   it("starts a participant's later calls with the raised limit after it was cut off once (#172)", async () => {
     const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices", truncatedProposals: 1 } });

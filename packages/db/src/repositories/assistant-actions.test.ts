@@ -70,6 +70,22 @@ describe("assistant actions (#283): suggested by the model, run only on the user
     expect(ASSISTANT_ACTION_TYPES.some((t) => /approve|reject|start|build|delete|billing|key|setting|member/.test(t))).toBe(false);
   });
 
+  it("accepts the requirements of a project draft as a list and joins them into lines (live test 08.11.26)", () => {
+    const { actions, rejected } = acceptActionProposals([
+      {
+        type: "create_project_draft",
+        params: {
+          name: "Monolith vs. Microservices",
+          idea: "Architektur für ein neues Produkt eines Startups mit 3 Entwicklern.",
+          requirements: ["Ein Deployment", "- Klare Modulgrenzen", " "],
+        },
+        summary: "Projektentwurf",
+      },
+    ]);
+    expect(rejected).toEqual([]);
+    expect(actions[0]!.params).toMatchObject({ requirements: "- Ein Deployment\n- Klare Modulgrenzen", goal: "" });
+  });
+
   it("refuses a forbidden type at the execute step even if one was stored", async () => {
     for (const type of FORBIDDEN.slice(0, 11)) {
       const chat = await createAssistantChat(handle.db, alice, { title: "x" });

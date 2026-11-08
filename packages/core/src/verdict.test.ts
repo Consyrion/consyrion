@@ -301,3 +301,42 @@ describe("vote weights (#140)", () => {
     expect(low).toEqual({ ...aggregateVerdict(proposals, scores, [], votes, config), formula: expect.any(String) });
   });
 });
+
+describe("instances of one model are one voice (user decision 08.11.26)", () => {
+  // o1–o3: three Opus instances through three keys; g: GPT. Proposals by o1 (A) and g (B).
+  const groups = { o1: "anthropic:claude-opus-5-5", o2: "anthropic:claude-opus-5-5", o3: "anthropic:claude-opus-5-5", g: "openai:gpt-5.4" };
+  const two = [
+    { proposalId: "A", authorParticipantId: "o1" },
+    { proposalId: "B", authorParticipantId: "g" },
+  ];
+  const grouped = { ...config, evaluatorGroups: groups };
+
+  it("an Opus instance never scores an Opus proposal, and counts once as an evaluator", () => {
+    const scores = [...scoresFor("A", "o1", ["o2", "o3", "g"], (c) => (c === "security" ? 9 : 8)), ...scoresFor("B", "g", ["o1", "o2", "o3"], 6)];
+    const result = aggregateVerdict(two, scores, [], [], grouped, ["o1", "o2", "o3", "g"]);
+    const a = result.proposals.find((p) => p.proposalId === "A")!;
+    const b = result.proposals.find((p) => p.proposalId === "B")!;
+    // A: only GPT is foreign – one independent evaluator, one expected.
+    expect(a).toMatchObject({ independentEvaluators: 1, expectedEvaluators: 1 });
+    // B: three Opus instances are one independent evaluator.
+    expect(b).toMatchObject({ independentEvaluators: 1, expectedEvaluators: 1, total: 6 });
+    // Without groups (the behaviour before) the instances would count three times.
+    expect(aggregateVerdict(two, scores, [], [], config, ["o1", "o2", "o3", "g"]).proposals.find((p) => p.proposalId === "B")!.independentEvaluators).toBe(3);
+  });
+
+  it("splits a group's weight among its instances: three Opus scores weigh like one GPT score", () => {
+    const three = [...two, { proposalId: "C", authorParticipantId: "x" }];
+    const scores = [
+      ...scoresFor("C", "x", ["o1", "o2", "o3"], 9),
+      ...scoresFor("C", "x", ["g"], 5),
+      ...scoresFor("A", "o1", ["g", "x"], 5),
+      ...scoresFor("B", "g", ["o1", "x"], 5),
+    ];
+    const c = aggregateVerdict(three, scores, [], [], { ...grouped, evaluatorGroups: { ...groups, x: "google:gemini" } }).proposals.find(
+      (p) => p.proposalId === "C",
+    )!;
+    // (9 + 5) / 2 = 7, not (9 + 9 + 9 + 5) / 4 = 8.
+    expect(c.total).toBe(7);
+    expect(c.independentEvaluators).toBe(2);
+  });
+});

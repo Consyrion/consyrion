@@ -7,7 +7,9 @@
       "billing": "Facturation et utilisation",
       "account": "Compte",
       "apiTokens": "Jetons API",
-      "feedback": "Mes signalements"
+      "feedback": "Mes signalements",
+      "skills": "Skills",
+      "roleProfiles": "Profils d’expertise"
     },
     "pages": {
       "account": {
@@ -39,7 +41,7 @@
       },
       "integrations": {
         "title": "Intégrations",
-        "description": "Envoyez les décisions par e-mail, sur Telegram ou dans Confluence, et connectez GitHub si vous le souhaitez : les councils lisent comme contexte les fichiers du dépôt que vous choisissez dans un projet, et les décisions validées sont construites sous forme de pull requests en brouillon.",
+        "description": "Utilisez CONSYRION AI depuis vos outils – Claude Code, Cursor, VS Code, Telegram –, envoyez les décisions par e-mail ou vers Confluence et connectez GitHub pour les pull requests en brouillon.",
         "connected": "GitHub connecté.",
         "githubText": "Moindre privilège : vous choisissez les dépôts sur GitHub. CONSYRION AI lit le code, n’écrit que dans de nouvelles branches et ouvre des pull requests en brouillon. Il ne fusionne jamais.",
         "addInstallation": "Ajouter une autre installation",
@@ -49,7 +51,8 @@
         "notInPlan": "GitHub n’est pas inclus dans votre offre actuelle ({plan}). Il est disponible à partir de l’offre Pro – <link>voir Facturation et utilisation</link>.",
         "ownersOnly": "Seuls les propriétaires peuvent connecter GitHub.",
         "allRepositories": "tous les dépôts",
-        "selectedRepositories": "dépôts sélectionnés"
+        "selectedRepositories": "dépôts sélectionnés",
+        "manageTitle": "Gérer les connexions"
       },
       "billing": {
         "title": "Facturation et utilisation"
@@ -91,6 +94,7 @@
       "colCalls": "Appels",
       "colFailed": "Échecs",
       "colInput": "Jetons d’entrée",
+      "colCachedInput": "dont en cache",
       "colOutput": "Jetons de sortie",
       "colCost": "≈ Coût",
       "pricesTitle": "Vos prix fournisseurs (facultatif, pour l’estimation)",
@@ -289,7 +293,255 @@
       "colPlan": "Offre",
       "stripeTitle": "Stripe et prix Pro",
       "catalogTitle": "Catalogue des offres",
-      "catalogText": "Les limites sont appliquées côté serveur. Une limite de 1 000 000 ou plus signifie illimité. Le prix Pro et son prix Stripe se définissent ci-dessus. CONSYRION AI ne facture jamais de jetons d’IA."
+      "catalogText": "Les limites sont appliquées côté serveur. Une limite de 1 000 000 ou plus signifie illimité. Le prix Pro et son prix Stripe se définissent ci-dessus. CONSYRION AI ne facture jamais de jetons d’IA.",
+      "demo": {
+        "title": "Projet de démo",
+        "description": "Chaque espace reçoit une seule fois une copie en lecture seule du conseil choisi ici, dans sa langue (sinon anglais, puis allemand). Seuls les conseils terminés de votre propre espace peuvent être choisis. Chaque nouveau client voit le texte complet du conseil (propositions, débat, verdict) – choisissez un conseil sans contenu confidentiel. Les connaissances des skills et les documents ne sont pas copiés.",
+        "none": "Pas de démo",
+        "locale": {
+          "de": "Allemand",
+          "en": "Anglais",
+          "fr": "Français",
+          "es": "Espagnol",
+          "zh": "Chinois"
+        }
+      },
+      "intake": {
+        "title": "Saisie des exigences",
+        "description": "Uniquement des comptages, aucun texte – listes d'exigences et verdicts des {days} derniers jours (#245).",
+        "ratio": "Proposées : reprises",
+        "ratioDetail": "{proposed} énoncés trouvés, {kept} repris, dans {lists} listes – objectif au plus 2 : 1",
+        "added": "Ajoutées par les utilisateurs",
+        "splitParts": "{n} parties d'exigences divisées",
+        "onlyOne": "Bloqué par une seule exigence non confirmable",
+        "onlyOneDetail": "parmi les verdicts sans proposition qualifiée ({verdicts} verdicts au total)"
+      },
+      "skillHub": {
+        "title": "Examen SkillHub",
+        "text": "Skills soumis pour publication. Le rouge n'est jamais publiable ; jaune et vert demandent votre approbation, sauf si l'approbation automatique est active.",
+        "queueTitle": "File d'examen",
+        "queueText": "Le contenu est affiché en texte brut. Une approbation porte exactement sur cette version (hash du contenu).",
+        "tab": {
+          "pending_review": "En attente",
+          "quarantined": "Bloqués",
+          "published": "Publics"
+        },
+        "loading": "Chargement…",
+        "empty": "Rien ici.",
+        "error": "Une erreur s'est produite.",
+        "scan": "Scan",
+        "ai": "IA",
+        "light": {
+          "green": "vert",
+          "yellow": "jaune",
+          "red": "rouge"
+        },
+        "aiSkipped": "IA ignorée : {reason}",
+        "hidden": "masqué",
+        "suspended": "éditeur suspendu",
+        "open": "Ouvrir",
+        "close": "Fermer",
+        "field": {
+          "summary": "Résumé",
+          "changelog": "Journal des modifications",
+          "blocks": "Blocs d'exigences",
+          "weights": "Pondérations",
+          "rules": "Règles de session",
+          "knowledge": "Connaissances",
+          "owner": "Auteur"
+        },
+        "scanFindings": "Scan statique",
+        "aiFindings": "Examen IA",
+        "note": "Note à l'auteur",
+        "noteHint": "Obligatoire pour refuser, bloquer, masquer ou suspendre.",
+        "approve": "Approuver",
+        "reject": "Refuser",
+        "quarantine": "Bloquer",
+        "restore": "Remettre en examen",
+        "hide": "Masquer",
+        "unhide": "Réafficher",
+        "suspend": "Suspendre l'éditeur",
+        "unsuspend": "Rétablir l'éditeur",
+        "done": {
+          "approve": "Publié.",
+          "reject": "Refusé.",
+          "quarantine": "Bloqué.",
+          "restore": "De nouveau en examen.",
+          "hide": "Masqué.",
+          "unhide": "De nouveau visible.",
+          "suspend": "Éditeur suspendu.",
+          "unsuspend": "Éditeur rétabli.",
+          "rescan": "{rescanned, plural, one {# version revérifiée} other {# versions revérifiées}}, {quarantined, plural, one {# bloquée} other {# bloquées}}."
+        },
+        "errors": {
+          "red": "Les versions rouges ne sont jamais publiables – l'auteur soumet une nouvelle version.",
+          "hash_mismatch": "Cette version a changé – rechargez-la.",
+          "note_missing": "Indiquez une raison à l'auteur.",
+          "publisher_suspended": "L'éditeur est suspendu.",
+          "invalid_transition": "Cette étape n'est pas possible dans l'état actuel."
+        },
+        "reviewer": {
+          "title": "Examinateur IA",
+          "text": "Second signal après le scan statique. Les résultats rouges ne sont jamais envoyés au modèle.",
+          "loading": "Chargement…",
+          "error": "Une erreur s'est produite.",
+          "saved": "Enregistré.",
+          "enabled": "Examen par modèle actif (interrupteur d'arrêt)",
+          "provider": "Fournisseur",
+          "chooseProvider": "Choisir…",
+          "model": "Modèle",
+          "modelHint": "Identifiant du modèle tel que listé par le fournisseur.",
+          "perReview": "Jetons par examen (plafond)",
+          "perMonth": "Jetons par mois (plafond)",
+          "used": "Utilisés ce mois : {used}",
+          "key": "Clé API de l'examinateur",
+          "keySet": "Une clé est enregistrée. Saisissez-en une nouvelle pour la remplacer.",
+          "keyMissing": "Aucune clé – chaque version passe en examen manuel.",
+          "autoApprove": "Publier automatiquement quand les deux vérifications sont vertes",
+          "autoApproveHint": "Désactivé par défaut. Chaque approbation automatique est journalisée ; désactivable à tout moment.",
+          "exception": "Clé de plateforme – exception documentée au BYOK, approuvée par le propriétaire le 08.11.2026 (ADR 0368) : uniquement pour cet examen, chiffrée, jamais réaffichée.",
+          "save": "Enregistrer",
+          "removeKey": "Supprimer la clé"
+        },
+        "reports": {
+          "title": "Signalements ouverts",
+          "text": "Signalements d'utilisateurs connectés. Ils ne masquent jamais un skill d'eux-mêmes – ouvrez le skill dans la file pour le masquer ou le bloquer.",
+          "loading": "Chargement…",
+          "empty": "Aucun signalement ouvert.",
+          "error": "Une erreur s'est produite.",
+          "openOnSkill": "{n, plural, one {# signalement ouvert sur ce skill} other {# signalements ouverts sur ce skill}}",
+          "resolve": "Traité",
+          "dismiss": "Rejeter"
+        },
+        "rescan": "Revérifier avec les règles actuelles",
+        "official": {
+          "title": "Skills officiels (@consyrion)",
+          "text": "Livrés avec CONSYRION AI et affichés dans le catalogue public. Ils doivent passer le scan en vert ; masquez-en un ici sans déploiement.",
+          "loading": "Chargement…",
+          "error": "Une erreur s'est produite.",
+          "hidden": "masqué",
+          "hide": "Masquer",
+          "show": "Afficher"
+        }
+      }
+    },
+    "connect": {
+      "categories": {
+        "aiClients": {
+          "title": "Clients IA",
+          "description": "Interrogez CONSYRION AI en plein travail – via le serveur MCP."
+        },
+        "apps": {
+          "title": "Applications",
+          "description": "Demandez et suivez des décisions en déplacement."
+        },
+        "delivery": {
+          "title": "Diffusion & code",
+          "description": "Où vont les décisions et où elles sont construites."
+        }
+      },
+      "planned": "Prévu",
+      "proBadge": "Pro",
+      "copy": "Copier",
+      "copied": "Copié",
+      "back": "Toutes les intégrations",
+      "detailTitle": "Connecter {name}",
+      "whatTitle": "Ce que vous pouvez faire",
+      "setupTitle": "Configuration",
+      "proOnly": "Hébergé sur app.consyrion.com : inclus à partir du plan Pro ; auto-hébergé : toujours actif. <link>Voir les tarifs</link>",
+      "safety": "Approuver, construire et supprimer restent toujours dans l’application. Un jeton agit avec votre rôle dans cet espace ; les councils tournent sur vos propres clés IA et y consomment des tokens.",
+      "items": {
+        "claude-code": {
+          "name": "Claude Code",
+          "by": "Terminal · MCP",
+          "summary": "Interrogez CONSYRION AI directement dans le terminal quand une décision se présente en codant.",
+          "what": "Claude Code appelle ask_consyrion, lance un council sur vos clés et récupère le résultat avec get_decision, brief de mise en œuvre compris – sans quitter le terminal.",
+          "steps": {
+            "token": "Créez un jeton sous <link>Paramètres → Jetons API</link> (« Councils uniquement » suffit) et mettez-le dans la commande ci-dessous à la place du paramètre fictif.",
+            "add": "Ajoutez le serveur dans le terminal :",
+            "check": "Dans Claude Code, lancez <code>/mcp</code> et vérifiez que « consyrion » est connecté.",
+            "ask": "Demandez simplement : « Demande à CONSYRION si nous devons prendre PostgreSQL ou SQLite. » Claude vous montre d’abord les exigences et le budget."
+          }
+        },
+        "cursor": {
+          "name": "Cursor",
+          "by": "Éditeur · MCP",
+          "summary": "CONSYRION AI comme outil de l’agent Cursor – obtenez des décisions sans changer d’application.",
+          "what": "L’agent Cursor peut préparer des projets, lancer des councils et utiliser le résultat comme brief de mise en œuvre dans votre projet.",
+          "steps": {
+            "token": "Créez un jeton sous <link>Paramètres → Jetons API</link> et mettez-le ci-dessous à la place du paramètre fictif.",
+            "open": "Dans Cursor, ouvrez Paramètres → MCP → « Add new MCP server », ou directement le fichier <code>~/.cursor/mcp.json</code>.",
+            "paste": "Collez cette configuration et enregistrez :",
+            "ask": "« consyrion » apparaît avec ses outils dans le chat de l’agent. Essayez : « Laisse CONSYRION décider : file d’attente ou cron ? »"
+          }
+        },
+        "vscode": {
+          "name": "VS Code",
+          "by": "Éditeur · MCP (Copilot Chat)",
+          "summary": "Utilisez CONSYRION AI dans le mode agent de Copilot Chat.",
+          "what": "En mode agent, Copilot Chat peut appeler les outils CONSYRION : lire des décisions, lancer des councils et mettre le résultat en œuvre dans votre projet.",
+          "steps": {
+            "token": "Créez un jeton sous <link>Paramètres → Jetons API</link> et mettez-le ci-dessous à la place du paramètre fictif.",
+            "paste": "Créez le fichier <code>.vscode/mcp.json</code> dans votre projet :",
+            "start": "Cliquez sur « Start » au-dessus de « consyrion » dans le fichier (ou palette de commandes → « MCP: List Servers »).",
+            "ask": "Passez Copilot Chat en mode agent ; « consyrion » apparaît parmi les outils."
+          }
+        },
+        "claude-desktop": {
+          "name": "Claude Desktop",
+          "by": "Application de bureau · MCP",
+          "summary": "CONSYRION AI dans l’application Claude sur Mac ou Windows.",
+          "what": "Claude Desktop se connecte à votre espace via le petit pont mcp-remote (nécessite Node.js) et peut utiliser les mêmes outils que Claude Code.",
+          "steps": {
+            "token": "Créez un jeton sous <link>Paramètres → Jetons API</link> et mettez-le ci-dessous à la place du paramètre fictif.",
+            "open": "Dans Claude Desktop, ouvrez Paramètres → Développeur → « Modifier la configuration ».",
+            "paste": "Ajoutez le serveur dans <code>claude_desktop_config.json</code> :",
+            "restart": "Redémarrez Claude Desktop ; « consyrion » apparaît parmi les outils."
+          }
+        },
+        "telegram": {
+          "name": "Telegram",
+          "by": "Votre propre bot · chat",
+          "summary": "Posez une question avec /frage et recevez le verdict avec son PDF dans le chat.",
+          "what": "Votre bot Telegram reçoit les questions, affiche exigences et budget, ne lance le council qu’après votre appui sur « Start » et renvoie le résultat.",
+          "steps": {
+            "bot": "Créez avec @BotFather un bot réservé à CONSYRION AI :",
+            "chat": "Envoyez un message au bot et récupérez votre identifiant de chat (par ex. via @userinfobot).",
+            "connect": "Saisissez le jeton du bot et l’identifiant de chat privé sous <link>Connexion Telegram</link> plus bas.",
+            "allow": "Cliquez sur « Autoriser les questions via Telegram » – le bot vous salue.",
+            "ask": "Posez votre question ; les lignes commençant par « - » sont des exigences fermes :"
+          }
+        },
+        "vscode-extension": {
+          "name": "Extension VS Code",
+          "by": "Extension",
+          "summary": "Décisions, approbations et modifications générées directement dans VS Code. Publication sur le Marketplace prévue."
+        },
+        "chat-connectors": {
+          "name": "claude.ai & ChatGPT",
+          "by": "Connecteur · OAuth",
+          "summary": "Connexion OAuth pour les connecteurs web de claude.ai et ChatGPT – prochaine étape."
+        },
+        "github": {
+          "name": "GitHub",
+          "by": "GitHub App",
+          "summary": "Les councils lisent les fichiers choisis du dépôt ; les décisions approuvées deviennent des pull requests en brouillon."
+        },
+        "email": {
+          "name": "E-mail",
+          "by": "Diffusion",
+          "summary": "Les décisions terminées avec leur PDF par e-mail, pour vous ou votre équipe."
+        },
+        "confluence": {
+          "name": "Confluence",
+          "by": "Diffusion",
+          "summary": "Enregistrez les décisions comme page dans votre espace Confluence."
+        }
+      },
+      "publicTitle": "Intégrations",
+      "publicDescription": "Ce que vous pouvez connecter à CONSYRION AI : Claude Code, Cursor, VS Code, Claude Desktop, Telegram, GitHub, e-mail et Confluence – avec les étapes de configuration.",
+      "signIn": "Se connecter",
+      "dashboard": "Ouvrir le tableau de bord"
     }
   },
   "executionScreen": {
@@ -340,6 +592,7 @@
     "errorChecks": "Impossible de charger le statut CI",
     "loading": "Chargement…",
     "startTitle": "Démarrer l’Execution Council",
+    "buildBudget": "Budget de tokens pour le build",
     "startText": "La proposition validée devient un plan de tâches ; les modèles du council (ou celui que vous choisissez) réalisent les tâches, les tests s’exécutent uniquement dans un conteneur isolé ou dans les GitHub Actions de votre dépôt, les échecs ont droit à une boucle de réparation limitée et d’autres modèles relisent le code. Vous examinez le plan avant que le moindre code soit écrit. Rien n’est fusionné ni déployé. Budget par défaut : {budget} jetons.",
     "whoBuilds": "Qui le construit ?",
     "whoBuildsNew": "Qui construit la nouvelle exécution ?",
@@ -365,6 +618,15 @@
     "overrideReason": "Justification de la publication malgré tout",
     "overridePlaceholder": "p. ex. test instable, vérifié manuellement",
     "publishAnyway": "Publier le brouillon quand même",
+    "ciRisksIntro": "<strong>Modifications exécutées par ta CI.</strong> La pull request brouillon arrive dans ton dépôt, où les workflows tournent avec les secrets du dépôt. Regarde ces fichiers avant de publier – du code généré peut être influencé par le texte de documents joints ou de fichiers du dépôt :",
+    "ciRisksConfirm": "J'ai regardé ces modifications ; elles n'envoient ni secrets ni données vers l'extérieur.",
+    "ciRisk": {
+      "package_scripts": "scripts de package.json modifiés",
+      "lockfile": "fichier de verrouillage modifié (dépendances installées en CI)",
+      "build_config": "configuration de build/CI ou script modifié",
+      "test_setup": "configuration des tests modifiée (s'exécute avant chaque test)",
+      "network_call": "un test ajoute un appel réseau"
+    },
     "retryOnly": "Réessayer uniquement {tasks}.",
     "finishedKept": "Les tâches terminées ({tasks}) et leurs fichiers restent tels quels.",
     "waitingAfter": "Les tâches en attente ({tasks}) démarrent ensuite.",
@@ -424,7 +686,64 @@
       "runFailed": "Le dernier test en sandbox a échoué.",
       "highFindings": "{n, plural, one {# constat de revue de gravité élevée} other {# constats de revue de gravité élevée}} – à vérifier avant le merge.",
       "criticalFindings": "{n, plural, one {# constat de revue critique} other {# constats de revue critiques}} : {list}"
-    }
+    },
+    "buildText": {
+      "badStructure": "La réponse n’avait pas la structure requise",
+      "noRuntime": "Aucun environnement de conteneurs disponible – la commande n’a pas été exécutée.",
+      "installNoSandbox": "Non exécuté : l’étape d’installation n’a pas pu démarrer (pas de sandbox sur ce serveur).",
+      "installEnded": "Non exécuté : l’étape d’installation s’est terminée par {status}.",
+      "rejected": "Fichiers refusés :",
+      "kind": {
+        "implement": "implémentation",
+        "plan": "plan",
+        "review": "revue",
+        "repair": "réparation"
+      },
+      "outcome": {
+        "ok": "ok",
+        "error": "erreur"
+      },
+      "testKind": {
+        "test": "tests",
+        "repair": "réparation {n}",
+        "install": "{base} – installation"
+      },
+      "testStatus": {
+        "failed": "échec",
+        "error": "erreur",
+        "timeout": "délai dépassé",
+        "not_run": "non exécuté"
+      },
+      "check": {
+        "success": "réussi",
+        "failure": "échec",
+        "neutral": "neutre",
+        "cancelled": "annulé",
+        "skipped": "ignoré",
+        "timed_out": "délai dépassé",
+        "action_required": "action requise",
+        "queued": "en file d’attente",
+        "in_progress": "en cours",
+        "completed": "terminé",
+        "pending": "en attente"
+      },
+      "focus": {
+        "quality": "qualité et exactitude du code",
+        "security": "sécurité (injection, secrets, droits d’accès, dépendances)"
+      },
+      "sandbox": {
+        "none": "aucune (GitHub Actions)",
+        "docker": "conteneur"
+      }
+    },
+    "buildProof": {
+      "verified": "prouvé – CI au vert",
+      "failed": "non prouvé – CI en échec",
+      "pending": "preuve en attente – CI en cours"
+    },
+    "prototypeBadge": "Build de prototype / mesure",
+    "prototypeNotice": "Ceci est un build de prototype / mesure – pas une solution terminée. Il sert à mesurer les exigences que le Council n’a pas pu confirmer ; saisissez les résultats mesurés dans le Final Verdict. Ce n’est pas une approbation régulière.",
+    "prototypeStartTitle": "Démarrer le build de prototype / mesure"
   },
   "auth": {
     "failed": "Échec de l’authentification",
@@ -452,6 +771,21 @@
     "verifyDoneText": "Votre adresse est confirmée. Connectez-vous pour continuer.",
     "verifyFailedTitle": "Lien invalide ou expiré",
     "verifyFailedText": "Ce lien de confirmation ne fonctionne plus. Connectez-vous avec votre e-mail et votre mot de passe et nous vous en enverrons un nouveau.",
+    "forgotPassword": "Mot de passe oublié ?",
+    "oauthNotLinked": "Un compte CONSYRION AI avec mot de passe existe déjà pour cette adresse e-mail. Connecte-toi avec e-mail et mot de passe, puis associe Google ou GitHub sous Paramètres → Compte. Mot de passe oublié ? Réinitialise-le.",
+    "resetTitle": "Réinitialiser le mot de passe",
+    "resetRequestText": "Saisis ton adresse e-mail : nous t'enverrons un lien pour choisir un nouveau mot de passe.",
+    "resetSend": "Envoyer le lien",
+    "resetSent": "Si un compte existe pour {email}, le lien est en route. Il est valable 60 minutes.",
+    "resetInvalidTitle": "Lien invalide ou expiré",
+    "resetInvalidText": "Ce lien ne fonctionne plus. Demandes-en un nouveau.",
+    "resetRequestAgain": "Demander un nouveau lien",
+    "resetMismatch": "Les deux mots de passe ne correspondent pas.",
+    "resetNewText": "Choisis un nouveau mot de passe. Toutes les connexions existantes seront fermées.",
+    "resetDone": "Ton mot de passe a été modifié. Connecte-toi avec le nouveau mot de passe.",
+    "resetNewPassword": "Nouveau mot de passe",
+    "resetConfirm": "Répéter le nouveau mot de passe",
+    "resetSave": "Enregistrer le mot de passe",
     "shell": {
       "home": "Accueil CONSYRION AI",
       "tagline": "Débattre. Décider. Réaliser.",
@@ -496,5 +830,273 @@
       "signedInAs": "Connecté en tant que {email}. L’invitation ne fonctionne que pour l’adresse à laquelle elle a été envoyée.",
       "signedOut": "<signIn>Connectez-vous</signIn> ou <signUp>créez un compte</signUp> avec l’adresse e-mail invitée, puis rouvrez ce lien."
     }
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Des paquets de décision qui pré-remplissent un council : perspectives, blocs d'exigences, pondérations et règles. Un skill ne décide jamais – vous confirmez les exigences et approuvez comme d'habitude.",
+    "error": "Cela n'a pas fonctionné. Veuillez réessayer.",
+    "saved": "Skill enregistré.",
+    "imported": "Skill importé – il est privé pour l'instant.",
+    "ignoredTitle": "Non repris : {fields}.",
+    "ignoredText": "Ces champs ne font pas partie du format de skill et n'ont pas été enregistrés. Tout le reste a été enregistré.",
+    "newerSchema": "Ce skill a été créé avec une version plus récente de CONSYRION AI (format de skill {version}). Mettez CONSYRION AI à jour pour l'importer.",
+    "shared": "Partagé avec votre équipe.",
+    "unshared": "Le skill est de nouveau privé.",
+    "archived": "Skill archivé. Les councils qui l'ont utilisé gardent leur version.",
+    "versionShort": "v{version}",
+    "edit": "Modifier",
+    "shareTeam": "Partager avec l'équipe",
+    "makePrivate": "Rendre privé",
+    "teamNeedsPro": "Le partage avec l'équipe est inclus dans Pro.",
+    "export": "Exporter",
+    "archive": "Archiver",
+    "archiveConfirm": "Archiver définitivement",
+    "cancel": "Annuler",
+    "ownTitle": "Vos skills",
+    "ownText": "{n} sur {max} skills personnels dans votre plan. Les skills officiels ne comptent pas.",
+    "ownTextUnlimited": "Skills personnels illimités dans votre plan.",
+    "import": "Importer skill.json",
+    "new": "Nouveau skill",
+    "limitReached": "La limite de votre plan est atteinte. Archivez un skill ou passez à Pro.",
+    "noOwn": "Pas encore de skills personnels. Créez-en un ou dupliquez un skill officiel pour l'adapter.",
+    "editTitle": "Modifier le skill",
+    "newTitle": "Nouveau skill",
+    "editorHint": "Enregistrer crée une nouvelle version. Le serveur vérifie le contenu : pas de clés, mots de passe ni adresses e-mail, et aucun texte qui tente de modifier les règles du council.",
+    "noSuggestion": "aucune suggestion",
+    "modelsValue": "{n} modèles",
+    "save": "Enregistrer",
+    "previewTitle": "Aperçu – ce que ce skill pré-remplit",
+    "previewHint": "Tout reste modifiable avant le démarrage.",
+    "previewBlocks": "Blocs d'exigences (propositions)",
+    "previewWeights": "Pondérations",
+    "modeDefault": "valeurs par défaut du mode",
+    "safetyNote": "Un skill ne confirme jamais d'exigences, ne saute jamais la revue indépendante et n'approuve jamais rien.",
+    "officialTitle": "Skills officiels",
+    "officialText": "Fournis par CONSYRION AI, en lecture seule. Dupliquez-en un pour l'adapter comme votre propre skill.",
+    "visibility": {
+      "private": "privé",
+      "team": "équipe",
+      "official": "officiel"
+    },
+    "category": {
+      "architecture": "Architecture",
+      "data_protection": "Protection des données",
+      "vendor": "Choix de fournisseur",
+      "security": "Sécurité",
+      "cost": "Coûts",
+      "other": "Autre"
+    },
+    "field": {
+      "name": "Nom",
+      "summary": "Description courte",
+      "category": "Catégorie",
+      "mode": "Mode suggéré",
+      "models": "Nombre de modèles suggéré",
+      "roles": "Perspectives",
+      "blocks": "Blocs d'exigences",
+      "blocksHint": "Un par ligne. Placez les valeurs à compléter entre accolades, p. ex. « Coût mensuel au maximum '{amount}' CHF. »",
+      "useWeights": "Définir les pondérations du verdict",
+      "sessionRules": "Règles de session",
+      "knowledge": "Connaissances métier / checklist",
+      "knowledgeHint": "Transmis aux modèles comme contexte – jamais comme instruction.",
+      "changelog": "Qu'est-ce qui a changé ? (facultatif)",
+      "changelogHint": "Courte note affichée dans la liste des versions et dans SKILL.md – 500 caractères max."
+    },
+    "criteria": {
+      "technicalQuality": "Qualité technique",
+      "security": "Sécurité",
+      "maintainability": "Maintenabilité",
+      "operatingCost": "Coûts d'exploitation",
+      "implementationSpeed": "Rapidité"
+    },
+    "picker": {
+      "label": "Utiliser un skill",
+      "none": "Aucun skill",
+      "group": {
+        "own": "Vos skills",
+        "team": "Skills d'équipe",
+        "official": "Skills officiels"
+      }
+    },
+    "setup": {
+      "prefilled": "Pré-rempli à partir du skill « {name} » (v{version}). Vous pouvez tout modifier.",
+      "blocksOpen": "{n, plural, one {# brique} other {# briques}} du skill « {name} » pas encore décidée(s) – simple indication, le démarrage n'est pas bloqué.",
+      "blocksOpenLink": "Voir les briques",
+      "modelsRecommended": "Le skill recommande {n} modèles – choisissez-les vous-même (vos clés). {selected} sur {n} choisis."
+    },
+    "intake": {
+      "label": "Blocs d'exigences de {name}",
+      "title": "Blocs du skill « {name} »",
+      "text": "Simples propositions : complétez les valeurs et ajoutez les blocs utiles. Ils ne deviennent des exigences que lorsque vous confirmez la liste.",
+      "add": "Ajouter comme exigence",
+      "added": "Ajouté",
+      "summary": "Le skill « {name} » propose {n} briques – {adopted} reprises, {open} ouvertes.",
+      "summaryDismissed": "{n} écartées.",
+      "view": "Voir les briques",
+      "hide": "Masquer les briques",
+      "status": {
+        "adopted": "reprise",
+        "open": "ouverte",
+        "dismissed": "écartée"
+      },
+      "dismiss": "Écarter",
+      "reopen": "Rouvrir",
+      "adoptHint": "Ajouter une brique modifie vos exigences : modifiez la liste, renseignez les valeurs et confirmez-la à nouveau. Rien n'est repris automatiquement.",
+      "adoptEdit": "Modifier les exigences pour ajouter des briques"
+    },
+    "duplicate": "Dupliquer",
+    "duplicated": "Copie privée de « {name} » créée – vous pouvez maintenant la modifier.",
+    "copyName": "{name} (copie)",
+    "forkedFrom": "Copie de {name} (v{version})",
+    "versions": "Versions",
+    "hideVersions": "Masquer les versions",
+    "versionsLabel": "Versions de {name}",
+    "noChangelog": "pas de journal des modifications",
+    "hub": {
+      "publish": "Publier…",
+      "withdraw": "Retirer du SkillHub",
+      "withdrawn": "Retiré du SkillHub. Les councils gardent la version utilisée.",
+      "status": {
+        "hidden": "masqué par la modération",
+        "public": "public · v{version}",
+        "draft": "non soumis",
+        "scanning": "en vérification",
+        "pending_review": "en examen",
+        "published": "public",
+        "rejected": "refusé",
+        "quarantined": "bloqué",
+        "withdrawn": "retiré"
+      },
+      "panelLabel": "Publier « {name} » dans le SkillHub",
+      "title": "Publier dans le SkillHub",
+      "intro": "Rendez cette version publique pour tous. Avant, elle est vérifiée automatiquement puis approuvée par un admin. Les modifications ultérieures créent de nouvelles versions avec leur propre examen.",
+      "error": "Une erreur s'est produite. Veuillez réessayer.",
+      "resultSubmitted": "Soumis comme {address}. Un admin l'examine – elle ne devient publique qu'après approbation.",
+      "resultBlocked": "Cette version a été bloquée par la vérification automatique et ne peut pas être publiée. Modifiez le texte et soumettez une nouvelle version.",
+      "finding": {
+        "red": "Bloqué",
+        "yellow": "À vérifier"
+      },
+      "kind": {
+        "secret": "clé, jeton ou mot de passe",
+        "personal_data": "données personnelles",
+        "instruction": "instruction au council ou à ses évaluateurs",
+        "encoded_content": "texte encodé",
+        "obfuscation": "caractères cachés ou trompeurs",
+        "link": "lien",
+        "markup": "lien HTML ou Markdown",
+        "code": "commandes ou scripts",
+        "bias": "pondération extrême"
+      },
+      "close": "Fermer",
+      "loading": "Chargement…",
+      "notEligible": "Vous ne pouvez pas encore publier :",
+      "problem": {
+        "plan": "La publication est incluse dans Pro.",
+        "email_unverified": "Confirmez votre adresse e-mail.",
+        "account_too_new": "Votre compte doit avoir au moins 14 jours (à partir du {date}).",
+        "suspended": "Votre compte d'éditeur est suspendu."
+      },
+      "handle": "Identifiant d'éditeur",
+      "handleHint": "Affiché comme @identifiant sur chaque skill public. 3 à 32 minuscules, chiffres ou tirets. Non modifiable ensuite.",
+      "claim": "Enregistrer l'identifiant",
+      "cancel": "Annuler",
+      "address": "Adresse",
+      "addressHint": "Adresse publique : {address}",
+      "listed": "Afficher dans le catalogue public et la recherche",
+      "listedHint": "Les skills non listés sont accessibles uniquement par lien – ce n'est pas une protection d'accès.",
+      "changelog": "Ce que contient ou modifie cette version",
+      "changelogHint": "Obligatoire – affiché sur la page publique.",
+      "license": "Je publie ce skill sous {license} et j'en ai le droit.",
+      "reviewNote": "Le texte est vérifié automatiquement, y compris par un service d'IA externe exploité par CONSYRION AI. N'incluez jamais de données personnelles, de clés ou d'informations confidentielles.",
+      "submit": "Soumettre pour examen",
+      "errors": {
+        "handle_format": "3 à 32 minuscules, chiffres ou tirets simples.",
+        "handle_reserved": "Cet identifiant est réservé – il suggérerait une identité officielle ou tierce.",
+        "handle_set": "Votre identifiant est déjà défini et ne peut pas être modifié.",
+        "handle_taken": "Cet identifiant est déjà pris.",
+        "handle_missing": "Choisissez d'abord votre identifiant d'éditeur.",
+        "license_missing": "Acceptez la licence pour publier.",
+        "changelog_missing": "Décrivez ce que contient ou modifie cette version.",
+        "already_submitted": "Cette version a déjà été soumise. Enregistrez une nouvelle version pour soumettre des modifications.",
+        "slug_format": "3 à 60 minuscules, chiffres ou tirets simples.",
+        "slug_reserved": "Cette adresse est réservée.",
+        "slug_taken": "Vous utilisez déjà cette adresse pour un autre skill.",
+        "not_public": "Ce skill n'est pas public."
+      }
+    }
+  },
+  "roleProfiles": {
+    "title": "Profils d’expertise",
+    "description": "Précisez ce qu’examine un rôle du 12 Minds Council : question directrice, angles d’analyse, limites et sources. Un profil est une perspective – jamais un modèle ou une voix en plus.",
+    "perspectiveNotModel": "Une perspective n’est pas un modèle d’IA indépendant : trois rôles sur un modèle restent un modèle et une voix. Les profils changent ce qu’un rôle examine, jamais le nombre d’évaluateurs, la vérification des exigences ou l’approbation.",
+    "error": "Une erreur s’est produite. Veuillez réessayer.",
+    "saved": "Profil enregistré.",
+    "shared": "Partagé avec l’équipe.",
+    "unshared": "Désormais privé.",
+    "archived": "Profil désactivé. Les Councils qui l’ont utilisé conservent leur version.",
+    "ignoredTitle": "Non repris : {fields}",
+    "versionShort": "v{version}",
+    "forRole": "Pour le rôle : {role}",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "edit": "Modifier",
+    "shareTeam": "Partager avec l’équipe",
+    "makePrivate": "Rendre privé",
+    "shareNeedsAdmin": "Seul un admin ou le propriétaire peut partager un profil avec l’équipe.",
+    "archive": "Désactiver",
+    "archiveConfirm": "Vraiment désactiver",
+    "cancel": "Annuler",
+    "own": "Vos profils et ceux de votre équipe",
+    "new": "Nouveau profil",
+    "noOwn": "Aucun profil propre pour l’instant. Créez un nouveau profil.",
+    "editTitle": "Modifier le profil",
+    "newTitle": "Nouveau profil",
+    "noPersons": "Décrivez une perspective, pas une personne : pas de vrais noms, pas de personnalités imitées, pas de citations inventées.",
+    "role": "Rôle du 12 Minds Council",
+    "name": "Nom",
+    "coreQuestion": "Question directrice",
+    "lenses": "Angles d’analyse",
+    "lensesHint": "3 à 8 angles, un par ligne.",
+    "notSuitableFor": "Ne convient pas pour",
+    "sources": "Sources",
+    "noSources": "Aucune source.",
+    "sourcesHint": "Choisissez « Avis propre » si vous ne pouvez citer aucune source. Une source vérifiée nécessite un lien https et la date de vérification.",
+    "sourceTitle": "Titre",
+    "sourceStatus": "Statut",
+    "sourceUrl": "Lien (https)",
+    "sourceCheckedAt": "Vérifié le",
+    "removeSource": "Retirer la source",
+    "addSource": "Ajouter une source",
+    "save": "Enregistrer",
+    "curated": "Profils sélectionnés",
+    "curatedHint": "Fournis avec CONSYRION AI, en lecture seule. Évaluation propre de l’équipe, sans personnes ni liens.",
+    "checkedAt": "vérifié le {date}",
+    "visibility": {
+      "private": "privé",
+      "team": "équipe",
+      "curated": "sélectionné"
+    },
+    "status": {
+      "own_statement": "Avis propre",
+      "unconfirmed": "Non confirmé",
+      "verified": "Vérifié",
+      "outdated": "Obsolète"
+    },
+    "pickerTitle": "Profils d’expertise (facultatif)",
+    "pickerNote": "Un profil précise ce qu’examine ce rôle. Il n’ajoute ni modèle, ni voix, ni évaluateur.",
+    "pickerNone": "Aucun profil"
+  },
+  "deletion": {
+    "title": "Ce que la suppression efface – et ce qu'elle ne peut pas effacer",
+    "removedProject": "Supprimé de la base de données : le projet avec son brief, ses documents et ses exigences, tous les councils avec propositions, débats, décisions et validations, les plans de build, le code généré, les exécutions de tests et les données de consommation.",
+    "removedWorkspace": "Supprimé de la base de données : tous les projets et councils de cet espace de travail, les documents, le code généré, les clés API chiffrées, les intégrations et connexions d'envoi, les invitations, les jetons API, les conversations de l'assistant, les skills, les profils de rôle et le journal d'audit de l'espace. Les membres perdent l'accès ; leurs comptes restent.",
+    "auditProject": "Le journal d'audit de l'espace garde de courtes entrées sur ce projet (qui a fait quoi et quand, sans le contenu des propositions) jusqu'à la suppression de l'espace. Les conversations de l'assistant de l'espace ne sont pas supprimées avec le projet.",
+    "auditWorkspace": "Une entrée reste : que cet espace a été supprimé, par qui et quand – sans aucun contenu.",
+    "feedback": "Tes signalements appartiennent à ton compte et restent jusqu'à ce que tu les supprimes ou supprimes ton compte.",
+    "backups": "Les sauvegardes de la base (sur le serveur et sur un stockage de sauvegarde en Allemagne) contiennent encore les données jusqu'à leur suppression automatique après 30 jours.",
+    "external": "Hors de CONSYRION AI – nous ne pouvons pas le supprimer : les pull requests et branches sur GitHub (à fermer ou supprimer dans le dépôt), les rapports envoyés par e-mail, Telegram ou Confluence (ils restent chez les destinataires) et tout ce que tu as exporté ou téléchargé.",
+    "privacy": "Plus dans la politique de confidentialité",
+    "running": "Les appels de modèle déjà en cours peuvent encore être facturés par le fournisseur (ta propre clé)."
   }
 }

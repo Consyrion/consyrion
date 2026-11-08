@@ -46,6 +46,13 @@ export const POST = handle(async (request: Request) => {
     locale: isLocale(chosen) ? chosen : (str(body.locale)?.slice(0, 10) ?? null),
     agent: requestHeaders.get("user-agent")?.slice(0, 400) ?? null,
     appVersion: process.env.APP_VERSION ?? "dev",
+    screenshot: str(body.screenshot) ?? null,
+    // #295 stage 3: the project/council of the page only when the user ticked "send this page"; the repository keeps
+    // only ids of the user's own workspace.
+    context:
+      user && body.shareContext === true && body.context && typeof body.context === "object"
+        ? { projectId: str((body.context as Record<string, unknown>).projectId), sessionId: str((body.context as Record<string, unknown>).sessionId) }
+        : null,
   });
   after(async () => {
     await notifyAdminsAboutFeedback(report);

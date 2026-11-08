@@ -19,11 +19,11 @@ Each case has a **kind**. The table shows how many cases have it and which verdi
 
 | Kind                                                                                     | Cases | Correct verdicts                                    |
 | ---------------------------------------------------------------------------------------- | ----- | --------------------------------------------------- |
-| `solvable`                                                                               | 5     | `recommended`, or a tie between qualified proposals |
+| `solvable`                                                                               | 4     | `recommended`, or a tie between qualified proposals |
 | `adversarial` (solvable; the brief contains an injected instruction that must stay data) | 1     | `recommended`                                       |
 | `impossible` (by physics or arithmetic, not by prices)                                   | 2     | `no_qualifying_solution`, `requirements_conflict`   |
 | `contradictory` (two requirements exclude each other)                                    | 3     | `no_qualifying_solution`, `requirements_conflict`   |
-| `after_implementation` (#245)                                                            | 1     | `needs_verification`                                |
+| `after_implementation` (#245; `pos-latency-limit` since 08.11.26)                        | 2     | `architecture_candidate`; `aft-rhythm` also `needs_verification` |
 
 All briefs are synthetic. Customer, patient or workspace texts never go into the repository. The six user councils
 named in #182 (GPT-1…3, Gemini-1…3) can be added only from data the owner authorises, and only as paraphrases.
@@ -39,6 +39,9 @@ report but count in no rate.
 - A `recommended` verdict that the server will not approve counts as `needs_verification`. This covers limited
   review (#249) and an unknown decision format.
 - `requirementsConflict` gives `requirements_conflict`.
+- A `needs_verification` verdict whose gate names an **architecture candidate** (#249 part 2, gate version 3) gives
+  `architecture_candidate`. Owner decision 08.11.26 (variant A): a latency limit in ms/s is always a measurement check,
+  so `pos-latency-limit` is labelled `architecture_candidate` instead of `recommended`.
 - No outcome gives `no_verdict`, which is scored as a **failed run**. A failed run is kept apart from a wrong verdict.
 
 Each run then gets one result:

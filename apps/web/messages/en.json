@@ -17,7 +17,8 @@
       "skip": "Skip to content",
       "openSource": "Open source",
       "pricing": "Pricing",
-      "menu": "Menu"
+      "menu": "Menu",
+      "integrations": "Integrations"
     },
     "cta": {
       "start": "Start a Decision",
@@ -130,7 +131,8 @@
       "agb": "Terms",
       "datenschutz": "Privacy",
       "source": "Source code",
-      "feedback": "Contact & feedback"
+      "feedback": "Contact & feedback",
+      "integrations": "Integrations"
     },
     "why": {
       "title": "Why CONSYRION AI?",
@@ -343,6 +345,38 @@
         "high": "high",
         "medium": "medium",
         "low": "low"
+      },
+      "none": "No documented decisive disagreement: no objection was stored and the Consensus Round left nothing open. This is not an invented consensus – it only means no model raised a stored objection.",
+      "filterAria": "Filter disputes",
+      "filter": {
+        "all": "All ({n})",
+        "open": "Open ({n})",
+        "critical": "High/critical ({n})",
+        "resolved": "Resolved ({n})"
+      },
+      "filterEmpty": "No dispute matches this filter.",
+      "notStored": "not stored",
+      "stepsAria": "Course of this dispute",
+      "step": {
+        "raised": "Objection raised",
+        "answered": "Answer",
+        "conceded": "Conceded",
+        "unanswered": "No answer",
+        "noAnswer": "No answer stored",
+        "reviewed": "Independent review",
+        "notReviewed": "Not reviewed",
+        "revised": "Revised to v{version}",
+        "notRevised": "Not revised"
+      },
+      "showSources": "Show sources",
+      "hideSources": "Hide sources",
+      "src": {
+        "objection": "Objection",
+        "message": "Original message",
+        "round": "round {n}",
+        "versions": "Proposal version",
+        "versionsText": "then: {then} · now: {now}",
+        "review": "Review"
       }
     },
     "dashboard": {
@@ -360,7 +394,8 @@
         "repeat_evaluation": "repeat the missing evaluation",
         "request_changes": "request changes to the brief",
         "reject": "reject",
-        "request_more_debate": "request more debate"
+        "request_more_debate": "request more debate",
+        "mark_favorite": "mark the architecture candidate as favourite (no approval)"
       },
       "outcome": {
         "recommended": "Recommended solution",
@@ -370,7 +405,8 @@
         "needs_verification": "Needs verification – not approvable",
         "provisional": "Provisional favourite – limited review, not approvable",
         "conflict": "No solution can meet these requirements",
-        "not_approvable": "Not approvable"
+        "not_approvable": "Not approvable",
+        "architecture_candidate": "Architecture candidate – performance proof open, not approvable"
       },
       "facts": {
         "title": "Review facts",
@@ -419,9 +455,11 @@
         "FAIL": "not met",
         "DISPUTED": "disputed",
         "UNKNOWN": "unconfirmed",
+        "PLAN": "plan confirmed – proof pending",
         "noAnswer": "no answer",
         "noEvaluation": "No evaluation",
-        "count": "{n} of {of} confirm"
+        "count": "{n} of {of} confirm",
+        "MEASURE": "measurement plan confirmed – measurement open"
       },
       "cell": {
         "aria": "Evaluator reasons for this requirement",
@@ -485,7 +523,8 @@
       "verify": {
         "title": "Settle before any irreversible step",
         "source": "Unconfirmed requirements and open objections from the council",
-        "empty": "Nothing open – every requirement confirmed, no open objection."
+        "empty": "Nothing open – every requirement confirmed, no open objection.",
+        "raisedBy": "raised by {model}"
       },
       "assumptions": {
         "title": "Riskiest assumptions – test these first",
@@ -506,7 +545,25 @@
       },
       "note": "Built from stored council statements only, nothing generated. A test plan stays a plan: it does not confirm a requirement, and nothing is built or started without your decision.",
       "introChosen": "For Proposal {label}, which you chose: what to check before an irreversible step, what to test, when to stop and when to ask the council again.",
-      "introTie": "There is no single recommendation (the leading proposals are too close). For the best-scored Proposal {label}: what to check before you choose."
+      "introTie": "There is no single recommendation (the leading proposals are too close). For the best-scored Proposal {label}: what to check before you choose.",
+      "counter": {
+        "title": "Strongest counter-position",
+        "source": "The top open or upheld objection, as under Key disputes",
+        "empty": "No open or upheld objection against this proposal.",
+        "rightIf": "It would be right if this reasoning holds: {text}",
+        "noReason": "No reasoning was stored with it."
+      },
+      "notYet": "Nothing can be approved or built yet: first settle the open points above, then start a new council or repeat the evaluation.",
+      "aiSuggestion": "AI suggestion",
+      "test": {
+        "title": "Cheapest useful test",
+        "source": "The author's own suggestion (AI) – a plan, not a confirmed check",
+        "empty": "Not stated by the author.",
+        "assumption": "Riskiest assumption: {text}",
+        "method": "Test: {text}",
+        "success": "Confirmed if: {text}",
+        "noSuccess": "Success criterion: not stated."
+      }
     }
   },
   "scene": {
@@ -674,6 +731,16 @@
       "quality_assurance_expert": "How is it proven to work, and what would break unnoticed?",
       "maintainability_reviewer": "Will the team still understand and change it in a year?",
       "independent_critical_thinker": "What is everyone else overlooking – is there a simpler or safer way?"
+    },
+    "titleAlternative": "Alternative: suggested perspectives for this project",
+    "introAlternative": "The skill “{name}” is active – its {n} perspectives are selected below. This suggestion from your brief and requirements is an alternative.",
+    "replace": "Replace with {n} perspectives",
+    "add": "Add {n} missing",
+    "effect": "Applying replaces your current selection ({current} active) with these {n} perspectives.",
+    "effectAlternative": "“Replace” swaps the {current} active perspectives for these {n}; “Add” keeps them and adds {missing} more.",
+    "profile": {
+      "suggested": "Suggested profile: {name}",
+      "choose": "{n} of your profiles for this role – choose one below"
     }
   },
   "assistant": {
@@ -706,6 +773,7 @@
     "loading": "Loading…",
     "noChats": "No chats yet.",
     "delete": "Delete chat “{title}”",
+    "download": "Download chat “{title}” as Markdown",
     "privacy": "Your chats are stored for you only – no other member and no admin can read them. Deleting removes them for good.",
     "model": "Model that answers",
     "modelNote": "Only models of your own keys. Every question costs a few calls on that key; the tokens are shown under each answer.",
@@ -713,6 +781,7 @@
     "shortcut": "Shortcut: ⌘/Ctrl + J opens and closes the assistant, Esc closes it.",
     "usedTools": "read: {tools}",
     "tokens": "{n} tokens",
+    "cost": "≈ {amount}",
     "open": "Open the AI assistant (⌘/Ctrl + J)",
     "actions": {
       "types": {
@@ -762,10 +831,100 @@
         "teams": "Microsoft Teams",
         "email": "E-mail"
       },
-      "copyAgain": "Copy again"
+      "copyAgain": "Copy again",
+      "summaryPdf": "PDF",
+      "summaryWord": "Word"
     },
     "stop": "Stop",
     "stopped": "Stopped – nothing was saved for this answer.",
-    "readingTool": "Reading {tool} …"
+    "readingTool": "Reading {tool} …",
+    "toolNames": {
+      "list_projects": "projects",
+      "list_sessions": "decisions",
+      "get_session": "the decision",
+      "list_open_steps": "open steps",
+      "get_project": "the project",
+      "list_documents": "documents",
+      "get_build_status": "build status",
+      "search": "search results"
+    },
+    "export": {
+      "you": "You",
+      "assistant": "Assistant",
+      "exported": "Exported",
+      "links": "Pages",
+      "actions": "Suggested actions",
+      "checks": "Cross-check"
+    },
+    "ask": "Ask the AI",
+    "askAboutDecision": "Summarise this decision: verdict, why, open objections and what I should do next.",
+    "reviewer": "Second opinion",
+    "reviewerNone": "No second opinion",
+    "reviewerNote": "This model checks an answer when you click “Second opinion” under it – with the same read-only tools, on your key (costs tokens).",
+    "limits": "Token limits for the assistant",
+    "limitDaily": "Per day",
+    "limitMonthly": "Per month",
+    "limitNone": "no limit",
+    "usage": "Used: {today} tokens today, {month} this month.",
+    "saveLimits": "Save limits",
+    "settingsSaved": "Saved.",
+    "secondOpinion": "Second opinion",
+    "secondOpinionBusy": "Checking …",
+    "secondOpinionTitle": "Second opinion",
+    "downloadPdf": "Download chat “{title}” as PDF",
+    "document": {
+      "summaryTitle": "Customer summary",
+      "summaryTitleProject": "Customer summary: {project}",
+      "summarySubtitle": "AI summary · {date}",
+      "summaryNote": "Written by an AI model from the data of this CONSYRION AI workspace and reviewed by the user before export. It is not a council verdict.",
+      "chatSubtitle": "Assistant chat · exported {date}",
+      "chatNote": "Answers of the AI assistant come from the workspace data via read-only tools; model statements are not a fact check.",
+      "lostCharacters": "Some characters cannot be shown in this PDF (they appear as ?). The Word file contains the full text."
+    },
+    "summaryHint": "Long chat: the model no longer reads the {count} oldest messages. A summary keeps their content (one call on your key, costs tokens).",
+    "summaryCreate": "Create summary",
+    "summaryBusy": "Summarising …",
+    "summaryDone": "Summary saved – it covers {count} earlier messages.",
+    "chatModeLabel": "Chat mode",
+    "modeSingle": "1 model",
+    "modeCouncil": "Council chat",
+    "councilAddModel": "Add model",
+    "councilRemoveModel": "Remove {model}",
+    "councilPickModels": "Choose 2 to 4 models – each answers as its own voice. Start a question with @model to ask only that one.",
+    "councilHint": "Each model answers for itself; @model asks only that one.",
+    "councilEstimate": "up to ≈ {answers} tokens for {n, plural, one {# answer} other {# answers}} (usually less) · with cross-check up to ≈ {check} (cross-check only on click)",
+    "councilFailures": "Not every model answered: {list}",
+    "perspective": "Perspective",
+    "perspectiveNone": "None",
+    "perspectiveTitle": "Single perspective: {role} – unverified",
+    "perspectives": {
+      "security": "Security",
+      "cost": "Cost",
+      "product": "Product",
+      "architecture": "Architecture",
+      "operations": "Operations",
+      "legal": "Legal & compliance"
+    },
+    "crossCheck": "Cross-check",
+    "crossCheckBusy": "Checking …",
+    "crossCheckConfirm": "{n, plural, one {# other model checks} other {# other models check}} this answer · ≈ {tokens} tokens",
+    "crossCheckRun": "Check now",
+    "crossCheckCancel": "Cancel",
+    "checkVerdict": {
+      "confirmed": "confirmed",
+      "contradicted": "contradicted",
+      "unverifiable": "not checkable"
+    },
+    "checkSummary": {
+      "confirmed": "Confirmed by the other models",
+      "contradicted": "Contradicted – read the objections",
+      "unverified": "Not verified"
+    },
+    "checkSensitive": "medicine, law or security: always have a professional check it",
+    "makeCouncil": "Make it a council",
+    "makeCouncilPrompt": "Make this council chat a council: draft the project (idea and goal from my question), take the points the models agreed on as requirements and every open disagreement as a requirement that must be checked.",
+    "makeCouncilNote": "{model} answers once with action cards (project draft, requirements). Nothing starts by itself: you confirm the requirements and start the council from its form with the cost estimate.",
+    "limitReserveNote": "Each question reserves its expected tokens first (a short one about {min}) and is refused if that would pass a limit; afterwards only the real tokens count.",
+    "limitTooSmall": "This limit is smaller than one question (about {min} tokens) – no question would get through."
   }
 }

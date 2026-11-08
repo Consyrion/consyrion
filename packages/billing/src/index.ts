@@ -47,6 +47,12 @@ export class StripeClient {
     return json;
   }
 
+  /** Current state of a subscription (#407: webhooks apply this instead of the possibly stale event snapshot). */
+  retrieveSubscription(id: string) {
+    if (!/^sub_[A-Za-z0-9]+$/.test(id)) throw new DomainError("VALIDATION", "Invalid subscription id");
+    return this.request<StripeSubscriptionObject>("GET", `/v1/subscriptions/${id}`);
+  }
+
   createCheckoutSession(input: {
     priceId: string;
     organizationId: string;
@@ -136,10 +142,24 @@ const STATUS_MAP: Record<string, "trialing" | "active" | "past_due" | "canceled"
   paused: "past_due",
 };
 
-/** Applies a verified webhook event. Unknown events are ignored. */
-export async function handleStripeEvent(db: Database, event: { type: string; data: { object: unknown } }) {
+/**
+ * Applies a verified webhook event. Unknown events are ignored.
+ *
+ * Stripe neither guarantees the order of events nor delivers them only once (#407): a late or retried
+ * `customer.subscription.updated` (status active) arriving after `…deleted` would reactivate a cancelled plan. With
+ * `fetchCurrent` the handler applies the subscription's **current** state from the Stripe API instead of the snapshot
+ * in the event – any order and any number of deliveries then end in the same, latest state.
+ */
+export async function handleStripeEvent(
+  db: Database,
+  event: { type: string; data: { object: unknown } },
+  options: { fetchCurrent?: (subscriptionId: string) => Promise<StripeSubscriptionObject> } = {},
+) {
   if (!["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) return { handled: false };
-  const sub = event.data.object as StripeSubscriptionObject;
+  const snapshot = event.data.object as StripeSubscriptionObject;
+  const sub = options.fetchCurrent && snapshot.id ? await options.fetchCurrent(snapshot.id) : snapshot;
+  // Ended means ended: by the event type when applying the snapshot, by the current status when it was fetched.
+  const ended = options.fetchCurrent ? sub.status === "canceled" || sub.status === "incomplete_expired" : event.type === "customer.subscription.deleted";
   const organizationId = sub.metadata?.organizationId;
   if (!organizationId) return { handled: false };
   const catalog = await getPlanCatalog(db);
@@ -152,12 +172,12 @@ export async function handleStripeEvent(db: Database, event: { type: string; dat
   await upsertStripeSubscription(db, {
     organizationId,
     plan,
-    status: event.type === "customer.subscription.deleted" ? "canceled" : (STATUS_MAP[sub.status] ?? "incomplete"),
+    status: ended ? "canceled" : (STATUS_MAP[sub.status] ?? "incomplete"),
     stripeCustomerId: sub.customer,
     stripeSubscriptionId: sub.id,
     currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     // Cancelled but paid until the period end: the plan stays until Stripe sends customer.subscription.deleted.
-    cancelAtPeriodEnd: event.type !== "customer.subscription.deleted" && (sub.cancel_at_period_end === true || Boolean(sub.cancel_at)),
+    cancelAtPeriodEnd: !ended && (sub.cancel_at_period_end === true || Boolean(sub.cancel_at)),
   });
   return { handled: true };
 }

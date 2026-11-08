@@ -60,7 +60,20 @@ rm -rf /opt/consyrion/app.prev
 if [ -d /opt/consyrion/app/deploy ]; then mv /opt/consyrion/app /opt/consyrion/app.prev; else rm -rf /opt/consyrion/app; fi
 mv /opt/consyrion/build /opt/consyrion/app
 cd /opt/consyrion/app
+# Deletion list (ADR 0206): web (user app) and worker (user node) both append; ids and times only, kept forever.
+install -d -m 1777 /opt/consyrion/deletions
+touch /opt/consyrion/deletions/deletions.log && chmod 666 /opt/consyrion/deletions/deletions.log
 COMPOSE=(docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml)
+# The Docker socket only when the sandbox is on (#398).
+if grep -qE '^SANDBOX_DISABLED=(false|0|no)$' /opt/consyrion/secrets/deploy.env && [ -f deploy/hetzner/compose.sandbox.yml ]; then
+  COMPOSE+=(-f deploy/hetzner/compose.sandbox.yml)
+  # Egress network and firewall for dependency installs (#399), also after every reboot via systemd.
+  if [ -x deploy/hetzner/sandbox-network.sh ]; then
+    deploy/hetzner/sandbox-network.sh
+    install -m 0644 deploy/hetzner/consyrion-sandbox-net.service /etc/systemd/system/consyrion-sandbox-net.service
+    systemctl daemon-reload && systemctl enable --quiet consyrion-sandbox-net.service
+  fi
+fi
 # Migrate first with the NEW image while the old web/worker keep serving (06.11.26: a failed migration inside
 # `up -d` left the site at 502 for minutes). Up to three attempts; on failure the old release stays live untouched.
 migrated=0
@@ -82,6 +95,13 @@ if [ "$migrated" != 1 ]; then
   exit 1
 fi
 APP_VERSION="$VERSION" "${COMPOSE[@]}" up -d --remove-orphans
+# The Caddyfile is a bind mount from the release directory. The directory is replaced on every deploy, but compose sees
+# no config change and keeps Caddy on the old file (08.11.26, #401 needed a manual --force-recreate). Recreate Caddy
+# whenever the Caddyfile differs from the previous release.
+if [ ! -f /opt/consyrion/app.prev/deploy/hetzner/Caddyfile ] || ! cmp -s deploy/hetzner/Caddyfile /opt/consyrion/app.prev/deploy/hetzner/Caddyfile; then
+  echo "== Caddyfile changed – recreating caddy"
+  APP_VERSION="$VERSION" "${COMPOSE[@]}" up -d --no-deps --force-recreate caddy
+fi
 wait_healthy
 echo "$(date -u +%FT%TZ) $VERSION" >>/opt/consyrion/RELEASES
 # Keep only the running release and the one before it (rollback.sh) – the 48 h filter above does not help on days with

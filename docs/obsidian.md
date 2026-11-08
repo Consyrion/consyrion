@@ -1,0 +1,43 @@
+# Obsidian plugin (#103)
+
+`apps/obsidian` – send explicitly selected note text to a council and save the report as a new note. User guide:
+`apps/obsidian/README.md`.
+
+## Data flow
+
+```
+Obsidian (selected text) ──HTTPS, Bearer cni_…──▶ CONSYRION AI REST API ──your provider keys──▶ AI models
+          ◀── Markdown report (GET /api/sessions/:id/report) ──
+```
+
+The hosted server never reads the vault; the plugin is the outgoing bridge. Requests use Obsidian's `requestUrl`.
+
+## Endpoints (all accept integration tokens, see docs/api.md)
+
+| Step                                                                          | Call                                                     |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Models of the workspace's keys                                                | `GET /api/models`                                        |
+| Project with the selected text as brief (`status: ready`, `intent: decision`) | `POST /api/projects`                                     |
+| Requirement proposal → confirm only the user's lines                          | `GET` / `POST /api/projects/:id/requirements`            |
+| Cost estimate                                                                 | `POST /api/projects/:id/sessions/preview`                |
+| Start (with `Idempotency-Key`)                                                | `POST /api/projects/:id/sessions`                        |
+| Progress, partial failures                                                    | `GET /api/sessions/:id` (`participants[].failureReason`) |
+| Report                                                                        | `GET /api/sessions/:id/report` (Markdown)                |
+| Cancel                                                                        | `POST /api/sessions/:id/cancel`                          |
+
+No new endpoint was needed. The token cannot approve, build, merge or read keys (403).
+
+## Rules kept
+
+- BYOK only; the cost preview comes before every start; the user confirms a shortened budget explicitly.
+- The requirement list is confirmed from the user's own lines only (same rule as `ask_consyrion`); instruction-like
+  lines are refused, never decided automatically.
+- Existing notes are never overwritten (`vault.create` + next free name); reports carry real run data only.
+- The token is stored in the vault's plugin data (plain text) – documented in the README with sync/backup advice.
+
+## Tests
+
+`apps/obsidian/test/plugin.test.ts` (fake server, no real model calls): server address rules, error kinds incl.
+offline, token only in the header, idempotent start, status with partial failures, brief = exactly the selected text,
+only the user's requirements confirmed, instruction-like lines refused, free file names, note front matter without
+token, texts in en/de. A real end-to-end run in Obsidian is listed separately in the PR (manual, ≤ 0.10 $).

@@ -21,7 +21,17 @@ import {
 import { engine } from "@consyrion/engine";
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { buildDecisionReport, createSession, getSessionView, runSession, submitApproval, type SessionInput } from "../src";
+import {
+  buildDecisionReport,
+  createSession,
+  getSessionView,
+  previewFollowUp,
+  previewSession,
+  runSession,
+  startFollowUp,
+  submitApproval,
+  type SessionInput,
+} from "../src";
 import { assertGateResultConsistent } from "../src/requirement-gate";
 import { ScriptedAdapter, type Script } from "./scripted-adapter";
 import { confirmProposedRequirements } from "./confirm-requirements";
@@ -86,7 +96,7 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
     const c = council({ m1: { title: "Monolith", score: scores }, m2: { title: "Microservices", score: scores }, m3: { title: "Serverless", score: scores } });
     const id = await start(c.participants);
     const [session] = await handle.db.select().from(schema.councilSession).where(eq(schema.councilSession.id, id));
-    expect(session!.gateVersion).toBe(2);
+    expect(session!.gateVersion).toBe(3);
     await runSession(c.deps, id);
 
     const [round] = await rounds(id);
@@ -102,17 +112,55 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
     expect(stored.every((r) => r.valid)).toBe(true);
 
     const view = await getSessionView(handle.db, actor, id);
-    expect(view.decision!.gateVersion).toBe(2);
+    expect(view.decision!.gateVersion).toBe(3);
     expect(view.decision!.outcome).toBe("recommended");
     const matrix = view.decision!.matrix as { roundId: string; requirementGate: { proposals: Array<{ feasibility: string }> }; requirementsConflict: boolean };
     expect(matrix.roundId).toBe(round!.id);
     expect(matrix.requirementGate.proposals.every((p) => p.feasibility === "qualified")).toBe(true);
     expect(matrix.requirementsConflict).toBe(false);
-    expect(view.decisionStatus).toMatchObject({ gateVersion: 2, approvable: true, canApproveRecommendation: true });
+    expect(view.decisionStatus).toMatchObject({ gateVersion: 3, approvable: true, canApproveRecommendation: true });
     // Version 1 checks on the vote are not written any more.
     const votes = await handle.db.select().from(schema.vote).where(eq(schema.vote.sessionId, id));
     expect(votes.every((v) => v.requirementChecks === null)).toBe(true);
     expect((await submitApproval(handle.db, actor, id, { action: "approve" })).status).toBe("approved");
+  });
+
+  it("the same model through two keys is one independent evaluator: 2× m1 + m2 is a limited review, never approvable (user decision 08.11.26)", async () => {
+    const secondKey = (
+      await createCredential(handle.db, actor, keyring, { provider: "anthropic", label: "second account", secret: "sk-ant-test-1111111111111111" })
+    ).id;
+    const c = council({ m1: { title: "Monolith", score: scores }, m2: { title: "Microservices", score: scores } });
+    const id = await start([
+      { credentialId, modelId: "m1" },
+      { credentialId: secondKey, modelId: "m1" },
+      { credentialId, modelId: "m2" },
+    ]);
+    await runSession(c.deps, id);
+    const [round] = await rounds(id);
+    const view = await getSessionView(handle.db, actor, id);
+    const [a1, a2] = view.participants.filter((p) => p.modelId === "m1").map((p) => p.id);
+    // An instance of the author's model is never a foreign evaluator of that proposal.
+    for (const p of round!.proposals)
+      if (p.authorParticipantId === a1 || p.authorParticipantId === a2) expect(p.expectedEvaluatorIds).not.toContain(p.authorParticipantId === a1 ? a2 : a1);
+    const gate = (view.decision!.matrix as { requirementGate: { proposals: Array<{ feasibility: string; limitedReview?: boolean }> } }).requirementGate;
+    // Every proposal has one independent group at most: none is qualified, the verdict cannot be approved.
+    expect(gate.proposals.some((p) => p.feasibility === "qualified")).toBe(false);
+    expect(view.decisionStatus!.approvable).toBe(false);
+    // The report names the instances as one independent voice.
+    const { reportToMarkdown } = await import("../src");
+    expect(reportToMarkdown(buildDecisionReport(view), "de")).toContain("anthropic/m1 (Instanz 2 von 2 – eine unabhängige Stimme)");
+  });
+
+  it("2× m1 + m2 + m3: two other models remain, so a proposal can still qualify (instances add no breadth, but take none away)", async () => {
+    const secondKey = (
+      await createCredential(handle.db, actor, keyring, { provider: "anthropic", label: "second account", secret: "sk-ant-test-1111111111111111" })
+    ).id;
+    const c = council({ m1: { title: "Monolith", score: scores }, m2: { title: "Microservices", score: scores }, m3: { title: "Serverless", score: scores } });
+    const id = await start([{ credentialId, modelId: "m1" }, { credentialId: secondKey, modelId: "m1" }, ...c.participants.slice(1)]);
+    await runSession(c.deps, id);
+    const view = await getSessionView(handle.db, actor, id);
+    const gate = (view.decision!.matrix as { requirementGate: { proposals: Array<{ feasibility: string }> } }).requirementGate;
+    expect(gate.proposals.some((p) => p.feasibility === "qualified")).toBe(true);
   });
 
   it("open requirement checks make the verdict needs_verification: nothing can be approved, no unsolvable claim", async () => {
@@ -268,7 +316,7 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
     await runSession(c.deps, id);
     expect(await rounds(id)).toEqual([round]);
     const view = await getSessionView(handle.db, actor, id);
-    expect(view.decision!.gateVersion).toBe(2);
+    expect(view.decision!.gateVersion).toBe(3);
     expect(view.decision!.outcome).not.toBe("recommended");
   });
 
@@ -411,20 +459,88 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
     },
   );
 
-  it("#228: a council whose Final Verdict cannot fit into one call is refused before any model is called", async () => {
-    await updateBrief(handle.db, actor, projectId, {
-      idea: "Design a scheduling SaaS for 120 clinics.",
-      requirements: Array.from({ length: 13 }, (_, i) => `Requirement number ${i + 1} must be met.`).join("\n"),
+  describe("#246: a Final Verdict too large for one call is split into requirement groups", () => {
+    async function manyRequirements() {
+      await updateBrief(handle.db, actor, projectId, {
+        idea: "Design a scheduling SaaS for 120 clinics.",
+        requirements: Array.from({ length: 13 }, (_, i) => `Requirement number ${i + 1} must be met.`).join("\n"),
+      });
+      // The three requirements confirmed in beforeEach stay on the list (a later proposal keeps earlier decisions).
+      const count = (await confirmProposedRequirements(handle.db, actor, projectId)).items.length;
+      expect(count).toBeGreaterThan(12);
+      return count;
+    }
+    const gateOf = async (id: string) =>
+      (
+        (await getSessionView(handle.db, actor, id)).decision!.matrix as {
+          requirementGate: { proposals: Array<{ feasibility: string; requirements: Array<{ requirementId: string; status: string }> }> };
+        }
+      ).requirementGate.proposals.map((p) => ({
+        feasibility: p.feasibility,
+        requirements: [...p.requirements].sort((a, b) => a.requirementId.localeCompare(b.requirementId)).map((r) => `${r.requirementId}:${r.status}`),
+      }));
+    const r2Fails: Script["requirementCheck"] = (t, r) => (t === "Serverless" && r === "R2" ? { status: "FAIL" } : { status: "PASS" });
+
+    it("starts instead of refusing; every evaluator checks each requirement in exactly one call and the verdict stands", async () => {
+      const count = await manyRequirements();
+      const c = council({
+        m1: { title: "Monolith", score: scores, requirementCheck: r2Fails },
+        m2: { title: "Microservices", score: scores, requirementCheck: r2Fails },
+        m3: { title: "Serverless", score: scores, requirementCheck: r2Fails },
+      });
+      const id = await start(c.participants);
+      await runSession(c.deps, id);
+      // 2 calls per evaluator: the first scores and checks group 1, the second only checks group 2.
+      for (const adapter of c.adapters.values()) {
+        expect(adapter.evaluationScopes).toHaveLength(2);
+        const scoped = adapter.evaluationScopes.map((s) => s!.split(",").map((x) => x.trim()));
+        expect(scoped.flat().sort()).toEqual([...new Set(scoped.flat())].sort());
+        expect(scoped.flat()).toHaveLength(count);
+      }
+      const stored = await checks(id);
+      expect(stored.filter((r) => r.valid)).toHaveLength(3 * 2 * count);
+      expect(stored.every((r) => r.valid)).toBe(true);
+      const votes = await handle.db.select().from(schema.vote).where(eq(schema.vote.sessionId, id));
+      expect(votes).toHaveLength(3);
+      const view = await getSessionView(handle.db, actor, id);
+      expect(view.decision!.outcome).toBe("recommended");
+      const gate = await gateOf(id);
+      expect(gate.filter((p) => p.feasibility === "fail")).toHaveLength(1);
+      expect(view.session.tokensUsed).toBeLessThanOrEqual(view.session.tokenBudget);
     });
-    // The three requirements confirmed in beforeEach stay on the list (a later proposal keeps earlier decisions).
-    const count = (await confirmProposedRequirements(handle.db, actor, projectId)).items.length;
-    expect(count).toBeGreaterThan(12);
-    const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" }, m3: { title: "Serverless" } });
-    await expect(start(c.participants)).rejects.toMatchObject({
-      code: "VALIDATION",
-      message: expect.stringMatching(new RegExp(`^3 models × ${count} requirements do not fit into one Final Verdict evaluation.*use at most 12 requirements`)),
+
+    it("same answers, same gate: a model that ignores the scope and checks everything twice changes nothing", async () => {
+      await manyRequirements();
+      const obedient = council({
+        m1: { title: "Monolith", score: scores, requirementCheck: r2Fails },
+        m2: { title: "Microservices", score: scores, requirementCheck: r2Fails },
+        m3: { title: "Serverless", score: scores, requirementCheck: r2Fails },
+      });
+      const a = await start(obedient.participants);
+      await runSession(obedient.deps, a);
+      const noisy = council({
+        m1: { title: "Monolith", score: scores, requirementCheck: r2Fails, ignoresRequirementScope: true },
+        m2: { title: "Microservices", score: scores, requirementCheck: r2Fails, ignoresRequirementScope: true },
+        m3: { title: "Serverless", score: scores, requirementCheck: r2Fails, ignoresRequirementScope: true },
+      });
+      const b = await start(noisy.participants);
+      await runSession(noisy.deps, b);
+      // The extra checks are stored (append-only) but as invalid with their reason; every requirement counts once.
+      const extra = (await checks(b)).filter((r) => !r.valid);
+      expect(extra.length).toBeGreaterThan(0);
+      expect(extra.every((r) => r.invalidReason === "requirement id belongs to another call of this split evaluation")).toBe(true);
+      expect((await checks(b)).filter((r) => r.valid)).toHaveLength((await checks(a)).filter((r) => r.valid).length);
+      expect(await gateOf(b)).toEqual(await gateOf(a));
+      expect((await getSessionView(handle.db, actor, b)).decision!.outcome).toBe((await getSessionView(handle.db, actor, a)).decision!.outcome);
     });
-    expect([...c.adapters.values()].every((a) => a.requests.length === 0)).toBe(true);
+
+    it("the preview names the split and counts the extra calls", async () => {
+      const count = await manyRequirements();
+      const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" }, m3: { title: "Serverless" } });
+      const preview = await previewSession(handle.db, actor, projectId, { mode: "independent_expert", participants: c.participants, confirmBudget: true });
+      expect(preview.finalVerdictSize).toMatchObject({ fits: true, split: true, callsPerEvaluator: 2 });
+      expect(preview.finalVerdictSize.message).toMatch(new RegExp(`^3 models × ${count} requirements .* in 2 calls`));
+    });
   });
 
   it("a tight budget shortens the debate but never an S1 evaluation: the reserve covers every requirement check", async () => {
@@ -497,5 +613,88 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
       { ...ok, comparisonComplete: "yes" },
     ];
     for (const result of broken) expect(() => assertGateResultConsistent(round, result as never)).toThrow(/inconsistent requirement gate result/);
+  });
+});
+
+describe("#228/#229 follow-up round – same evaluators, append-only, a FAIL is never replaced", () => {
+  it.skipIf(engine.info.kind !== "production")(
+    "completes the checks an evaluator left out, after a click with extra budget, and recomputes the verdict",
+    async () => {
+      // m3 leaves out the Monolith's checks in its evaluation and answers them when asked again.
+      let asked = 0;
+      const c = council({
+        m1: { title: "Monolith", score: scores },
+        m2: { title: "Microservices", score: scores },
+        m3: { title: "Serverless", score: scores, requirementCheck: (t) => (t === "Monolith" && asked === 0 ? null : { status: "PASS" }) },
+      });
+      const id = await start(c.participants);
+      await runSession(c.deps, id);
+      expect((await getSessionView(handle.db, actor, id)).decision!.outcome).toBe("needs_verification");
+      const preview = await previewFollowUp(handle.db, actor, id);
+      expect(preview).toMatchObject({ enabled: true, available: true });
+      expect(preview.completion.items).toBeGreaterThan(0);
+      expect(preview.completion.estimatedTokens).toBeGreaterThan(0);
+      // Without confirmation or below the estimate nothing starts.
+      await expect(
+        startFollowUp(handle.db, actor, id, { kind: "completion", tokenBudget: preview.completion.estimatedTokens, confirmBudget: false }),
+      ).rejects.toMatchObject({ code: "VALIDATION" });
+      await expect(startFollowUp(handle.db, actor, id, { kind: "completion", tokenBudget: 10, confirmBudget: true })).rejects.toMatchObject({
+        code: "VALIDATION",
+      });
+      const before = (await getSessionView(handle.db, actor, id)).session.tokenBudget;
+      const started = await startFollowUp(handle.db, actor, id, {
+        kind: "completion",
+        tokenBudget: preview.completion.estimatedTokens * 2,
+        confirmBudget: true,
+      });
+      expect(started).toMatchObject({ kind: "completion", round: 2 });
+      asked = 1;
+      const requestsBefore = c.adapters.get("m3")!.requests.length;
+      await runSession(c.deps, id);
+      // Only m3 was asked – exactly once, about the Monolith only.
+      expect(c.adapters.get("m3")!.requests.length).toBe(requestsBefore + 1);
+      expect(c.adapters.get("m1")!.requests.at(-1)!.jsonSchema!.name).not.toBe("evaluation_checks");
+      const view = await getSessionView(handle.db, actor, id);
+      expect(view.session.tokenBudget).toBe(before + preview.completion.estimatedTokens * 2);
+      expect(view.decision!.outcome).not.toBe("needs_verification");
+      expect((view.decision!.matrix as { followUpRounds?: unknown[] }).followUpRounds).toEqual([
+        { round: 2, kind: "completion", items: preview.completion.items, applied: true },
+      ]);
+      // Round 1 stays as it was: the follow-up's checks are stored under their own round.
+      const all = await rounds(id);
+      const first = all.find((r) => r.round === 1)!;
+      const second = all.find((r) => r.round === 2)!;
+      expect(second).toMatchObject({ kind: "completion", parentRoundId: first.id, status: "done" });
+      expect((await checks(id)).filter((r) => r.roundId === second.id && r.valid).length).toBeGreaterThan(0);
+    },
+  );
+
+  it.skipIf(engine.info.kind !== "production")("re-checks only the evaluator's own UNKNOWN items and never asks about a FAIL", async () => {
+    let second = false;
+    const r1: Script["requirementCheck"] = (_t, r) => (r === "R1" ? { status: second ? "PASS" : "UNKNOWN" } : { status: "PASS" });
+    const c = council({
+      m1: { title: "Monolith", score: scores, requirementCheck: r1 },
+      m2: { title: "Microservices", score: scores, requirementCheck: (_t, r) => (r === "R2" ? { status: "FAIL" } : { status: "PASS" }) },
+      m3: { title: "Serverless", score: scores },
+    });
+    const id = await start(c.participants);
+    await runSession(c.deps, id);
+    const preview = await previewFollowUp(handle.db, actor, id);
+    expect(preview.targetedReview.items).toBeGreaterThan(0);
+    await startFollowUp(handle.db, actor, id, { kind: "targeted_review", tokenBudget: preview.targetedReview.estimatedTokens, confirmBudget: true });
+    second = true;
+    await runSession(c.deps, id);
+    // Only m1 had UNKNOWN items – m2's FAIL is never asked again.
+    const followUpRequests = [...c.adapters.entries()].filter(([, a]) =>
+      a.requests.some((r) => r.system?.includes("Follow-up check") || String(r.messages[0]?.content ?? "").includes("Follow-up check")),
+    );
+    expect(followUpRequests.map(([m]) => m)).toEqual(["m1"]);
+    const view = await getSessionView(handle.db, actor, id);
+    const gate = (view.decision!.matrix as { requirementGate: { proposals: Array<{ requirements: Array<{ requirementId: string; status: string }> }> } })
+      .requirementGate;
+    // The FAIL on R2 is still there after the follow-up.
+    expect(gate.proposals.some((p) => p.requirements.some((r) => r.requirementId === "R2" && r.status === "FAIL"))).toBe(true);
+    // A second follow-up of the same kind finds nothing open any more for m1's R1.
+    expect((await previewFollowUp(handle.db, actor, id)).targetedReview.items).toBeLessThan(preview.targetedReview.items);
   });
 });

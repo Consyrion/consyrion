@@ -1,0 +1,10 @@
+{
+  "id": "consyrion",
+  "name": "CONSYRION AI",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Send selected text to a CONSYRION AI council of several AI models and save the decision report as a new note.",
+  "author": "CONSYRION AI",
+  "authorUrl": "https://consyrion.com",
+  "isDesktopOnly": true
+}

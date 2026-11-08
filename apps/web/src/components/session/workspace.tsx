@@ -8,7 +8,9 @@ import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "../ui/button";
 import { Alert, Badge } from "../ui/surface";
 import { CouncilRoom } from "./council-room";
+import { ReplayScreen } from "./replay";
 import type { View } from "./helpers";
+import { verdictStatus } from "./verdict-status";
 import {
   EvaluationScreen,
   ExecutionScreen,
@@ -22,10 +24,12 @@ import {
 import { useExecution } from "./execution";
 import { executionStates } from "./execution-status";
 
-type Tab = CouncilPhase | "overview" | "evaluation" | "review_tests";
+type Tab = CouncilPhase | "overview" | "replay" | "evaluation" | "review_tests";
 
 const TABS: Array<{ id: Tab; label: string; phase: CouncilPhase | null }> = [
   { id: "overview", label: "Council room", phase: null },
+  // #271: replay of the stored events (label translated below, replay.tab).
+  { id: "replay", label: "Replay", phase: null },
   { id: "independent_thinking", label: COUNCIL_PHASE_LABELS.independent_thinking, phase: "independent_thinking" },
   { id: "open_council", label: COUNCIL_PHASE_LABELS.open_council, phase: "open_council" },
   { id: "twelve_minds_council", label: COUNCIL_PHASE_LABELS.twelve_minds_council, phase: "twelve_minds_council" },
@@ -85,6 +89,7 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
   const [connection, setConnection] = useState<"live" | "offline" | "idle">(LIVE.has(initial.session.status) ? "live" : "idle");
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("sessionWorkspace");
+  const tReplay = useTranslations("replay");
   const format = useFormatter();
   const status = view.session.status;
   const isLive = LIVE.has(status);
@@ -161,9 +166,17 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
     view.usage.reduce((n, u) => n + Number(u.inputTokens) + Number(u.outputTokens), 0),
   );
   const reserved = isLive ? Math.max(0, used - consumed) : 0;
+  // #244: input tokens the providers served from their prompt cache (billed cheaper); shown only when there are any.
+  const cached = view.usage.reduce((n, u) => n + Number(u.cachedInputTokens ?? 0), 0);
   const active = view.participants.filter((p) => p.status === "active").length;
   const budget = view.session.tokenBudget;
-  const statusInfo = { text: t.has(`status.${status}`) ? t(`status.${status}`) : status, tone: STATUS_TONE[status] ?? ("neutral" as const) };
+  // Gesamttest #275: "Awaiting your decision" next to "Needs verification – not approvable" contradicted itself. While
+  // nothing can be approved the header says so and asks for the next step – the same message as the verdict card (#230).
+  const nothingApprovable = verdictStatus(view).nothingApprovable;
+  // #477: workflow status and approval status are shown apart – "awaiting your review" plus "no approvable proposal".
+  const statusInfo = nothingApprovable
+    ? { text: t("status.awaitingReview"), tone: STATUS_TONE[status] ?? ("neutral" as const) }
+    : { text: t.has(`status.${status}`) ? t(`status.${status}`) : status, tone: STATUS_TONE[status] ?? ("neutral" as const) };
   const execText = (text: string) => (EXEC_TEXT_KEY[text] ? t(`execText.${EXEC_TEXT_KEY[text]}`) : text);
   const stateText = (state: string) => (t.has(`stageState.${state}`) ? t(`stageState.${state}`) : state);
   const newCouncil = `/projects/${view.session.projectId}/council/new`;
@@ -183,6 +196,11 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
           <p className="text-muted">{DECISION_MODE_LABELS[view.session.mode]}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge tone={statusInfo.tone}>{statusInfo.text}</Badge>
+            {nothingApprovable ? (
+              <span data-testid="approval-status">
+                <Badge tone="warning">{t("status.noApprovableProposal")}</Badge>
+              </span>
+            ) : null}
             {isLive ? <Badge tone={connection === "live" ? "success" : "warning"}>{connection === "live" ? t("live") : t("reconnecting")}</Badge> : null}
             <span className="text-sm text-muted">
               {/* Started and still active models differ once one drops out (#151). */}
@@ -201,6 +219,7 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
             </span>
           </div>
           {reserved > 0 ? <p className="text-xs text-muted">{t("reserved", { n: format.number(reserved) })}</p> : null}
+          {cached > 0 ? <p className="text-xs text-muted">{t("cachedInput", { n: format.number(cached) })}</p> : null}
           <div
             className="flex h-2 overflow-hidden rounded-full bg-surface-2"
             role="progressbar"
@@ -291,9 +310,19 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
                     }`}
                     aria-hidden="true"
                   >
-                    {item.phase === null ? "◎" : state === "completed" ? "✓" : state === "blocked" ? "!" : state === "failed" ? "×" : index}
+                    {item.id === "replay"
+                      ? "↺"
+                      : item.phase === null
+                        ? "◎"
+                        : state === "completed"
+                          ? "✓"
+                          : state === "blocked"
+                            ? "!"
+                            : state === "failed"
+                              ? "×"
+                              : index}
                   </span>
-                  {item.label}
+                  {item.id === "replay" ? tReplay("tab") : item.label}
                   {derived && state === "blocked" ? <span className="text-xs text-warning">{derived.text}</span> : null}
                   <span className="sr-only">({derived ? derived.text : stateText(state)})</span>
                 </button>
@@ -306,6 +335,7 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
 
       <section aria-live="polite">
         {tab === "overview" ? <CouncilRoom view={view} onOpen={(next) => setTab(next)} /> : null}
+        {tab === "replay" ? <ReplayScreen view={view} live={isLive} /> : null}
         {tab === "independent_thinking" ? <IndependentThinkingScreen view={view} /> : null}
         {tab === "open_council" ? <OpenCouncilScreen view={view} /> : null}
         {tab === "twelve_minds_council" ? <TwelveMindsScreen view={view} /> : null}

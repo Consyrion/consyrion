@@ -9,7 +9,9 @@
       "awaiting_approval": "等待你的决定",
       "approved": "已批准",
       "rejected": "已拒绝",
-      "changes_requested": "已请求修改"
+      "changes_requested": "已请求修改",
+      "awaitingReview": "等待你的审阅",
+      "noApprovableProposal": "没有可批准的方案"
     },
     "cancelError": "无法取消",
     "briefVersion": "任务说明 v{version}",
@@ -21,6 +23,7 @@
     "perspectives": "{n, plural, other {# 个视角}}",
     "tokensUsed": "已用 token",
     "reserved": "+ {n} 预留给进行中的调用（调用结束后释放或替换为实际用量）",
+    "cachedInput": "其中 {n} 来自服务商的提示缓存（计费更低）",
     "budgetAria": "已用 token 预算",
     "stop": "停止会话",
     "queue": "等待空闲的 worker 槽位：{position}，{running} 个运行中。",
@@ -68,6 +71,24 @@
     "tabsNote": "标签页对应七个标准阶段。Minority Review 和 Consensus Round 共用一个页面；Evaluation 和 Review & Tests 是 Final Verdict 与 Execution Council 的详细视图。"
   },
   "councilRoom": {
+    "participation": {
+      "title": "各模型参与情况",
+      "intro": "每个阶段谁真正参与——根据已存储的调用和贡献统计。同一模型的多个视角仍只算一票。",
+      "model": "模型",
+      "calls": "{n, plural, other {# 次调用}}",
+      "contributions": "{n, plural, other {# 条贡献}}",
+      "failed": "{n, plural, other {# 次失败}}",
+      "silent": "无贡献",
+      "phase": {
+        "independent_thinking": "Independent Thinking",
+        "open_council": "Open Council",
+        "twelve_minds_council": "12 Minds Council",
+        "minority_review": "Minority Review",
+        "consensus_round": "Consensus Round",
+        "final_verdict": "Final Verdict"
+      },
+      "instance": "实例 {index}/{total} – 算作一个独立意见"
+    },
     "voice": {
       "working": "工作中",
       "submitted": "已提交",
@@ -91,12 +112,13 @@
     "objectionsLater": "异 Council 在 12 Minds Council 之后出现。",
     "noObjections": "未提出任何异议。",
     "proposal": "方案 {label}",
+    "objectionAgainst": "针对方案 {label} 的异议",
     "objectionStatus": {
-      "open": "未决",
-      "accepted": "成立",
-      "unresolved": "未解决",
-      "resolved": "已解决",
-      "refuted": "已驳回"
+      "open": "异议未决",
+      "accepted": "异议成立",
+      "unresolved": "异议未解决",
+      "resolved": "异议已解决",
+      "refuted": "异议已驳回"
     },
     "blocking": "阻止批准",
     "notDefended": "未辩护",
@@ -261,6 +283,27 @@
       "version": "版本 {version}",
       "kept": "保持立场",
       "refs": "引用：{n}"
+    },
+    "why": {
+      "title": "为什么是这些视角?",
+      "counts": "{models, plural, other {# 个模型}} · {perspectives, plural, other {# 个视角}}——视角不是投票。",
+      "origin": {
+        "suggestion": "项目建议",
+        "skill": "来自技能",
+        "own": "你自己选择",
+        "coverage": "已补充(每个模型都审查)",
+        "default": "模式默认(启动时未选择角色)"
+      },
+      "always": {
+        "security": "始终建议:安全与风险检查。",
+        "critic": "始终建议:独立批评者。"
+      },
+      "words": "任务中的主题:{words}",
+      "requirements": "需求:{ids}",
+      "default": "中性默认视角",
+      "profile": "角色配置文件:{name}",
+      "notSuggested": "未建议(没有匹配的主题):{roles}",
+      "note": "在此 council 开始时保存;之后对任务或配置文件的更改不会影响它。"
     }
   },
   "evaluationScreen": {
@@ -302,7 +345,20 @@
     "scoresFor": "方案 {label} 的评分",
     "scoreBy": "评估者：{model}",
     "voteWeight": "（投票权重 {weight}/10）",
-    "eligibleButBlocked": "通过了各项关卡，但在本次 Council 中不可批准——见 Final Verdict。"
+    "eligibleButBlocked": "通过了各项关卡，但在本次 Council 中不可批准——见 Final Verdict。",
+    "ineligible": {
+      "missingScores": "缺少独立评分",
+      "securityLow": "安全评分 {score} 低于最低值 {min}",
+      "blocking": "{count, plural, other {仍有 # 个阻断性异议未解决}}",
+      "totalLow": "总分 {score} 低于最低值 {min}",
+      "notInGate": "不合格：要求检查中没有此提案",
+      "notQualified": "不合格：{cause}",
+      "declaredUnsolvable": "不可实施：提案本身表示无法同时满足所有硬性要求",
+      "hardUnmet": "不可实施：{n} 位独立评审中有 {k} 位认为某项硬性要求未满足"
+    },
+    "formulaText": {
+      "text": "总分 = 所有标准的{weighted, select, yes {按投票加权的} other {}}独立评分平均值 × 权重 / 100 之和；权重：{weights}{weighted, select, yes {；投票权重：{votes}} other {}}"
+    }
   },
   "verdictScreen": {
     "participation": {
@@ -317,7 +373,8 @@
       "s1": "未满足所有已确认的要求",
       "finding": "是结论，不是可实施的解决方案",
       "other": "不可批准",
-      "qualifiedBlocked": "满足已确认的要求，但在本次 Council 中不可批准"
+      "qualifiedBlocked": "满足已确认的要求，但在本次 Council 中不可批准",
+      "architectureCandidate": "架构候选——性能证明待定（{ids}）"
     },
     "voteWeights": "投票权重（开始时确定，#140）：{list}。加权的是每个模型的评分和排名，而不是它自己的方案；可行性检查对每个模型只计一次。",
     "notApprovableHint": "你可以请求修改任务说明或拒绝；修改后的任务说明需要新的 council。",
@@ -372,7 +429,10 @@
         "repeat_evaluation": "已重复评估",
         "request_more_debate": "已请求更多辩论",
         "request_changes": "已请求修改",
-        "reject": "已拒绝"
+        "reject": "已拒绝",
+        "mark_favorite": "已标记为首选",
+        "approve_prototype": "已批准原型/测量构建",
+        "approve_after_measurement": "测量后已批准"
       },
       "superseded": "{n, plural, other {# 个早期裁决已被额外的辩论取代。}}"
     },
@@ -393,14 +453,66 @@
       "comment": "备注（可选）",
       "saving": "正在保存…",
       "record": "记录决定",
-      "onlyOwners": "只有所有者和管理员可以批准决定。"
+      "onlyOwners": "只有所有者和管理员可以批准决定。",
+      "markFavorite": "标记为首选（不批准、不构建）",
+      "approvePrototype": "批准原型/测量构建（不是完成的解决方案）",
+      "approveAfterMeasurement": "测量后批准"
     },
     "reasons": {
       "needsVerification": "需要核实——委员会无法确认有方案满足全部要求。该方案不能被批准或构建。",
       "notQualified": "根据评估，该方案未满足所有已确认的要求（或无法确认）。它不能被批准或构建。请修改需求说明或要求，然后开始新的委员会。",
       "limitedReview": "检查该方案的独立模型太少（至少需要 2 个）。它只是暂定首选，不能被批准或构建。请用至少 3 个模型开始新的委员会。",
       "unknownOutcome": "该裁决使用了此版本不认识的结果，无法在此批准或构建。",
-      "conflictOfInterest": "方案 {qualified} 满足所有要求，但不会被自动推荐：方案 {blocked} 得分更高，仅被方案 {qualified} 作者的要求检查所阻止——这是对其自身有利的判断。请重新开始一个委员会（例如换一个模型），以避免这种利益冲突。"
+      "conflictOfInterest": "方案 {qualified} 满足所有要求，但不会被自动推荐：方案 {blocked} 得分更高，仅被方案 {qualified} 作者的要求检查所阻止——这是对其自身有利的判断。请重新开始一个委员会（例如换一个模型），以避免这种利益冲突。",
+      "architectureCandidate": "架构候选——性能证明待定：{ids} 只能通过测量运行中的实现来确认。委员会确认的是测量计划，而不是该要求，因此目前还不能把任何方案作为完成的解决方案批准。请将其标记为首选、批准原型/测量构建或填写测量结果。"
+    },
+    "why": {
+      "title": "为什么没有可批准的推荐",
+      "conflict": "硬性要求相互矛盾——没有任何方案能同时满足全部要求。",
+      "violated": "据 AI 评审，{list} 未满足。",
+      "violatedCount": "{list} 未满足——{total} 位 AI 评审中有 {fail} 位这样认为。",
+      "disputed": "AI 评审对 {list} 意见不一。",
+      "disputedCount": "AI 评审对 {list} 意见不一：{pass} 位认为满足，{fail} 位认为不满足。",
+      "notEvaluated": "未完全评审——对于 {list}，至少有一位 AI 评审没有给出有效回答。这是技术缺口，不是针对该方案的结论。",
+      "notProven": "无法根据方案文本确认 {list}。未确认不等于未满足——缺少证据。",
+      "limitedReview": "通过了所有检查，但参与的独立 AI 评审太少，无法推荐。",
+      "qualified": "满足要求；由其他规则（最低分、安全最低要求或未解决的异议）决定。",
+      "onlyThese": "这只针对已提交的方案——并不表示根本不存在解决方案。",
+      "modelJudgement": "这是 AI 评审的判断，不是独立的事实核查。",
+      "nextTitle": "你现在可以做什么",
+      "next": {
+        "repeatEvaluation": "为没有有效回答的模型重新评审（会消耗你密钥的 token；已有的检查保留）。",
+        "addEvidence": "在简报中或以文档形式补充缺失的信息（测量值、限值、来源），然后开始新的 Council。",
+        "reviewRequirement": "检查未满足的要求是否确实是硬性要求。如果不是，修改要求列表并开始新的 Council（新的列表版本）。",
+        "resolveConflict": "修改其中一个相互矛盾的要求，然后开始新的 Council。",
+        "chooseOther": "改为选择一个可批准的方案。",
+        "markFavorite": "将架构候选标记为首选——不批准、不构建。",
+        "prototypeBuild": "批准原型/测量构建——不是完成的解决方案。",
+        "recordMeasurement": "填写带证据的测量结果；所有待测项都满足后即可在测量后批准。"
+      },
+      "architectureCandidate": "通过了所有检查，但 {list} 只能通过测量运行中的实现来确认——这是性能证明待定的架构候选，不是推荐。"
+    },
+    "followUp": {
+      "title": "补充检查（可选，会消耗 token）",
+      "intro": "同样的 AI 评审再看一次——只看列出的检查，针对已冻结的方案。FAIL 永远不会被重新询问或替换。只有在你确认追加预算后才会运行。",
+      "completion": {
+        "button": "补全 {n} 项缺失的检查（≈ {tokens} token）",
+        "explain": "只向遗漏检查的评审询问这些检查，之后重新计算结论。"
+      },
+      "targeted_review": {
+        "button": "复查 {n} 项不明确的检查（≈ {tokens} token）",
+        "explain": "每位评审重新检查自己回答为 UNKNOWN 的项目，其他评审的证据仅作参考，不作为结论。FAIL 保持不变。"
+      },
+      "budget": "追加预算（token）",
+      "budgetHint": "至少为估算的 {tokens} token。它会加到 Council 预算中，并使用你自己的密钥。",
+      "confirm": "我确认在自己的 API 密钥上使用这笔追加预算。",
+      "start": "开始补充检查",
+      "starting": "正在启动…",
+      "error": "无法启动补充检查。"
+    },
+    "mark": {
+      "favorite": "方案 {label} 已标记为首选——未批准；该结论仍需验证。",
+      "prototype": "方案 {label} 已批准原型/测量构建——不是完成的解决方案，也不是常规批准。"
     }
   },
   "requirementGate": {
@@ -412,7 +524,8 @@
       "needs_verification": "需要核实",
       "fail": "未满足要求",
       "incomplete": "草稿不完整",
-      "provisional": "暂定首选——审查有限"
+      "provisional": "暂定首选——审查有限",
+      "architectureCandidate": "架构候选——性能证明待定"
     },
     "eurPerMonth": "欧元/月",
     "estimate": {
@@ -458,8 +571,14 @@
       "notMet": "{id}：{n} 位评估者中有 {k} 位认为未满足（模型判断）。",
       "disputed": "{id} 有争议：{n} 位评估者中 {pass} 位确认，{fail} 位认为未满足。",
       "notConfirmed": "{id} 未确认：{n} 位评估者中有 {k} 位无法确认。",
-      "noAnswer": "{id} 未确认：{n} 位评估者中有 {k} 位没有给出有效回答。"
-    }
+      "noAnswer": "{id} 未确认：{n} 位评估者中有 {k} 位没有给出有效回答。",
+      "authorDeclines": "作者表示此提案并未满足所有要求（单凭这一点不具决定性）。",
+      "architectureCandidate": "架构候选——性能证明待定：{ids} 只能通过测量运行中的实现来确认；评审确认的是测量计划，而不是该要求。"
+    },
+    "buildPending": "已有验证计划——实现后验证",
+    "buildPendingHint": "提案说明了如何验证（测试、CI）。目前尚未验证：在变更被视为成功之前，构建必须证明这一点。",
+    "measurementPending": "已有测量计划——实现后测量",
+    "measurementPendingHint": "提案说明了如何测量（方法、目标值、测量设置）。目前尚未满足：只有对运行中的实现进行测量才能确认。该要求保持不变。"
   },
   "engineText": {
     "noJudgeFailed": "没有可用的独立审查者 – 每位合格评审均出现 {reason}",
@@ -493,5 +612,148 @@
       "conflict_of_interest": "方案 {blocked} 得分更高，但仅被方案 {label} 作者的要求核查所阻止 – 这是对自身有利的判断，因此不作自动推荐",
       "evaluation_rejected": "{count, plural, one {# 位评估者在方案 {label} 中复述了另一方案的标题；其对该方案的评分已被剔除} other {# 位评估者在方案 {label} 中复述了另一方案的标题；其对该方案的评分已被剔除}}"
     }
+  },
+  "replay": {
+    "tab": "回放",
+    "title": "Council 回放",
+    "intro": "每一条都是已保存的事件及其真实时间——没有任何演绎或补充。可以逐步查看、回放，或跟随正在进行的 council。",
+    "empty": "还没有已保存的事件。",
+    "phasesAria": "此时各阶段状态",
+    "mode": {
+      "live": "实时",
+      "completed": "已完成",
+      "replay": "回放"
+    },
+    "phase": {
+      "pending": "未开始",
+      "running": "进行中",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "stepBack": "上一个事件",
+    "stepForward": "下一个事件",
+    "play": "播放",
+    "pause": "暂停",
+    "speed": "播放速度",
+    "toLive": "跳到当前状态",
+    "toEnd": "跳到结尾",
+    "position": "第 {n} / {total} 个事件 · {time}",
+    "scrubber": "回放中的位置",
+    "withoutTime": "{n} 条已保存的记录没有时间戳，未包含在回放中。",
+    "participants": "模型",
+    "active": "参与中",
+    "failed": "已退出",
+    "failedNote": "在运行中退出——退出时间未保存，因此从不显示为活跃。",
+    "countMessages": "截至此处的消息",
+    "countObjections": "截至此处的异议",
+    "timeline": "事件",
+    "round": "第 {n} 轮",
+    "objectionFinal": "最终状态：{status}",
+    "objectionPending": "对该异议的裁定没有单独的时间——在回放结尾显示。",
+    "event": {
+      "stageStarted": "{phase} 已开始",
+      "stageCompleted": "{phase} 已完成",
+      "stageFailed": "{phase} 失败",
+      "revision": "方案 {label} – 版本 v{version}",
+      "message": "{model}：{kind}",
+      "toProposal": "针对方案 {label}",
+      "objection": "{model} 对方案 {label} 提出异议",
+      "minorityReview": "Minority Review 已完成",
+      "scores": "{model} 提交了 {count} 个评分",
+      "vote": "{model} 已投票",
+      "consensus": "Consensus Round：{status}",
+      "decision": "裁决：{outcome}",
+      "superseded": "后来被替换",
+      "approval": "人工决定：{action}"
+    },
+    "kind": {
+      "question": "提问",
+      "answer": "回答",
+      "critique": "批评",
+      "rebuttal": "反驳",
+      "moderator": "主持",
+      "role_failed": "角色审查失败",
+      "comparison": "比较",
+      "preference": "偏好"
+    },
+    "outcome": {
+      "recommended": "推荐一个方案",
+      "tie": "平局",
+      "needs_verification": "需要核实",
+      "no_qualifying_solution": "没有合格方案",
+      "insufficient_evidence": "证据不足"
+    },
+    "action": {
+      "approve": "已批准",
+      "reject": "已拒绝",
+      "request_more_debate": "要求继续辩论",
+      "request_changes": "要求修改",
+      "select_alternative": "选择了备选方案",
+      "repeat_evaluation": "重新评估"
+    },
+    "olderHidden": "{n} 个较早的事件未显示。",
+    "showOlder": "显示较早的 {n} 个",
+    "layoutAria": "视图",
+    "layout": {
+      "timeline": "时间线",
+      "network": "网络",
+      "table": "表格"
+    },
+    "network": {
+      "title": "截至此处的网络",
+      "empty": "截至此处没有已保存的提问、批评、回答或异议。",
+      "aria": "模型与方案之间的 {edges} 条连接",
+      "proposal": "方案 {label}",
+      "legend": "连接类型",
+      "connections": "连接",
+      "edge": "{model} → 方案 {label}：{kind}（{count}）",
+      "kind": {
+        "question": "提问",
+        "critique": "批评",
+        "answer": "回答",
+        "objection": "异议"
+      }
+    },
+    "table": {
+      "title": "截至此处的事件",
+      "caption": "截至此处的已保存事件，每行一个",
+      "time": "时间",
+      "phase": "阶段",
+      "event": "事件",
+      "model": "模型",
+      "proposal": "方案"
+    }
+  },
+  "measurement": {
+    "title": "通过测量验收",
+    "intro": "这些要求只能通过测量运行中的实现来确认。委员会确认的是测量计划，而不是要求本身。请填写带证据的测量结果；只有当所有待测项都满足时，方案才能在测量后被批准。",
+    "proposal": "方案 {label}",
+    "open": "待测量",
+    "met": "已满足",
+    "notMet": "未满足",
+    "selfDeclared": "测量：由 {person} 自行声明，证据：{evidence}",
+    "values": "方法：{method} · 目标值：{target} · 测得：{measured}",
+    "record": "填写测量",
+    "method": "方法",
+    "target": "目标值",
+    "measured": "测得值",
+    "result": "结果",
+    "choose": "选择…",
+    "evidence": "证据",
+    "evidenceHint": "例如测量记录、报告或链接。必填。",
+    "save": "保存测量",
+    "saving": "保存中…",
+    "cancel": "取消",
+    "error": "无法保存测量。"
+  },
+  "sessionDelete": {
+    "title": "删除此会话",
+    "text": "删除此委员会会话及其所有方案、结论、批准、测量、构建和发送记录。项目、需求说明、需求清单和其他会话保留。此操作无法撤销。",
+    "exportFirst": "如需保留，请先导出报告：",
+    "exportPdf": "完整报告（PDF）",
+    "exportMarkdown": "报告（Markdown）",
+    "stopFirst": "此委员会仍在运行——请先停止它（并取消正在进行的构建），然后再删除会话。",
+    "external": "CONSYRION 不会删除已发送的报告、GitHub 上的草稿拉取请求以及备份（直到其保留期结束）。本月的委员会次数不会重置。",
+    "button": "删除会话"
   }
 }

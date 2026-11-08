@@ -31,7 +31,8 @@ credential master keys; the worker also needs the GitHub App variables if reposi
 
 ## Sandbox host hardening
 - Rootless Docker (or gVisor `runsc`) for the worker host; the worker itself only runs Consyrion code.
-- Keep the images `node:22-alpine` / `python:3.12-alpine` pre-pulled and updated.
+- Keep the images `node:22-alpine` / `python:3.12-alpine` pre-pulled by the digests in `packages/build/src/sandbox.ts` (#399).
+- With the sandbox on, run `deploy/hetzner/sandbox-network.sh` as root on the Docker host (and at every boot): installs only run on its egress network, which cannot reach the host, private ranges or 169.254.169.254. Set `SANDBOX_EGRESS_MARKER` if your workspace directory is not `/srv/consyrion/workspaces` (docs/hetzner.md, #399).
 - Firewall: the worker needs outbound HTTPS (AI providers, GitHub, package registries during install).
 
 ### Disk hygiene (07.11.26)

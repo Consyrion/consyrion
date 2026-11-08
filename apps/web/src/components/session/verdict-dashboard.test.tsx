@@ -142,6 +142,26 @@ describe("verdict dashboard (stage 1 visualisations)", () => {
   });
 });
 
+describe("gate before score (#266)", () => {
+  it("shows the requirement check before any score", () => {
+    const html = render();
+    const gateAt = html.indexOf("Runs on Node 22");
+    const scoreAt = html.indexOf("Proposal B: 9.0 of 10");
+    expect(gateAt).toBeGreaterThan(-1);
+    expect(scoreAt).toBeGreaterThan(-1);
+    expect(gateAt).toBeLessThan(scoreAt);
+  });
+
+  it("puts the gate status beside every score, so a higher score never reads as passed", () => {
+    const html = render();
+    const chips = [...html.matchAll(/data-testid="gate-status">([^<]+)</g)].map((m) => m[1]);
+    // Sorted by score: B (9.0, needs verification) first, then A (8.2, qualified).
+    expect(chips).toHaveLength(2);
+    expect(chips[0]).toMatch(/verification/i);
+    expect(html).toMatch(/text-warning"[^>]*data-testid="gate-status"/);
+  });
+});
+
 describe("requirements no proposal meets (night test 07.11.26)", () => {
   it("names them in the hero when nothing can be approved", () => {
     const failAll: DashboardMatrix = {

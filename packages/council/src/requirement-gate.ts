@@ -1,9 +1,11 @@
-import { DomainError } from "@consyrion/core";
+import { groupsOf } from "./independence";
+import { DomainError, MEASUREMENT_CHECK_GATE_VERSION, requirementVerification } from "@consyrion/core";
 import { newId, schema } from "@consyrion/db";
 import { engine } from "@consyrion/engine";
 import type { GateResult, RawRequirementCheck } from "@consyrion/engine/contract";
 import { and, asc, eq } from "drizzle-orm";
 import type { SessionContext } from "./context";
+import { mergeFollowUpChecks } from "./follow-up";
 
 /**
  * Orchestration of the S1 requirement gate (#181, gate version 2). The rules live in the engine (#188); this
@@ -25,7 +27,11 @@ export async function ensureEvaluationRound(ctx: SessionContext): Promise<Evalua
   const [list] = await ctx.db.select().from(schema.requirementList).where(eq(schema.requirementList.id, listId));
   if (!list) throw new DomainError("CONFLICT", "The confirmed requirement list of this council is missing.");
   const proposals = await ctx.proposals();
-  const active = (await ctx.participants()).map((p) => p.id);
+  const participants = await ctx.participants();
+  const active = participants.map((p) => p.id);
+  // User decision 08.11.26: an instance of the author's model (same independence group, another key) is never a
+  // foreign evaluator of that proposal – frozen here, the engine filters again.
+  const group = groupsOf(participants);
   await ctx.db
     .insert(schema.evaluationRound)
     .values({
@@ -39,7 +45,7 @@ export async function ensureEvaluationRound(ctx: SessionContext): Promise<Evalua
         proposalId: p.proposal.id,
         revisionId: p.latest.id,
         authorParticipantId: p.proposal.authorParticipantId,
-        expectedEvaluatorIds: active.filter((id) => id !== p.proposal.authorParticipantId),
+        expectedEvaluatorIds: active.filter((id) => id !== p.proposal.authorParticipantId && group[id] !== group[p.proposal.authorParticipantId]),
       })),
     })
     .onConflictDoNothing();
@@ -79,13 +85,16 @@ function orderedRange(a: number | null | undefined, b: number | null | undefined
 /**
  * Rows for every requirement check of one evaluator's answer – all of them, also duplicates and contradictions
  * (append-only). A check counts only when it is bound to a proposal of the round the evaluator is expected for, to the
- * revision of the round and to a requirement id of the round's list; otherwise it is stored with the reason.
+ * revision of the round and to a requirement id of the round's list; otherwise it is stored with the reason. In a split
+ * evaluation (#246) `scope` holds the requirement ids of this call: a check of an id that belongs to another call is
+ * stored as invalid, so every requirement counts from exactly one call – the same checks as one unsplit answer.
  */
 export function requirementCheckRows(
   ctx: SessionContext,
   round: EvaluationRound,
   evaluatorParticipantId: string,
   evaluations: ReadonlyArray<{ proposalId: string | null; revisionId: string | null; rejected: boolean; checks: ReadonlyArray<CheckAnswer> }>,
+  scope?: ReadonlySet<string>,
 ): (typeof schema.requirementCheck.$inferInsert)[] {
   const ids = new Set(round.requirementIds);
   return evaluations.flatMap((evaluation) => {
@@ -102,7 +111,9 @@ export function requirementCheckRows(
               ? "check refers to another revision than the evaluation round"
               : !ids.has(requirementId)
                 ? "requirement id is not part of the confirmed list of this round"
-                : null;
+                : scope && !scope.has(requirementId)
+                  ? "requirement id belongs to another call of this split evaluation"
+                  : null;
       return {
         id: newId("rqc"),
         organizationId: ctx.orgId,
@@ -126,11 +137,32 @@ export function requirementCheckRows(
 
 /** Runs the engine's gate on the frozen round and the stored raw checks. */
 export async function evaluateRequirementGate(ctx: SessionContext, round: EvaluationRound, deliveredEvaluatorIds: string[]): Promise<GateResult> {
-  const rows = await ctx.db
+  const baseRows = await ctx.db
     .select()
     .from(schema.requirementCheck)
     .where(eq(schema.requirementCheck.roundId, round.id))
     .orderBy(asc(schema.requirementCheck.createdAt), asc(schema.requirementCheck.id));
+  // #228/#229: finished follow-up rounds fill missing or UNKNOWN checks of the same evaluator – a FAIL always stays.
+  const followUps = await ctx.db
+    .select()
+    .from(schema.evaluationRound)
+    .where(and(eq(schema.evaluationRound.parentRoundId, round.id), eq(schema.evaluationRound.status, "done")))
+    .orderBy(asc(schema.evaluationRound.round));
+  const rows = followUps.length
+    ? mergeFollowUpChecks(
+        baseRows,
+        await Promise.all(
+          followUps.map(async (f) => ({
+            items: f.items ?? [],
+            rows: await ctx.db
+              .select()
+              .from(schema.requirementCheck)
+              .where(eq(schema.requirementCheck.roundId, f.id))
+              .orderBy(asc(schema.requirementCheck.createdAt), asc(schema.requirementCheck.id)),
+          })),
+        ),
+      )
+    : baseRows;
   const revisions = await Promise.all(
     round.proposals.map(async (p) => (await ctx.db.select().from(schema.proposalRevision).where(eq(schema.proposalRevision.id, p.revisionId)))[0]),
   );
@@ -150,10 +182,24 @@ export async function evaluateRequirementGate(ctx: SessionContext, round: Evalua
   const measures = Object.fromEntries(
     (list?.items ?? []).filter((item) => item.measure && round.requirementIds.includes(item.id)).map((item) => [item.id, item.measure!]),
   );
+  const buildChecks = (list?.items ?? []).filter((item) => item.verification === "build" && round.requirementIds.includes(item.id)).map((item) => item.id);
+  // #249 part 2: from gate version 3 the round names its measurement checks (possibly none); version 2 passes nothing.
+  const measurementChecks =
+    ctx.session.gateVersion >= MEASUREMENT_CHECK_GATE_VERSION
+      ? (list?.items ?? [])
+          .filter((item) => round.requirementIds.includes(item.id) && requirementVerification(item, ctx.session.gateVersion) === "measurement")
+          .map((item) => item.id)
+      : null;
+  // Engine contract 6 (user decision 08.11.26): instances of one model are one independent evaluator. The group comes
+  // from the participant's stored provider and model id, which never change during a run.
+  const participantGroups = groupsOf(await ctx.participants(false));
   const result = engine.evaluateGate({
     round: {
       requirementIds: round.requirementIds,
+      participantGroups,
       ...(Object.keys(measures).length ? { measures } : {}),
+      ...(buildChecks.length ? { buildChecks } : {}),
+      ...(measurementChecks ? { measurementChecks } : {}),
       proposals: round.proposals.map((p, index) => ({
         proposalId: p.proposalId,
         revisionId: p.revisionId,
@@ -193,6 +239,9 @@ export function assertGateResultConsistent(round: Pick<EvaluationRound, "require
     if (new Set(ids).size !== ids.length || [...ids].sort().join("|") !== requirementIds) fail("requirements");
     if (p.requirements.some((r) => !STATUSES.has(r.status))) fail("status");
     if (p.feasibility === "qualified" && p.requirements.some((r) => r.status !== "PASS")) fail("qualified without every requirement PASS");
+    // #249 part 2: a confirmed measurement plan never qualifies – checked here too, not only trusted from the engine.
+    if (p.feasibility === "qualified" && (p.architectureCandidate === true || p.requirements.some((r) => r.measurementPending === true)))
+      fail("qualified with an open measurement");
     const expected = round.proposals.find((r) => r.proposalId === p.proposalId)!.expectedEvaluatorIds;
     if (p.soleBlocker !== null && !expected.includes(p.soleBlocker)) fail("blocker");
   }

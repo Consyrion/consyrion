@@ -1,5 +1,5 @@
 import { can, DEFAULT_PLAN, isSelfHosted } from "@consyrion/core";
-import { countNewFeedback, getEntitlements, listOrganizationsForUser, resolvePlatformAdmin } from "@consyrion/db";
+import { countNewFeedback, countUnreadFeedbackReplies, getEntitlements, listOrganizationsForUser, resolvePlatformAdmin } from "@consyrion/db";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -19,6 +19,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = isPlatformAdmin(user);
   // "New" counter of the feedback inbox next to the Admin entry (#295).
   const newFeedback = isAdmin ? await countNewFeedback(db, await resolvePlatformAdmin(db, user.id, platformAdminEmails(), platformAdminOptions())) : 0;
+  // Unread answers to the user's own reports (#295 stage 3), next to "Feedback & bugs".
+  const unreadReplies = await countUnreadFeedbackReplies(db, actor);
   // Upgrade entry in the sidebar (owner request 08.11.26): only on the free plan, only for people who may manage
   // billing, and only while online checkout is open. Checked in this order so most pages need no Stripe lookup.
   const showUpgrade =
@@ -32,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       organizationName={org?.name ?? t("workspace")}
       isAdmin={isAdmin}
       adminBadge={newFeedback}
+      feedbackBadge={unreadReplies}
       showUpgrade={showUpgrade}
     >
       {children}

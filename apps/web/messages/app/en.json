@@ -172,7 +172,10 @@
       "changes_requested": "Changes requested",
       "failed": "Failed",
       "cancelled": "Cancelled"
-    }
+    },
+    "showArchived": "Show {n} sessions of archived projects",
+    "hideArchived": "Hide sessions of archived projects",
+    "archivedBadge": "archived"
   },
   "projects": {
     "metaTitle": "Projects",
@@ -224,7 +227,7 @@
     "phases": "Phases",
     "executionAfterApproval": "Execution only after your approval",
     "delete": "Delete project",
-    "deleteText": "Permanently deletes the project with all council sessions, decisions, generated code and documents.",
+    "deleteText": "Deletes this project and everything in it at once: running councils and builds are stopped first, then all data is removed (usually within seconds).",
     "deleteButton": "Delete project permanently",
     "overview": {
       "title": "Project overview",
@@ -252,7 +255,27 @@
       "emptyTitle": "No council yet",
       "emptyText": "Start a council: several AI models think independently, debate and reach a verdict you approve. Here you will then see which models took part.",
       "emptyNoRights": "Only members who may run decisions can start a council"
-    }
+    },
+    "demoBadge": "Demo",
+    "demo": {
+      "notice": "This is a demo: a finished council copied into your workspace so you can see how a decision looks. It is read-only and does not count against your plan. You can delete it at any time.",
+      "cta": "Create your own project"
+    },
+    "archive": {
+      "title": "Archive project",
+      "restoreTitle": "Archived project",
+      "archiveText": "Archived projects stay readable and exportable, but no new council, approval or build can start; running councils continue. You can restore it at any time.",
+      "restoreText": "This project is archived. Restore it to start councils, approve and build again (it takes an active project slot of your plan).",
+      "archive": "Archive project",
+      "confirm": "Yes, archive",
+      "cancel": "Cancel",
+      "restore": "Restore project",
+      "working": "Saving …",
+      "error": "The change could not be saved.",
+      "banner": "This project is archived – read-only. Restore it at the bottom of this page to continue working on it.",
+      "listTitle": "Archive ({n})"
+    },
+    "deleteCounts": "This project: {sessions, plural, one {# council session} other {# council sessions}} ({running} running or queued), {documents, plural, one {# document} other {# documents}}."
   },
   "councilSetup": {
     "metaTitle": "Configure AI team",
@@ -361,7 +384,18 @@
     "size": "{n, plural, one {# file} other {# files}}, {size} ≈ {tokens} tokens per model call",
     "limit": "at most {files} files and {size}",
     "readingFiles": "Reading files…",
-    "use": "Use as context"
+    "use": "Use as context",
+    "savedState": "Saved: {repo} @ {sha} · {n, plural, one {# file} other {# files}} · {size} · ≈ {tokens} tokens per model call",
+    "change": "Change",
+    "remove": "Remove",
+    "removed": "Repository context removed. Confirm the requirements again before the next council.",
+    "removeError": "The repository context could not be removed",
+    "removeConfirm": "Remove the repository context? The models then no longer read these files, and the requirements must be confirmed again.",
+    "removeYes": "Remove context",
+    "cancel": "Cancel",
+    "newerCommit": "The branch has moved on since the saved state ({saved} → {current}). Your saved selection is kept; save to update the context to the new commit.",
+    "saveConfirm": "Save these files as context? The requirements must then be confirmed again before the next council, because the sources change.",
+    "saveYes": "Save as context"
   },
   "requirements": {
     "suspicion": {
@@ -427,7 +461,33 @@
     },
     "undecidedError": "At least one proposed statement is neither kept nor excluded with a reason. Reload the page and decide every marked statement.",
     "conflict": "{first} and {second} may contradict each other: deletion within {deleteDays} days, but retention for at least {retainDays} days. No proposal can meet both – change one of them before you start the council.",
-    "reasonMissingError": "At least one statement you did not take over has no reason (at least 3 characters). Add it and confirm again."
+    "reasonMissingError": "At least one statement you did not take over has no reason (at least 3 characters). Add it and confirm again.",
+    "buildCheck": "build check",
+    "buildCheckHint": "Only the implementation can prove this (tests, CI). The council checks that a proposal names a concrete verification plan; the build verifies it.",
+    "split": {
+      "proposal": "Contains {n} independently checkable parts:",
+      "proposalNote": "Each part keeps its wording, numbers and negations and refers to the original. Nothing is split unless you choose to.",
+      "apply": "Split into {n} parts",
+      "keep": "Keep as one",
+      "coupled": "Conditions that belong together – checked as one requirement.",
+      "unclear": {
+        "alternatives": "Contains alternatives (or) – splitting could change the meaning. Split it yourself if the parts are independent.",
+        "shared_scope": "A word at the start may apply to every item (e.g. “must”, “no”, “only”) – split it yourself if the parts are independent.",
+        "coverage": "A split would lose a number or negation – split it yourself if the parts are independent."
+      },
+      "manual": "Split myself",
+      "limit": "This would exceed 100 requirements per list – remove or merge requirements first.",
+      "origin": "Part {part} of {of} – from: “{original}”",
+      "addPart": "Add part",
+      "merge": "Merge back into the original",
+      "gaps": "The original contains {tokens}, but no part does – check the parts so nothing gets lost."
+    },
+    "checkability": {
+      "before": "checkable before the start",
+      "after_implementation": "measurable only after implementation",
+      "build": "checked in the build",
+      "summary": "{before} checkable before the start · {after} measurable only after implementation · {build} checked in the build"
+    }
   },
   "voteWeights": {
     "noRanking": "No ranking loaded yet – neutral 5",
@@ -481,7 +541,8 @@
       "plan": "Your {plan} plan allows up to {n} models per session.",
       "roles": "Activate at least one 12 Minds Council role.",
       "weights": "Fix the highlighted Final Verdict weights (each 0–100).",
-      "total": "Weights must add up to 100 (currently {total})."
+      "total": "Weights must add up to 100 (currently {total}).",
+      "budgetTooSmall": "The budget is too small for this team: at least {tokens} tokens are needed so every model can write a proposal and the Final Verdict can still run."
     },
     "models": {
       "title": "1. Select AI models",
@@ -495,9 +556,21 @@
       "unavailableHint": "The last call of this model in this workspace was refused by the provider (model not found). It stays selectable: every council start checks it again, and the note disappears as soon as the model answers or after 24 hours."
     },
     "roles": {
+      "addedTitle": "{n, plural, one {One model} other {# models}} had no perspective – added automatically, so every model gives its own critical review (still one vote per model):",
+      "addedLine": "{model}: {role}",
+      "addedToggle": "Extra perspectives for {n, plural, one {the model} other {the # models}} without a role",
+      "addedCost": "{calls, plural, one {# extra model call} other {# extra model calls}} in the 12 Minds Council (already in the cost estimate). Two perspectives of one model are not two independent opinions – every model keeps one vote.",
+      "addedOff": "Off: {n, plural, one {one model gives} other {# models give}} no own critical review in the 12 Minds Council.",
       "title": "3. 12 Minds Council perspectives",
       "intro": "{n} active. Perspectives are not independent votes: majorities are counted per model. Fewer roles cost less.",
-      "modelFor": "Model for {role}"
+      "modelFor": "Model for {role}",
+      "origin": {
+        "skill": "from skill",
+        "suggestion": "project suggestion",
+        "own": "your choice"
+      },
+      "vsModels": "{models, plural, one {# model} other {# models}} · {perspectives, plural, one {# perspective} other {# perspectives}} · each proposal is checked by up to {foreign, plural, one {# other model} other {# other models}} (if all of them keep answering). Perspectives are not votes: several roles on one model stay one model.",
+      "instances": "{model}: {n} instances (different keys) count as 1 independent voice – for majorities, the minimum of two independent reviewers and cross-checks. An instance never reviews another instance of its model."
     },
     "settings": {
       "title": "4. Session settings",
@@ -518,9 +591,12 @@
       "estimateDocs": "About <strong>{calls}</strong> model calls in total, at most <strong>{tokens}</strong> tokens (upper bound), including {docs, plural, one {# attached document} other {# attached documents}}.",
       "typical": "Typically about {tokens} tokens (median of your last {calls} calls).",
       "noTypical": "No typical value yet: too few earlier calls in this workspace.",
+      "splitVerdict": "Too large for one evaluation: each model checks the requirements in {calls} calls of at most {perCall}. The brief and proposals are sent once per call – the estimate and the budget include this.",
       "twoModels": "With two models each proposal has only one independent evaluator: this council can name a provisional favourite, but never a recommendation you can approve. Choose three or more models for a recommendation.",
       "failedOften": "Models that failed often",
       "failedRecently": "Often failed recently – {model}.",
+      "contextTooSmall": "Context window too small",
+      "contextDoesNotFit": "{model}: the brief, documents and all proposals need about {input} tokens, its context window has {window}. Its calls would be refused rather than cut off – choose a model with a larger window or a smaller repository context.",
       "overBudget": "The upper bound exceeds your budget of {budget} tokens. I accept that debate phases may be shortened to keep enough budget for the Final Verdict: if the budget runs short, Minority Review and Consensus Round are dropped and the proposals are not revised – the verdict then judges the first versions and is marked as shortened.",
       "checkWeights": "Check the vote weights before you start:"
     },
@@ -532,6 +608,69 @@
       "label": "Model id",
       "placeholder": "Add model id manually",
       "add": "Add"
+    }
+  },
+  "skillHub": {
+    "nav": {
+      "catalog": "SkillHub",
+      "app": "Open the app"
+    },
+    "catalog": {
+      "metaTitle": "SkillHub – decision skills",
+      "metaDescription": "Reviewed community skills for CONSYRION AI councils: perspectives, requirement building blocks, weights and rules.",
+      "title": "SkillHub",
+      "intro": "Decision packages shared by the community. Every skill here was checked automatically and approved by an admin. A skill only pre-fills a council – you confirm the requirements and approve as usual.",
+      "search": "Search skills",
+      "category": "Category",
+      "allCategories": "All categories",
+      "searchButton": "Search",
+      "empty": "No public skills yet.",
+      "noResults": "No skills match your search."
+    },
+    "detail": {
+      "reviewed": "reviewed",
+      "perspectives": "Perspectives",
+      "blocks": "Requirement building blocks (proposals)",
+      "weights": "Verdict weights",
+      "rules": "Session rules",
+      "knowledge": "Domain knowledge",
+      "changelog": "What this version changed",
+      "hash": "Content hash",
+      "licenseText": "Published under {license} by @{handle}. Using it creates your own copy that names the original.",
+      "uses": "{n, plural, =0 {not adopted yet} one {adopted by # workspace} other {adopted by # workspaces}}"
+    },
+    "disclaimer": "Community skill – not legal, medical or financial advice and no guarantee by CONSYRION AI. A skill never changes the requirement gate, the reviews or the human approval.",
+    "actions": {
+      "adopt": "Use in CONSYRION",
+      "adoptHint": "Creates your own private copy in your workspace (sign-in required).",
+      "adopted": "Added to your skills.",
+      "mySkills": "Open my skills",
+      "report": "Report",
+      "reason": "Reason",
+      "chooseReason": "Choose…",
+      "note": "What is wrong? (optional)",
+      "reportHint": "Reports go to the admins. They never hide a skill automatically.",
+      "sendReport": "Send report",
+      "reported": "Thank you – the admins will look at it.",
+      "signInNeeded": "Please sign in first.",
+      "signIn": "Sign in",
+      "error": "Something went wrong.",
+      "reasons": {
+        "misleading": "Misleading",
+        "injection": "Tries to manipulate the council",
+        "personal_data": "Personal data",
+        "impersonation": "Impersonation",
+        "spam": "Spam or advertising",
+        "copyright": "Copyright",
+        "other": "Other"
+      },
+      "errors": {
+        "already_reported": "You already reported this skill.",
+        "reason_missing": "Choose a reason."
+      }
+    },
+    "footer": {
+      "license": "Community skills are published under CC BY 4.0 by their authors (shown as @handle). No legal, financial or medical advice."
     }
   }
 }

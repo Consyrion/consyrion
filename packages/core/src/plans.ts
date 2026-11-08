@@ -18,6 +18,15 @@ export interface Entitlements {
   maxSandboxMinutesPerMonth: number;
   /** MCP server for external AI clients (Claude Code, Cursor …) – Pro and up on the hosted app. */
   mcp: boolean;
+  /** Own skills a workspace may keep (#363); official skills do not count. */
+  maxSkills: number;
+  /** Sharing skills with the whole workspace (#363). */
+  teamSkills: boolean;
+  /**
+   * Questions to the AI assistant per workspace and day (#281) – a guard against misuse of the platform, not a token
+   * limit (tokens are paid by the customer's own key). The platform admin changes it per plan in /admin.
+   */
+  maxAssistantQuestionsPerDay: number;
 }
 
 export interface PlanDefinition {
@@ -52,6 +61,9 @@ export const DEFAULT_PLAN_CATALOG: PlanDefinition[] = [
       maxExecutionsPerMonth: 0,
       maxSandboxMinutesPerMonth: 0,
       mcp: false,
+      maxSkills: 3,
+      teamSkills: false,
+      maxAssistantQuestionsPerDay: 50,
     },
   },
   {
@@ -68,6 +80,9 @@ export const DEFAULT_PLAN_CATALOG: PlanDefinition[] = [
       maxExecutionsPerMonth: UNLIMITED,
       maxSandboxMinutesPerMonth: 0,
       mcp: true,
+      maxSkills: UNLIMITED,
+      teamSkills: true,
+      maxAssistantQuestionsPerDay: 500,
     },
   },
   {
@@ -84,6 +99,9 @@ export const DEFAULT_PLAN_CATALOG: PlanDefinition[] = [
       maxExecutionsPerMonth: 50,
       maxSandboxMinutesPerMonth: 600,
       mcp: true,
+      maxSkills: UNLIMITED,
+      teamSkills: true,
+      maxAssistantQuestionsPerDay: 1_000,
     },
   },
   {
@@ -100,6 +118,9 @@ export const DEFAULT_PLAN_CATALOG: PlanDefinition[] = [
       maxExecutionsPerMonth: 500,
       maxSandboxMinutesPerMonth: 6_000,
       mcp: true,
+      maxSkills: UNLIMITED,
+      teamSkills: true,
+      maxAssistantQuestionsPerDay: UNLIMITED,
     },
   },
 ];
@@ -120,6 +141,9 @@ export const SELF_HOSTED_ENTITLEMENTS: Entitlements = {
   maxExecutionsPerMonth: UNLIMITED,
   maxSandboxMinutesPerMonth: UNLIMITED,
   mcp: true,
+  maxSkills: UNLIMITED,
+  teamSkills: true,
+  maxAssistantQuestionsPerDay: UNLIMITED,
 };
 
 export function isSelfHosted(env: Record<string, string | undefined> = process.env): boolean {

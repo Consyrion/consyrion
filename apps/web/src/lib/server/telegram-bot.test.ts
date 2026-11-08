@@ -16,7 +16,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { handleTelegramUpdate, parseQuestion } = await import("./telegram-bot");
+const { handleTelegramUpdate, parseBudget, parseQuestion, questionLocale } = await import("./telegram-bot");
 
 const BOT_TOKEN = "123456789:AAH-test-token-abcdefghijklmnopqrstuvw";
 const CHAT = "555000111";
@@ -56,6 +56,34 @@ describe("questions over Telegram", () => {
       question: "Postgres oder SQLite?",
       requirements: ["muss unter 20 € kosten", "Backups ohne Ausfall"],
     });
+  });
+
+  it("proposes 'must' lines as requirements when there are no '- ' lines and follows the question's language (night test R4)", () => {
+    const text =
+      "/frage A European online retailer needs to choose a customer notification system. Which option should we choose?\nThe p95 notification delivery time must be strictly below 60 seconds.\nThe system must reach at least 95% of customers.";
+    expect(parseQuestion(text)).toEqual({
+      question: "A European online retailer needs to choose a customer notification system. Which option should we choose?",
+      requirements: ["The p95 notification delivery time must be strictly below 60 seconds.", "The system must reach at least 95% of customers."],
+    });
+    expect(questionLocale(text, "de")).toBe("en");
+    expect(questionLocale("/frage Sollen wir die Mitglieder per E-Mail oder in einer Gruppe informieren, und was ist für den Verein besser?", "en")).toBe("de");
+    expect(questionLocale("/frage ok?", "de")).toBe("de");
+  });
+
+  it("reads an optional budget line and keeps it out of the question (night test R4)", () => {
+    expect(parseBudget("/frage X oder Y?\n- muss billig sein\nBudget: 180000")).toBe(180_000);
+    expect(parseBudget("/frage X?\nbudget 150k")).toBe(150_000);
+    expect(parseBudget("/frage X?\nBudget: 10")).toBe(50_000);
+    expect(parseBudget("/frage X?\nBudget: 9000000")).toBe(300_000);
+    expect(parseBudget("/frage Welches Budget passt?")).toBeNull();
+    expect(parseQuestion("/frage X oder Y?\n- muss billig sein\nBudget: 180000")).toEqual({ question: "X oder Y?", requirements: ["muss billig sein"] });
+  });
+
+  it("lets only the person who connected the chat switch on questions (#408)", async () => {
+    await handle.db.insert(schema.user).values({ id: "adm2", name: "Admin", email: "adm2@example.test" });
+    await handle.db.insert(schema.membership).values({ id: "mem_adm2", organizationId: orgId, userId: "adm2", role: "admin" });
+    const admin = await resolveActor(handle.db, "adm2", orgId);
+    await expect(enableTelegramInbound(handle.db, admin, keyring, connectionId, "s3cret-webhook", "de")).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("works only in a private chat and only with the right webhook secret; the secret's hash is never listed", async () => {

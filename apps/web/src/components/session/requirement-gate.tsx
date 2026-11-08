@@ -13,6 +13,10 @@ interface GateRequirement {
   unknown: string[];
   open: string[];
   conflicts: string[];
+  /** Build check (night test R4): PASS means a verification plan is named; verified after implementation. */
+  buildVerification?: boolean;
+  /** Measurement check (#249 part 2): PASS means a measurement plan is named; the requirement is open until measured. */
+  measurementPending?: boolean;
   /** Measured requirements (engine contract 3): the counted estimate ranges and the limit. */
   estimate?: {
     low: number;
@@ -34,6 +38,8 @@ interface GateProposal {
   causes: string[];
   /** #249: every check passed, but too few independent evaluators took part – a provisional favourite, not approvable. */
   limitedReview?: boolean;
+  /** #249 part 2: every check passed, but a measurement check only has its plan confirmed – never approvable as finished. */
+  architectureCandidate?: boolean;
 }
 export interface RequirementGateResult {
   proposals: GateProposal[];
@@ -50,14 +56,21 @@ export const FEASIBILITY_TONE: Record<GateProposal["feasibility"], "success" | "
   incomplete: "danger",
 };
 
-/** The badge of one proposal: a provisional favourite (#249) is named as such instead of "needs verification". */
-export const feasibilityLabel = (p: Pick<GateProposal, "feasibility" | "limitedReview">) =>
-  p.limitedReview ? { key: "provisional", tone: "warning" as const } : { key: p.feasibility, tone: FEASIBILITY_TONE[p.feasibility] };
+/**
+ * The badge of one proposal: a provisional favourite (#249) or an architecture candidate (#249 part 2) is named as such
+ * instead of "needs verification".
+ */
+export const feasibilityLabel = (p: Pick<GateProposal, "feasibility" | "limitedReview" | "architectureCandidate">) =>
+  p.limitedReview
+    ? { key: "provisional", tone: "warning" as const }
+    : p.architectureCandidate
+      ? { key: "architectureCandidate", tone: "warning" as const }
+      : { key: p.feasibility, tone: FEASIBILITY_TONE[p.feasibility] };
 
 /** Translated feasibility badge (text + tone) for one proposal. */
 export function useFeasibilityLabel() {
   const t = useTranslations("requirementGate.feasibility");
-  return (p: Pick<GateProposal, "feasibility" | "limitedReview">) => {
+  return (p: Pick<GateProposal, "feasibility" | "limitedReview" | "architectureCandidate">) => {
     const label = feasibilityLabel(p);
     return { text: t.has(label.key) ? t(label.key) : label.key.replaceAll("_", " "), tone: label.tone };
   };
@@ -109,7 +122,17 @@ export function RequirementGateTable({ view, gate }: { view: View; gate: Require
                   return (
                     <li key={r.requirementId} className="py-2">
                       <div className="flex flex-wrap items-start gap-2">
-                        <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
+                        {r.buildVerification && r.status === "PASS" ? (
+                          <span title={t("buildPendingHint")}>
+                            <Badge tone="warning">{t("buildPending")}</Badge>
+                          </span>
+                        ) : r.measurementPending && r.status === "PASS" ? (
+                          <span title={t("measurementPendingHint")} data-testid="measurement-pending">
+                            <Badge tone="warning">{t("measurementPending")}</Badge>
+                          </span>
+                        ) : (
+                          <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
+                        )}
                         <span>
                           <strong>{r.requirementId}</strong> {items.get(r.requirementId) ?? ""}
                         </span>

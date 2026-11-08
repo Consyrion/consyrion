@@ -16,6 +16,10 @@ import {
   type RoleSuggestionResult,
   type StrengthSuggestion,
   type VoteWeightWarning,
+  coverAllParticipants,
+  independenceKey,
+  profilesAfterApply,
+  suggestRoleProfiles,
 } from "@consyrion/core/browser";
 import { useFormatter, useTranslations } from "next-intl";
 import Link from "next/link";
@@ -27,6 +31,9 @@ import { TextAreaField } from "./ui/field";
 import { Alert, Badge, Card } from "./ui/surface";
 import { Select } from "./ui/select";
 import { RoleSuggestionCard } from "./role-suggestion-card";
+import { countStatuses, skillBlockStatuses, useDismissedSkillBlocks } from "./skills/skill-block-status";
+import { chosenRoleProfileIds, RoleProfilePicker } from "./role-profiles/role-profile-picker";
+import type { RoleProfileRow } from "./role-profiles/role-profile-manager";
 import { VoteWeights, voteWarningText, type VoteWeightRow } from "./vote-weights";
 
 interface CredentialModels {
@@ -81,16 +88,35 @@ const stringify = (weights: EvaluationWeights) =>
 const WEIGHT_KEYS: Array<keyof EvaluationWeights> = ["technicalQuality", "security", "maintainability", "operatingCost", "implementationSpeed"];
 
 interface Preview {
-  estimate: { calls: number; upperBound: number; withinBudget: boolean; typical: { tokens: number; basedOnCalls: number } | null };
+  estimate: { calls: number; upperBound: number; withinBudget: boolean; minimumBudget?: number; typical: { tokens: number; basedOnCalls: number } | null };
   documents: number;
   /** Server-side plan gate (#173): why the start would be refused, or null. */
   planLimit?: string | null;
   /** #228: whether each evaluator's Final Verdict fits into one call; refused when it does not, warned when tight. */
-  finalVerdictSize?: { fits: boolean; tight: boolean; message: string | null };
+  finalVerdictSize?: { fits: boolean; tight: boolean; split?: boolean; callsPerEvaluator?: number; requirementsPerCall?: number; message: string | null };
   /** Models that failed often in this workspace's recent councils (#175). */
   modelWarnings?: string[];
+  /** #243: whether the brief and all proposals leave room for an answer in each model's context window (null = not reported). */
+  contextFit?: Array<{ modelId: string; contextWindow: number | null; estimatedInput: number; fits: boolean | null }>;
   /** Dominant or far-off vote weights (#170), computed on the server (#189). */
   voteWeightWarnings?: VoteWeightWarning[];
+}
+
+/** What a skill pre-fills on this screen (#363); built on the server from the skill content. */
+export interface SkillPrefill {
+  id: string;
+  version: number;
+  name: string;
+  mode?: DecisionMode;
+  models?: number;
+  roles?: CouncilRole[];
+  weights?: EvaluationWeights;
+  sessionRules?: string;
+  /**
+   * Requirement building blocks (#420) with the confirmed requirement texts: "Before you start" names open blocks as a
+   * hint, never as a blocker. `storageKey` is the same per-browser key the intake uses for dismissed blocks.
+   */
+  blocks?: { list: string[]; confirmed: string[]; storageKey: string };
 }
 
 /** Screen #38 – choose models from the live registry, roles, mode, rounds, budget and rules. */
@@ -101,6 +127,7 @@ export function TeamConfig({
   maxModels: planMax,
   requirementsConfirmed,
   roleSuggestion,
+  skill,
 }: {
   projectId: string;
   projectName: string;
@@ -110,11 +137,18 @@ export function TeamConfig({
   requirementsConfirmed: boolean;
   /** Deterministic perspective suggestion for this project (#269); applied only by the user's click. */
   roleSuggestion?: RoleSuggestionResult;
+  /** The chosen skill (#363): pre-fills mode, perspectives, weights and session rules – the user can change everything. */
+  skill?: SkillPrefill | null;
 }) {
   const maxModels = Math.max(MIN_PARTICIPANTS, Math.min(MAX_PARTICIPANTS, planMax));
   const t = useTranslations("teamConfig");
+  const tSkill = useTranslations("skills.setup");
   const tRoles = useTranslations("roleSuggestion.names");
   const tVotes = useTranslations("voteWeights");
+  const [dismissedBlocks] = useDismissedSkillBlocks(skill?.blocks?.storageKey ?? null);
+  const openBlocks = skill?.blocks ? countStatuses(skillBlockStatuses(skill.blocks.list, skill.blocks.confirmed, dismissedBlocks)).open : 0;
+  const roleOrigin = (role: CouncilRole): "skill" | "suggestion" | "own" =>
+    skill?.roles?.includes(role) ? "skill" : roleSuggestion?.suggested.some((s) => s.role === role) ? "suggestion" : "own";
   const roleLabel = (role: string) => (tRoles.has(role) ? tRoles(role) : ROLE_LABEL(role));
   const format = useFormatter();
   const router = useRouter();
@@ -122,17 +156,32 @@ export function TeamConfig({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Selected[]>([]);
-  const [mode, setMode] = useState<DecisionMode>("independent_expert");
-  const [roles, setRoles] = useState<CouncilRole[]>(MODE_POLICIES.independent_expert.roles);
+  const initialMode: DecisionMode = skill?.mode ?? "independent_expert";
+  const [mode, setMode] = useState<DecisionMode>(initialMode);
+  const [roles, setRoles] = useState<CouncilRole[]>(skill?.roles?.length ? skill.roles : MODE_POLICIES[initialMode].roles);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
-  const [debateRounds, setDebateRounds] = useState(MODE_POLICIES.independent_expert.debateRounds);
-  const [consensusRounds, setConsensusRounds] = useState(MODE_POLICIES.independent_expert.consensusRounds);
-  const [allowHybrid, setAllowHybrid] = useState(MODE_POLICIES.independent_expert.allowHybrid);
-  const [weights, setWeights] = useState<EvaluationWeights>(MODE_POLICIES.independent_expert.weights);
+  const [debateRounds, setDebateRounds] = useState(MODE_POLICIES[initialMode].debateRounds);
+  const [consensusRounds, setConsensusRounds] = useState(MODE_POLICIES[initialMode].consensusRounds);
+  const [allowHybrid, setAllowHybrid] = useState(MODE_POLICIES[initialMode].allowHybrid);
+  const [weights, setWeights] = useState<EvaluationWeights>(skill?.weights ?? MODE_POLICIES[initialMode].weights);
   // What the user typed, so an empty or negative field is not silently turned into a number (#97).
-  const [weightInputs, setWeightInputs] = useState<Record<keyof EvaluationWeights, string>>(() => stringify(MODE_POLICIES.independent_expert.weights));
+  const [weightInputs, setWeightInputs] = useState<Record<keyof EvaluationWeights, string>>(() =>
+    stringify(skill?.weights ?? MODE_POLICIES[initialMode].weights),
+  );
   const [tokenBudget, setTokenBudget] = useState(400_000);
-  const [customRules, setCustomRules] = useState("");
+  // #136 (ChatGPT review): extra perspectives can be switched off; the setup shows what they cost.
+  const [extraRoles, setExtraRoles] = useState(true);
+  // #270: optional role profile per active role (Settings → Role profiles); loaded once, never required.
+  const [roleProfiles, setRoleProfiles] = useState<RoleProfileRow[]>([]);
+  const [profileChoice, setProfileChoice] = useState<Partial<Record<CouncilRole, string>>>({});
+  // #269: one suggested profile per suggested role (only own/team profile, else curated; none when several to choose from).
+  const profileSuggestions = useMemo(() => (roleSuggestion ? suggestRoleProfiles(roleSuggestion, roleProfiles) : []), [roleSuggestion, roleProfiles]);
+  /** Applying the suggestion: roles and their suggested profiles – a profile the user already chose is never replaced. */
+  function applySuggestedRoles(next: CouncilRole[]) {
+    setRoles(next);
+    setProfileChoice((current) => profilesAfterApply(next, profileSuggestions, current));
+  }
+  const [customRules, setCustomRules] = useState(skill?.sessionRules ?? "");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -141,6 +190,10 @@ export function TeamConfig({
     fetchJson<{ credentials: CredentialModels[] }>("/api/models")
       .then((r) => setRegistry(r.credentials))
       .catch((err) => setLoadError(err instanceof ApiRequestError ? err.message : t("loadError")));
+    // Role profiles are optional: if they cannot be loaded, the setup works without them.
+    fetchJson<{ profiles: RoleProfileRow[] }>("/api/role-profiles")
+      .then((r) => setRoleProfiles(r.profiles))
+      .catch(() => setRoleProfiles([]));
   }, []);
 
   function applyMode(next: DecisionMode) {
@@ -195,9 +248,13 @@ export function TeamConfig({
       weights,
       tokenBudget,
       customRules,
+      ...(extraRoles ? {} : { extraRoles: false }),
+      // Which skill pre-filled this setup (#363); the server records it with the session (part 3) and ignores it until then.
+      ...(skill ? { skill: { id: skill.id, version: skill.version } } : {}),
       roleAssignments: selected.length > 0 ? roles.map((role, index) => ({ role, participantIndex: assignments[role] ?? index % selected.length })) : undefined,
+      ...(chosenRoleProfileIds(roles, profileChoice).length ? { roleProfiles: chosenRoleProfileIds(roles, profileChoice) } : {}),
     }),
-    [mode, selected, roles, debateRounds, consensusRounds, allowHybrid, weights, tokenBudget, customRules, assignments],
+    [mode, selected, roles, debateRounds, consensusRounds, allowHybrid, weights, tokenBudget, customRules, assignments, skill, extraRoles, profileChoice],
   );
 
   useEffect(() => {
@@ -242,6 +299,19 @@ export function TeamConfig({
   const voteWarnings = preview?.voteWeightWarnings ?? [];
 
   const budgetError = tokenBudgetError(tokenBudget) ? t("budgetError", { min: format.number(MIN_TOKEN_BUDGET), max: format.number(MAX_TOKEN_BUDGET) }) : null;
+  const coverage = coverAllParticipants(
+    roles,
+    selected.length,
+    roles.map((role, index) => ({ role, participantIndex: assignments[role] ?? index % Math.max(1, selected.length) })),
+  ).added;
+  // User decision 08.11.26: the same model may join again through another key – its instances are ONE independent
+  // voice (independence groups, the same rule as the server, the verdict and the gate). Said here, not blocked.
+  const modelKey = (s: Selected) => independenceKey(s.provider, s.modelId);
+  const instanceGroups = [...new Set(selected.map(modelKey))]
+    .map((key) => ({ key, members: selected.filter((s) => modelKey(s) === key) }))
+    .filter((g) => g.members.length > 1);
+  const independentModels = new Set(selected.map(modelKey)).size;
+  const perspectives = roles.length + (extraRoles ? coverage.length : 0);
   const problems = [
     requirementsConfirmed ? null : t("problem.requirements"),
     selected.length < MIN_PARTICIPANTS ? t("problem.minModels") : null,
@@ -249,12 +319,17 @@ export function TeamConfig({
     preview?.planLimit ?? null,
     preview?.finalVerdictSize && !preview.finalVerdictSize.fits ? preview.finalVerdictSize.message : null,
     budgetError,
+    // Night test R4: below this the council fails before a verdict – the start stays disabled.
+    preview?.estimate.minimumBudget && tokenBudget < preview.estimate.minimumBudget
+      ? t("problem.budgetTooSmall", { tokens: format.number(preview.estimate.minimumBudget) })
+      : null,
     roles.length === 0 ? t("problem.roles") : null,
     !weightsValid ? t("problem.weights") : weightTotal !== 100 ? t("problem.total", { total: weightTotal }) : null,
   ].filter(Boolean) as string[];
 
   return (
     <div className="space-y-6">
+      {skill ? <Alert tone="success">{tSkill("prefilled", { name: skill.name, version: skill.version })}</Alert> : null}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -267,6 +342,12 @@ export function TeamConfig({
           </div>
           <Badge tone={selected.length >= 2 ? "success" : "warning"}>{t("models.selected", { n: selected.length, max: maxModels })}</Badge>
         </div>
+        {/* #421: the skill recommends a number of models; BYOK – the user picks them with their own keys. */}
+        {skill?.models ? (
+          <p className="mt-3 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm" data-testid="skill-models-hint">
+            {tSkill("modelsRecommended", { n: skill.models, selected: selected.length })}
+          </p>
+        ) : null}
         {loadError ? (
           <div className="mt-4">
             <Alert>{loadError}</Alert>
@@ -365,16 +446,40 @@ export function TeamConfig({
       <Card>
         <h2 className="font-semibold">{t("roles.title")}</h2>
         <p className="text-sm text-muted">{t("roles.intro", { n: roles.length })}</p>
-        {roleSuggestion ? <RoleSuggestionCard suggestion={roleSuggestion} active={roles} onApply={setRoles} /> : null}
+        {/* #269: role ≠ vote, stated as numbers – perspectives never count as extra independent evaluators. */}
+        {selected.length ? (
+          <p className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" data-testid="roles-vs-models">
+            {t("roles.vsModels", { models: independentModels, perspectives, foreign: Math.max(independentModels - 1, 0) })}
+          </p>
+        ) : null}
+        {instanceGroups.length ? (
+          <Alert tone="warning">
+            <span data-testid="model-instances">
+              {instanceGroups.map((g) => t("roles.instances", { model: g.members[0]!.displayName, n: g.members.length })).join(" ")}
+            </span>
+          </Alert>
+        ) : null}
+        {roleSuggestion ? (
+          <RoleSuggestionCard
+            suggestion={roleSuggestion}
+            active={roles}
+            onApply={applySuggestedRoles}
+            profileSuggestions={profileSuggestions}
+            profileNames={Object.fromEntries(roleProfiles.map((p) => [p.id, p.name]))}
+            skill={skill?.roles?.length ? { name: skill.name, roles: skill.roles } : null}
+          />
+        ) : null}
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {COUNCIL_ROLES.map((role) => {
             const active = roles.includes(role);
             const index = roles.indexOf(role);
             return (
               <div key={role} className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2">
-                <label className="flex items-center gap-2 text-sm">
+                <label className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
                   <input type="checkbox" checked={active} onChange={() => setRoles((r) => (active ? r.filter((x) => x !== role) : [...r, role]))} />
                   {roleLabel(role)}
+                  {/* #421: where an active role comes from – the skill, the project suggestion or the user's own choice. */}
+                  {active && skill ? <Badge tone={roleOrigin(role) === "skill" ? "accent" : "neutral"}>{t(`roles.origin.${roleOrigin(role)}`)}</Badge> : null}
                 </label>
                 {active && selected.length > 0 ? (
                   <Select
@@ -394,6 +499,29 @@ export function TeamConfig({
             );
           })}
         </div>
+        <RoleProfilePicker roles={roles} profiles={roleProfiles} value={profileChoice} onChange={setProfileChoice} roleLabel={roleLabel} />
+        {/* #136: models without a perspective get an extra one (same rule as the server), shown before the start. */}
+        {coverage.length ? (
+          <div className="mt-3 rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm" data-testid="added-roles">
+            <label className="flex items-center gap-2 font-medium">
+              <input type="checkbox" checked={extraRoles} onChange={(e) => setExtraRoles(e.target.checked)} />
+              {t("roles.addedToggle", { n: coverage.length })}
+            </label>
+            {extraRoles ? (
+              <>
+                <p className="mt-1">{t("roles.addedTitle", { n: coverage.length })}</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {coverage.map((a) => (
+                    <li key={a.role}>{t("roles.addedLine", { model: selected[a.participantIndex]?.displayName ?? "?", role: roleLabel(a.role) })}</li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-muted">{t("roles.addedCost", { calls: coverage.length * debateRounds })}</p>
+              </>
+            ) : (
+              <p className="mt-1 text-warning">{t("roles.addedOff", { n: coverage.length })}</p>
+            )}
+          </div>
+        ) : null}
       </Card>
 
       <Card>
@@ -497,6 +625,12 @@ export function TeamConfig({
               : t("summary.noTypical")}
           </p>
         ) : null}
+        {preview?.finalVerdictSize?.fits && preview.finalVerdictSize.split ? (
+          // #246: the Final Verdict is split into requirement groups – more calls, all counted in estimate and budget.
+          <p className="mt-2 text-sm text-warning" data-testid="final-verdict-split">
+            {t("summary.splitVerdict", { calls: preview.finalVerdictSize.callsPerEvaluator ?? 2, perCall: preview.finalVerdictSize.requirementsPerCall ?? 1 })}
+          </p>
+        ) : null}
         {preview?.finalVerdictSize?.fits && preview.finalVerdictSize.tight && preview.finalVerdictSize.message ? (
           <p className="mt-2 text-sm text-warning" data-testid="final-verdict-size">
             {preview.finalVerdictSize.message}
@@ -506,6 +640,17 @@ export function TeamConfig({
           <p className="mt-2 text-sm text-warning" data-testid="review-breadth">
             {t("summary.twoModels")}
           </p>
+        ) : null}
+        {preview?.contextFit?.some((m) => m.fits === false) ? (
+          <ul className="mt-2 list-disc pl-5 text-sm text-warning" aria-label={t("summary.contextTooSmall")}>
+            {preview.contextFit
+              .filter((m) => m.fits === false)
+              .map((m) => (
+                <li key={m.modelId}>
+                  {t("summary.contextDoesNotFit", { model: m.modelId, input: format.number(m.estimatedInput), window: format.number(m.contextWindow ?? 0) })}
+                </li>
+              ))}
+          </ul>
         ) : null}
         {preview?.modelWarnings?.length ? (
           <ul className="mt-2 list-disc pl-5 text-sm text-warning" aria-label={t("summary.failedOften")}>
@@ -519,6 +664,14 @@ export function TeamConfig({
             <input type="checkbox" className="mt-1" checked={budgetConfirmed} onChange={(e) => setBudgetConfirmed(e.target.checked)} />
             <span>{t("summary.overBudget", { budget: format.number(tokenBudget) })}</span>
           </label>
+        ) : null}
+        {openBlocks > 0 && skill ? (
+          <p className="mt-2 text-sm text-muted" data-testid="skill-blocks-open">
+            {tSkill("blocksOpen", { n: openBlocks, name: skill.name })}{" "}
+            <a href="#skill-blocks-summary" className="text-primary hover:underline">
+              {tSkill("blocksOpenLink")}
+            </a>
+          </p>
         ) : null}
         {problems.length ? (
           <ul className="mt-2 list-disc pl-5 text-sm text-warning">

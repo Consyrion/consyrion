@@ -1,3 +1,4 @@
+import { independenceKey } from "@consyrion/core";
 import type { SessionView } from "@consyrion/council";
 
 /**
@@ -35,7 +36,10 @@ export interface DecisionAudit {
 export function buildAudit(view: SessionView): DecisionAudit {
   const model = (participantId: string | null | undefined) => {
     const p = view.participants.find((x) => x.id === participantId);
-    return p ? `${p.provider} · ${p.modelId}` : "unknown model";
+    if (!p) return "unknown model";
+    // User decision 08.11.26: instances of one model through other keys are named apart, one independent voice.
+    const group = view.participants.filter((x) => independenceKey(x.provider, x.modelId) === independenceKey(p.provider, p.modelId));
+    return group.length > 1 ? `${p.provider} · ${p.modelId} #${group.indexOf(p) + 1}/${group.length}` : `${p.provider} · ${p.modelId}`;
   };
   const items = view.requirementList?.items ?? [];
   const requirementName = (id: string) => {

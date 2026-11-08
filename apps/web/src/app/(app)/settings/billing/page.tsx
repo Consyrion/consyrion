@@ -170,6 +170,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 <th>{t("colCalls")}</th>
                 <th>{t("colFailed")}</th>
                 <th>{t("colInput")}</th>
+                <th>{t("colCachedInput")}</th>
                 <th>{t("colOutput")}</th>
                 <th>{t("colCost")}</th>
               </tr>
@@ -186,6 +187,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td>{m.calls}</td>
                     <td>{m.failed}</td>
                     <td>{format.number(m.inputTokens)}</td>
+                    <td>{m.cachedInputTokens ? format.number(m.cachedInputTokens) : "–"}</td>
                     <td>{format.number(m.outputTokens)}</td>
                     <td>{cost === null ? "–" : `${cost.toFixed(2)} ${hint!.currency}`}</td>
                   </tr>

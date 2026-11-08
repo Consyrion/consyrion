@@ -9,6 +9,7 @@ import { setSubscriptionPlan } from "./saas";
 import { createCredential, decryptCredentialForUse, deleteCredential, listCredentials } from "./credentials";
 import { createOrganization, ensurePersonalOrganization, listOrganizationsForUser } from "./organizations";
 import { archiveProject, createProject, getProject, listProjects, updateBrief } from "./projects";
+import { assertRepositoryLinked, linkRepository, saveGitHubInstallation, suspendGitHubInstallation } from "./github";
 
 let handle: DatabaseHandle;
 let alice: ActorContext;
@@ -99,6 +100,35 @@ describe("projects", () => {
     await expect(createProject(handle.db, viewer, validProject)).rejects.toMatchObject({ code: "FORBIDDEN" });
     const [first] = await listProjects(handle.db, viewer);
     await expect(archiveProject(handle.db, viewer, first!.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("github installations (#394)", () => {
+  const installation = { installationId: 394, accountLogin: "acme", accountType: "Organization", repositorySelection: "selected" };
+
+  it("connects an installation to one workspace only", async () => {
+    await saveGitHubInstallation(handle.db, alice, installation);
+    // Reconnecting in the same workspace is fine.
+    await saveGitHubInstallation(handle.db, alice, installation);
+    await expect(saveGitHubInstallation(handle.db, bob, installation)).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+
+  it("frees the installation once it is suspended or uninstalled", async () => {
+    await suspendGitHubInstallation(handle.db, 394);
+    await expect(saveGitHubInstallation(handle.db, bob, installation)).resolves.toEqual(expect.any(String));
+  });
+});
+
+describe("github reads (#402)", () => {
+  it("reads pull requests only of repositories linked to a project of the workspace", async () => {
+    const integrationId = await saveGitHubInstallation(handle.db, alice, { installationId: 4020, accountLogin: "alice", accountType: "User", repositorySelection: "all" });
+    const created = await createProject(handle.db, alice, { ...validProject, name: "Linked repo" });
+    await linkRepository(handle.db, alice, created.id, { integrationId, fullName: "alice/app", defaultBranch: "main" });
+    await expect(assertRepositoryLinked(handle.db, alice, integrationId, "alice/app")).resolves.toBeUndefined();
+    // Granted by the installation, but not linked to any project.
+    await expect(assertRepositoryLinked(handle.db, alice, integrationId, "alice/secret-tooling")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    // Another workspace never sees it.
+    await expect(assertRepositoryLinked(handle.db, bob, integrationId, "alice/app")).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
 

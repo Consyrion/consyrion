@@ -65,7 +65,230 @@ The assistant can take work over – as **suggestions only** (like the OnJam ass
 - Checked 06.11.26 with real keys (tiny prompts): Anthropic Haiku 5.5, OpenAI gpt-5.4-mini, Gemini 2.5 Flash, DeepSeek
   Flash – chunks joined = final text, usage reported, abort → cancelled.
 
-## Next
+## Stage 4: more read tools (#282, 08.11.26)
 
-- Native tool calling (Anthropic tools, OpenAI tools, Gemini functionDeclarations) instead of the JSON loop – the JSON
-  loop works on every provider today; native calls would save tokens. Stays open in #284.
+- `get_project` (brief shortened, requirement list version and whether it is **current** – a council starts only on a
+  current list –, documents, councils), `list_documents` (role in words: source of requirements or context only,
+  origin, image description state), `get_build_status` (latest build of a decision: status, tasks done, last test run,
+  reviews, whether a draft PR may be opened with the blocking reasons, PR link) and `search` (all words of the query in
+  project name, idea, goal or requirements; matching decisions). Same rule as before: repository functions with the
+  user's actor, a foreign id is "not found", every result carries links to the real pages (chips in the panel).
+- The panel names the tools in the interface language ("Liest Projekte …", "gelesen: das Projekt") instead of
+  `list_projects`.
+- Tests: `apps/web/src/lib/server/assistant-tools.test.ts` (content, links, search, another workspace sees nothing).
+
+## Fixes from the overall test (#275, 08.11.26)
+- **Answer language:** the assistant answers in the language of the user's latest message (a German question gets a
+  German answer even with an English interface); only when that is unclear it falls back to the interface language.
+  Chat summaries follow the language of the conversation.
+- **Links with brackets:** link labels may contain one level of square brackets, so project names like
+  "[Benchmark] Todo" stay one clickable link in the panel and one "label (link)" line in the PDF.
+- **Saved repository context:** the saved line stands on its own and the Change/Remove buttons sit below it, so the
+  narrow side column no longer squeezes the text.
+
+## Cost per answer (#281, 08.11.26)
+
+Under every answer the panel shows the approximate cost next to the tokens ("≈ 0,0021 $"), computed from the price the
+workspace entered for that provider and model (Settings → Billing & usage, `model_price_hint`;
+`apps/web/src/lib/server/assistant-cost.ts`). Without a price for that model nothing is shown – no invented numbers.
+The chat API (`GET /api/assistant/chats/{id}`, the answer of `POST …/messages`) returns `cost: { amount, currency } | null`
+per message. Still open in #281: second model as reviewer / second opinion, server-side default model per user,
+daily/monthly assistant budget (these need new columns).
+
+## Chat export (#280, 08.11.26)
+
+History tab → ⤓ next to a chat downloads it as Markdown (`GET /api/assistant/chats/{id}/export`, only the owner, like
+reading it): title, export time, every message with author, time and model, the app pages it linked (absolute links;
+external links are left out) and its suggested actions with their status. Labels in the interface language
+(`assistant.export`). `apps/web/src/lib/server/assistant-export.ts`. PDF export and the stored summary of long chats
+(with the user's consent) stay open in #280.
+
+## PDF and Word (#280, #282, 08.11.26)
+
+- **Chat as PDF/Word**: History tab → *PDF* next to ⤓; `GET /api/assistant/chats/{id}/export?format=pdf|docx` (default
+  `md`). Same content as the Markdown export, with a header "Assistant chat · exported …" and the note that model
+  statements are not a fact check.
+- **Customer summary as PDF/Word**: after the user accepted a `draft_customer_summary` suggestion (with their edits), the
+  card offers *PDF · Word*: `GET /api/assistant/chats/{id}/messages/{messageId}/actions/{actionId}/document?format=pdf|docx`.
+  The file holds exactly the accepted text – no new model call –, titled "Customer summary: <project>", marked as an
+  **AI summary** and "not a council verdict". Only the chat's owner; other actions or not accepted ones → 404.
+- Rendering: `apps/web/src/lib/server/assistant-pdf.ts` uses the block parser and PDF-safe text of the decision report
+  (`reportBlocks`, `pdfSafe`) without changing the decision report files. Labels in 5 languages (`assistant.document`).
+- Still open in #280: a stored summary of long chats (only with the user's consent, it costs tokens).
+
+## Open from anywhere (#279, 08.11.26)
+
+`openAssistant({ prompt? })` (`apps/web/src/components/assistant-open.tsx`) opens the panel on the chat tab with the
+question pre-filled – it is **not sent**; the user reads, edits and sends it (a question costs tokens). The page context
+(e.g. the decision) is switched on. `AskAssistantButton` ("Ask the AI") uses it; the Final Verdict screen shows it with
+"Summarise this decision …" as the question. The panel listens for the window event `consyrion:open-assistant`.
+
+## Native tool calling in packages/ai (#284, 08.11.26)
+
+`GenerateRequest.tools` (`{ name, description, parameters }`, JSON Schema) and `GenerateResult.toolCalls`
+(`{ id, name, args }`); earlier rounds go back as `ChatMessage.toolCalls` (assistant) and `ChatMessage.toolResults`
+(user, `{ callId, name, content }`). Mapping per provider:
+
+| Provider | Tools | Call in history | Result in history |
+| --- | --- | --- | --- |
+| Anthropic | `tools[].input_schema` | `tool_use` block | `tool_result` block |
+| OpenAI (Responses) | `{type:"function", strict:false}` | `function_call` item | `function_call_output` item |
+| Gemini | `functionDeclarations[].parametersJsonSchema` | `functionCall` part | `functionResponse` part |
+| DeepSeek, GLM, Kimi, Qwen, Grok | chat `tools[].function` | assistant `tool_calls` | `role: "tool"` message |
+
+Arguments are parsed into objects (`parseToolArgs`; broken JSON becomes `{ _invalid_json }` for the model instead of
+an exception); Gemini calls without ids get numbered ids. With tools the adapters use the non-streaming call and pass
+the text to `onText` once; tools are not combined with `jsonSchema`. Without tools every adapter behaves exactly as
+before (councils unchanged). Tests: `packages/ai/src/adapters/tools.test.ts`.
+
+## Settings, second opinion and limits (#281, 08.11.26)
+
+- **Stored per user and workspace** (`assistant_preference`, migration 0039; `packages/db/src/repositories/assistant.ts`):
+  default model, an optional second model for second opinions, optional token limits per day and per month. Only the
+  user reads and changes them; a key of another workspace is "not found". `GET/PUT /api/assistant/preferences` returns
+  the settings with today's and this month's usage. Choosing a model in the panel also saves it as the default, so
+  another device starts with it; a question without a model uses the default.
+- **Second opinion**: with a second model set, every answer shows _Second opinion_. `POST
+/api/assistant/chats/{id}/messages/{messageId}/review` lets that model check the answer with the same read-only tools
+  (question and answer passed as data); it answers with a verdict line and the errors or gaps, suggests no actions, and
+  is stored as an answer with `assistant_message.review_of` (shown indented, marked "Second opinion"). One per answer.
+- **Limits** (hard since #519): before every paid call (question, council-chat answer, second opinion, cross-check,
+  summary) its estimated tokens are reserved against the user's limits (UTC day, UTC month) under a workspace lock; a
+  call that would pass a limit is refused with the tokens it needs and what is left. After the call the reservation is
+  replaced by the real tokens (or given back). A limit can only be passed when one call uses more than its estimate.
+  Councils keep their own budget.
+- **Plan limit** (08.11.26): entitlement `maxAssistantQuestionsPerDay` – questions of the whole workspace per UTC day
+  (answers and second opinions do not count). A guard against misuse of the platform, not a token limit (tokens are
+  paid by the customer's own key). Defaults: Free 50, Pro 500, Developer 1,000, Business and self-hosted unlimited;
+  the platform admin changes it per plan in `/admin` (existing plan rows get the default automatically).
+
+## Native tool loop (#284, 08.11.26)
+
+`ASSISTANT_TOOL_MODE=native` switches the assistant (questions and second opinions) to the providers' own tool calling
+(`runNativeAssistant` in `apps/web/src/lib/server/assistant.ts`): the read tools become tool definitions (argument
+schemas derived from their `args` text), suggested actions come as a call of the pseudo tool `suggest_actions` and pass
+the same allowlist, at most 4 rounds and 4 calls per round, the last round offers only `suggest_actions` so the model
+answers. Results go back by call id as data; external links are dropped as before. A provider that rejects native tools
+(`bad_request` / `invalid_output`) falls back to the JSON loop in the same request; other errors (key, rate limit) are
+reported as before.
+
+**Default stays `json`**: the JSON loop works on every provider and streams the answer word by word; in native mode the
+answer arrives at once (the adapters do not stream tool calls). Switch per deployment once streaming of native rounds
+is needed or token savings matter more than the streamed text.
+
+## Summary of long chats (#280, 08.11.26)
+
+The model reads the last 20 messages of a chat. In a longer chat the panel says how many older messages it no longer
+reads and offers **Create summary** – one call on the chat's model (or the default) without tools, only on the user's
+click, after the user's assistant limits are checked. `POST /api/assistant/chats/{id}/summary` stores it in
+`assistant_chat.summary` with `summary_until` (migration 0040); a later summary includes the previous one. Questions
+then get the summary as data (`<summary>` in the system prompt) plus only the messages after it; second opinions stay
+out of the history. Nothing is summarised automatically.
+
+## Usage ledger (ChatGPT review 08.11.26, migration 0042)
+
+Every paid assistant call – answer, second opinion, summary – writes one row to `assistant_usage` (organization, user,
+kind, tokens, time; no content and no link to the chat). The user's daily/monthly token limits and the plan's daily
+question count read this ledger, so deleting a chat (privacy) no longer resets them, summaries count toward the token
+limits, and a question whose answer failed does not count as a question. Migration 0042 copies the tokens of answers
+stored so far into the ledger and adds a unique index on `assistant_message.review_of` (one second opinion per answer,
+also for parallel requests).
+
+## Review findings fixed (ChatGPT code review, 08.11.26)
+
+- Native mode: tool results are marked as data in the system prompt like in the JSON loop; tokens of native rounds
+  before a fallback to the JSON loop are counted.
+- PDF: characters outside the PDF fonts (e.g. Chinese) are replaced by "?"; the file then says so and points to the
+  Word file, which keeps the full text.
+- `search` reads briefs and filters the same 100 projects.
+- The token limits were **soft** (checked before a call); since #519 the estimate is reserved before the call, see
+  "Limits" above. Usage that survives deleting a chat and counts summaries (findings
+  1, 2, 12) comes from the usage ledger (see below, migration 0042).
+
+## Council chat and single perspective (#241 stage 1/1b, 08.11.26)
+
+The chat tab has two modes: **1 model** and **Council chat**.
+
+- **Council chat:** pick 2–4 models of your keys. Each answers the question as its own voice (in parallel), sees the
+  earlier answers of the others labelled with their model (as data) and may agree or disagree. A question starting with
+  `@model` (id, id prefix or name) is answered only by that model. Before sending, the panel shows an upper token estimate ("up to …", live 08.11.26: 14,092 estimated vs. 4,159 real for two short answers without tools) for
+  the answers and – separately – for the optional cross-check (stage 2, only on click). Every answer is a stored
+  message with its model, goes into the usage ledger (`answer` once per question, further answers `council_answer`, so
+  the plan's daily question count counts a question once) and counts toward the user's token limits. Council-chat
+  answers suggest no action cards; a model that fails is named, the others still answer.
+- **Single perspective (1 model):** an optional expert perspective (security, cost, product, architecture,
+  operations, legal & compliance). The answer is marked "Single perspective: … – unverified" – no score, no gate, not
+  an independent check.
+- `POST /api/assistant/chats/{id|new}/council` `{ content, participants: [{credentialId, modelId, label?}], perspective?,
+  context?, preview? }` – `preview: true` returns `{ estimate: { answers, withCheck, checks }, answering }` without a
+  model call. Code: `apps/web/src/lib/server/council-chat.ts`.
+- Stage 3 "Make it a council": see below.
+
+## Cross-check in the council chat (#241 stage 2, 08.11.26, migration 0047)
+
+- In council-chat mode every answer has a **Cross-check** button. The first click shows how many other models check it
+  and the estimated tokens; nothing is paid until **Check now**. Never automatic.
+- Each *other* model of the council chat (never the model that wrote the answer, each model once per answer) judges the
+  answer: **✓ confirmed**, **⚠ contradicted** (what is wrong and what is right) or **? not checkable** (e.g. workspace
+  facts it cannot see), with a short reason in the language of the question. One call per checker without tools; it
+  sees the question, the answer and the other answers of the same turn – all marked as data. Output that is not a valid
+  verdict counts as "not checkable", never as confirmed.
+- Overall label under the answer: *Confirmed by the other models* only when every check confirms; one contradiction
+  makes it *Contradicted – read the objections* (the answer and the objection both stay visible); otherwise *Not
+  verified*. Questions about **medicine, law, security or data protection** are never "confirmed", however many models
+  agree, and carry the note to have a professional check them. The topic is taken from the question only (answers use
+  words like "Sicherheit" or "rechtfertigen" without being about it – live test 08.11.26).
+- Model ids are compared without provider prefix, trailing date and "-latest": providers return dated ids
+  (`gpt-5.4-mini-2026-03-17`) for the picked `gpt-5.4-mini`, so a model never checks its own answer and is not offered a
+  second time; the button disappears when every other council model has checked.
+- Table `assistant_check` (chat, answer, checking model, verdict, reason, tokens; unique per answer and model, also for
+  parallel requests); deleted with the chat. Every check also goes into the usage ledger as `cross_check` and counts
+  toward the user's token limits; the plan's daily question count counts questions, not checks. The second opinion of
+  the 1-model chat stays unchanged.
+- `POST /api/assistant/chats/{id}/messages/{messageId}/check` `{ participants: [{credentialId, modelId, label?}],
+  preview? }` – `preview: true` returns `{ estimate: { tokens, checks }, checkers, sensitive }`; otherwise
+  `{ checks, failures, sensitive }`. `GET /api/assistant/chats/{id}` returns the checks with the chat.
+- Code: `apps/web/src/lib/council-check.ts` (labels, shared with the panel), `apps/web/src/lib/server/council-chat.ts`
+  (`runCheck`, `parseCheck`). Tests: `council-chat.test.ts`, `packages/db/src/repositories/assistant.test.ts`.
+
+## Make it a council (#241 stage 3, 08.11.26)
+
+- After at least two different models have answered in a council chat, the panel shows **Make it a council**. One click
+  sends a prepared question to the first model of the council chat in the normal 1-model path (one answer, plan quota
+  and limits as usual).
+- The answer comes with the existing action cards: a project draft (`create_project_draft`, or `draft_brief` for the
+  project in context) with idea and goal from the question, the points the models agreed on as requirements and every
+  open disagreement as a requirement that must be checked. Nothing starts by itself: the user runs the card, confirms
+  the requirement list and starts the council from its form with the cost estimate (normal intake, #215).
+- Live test 08.11.26: Haiku announced a project draft, but the card was dropped as invalid (it sent `requirements` as a
+  list). `create_project_draft`/`draft_brief` now accept a list and join it into "- " lines; the prompt names the
+  format; dropped suggestions are logged by type and reason (no content). Answer and cards use the language of the
+  council chat's question; the button hides right after it was used.
+- For follow-up questions after a council chat the history keeps each answer's model label (`[provider/model] …`), so
+  the model knows who said what. The rule is in the assistant's system prompt; the cards keep the server allowlist.
+
+## Load and race tests (#510, 08.11.26)
+
+`apps/web/src/app/api/assistant/assistant-load.test.ts` runs the real route handlers on PGlite with a scripted provider
+(no key, no network; each answer waits a little so parallel requests overlap).
+
+- **Plan quota (questions per day):** before the fix, 20 parallel questions with a limit of 5 were all answered – the
+  check counted booked answers, and none was booked yet. Now `reserveAssistantQuestion` reserves the question under a
+  row lock of the workspace before the model runs (an "answer" row with 0 tokens), `settleAssistantQuestion` books the
+  real tokens, `releaseAssistantQuestion` gives it back when no answer came. The council chat reserves once per question.
+  Result: at most 5 of 20 (assistant) and 5 of 10 (council chat), each booked once.
+- **Double click** on second opinion or cross-check: one record each (unique indexes) and, since #510, only one paid call –
+  `onceAtATime` refuses the second identical request with 409 while the first runs (per server process; the indexes stay
+  the guarantee across processes).
+- **Abort** mid-answer: no answer stored, nothing booked (the reservation is released).
+- **Rate limit** 20 per minute per user: the 21st request gets 429.
+- **Personal token limit** (#519): measured +50 % with 10 parallel questions before; now each call reserves its estimate
+  (`estimateAnswerTokens`, `estimateCheckTokens`, `estimateSummaryTokens`) under the workspace lock
+  (`reserveAssistantUsage`) – with room for three estimates, exactly 3 of 10 parallel questions run and only their real
+  tokens stay booked.
+
+## Export with cross-checks (#486, 08.11.26)
+The chat export (Markdown, PDF, Word) puts every cross-check under the answer it checked: the overall label (confirmed /
+contradicted – read the objections / not verified, plus the medicine/law/security note) and each verdict with model and
+reason, in the same words as the panel. So the document never looks more certain than the chat. The PDF shows the words
+without ✓/⚠ (its font has no such characters). Code: `chatMarkdown` in `apps/web/src/lib/server/assistant-export.ts`.

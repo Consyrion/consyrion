@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Card } from "../ui/surface";
 import { CruxesCard } from "./cruxes-card";
 import { modelName, proposalLabel, type View } from "./helpers";
-import type { RequirementGateResult } from "./requirement-gate";
+import { useFeasibilityLabel, type RequirementGateResult } from "./requirement-gate";
 
 /**
  * Verdict dashboard (owner request 05.11.26, stage 1 of the result visualisations): the decision at a glance for a
@@ -57,6 +57,8 @@ const REQ_STATUS: Record<string, { icon: string; tone: "success" | "warning" | "
   FAIL: { icon: "✕", tone: "danger" },
   DISPUTED: { icon: "≠", tone: "warning" },
   UNKNOWN: { icon: "?", tone: "warning" },
+  // Build check (night test R4): the plan is confirmed, the proof comes from the build – never shown as met.
+  PLAN: { icon: "◷", tone: "warning" },
 };
 const CELL_CLASS: Record<"success" | "warning" | "danger", string> = {
   success: "border-success/50 bg-success/10 text-success",
@@ -70,6 +72,13 @@ const SEVERITIES = ["critical", "high", "medium", "low"] as const;
  * Fill per state (design review 05.11.26 with ChatGPT: hatching dominated the results). A blocked proposal stays a calm
  * neutral grey with a lock and the word – it never reads as a contender; only the recommendation carries the accent.
  */
+/** Gate status chip beside a score bar (#266): the words come from `requirementGate.feasibility`. */
+const GATE_TONE_CLASS: Record<"success" | "warning" | "danger", string> = {
+  success: "border-success/50 text-success",
+  warning: "border-warning/50 text-warning",
+  danger: "border-danger/50 text-danger",
+};
+
 const barFill = (blocked: boolean, recommended: boolean) => (blocked ? "bg-muted/35" : recommended ? "bg-primary" : "bg-primary/45");
 
 /** Which verdict the hero names; the screen decides it, the dashboard only words it (#266). */
@@ -80,11 +89,12 @@ export type OutcomeKey =
   | "insufficient_evidence"
   | "needs_verification"
   | "provisional"
+  | "architecture_candidate"
   | "conflict"
   | "not_approvable";
 
 /** The one next step the decision form will offer first (#266) – the dashboard links to it, it never acts itself. */
-export type NextAction = "approve" | "select_alternative" | "repeat_evaluation" | "request_changes" | "reject" | "request_more_debate";
+export type NextAction = "approve" | "select_alternative" | "repeat_evaluation" | "request_changes" | "reject" | "request_more_debate" | "mark_favorite";
 
 export function VerdictDashboard({
   view,
@@ -111,6 +121,11 @@ export function VerdictDashboard({
   const [asTable, setAsTable] = useState(false);
   const [cell, setCell] = useState<{ requirementId: string; proposalId: string } | null>(null);
   const label = (id: string) => proposalLabel(view, id);
+  const feasibility = useFeasibilityLabel();
+  const gateStatus = (proposalId: string) => {
+    const g = matrix.requirementGate?.proposals.find((x) => x.proposalId === proposalId);
+    return g ? feasibility(g) : null;
+  };
   const rows = [...matrix.proposals].sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
   const blocked = (id: string) => !approvableIds.has(id);
   const gate = matrix.requirementGate;
@@ -120,7 +135,8 @@ export function VerdictDashboard({
   const aiTitle = outcomeKey ? t(`outcome.${outcomeKey}`) : outcome.title;
   // Once a human has decided, the hero states that decision (ChatGPT test 06.11.26: an approved session still read
   // "Tie – please choose"); the AI verdict stays visible as the line below.
-  const chosen = decision && (decision.action === "approve" || decision.action === "select_alternative") ? (decision.selectedProposalId ?? recommendedId) : null;
+  const chosen =
+    decision && (decision.action === "approve" || decision.action === "select_alternative") ? (decision.selectedProposalId ?? recommendedId) : null;
   const decided =
     decision && ["approve", "select_alternative", "reject"].includes(decision.action)
       ? decision.action === "reject"
@@ -142,7 +158,9 @@ export function VerdictDashboard({
     !approvableIds.size && gate?.proposals.length
       ? requirementOrder
           .filter((r) => !unmetByAll.includes(r.short))
-          .filter((r) => gate.proposals.every((g) => ["UNKNOWN", "DISPUTED", "FAIL"].includes(g.requirements.find((x) => x.requirementId === r.id)?.status ?? "")))
+          .filter((r) =>
+            gate.proposals.every((g) => ["UNKNOWN", "DISPUTED", "FAIL"].includes(g.requirements.find((x) => x.requirementId === r.id)?.status ?? "")),
+          )
           .filter((r) => gate.proposals.some((g) => g.requirements.find((x) => x.requirementId === r.id)?.status !== "FAIL"))
           .map((r) => r.short)
       : [];
@@ -204,7 +222,11 @@ export function VerdictDashboard({
         <Card>
           <h3 className="text-sm font-semibold">{t("facts.title")}</h3>
           <dl className="mt-2 space-y-1.5 text-xs">
-            <Fact label={t("facts.breadth")} value={t("facts.breadthValue", { n: minBreadth, of: expectedEvaluators })} warn={minBreadth < Math.min(2, expectedEvaluators)} />
+            <Fact
+              label={t("facts.breadth")}
+              value={t("facts.breadthValue", { n: minBreadth, of: expectedEvaluators })}
+              warn={minBreadth < Math.min(2, expectedEvaluators)}
+            />
             {gate ? <Fact label={t("facts.openRequirements")} value={String(openCells)} warn={openCells > 0} /> : null}
             <Fact label={t("facts.criticalObjections")} value={String(criticalOpen)} warn={criticalOpen > 0} />
             <Fact label={t("facts.modelErrors")} value={failed.length ? failed.map((f) => f.modelId).join(", ") : "0"} warn={failed.length > 0} />
@@ -213,124 +235,8 @@ export function VerdictDashboard({
         </Card>
       </div>
 
-      <div className="flex justify-end">
-        <button type="button" className="text-xs text-muted underline hover:text-text" aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>
-          {asTable ? t("showCharts") : t("showTable")}
-        </button>
-      </div>
-
-      {asTable ? (
-        <ScoreTable view={view} rows={rows} matrix={matrix} blocked={blocked} />
-      ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-5">
-          {/* 2. Total scores: one bar per proposal; blocked proposals neutral grey with lock + word, participation beside it. */}
-          <Card className="lg:col-span-2">
-            <h3 className="font-semibold">{t("overall.title")}</h3>
-            <p className="text-xs text-muted">{t("overall.intro")}</p>
-            <ul className="mt-4 space-y-4">
-              {rows.map((p) => {
-                const isBlocked = blocked(p.proposalId);
-                const isRecommended = p.proposalId === recommendedId;
-                const width = `${Math.max(0, Math.min(10, p.total ?? 0)) * 10}%`;
-                const part = participation(p.proposalId);
-                return (
-                  <li key={p.proposalId} className="group relative">
-                    <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="font-medium">
-                        {t("proposal", { label: label(p.proposalId) })}
-                        {isRecommended ? <span className="ml-2 text-xs text-success">✓ {t("recommended")}</span> : null}
-                        {isBlocked ? (
-                          <span className="ml-2 text-xs text-muted">
-                            <LockIcon /> {t("notApprovable")}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className={`tabular-nums ${isBlocked ? "text-muted" : "font-semibold text-text"}`}>{score1(p.total)}</span>
-                    </div>
-                    <div
-                      className="mt-1.5 h-2.5 rounded-full bg-surface-2"
-                      role="img"
-                      aria-label={t("barAria", { label: label(p.proposalId), score: score1(p.total), blocked: isBlocked ? "yes" : "no" })}
-                    >
-                      <div className={`h-full rounded-full transition-[width] ${barFill(isBlocked, isRecommended)}`} style={{ width }} />
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted" data-testid="participation">
-                      {part.author ? t("by", { model: shortModel(view, part.author) }) : null}
-                      {part.evaluators.length
-                        ? ` · ${t("evaluatedBy", { models: part.evaluators.map((id) => shortModel(view, id)).join(", ") })}`
-                        : ` · ${t("evaluations", { n: p.independentEvaluators })}`}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-            {rows.length > 1 && rows.every((p) => blocked(p.proposalId)) ? (
-              <p className="mt-3 text-xs text-muted">
-                <LockIcon /> {t("allBlocked", { n: rows.length })}
-              </p>
-            ) : null}
-          </Card>
-
-          {/* 3. Criteria: one compact matrix (criteria × proposals) with readable numbers instead of 15 thin bars. */}
-          <Card className="lg:col-span-3">
-            <h3 className="font-semibold">{t("criteriaCard.title")}</h3>
-            <p className="text-xs text-muted">{t("criteriaCard.intro")}</p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full border-separate border-spacing-y-1 text-sm">
-                <thead>
-                  <tr className="text-xs text-muted">
-                    <th className="text-left font-medium">{t("criteriaCard.criterion")}</th>
-                    {rows.map((p) => (
-                      <th key={p.proposalId} className="w-16 text-center font-medium">
-                        {blocked(p.proposalId) ? (
-                          <>
-                            <LockIcon />
-                            <span className="sr-only">{t("notApprovable")}</span>
-                          </>
-                        ) : null}{" "}
-                        {label(p.proposalId)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {CRITERIA.map((c) => {
-                    const values = rows.map((p) => p.criterionMeans[c]).filter((v): v is number => typeof v === "number");
-                    const best = values.length ? Math.max(...values) : null;
-                    return (
-                      <tr key={c}>
-                        <th scope="row" className="pr-2 text-left font-normal">
-                          <span className="block text-sm">{criterion(c)}</span>
-                          {matrix.weights?.[c] !== undefined ? <span className="block text-[11px] text-muted">{t("weight", { w: matrix.weights[c] })}</span> : null}
-                        </th>
-                        {rows.map((p) => {
-                          const v = p.criterionMeans[c];
-                          const isBest = best !== null && v === best && values.length > 1;
-                          const isBlocked = blocked(p.proposalId);
-                          return (
-                            <td
-                              key={p.proposalId}
-                              className={`rounded-lg px-2 py-1.5 text-center tabular-nums ${
-                                isBest && !isBlocked ? "bg-primary/15 font-semibold text-text" : "bg-surface-2"
-                              } ${isBlocked ? "text-muted" : ""}`}
-                              title={`${t("proposal", { label: label(p.proposalId) })} – ${criterion(c)}: ${score1(v)}${isBest ? ` (${t("criteriaCard.best")})` : ""}`}
-                            >
-                              {score1(v)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-2 text-[11px] text-muted">{t("criteriaCard.legend")}</p>
-          </Card>
-        </div>
-      )}
-
-      {/* 4. Requirements × proposals: the gate that outranks every score. A cell opens the stored evaluator reasons. */}
+      {/* 2. Requirements × proposals – gate before score (#266): shown before any score so no number can hide a FAIL or an
+          open check. A cell opens the stored evaluator reasons. */}
       {gate && requirementOrder.length ? (
         <Card>
           <h3 className="font-semibold">{t("requirements.title")}</h3>
@@ -356,7 +262,12 @@ export function VerdictDashboard({
                     </th>
                     {gate.proposals.map((g) => {
                       const req = g.requirements.find((x) => x.requirementId === r.id);
-                      const key = req?.status ?? "UNKNOWN";
+                      const key =
+                        req?.buildVerification && req.status === "PASS"
+                          ? "PLAN"
+                          : req?.measurementPending && req.status === "PASS"
+                            ? "MEASURE"
+                            : (req?.status ?? "UNKNOWN");
                       const st = REQ_STATUS[key] ?? REQ_STATUS.UNKNOWN!;
                       const who = req
                         ? [
@@ -394,6 +305,134 @@ export function VerdictDashboard({
           {cell ? <CellDetail view={view} gate={gate} cell={cell} requirements={requirementOrder} onClose={() => setCell(null)} /> : null}
         </Card>
       ) : null}
+
+      <div className="flex justify-end">
+        <button type="button" className="text-xs text-muted underline hover:text-text" aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>
+          {asTable ? t("showCharts") : t("showTable")}
+        </button>
+      </div>
+
+      {asTable ? (
+        <ScoreTable view={view} rows={rows} matrix={matrix} blocked={blocked} />
+      ) : (
+        <div className="grid items-start gap-4 lg:grid-cols-5">
+          {/* 3. Total scores: one bar per proposal; blocked proposals neutral grey with lock + word, participation beside it. */}
+          <Card className="lg:col-span-2">
+            <h3 className="font-semibold">{t("overall.title")}</h3>
+            <p className="text-xs text-muted">{t("overall.intro")}</p>
+            <ul className="mt-4 space-y-4">
+              {rows.map((p) => {
+                const isBlocked = blocked(p.proposalId);
+                const isRecommended = p.proposalId === recommendedId;
+                const width = `${Math.max(0, Math.min(10, p.total ?? 0)) * 10}%`;
+                const part = participation(p.proposalId);
+                return (
+                  <li key={p.proposalId} className="group relative">
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="font-medium">
+                        {t("proposal", { label: label(p.proposalId) })}
+                        {isRecommended ? <span className="ml-2 text-xs text-success">✓ {t("recommended")}</span> : null}
+                        {isBlocked ? (
+                          <span className="ml-2 text-xs text-muted">
+                            <LockIcon /> {t("notApprovable")}
+                          </span>
+                        ) : null}
+                        {/* #266: the gate status beside the score, so a high score never reads as "passed". */}
+                        {gateStatus(p.proposalId) ? (
+                          <span
+                            className={`ml-2 rounded-full border px-1.5 py-px text-[11px] ${GATE_TONE_CLASS[gateStatus(p.proposalId)!.tone]}`}
+                            data-testid="gate-status"
+                          >
+                            {gateStatus(p.proposalId)!.text}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className={`tabular-nums ${isBlocked ? "text-muted" : "font-semibold text-text"}`}>{score1(p.total)}</span>
+                    </div>
+                    <div
+                      className="mt-1.5 h-2.5 rounded-full bg-surface-2"
+                      role="img"
+                      aria-label={t("barAria", { label: label(p.proposalId), score: score1(p.total), blocked: isBlocked ? "yes" : "no" })}
+                    >
+                      <div className={`h-full rounded-full transition-[width] ${barFill(isBlocked, isRecommended)}`} style={{ width }} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted" data-testid="participation">
+                      {part.author ? t("by", { model: shortModel(view, part.author) }) : null}
+                      {part.evaluators.length
+                        ? ` · ${t("evaluatedBy", { models: part.evaluators.map((id) => shortModel(view, id)).join(", ") })}`
+                        : ` · ${t("evaluations", { n: p.independentEvaluators })}`}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+            {rows.length > 1 && rows.every((p) => blocked(p.proposalId)) ? (
+              <p className="mt-3 text-xs text-muted">
+                <LockIcon /> {t("allBlocked", { n: rows.length })}
+              </p>
+            ) : null}
+          </Card>
+
+          {/* 4. Criteria: one compact matrix (criteria × proposals) with readable numbers instead of 15 thin bars. */}
+          <Card className="lg:col-span-3">
+            <h3 className="font-semibold">{t("criteriaCard.title")}</h3>
+            <p className="text-xs text-muted">{t("criteriaCard.intro")}</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full border-separate border-spacing-y-1 text-sm">
+                <thead>
+                  <tr className="text-xs text-muted">
+                    <th className="text-left font-medium">{t("criteriaCard.criterion")}</th>
+                    {rows.map((p) => (
+                      <th key={p.proposalId} className="w-16 text-center font-medium">
+                        {blocked(p.proposalId) ? (
+                          <>
+                            <LockIcon />
+                            <span className="sr-only">{t("notApprovable")}</span>
+                          </>
+                        ) : null}{" "}
+                        {label(p.proposalId)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {CRITERIA.map((c) => {
+                    const values = rows.map((p) => p.criterionMeans[c]).filter((v): v is number => typeof v === "number");
+                    const best = values.length ? Math.max(...values) : null;
+                    return (
+                      <tr key={c}>
+                        <th scope="row" className="pr-2 text-left font-normal">
+                          <span className="block text-sm">{criterion(c)}</span>
+                          {matrix.weights?.[c] !== undefined ? (
+                            <span className="block text-[11px] text-muted">{t("weight", { w: matrix.weights[c] })}</span>
+                          ) : null}
+                        </th>
+                        {rows.map((p) => {
+                          const v = p.criterionMeans[c];
+                          const isBest = best !== null && v === best && values.length > 1;
+                          const isBlocked = blocked(p.proposalId);
+                          return (
+                            <td
+                              key={p.proposalId}
+                              className={`rounded-lg px-2 py-1.5 text-center tabular-nums ${
+                                isBest && !isBlocked ? "bg-primary/15 font-semibold text-text" : "bg-surface-2"
+                              } ${isBlocked ? "text-muted" : ""}`}
+                              title={`${t("proposal", { label: label(p.proposalId) })} – ${criterion(c)}: ${score1(v)}${isBest ? ` (${t("criteriaCard.best")})` : ""}`}
+                            >
+                              {score1(v)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] text-muted">{t("criteriaCard.legend")}</p>
+          </Card>
+        </div>
+      )}
 
       {/* 5. Key disputes (#267): what the models actually disagreed about, from stored events. */}
       <CruxesCard view={view} recommendedId={recommendedId} />
@@ -448,16 +487,18 @@ function CellDetail({
   const t = useTranslations("verdict.dashboard");
   const r = requirements.find((x) => x.id === cell.requirementId);
   const req = gate.proposals.find((g) => g.proposalId === cell.proposalId)?.requirements.find((x) => x.requirementId === cell.requirementId);
-  const checks = ((view.requirementChecks ?? []) as Array<{
-    id: string;
-    proposalId: string;
-    requirementId: string;
-    evaluatorParticipantId: string;
-    status: string;
-    evidence?: string | null;
-    valid?: boolean;
-    invalidReason?: string | null;
-  }>).filter((c) => c.proposalId === cell.proposalId && c.requirementId === cell.requirementId);
+  const checks = (
+    (view.requirementChecks ?? []) as Array<{
+      id: string;
+      proposalId: string;
+      requirementId: string;
+      evaluatorParticipantId: string;
+      status: string;
+      evidence?: string | null;
+      valid?: boolean;
+      invalidReason?: string | null;
+    }>
+  ).filter((c) => c.proposalId === cell.proposalId && c.requirementId === cell.requirementId);
   return (
     <div className="mt-3 rounded-xl border border-line bg-surface-2 p-3 text-xs" role="region" aria-label={t("cell.aria")} data-testid="cell-detail">
       <div className="flex items-start justify-between gap-2">

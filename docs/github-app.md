@@ -54,8 +54,17 @@ Caddy that is the container address `0.0.0.0:3000` (bug seen on the first produc
 
 1. Owner → *Integrations* → **Connect GitHub** → GitHub installation page (choose repositories).
 2. GitHub redirects to the setup URL with `installation_id`, an OAuth `code` and our signed `state`.
-   The server checks the state (same user and workspace, 15 min expiry) and that the installation appears in
-   `GET /user/installations` for this GitHub user. Only then is it stored.
+   The server checks the state (same user and workspace, 15 min expiry) and that this GitHub user **controls** the
+   installation (#394) – merely seeing it is not enough, because GitHub lists an installation for everybody with read
+   access to one of its repositories:
+   - personal account: the GitHub user must be that account;
+   - organization: the GitHub user must have admin rights on every repository the installation covers (organization
+     owners always do). The check compares `GET /user/installations/{id}/repositories` (user token) with the app's own
+     repository count, so the app needs no organization permission. Installations without repositories or with more
+     than 1,000 repositories are refused with a hint.
+
+   One installation belongs to one workspace: connecting it to a second workspace is refused until it is suspended or
+   uninstalled there. Only then is it stored.
 3. On a project, link one repository. The server verifies with GitHub that the installation covers it.
    A repository URL entered when the project is created is linked automatically when one of the workspace's
    installations covers it (best effort; otherwise link it on the project page).
@@ -91,8 +100,10 @@ when run by hand.
 
 ## Reading existing pull requests (#18)
 `GET /api/github/pulls?integrationId=…&repository=owner/name[&state=open|closed|all]` lists the repository's pull
-requests (most recently updated first); `&number=N` returns one with its changed files. The installation token is
-read-only and scoped to that repository. Diffs pass the same filters as repository snapshots: secret-looking paths,
+requests (most recently updated first); `&number=N` returns one with its changed files. Only repositories linked to
+a project of the workspace can be read (#402) – the installation may grant more, but their code is not for every
+member to browse. Listing the installation's repositories (`GET /api/github/repositories`) needs the right to link one
+(owner, admin, member), not viewer. The installation token is read-only and scoped to that repository. Diffs pass the same filters as repository snapshots: secret-looking paths,
 credential-like content, binaries and patches over 20,000 characters are listed without their diff (`withheld`
 says why). Nothing is written, commented or merged. The app's existing "Pull requests: Read & write" permission
 covers this; no new permission is requested.

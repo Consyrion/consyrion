@@ -47,6 +47,7 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
     for (const [k, v] of Object.entries(extra)) if (v) params.set(k, v);
     return `/admin/feedback${params.size ? `?${params}` : ""}`;
   };
+  const mailConfigured = Boolean(process.env.SMTP_URL?.trim());
   const when = (d: Date) => format.dateTime(d, { dateStyle: "medium", timeStyle: "short" });
 
   return (
@@ -104,6 +105,18 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
               </div>
               <h2 className="text-lg font-semibold break-words">{detail.feedback.subject}</h2>
               <p className="text-sm whitespace-pre-wrap break-words">{detail.feedback.text}</p>
+              {detail.feedback.screenshot?.startsWith("data:image/") ? (
+                <figure className="space-y-1">
+                  <a href={detail.feedback.screenshot} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={detail.feedback.screenshot}
+                      alt={t("admin.screenshotAlt")}
+                      className="max-h-96 w-auto max-w-full rounded-lg border border-line object-contain"
+                    />
+                  </a>
+                  <figcaption className="text-xs text-muted">{t("admin.screenshot")}</figcaption>
+                </figure>
+              ) : null}
               <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
                 {(
                   [
@@ -114,6 +127,15 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
                     [t("admin.agent"), detail.feedback.agent],
                     [t("admin.version"), detail.feedback.appVersion],
                     [t("admin.workspace"), detail.feedback.organizationId],
+                    // #295 stage 3: only when the user agreed to send the page's project/council.
+                    [
+                      t("admin.context"),
+                      detail.feedback.context
+                        ? [detail.feedback.context.projectId && `project ${detail.feedback.context.projectId}`, detail.feedback.context.sessionId && `council ${detail.feedback.context.sessionId}`]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : null,
+                    ],
                     [t("admin.doneAt"), detail.feedback.doneAt ? when(detail.feedback.doneAt) : null],
                   ] as const
                 ).map(([label, value]) => (
@@ -137,9 +159,16 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
                     ))}
                   </ul>
                 )}
-                {!detail.feedback.userId ? <p className="mt-2 text-xs text-muted">{t("admin.visitorReplyNote")}</p> : null}
+                {!detail.feedback.userId && !mailConfigured ? <p className="mt-2 text-xs text-muted">{t("admin.visitorReplyNote")}</p> : null}
               </div>
-              <AdminFeedbackActions id={detail.feedback.id} state={detail.feedback.state} listHref={query({})} />
+              <AdminFeedbackActions
+                id={detail.feedback.id}
+                state={detail.feedback.state}
+                listHref={query({})}
+                email={detail.feedback.email}
+                visitor={!detail.feedback.userId}
+                mailConfigured={mailConfigured}
+              />
             </div>
           ) : (
             <p className="text-sm text-muted">{search.id ? t("admin.notFound") : t("admin.select")}</p>

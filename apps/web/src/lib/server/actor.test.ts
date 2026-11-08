@@ -85,4 +85,24 @@ describe("API token scopes (#101)", () => {
       ].sort(),
     );
   });
+
+  it("no token creates or revokes tokens or manages the team – only the signed-in person in the web app (#403)", async () => {
+    authorization = `Bearer ${full}`;
+    await expect(requireActor({ sessionOnly: true })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const root = join(__dirname, "../../app/api");
+    const handler = (route: string, method: string) => {
+      const source = readFileSync(join(root, route, "route.ts"), "utf8");
+      return source.match(new RegExp(`export const ${method} = handle\\(async[\\s\\S]*?(?=\\nexport const |$)`))?.[0] ?? "";
+    };
+    for (const [route, method] of [
+      ["tokens", "POST"],
+      ["tokens/[id]", "DELETE"],
+      ["team/members", "POST"],
+      ["team/members/[id]", "PATCH"],
+      ["team/members/[id]", "DELETE"],
+      ["team/invitations/[id]", "DELETE"],
+    ] as const) {
+      expect(handler(route, method), `${method} /${route}`).toContain("requireActor({ sessionOnly: true })");
+    }
+  });
 });

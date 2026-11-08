@@ -1,10 +1,17 @@
 import "server-only";
-import { ensurePersonalOrganization, schema } from "@consyrion/db";
+import { ensurePersonalOrganization, markEmailVerifiedAfterPasswordReset, schema } from "@consyrion/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { getDb } from "./db";
-import { emailVerificationEnabled, sendVerificationMail, VERIFICATION_LINK_HOURS } from "./email-verification";
+import {
+  emailVerificationEnabled,
+  PASSWORD_RESET_LINK_MINUTES,
+  passwordResetEnabled as passwordResetConfigured,
+  sendPasswordResetMail,
+  sendVerificationMail,
+  VERIFICATION_LINK_HOURS,
+} from "./email-verification";
 
 /** Social login providers are enabled only when their OAuth credentials are configured. */
 const socialProviders = {
@@ -21,6 +28,9 @@ export const enabledSocialProviders = Object.keys(socialProviders) as Array<"goo
 /** E-mail verification is required whenever SMTP is configured (see email-verification.ts). */
 export const emailVerificationRequired = emailVerificationEnabled();
 
+/** "Forgot password" works whenever SMTP is configured (#395). */
+export const passwordResetEnabled = passwordResetConfigured();
+
 function createAuth(db: Awaited<ReturnType<typeof getDb>>) {
   return betterAuth({
     appName: "CONSYRION AI",
@@ -28,7 +38,25 @@ function createAuth(db: Awaited<ReturnType<typeof getDb>>) {
       provider: "pg",
       schema: { user: schema.user, session: schema.session, account: schema.account, verification: schema.verification },
     }),
-    emailAndPassword: { enabled: true, minPasswordLength: 12, requireEmailVerification: emailVerificationRequired },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 12,
+      requireEmailVerification: emailVerificationRequired,
+      // Password reset (#395): the link is valid once for one hour, every other session ends, and the address counts as
+      // verified because the link reached it. Without SMTP there is no reset (nobody could receive the link).
+      ...(passwordResetEnabled
+        ? {
+            resetPasswordTokenExpiresIn: PASSWORD_RESET_LINK_MINUTES * 60,
+            revokeSessionsOnPasswordReset: true,
+            sendResetPassword: async ({ user, url }: { user: { email: string; name: string }; url: string }) => {
+              await sendPasswordResetMail({ to: user.email, name: user.name, url });
+            },
+            onPasswordReset: async ({ user }: { user: { id: string } }) => {
+              await markEmailVerifiedAfterPasswordReset(db, user.id);
+            },
+          }
+        : {}),
+    },
     // Unverified accounts cannot sign in; every sign-in attempt sends a fresh link. The link only verifies the address –
     // it never opens a session (whoever gets hold of the e-mail must still know the password).
     ...(emailVerificationRequired
@@ -46,8 +74,10 @@ function createAuth(db: Awaited<ReturnType<typeof getDb>>) {
       : {}),
     socialProviders,
     // Signed-in users may connect further sign-in methods (Settings → Account). Different e-mail addresses are
-    // allowed only for this explicit linking by the account owner; sign-in never merges accounts by itself.
-    account: { accountLinking: { enabled: true, allowDifferentEmails: true } },
+    // allowed only for this explicit linking by the account owner. Sign-in never merges accounts by itself
+    // (`disableImplicitLinking`, #395): otherwise a Google/GitHub login would land in an account somebody else
+    // pre-registered with the same address and still knows the password of.
+    account: { accountLinking: { enabled: true, allowDifferentEmails: true, disableImplicitLinking: true } },
     session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
     databaseHooks: {
       user: {

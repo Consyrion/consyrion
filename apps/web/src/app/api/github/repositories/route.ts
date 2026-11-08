@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { assertCan, DomainError } from "@consyrion/core";
 import { getGitHubIntegration } from "@consyrion/db";
 import { installationClient, listInstallationRepositories } from "@consyrion/github";
 import { NextResponse } from "next/server";
@@ -7,9 +7,13 @@ import { handle } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
 import { requireGitHubConfig } from "@/lib/server/github";
 
-/** Repositories the installation grants access to (the user chose them on GitHub). */
+/**
+ * Repositories the installation grants access to (the user chose them on GitHub). Only for people who may link one to
+ * a project (#402): the list names every private repository of the installation.
+ */
 export const GET = handle(async (request: Request) => {
   const actor = await requireActor();
+  assertCan(actor.role, "project:write");
   const integrationId = new URL(request.url).searchParams.get("integrationId");
   if (!integrationId) throw new DomainError("VALIDATION", "integrationId is required");
   const integration = await getGitHubIntegration(await getDb(), actor, integrationId);

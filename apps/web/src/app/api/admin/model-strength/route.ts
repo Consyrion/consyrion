@@ -1,5 +1,6 @@
 import { modelStrengthStatus, strengthSourceFromEnv, syncModelStrength } from "@consyrion/council";
 import { DomainError } from "@consyrion/core";
+import { recordAudit } from "@consyrion/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/server/admin";
 import { handle } from "@/lib/server/api";
@@ -14,8 +15,11 @@ export const GET = handle(async () => {
 
 /** "Refresh now": fetches the ranking immediately instead of waiting for the daily job. */
 export const POST = handle(async () => {
-  await requirePlatformAdmin();
+  const admin = await requirePlatformAdmin();
   const source = strengthSourceFromEnv(process.env);
   if (!source) throw new DomainError("CONFLICT", "No ranking source configured: set ARTIFICIAL_ANALYSIS_API_KEY on the server");
-  return NextResponse.json(await syncModelStrength(await getDb(), source));
+  const db = await getDb();
+  const result = await syncModelStrength(db, source);
+  await recordAudit(db, { organizationId: null, actorUserId: admin.id, action: "admin.model_strength_synced", targetType: "model_strength", targetId: source.source });
+  return NextResponse.json(result);
 });

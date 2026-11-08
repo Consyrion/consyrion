@@ -10,14 +10,25 @@ export async function generateMetadata() {
   return { title: (await getTranslations("decisions"))("metaTitle") };
 }
 
-export default async function DecisionsPage() {
+export default async function DecisionsPage({ searchParams }: { searchParams: Promise<{ archived?: string }> }) {
   const actor = await requirePageActor();
-  const sessions = await listSessions(await getDb(), actor);
+  const all = await listSessions(await getDb(), actor);
+  // #197: sessions of archived projects are hidden unless asked for – not deleted, still reachable.
+  const showArchived = (await searchParams).archived === "1";
+  const archivedCount = all.filter((s) => s.projectStatus === "archived").length;
+  const sessions = showArchived ? all : all.filter((s) => s.projectStatus !== "archived");
   const t = await getTranslations("decisions");
   const format = await getFormatter();
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
+      {archivedCount ? (
+        <p className="mb-3 text-sm">
+          <Link href={showArchived ? "/decisions" : "/decisions?archived=1"} className="text-primary underline" data-testid="archived-filter">
+            {showArchived ? t("hideArchived") : t("showArchived", { n: archivedCount })}
+          </Link>
+        </p>
+      ) : null}
       {sessions.length === 0 ? (
         <EmptyState title={t("emptyTitle")} description={t("emptyText")} />
       ) : (
@@ -27,6 +38,7 @@ export default async function DecisionsPage() {
               <Link href={`/sessions/${s.id}`} className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 hover:bg-surface-2">
                 <span>
                   <span className="font-medium">{s.projectName}</span>
+                  {s.projectStatus === "archived" ? <Badge tone="warning">{t("archivedBadge")}</Badge> : null}
                   <span className="block text-sm text-muted">{DECISION_MODE_LABELS[s.mode]}</span>
                 </span>
                 <span className="flex items-center gap-2">

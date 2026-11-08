@@ -1,9 +1,11 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrion/core/browser";
+import { useFormatter, useTranslations } from "next-intl";
+import { useState } from "react";
 import { useEngineText } from "./engine-text";
 import { Card } from "../ui/surface";
-import { deriveCruxes, remainingDisagreements, type Crux, type CruxStatus } from "./cruxes";
+import { deriveCruxes, matchesFilter, noDocumentedDispute, remainingDisagreements, type Crux, type CruxFilter, type CruxStatus } from "./cruxes";
 import type { View } from "./helpers";
 
 const STATUS_TONE: Record<CruxStatus, string> = {
@@ -18,13 +20,41 @@ const STATUS_ICON: Record<CruxStatus, string> = { open: "?", unresolved: "?", ac
 /** Key disputes (#267) on the Final Verdict screen: at most three, each traceable to stored statements. */
 export function CruxesCard({ view, recommendedId }: { view: View; recommendedId: string | null }) {
   const t = useTranslations("verdict.cruxes");
-  const cruxes = deriveCruxes(view, recommendedId);
+  const [filter, setFilter] = useState<CruxFilter>("all");
+  const everything = deriveCruxes(view, recommendedId, Number.POSITIVE_INFINITY);
+  const cruxes = deriveCruxes(view, recommendedId, 3, filter);
   const remaining = remainingDisagreements(view);
-  if (!cruxes.length && !remaining.length) return null;
+  if (!everything.length && !remaining.length) {
+    // Far enough for disputes but none stored: say so instead of disappearing or inventing one (#267).
+    if (!noDocumentedDispute(view)) return null;
+    return (
+      <Card>
+        <h3 className="font-semibold">{t("title")}</h3>
+        <p className="mt-1 text-sm text-muted">{t("none")}</p>
+      </Card>
+    );
+  }
+  const filters: CruxFilter[] = ["all", "open", "critical", "resolved"];
   return (
     <Card>
       <h3 className="font-semibold">{t("title")}</h3>
       <p className="text-xs text-muted">{t("intro")}</p>
+      {everything.length ? (
+        <div role="group" aria-label={t("filterAria")} className="mt-3 flex flex-wrap gap-1.5 text-xs">
+          {filters.map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className="rounded-full border border-line px-2.5 py-1 text-muted aria-pressed:border-primary aria-pressed:text-text"
+            >
+              {t(`filter.${f}`, { n: everything.filter((c) => matchesFilter(c, f)).length })}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {everything.length && !cruxes.length ? <p className="mt-3 text-sm text-muted">{t("filterEmpty")}</p> : null}
       <ol className="mt-3 space-y-3">
         {cruxes.map((c, i) => (
           <CruxItem key={c.id} crux={c} index={i + 1} />
@@ -48,6 +78,22 @@ export function CruxesCard({ view, recommendedId }: { view: View; recommendedId:
 function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
   const t = useTranslations("verdict.cruxes");
   const engine = useEngineText();
+  const format = useFormatter();
+  const [open, setOpen] = useState(false);
+  const when = (iso: string | null) => (iso ? format.dateTime(new Date(iso), { dateStyle: "short", timeStyle: "medium" }) : t("notStored"));
+  const s = c.sources;
+  // The way of the objection, step by step; a time only where one is stored (answers and reviews have none).
+  const steps = [
+    { key: "raised", text: t("step.raised"), time: s.raisedAt },
+    {
+      key: "answer",
+      text: c.author.unanswered ? t("step.unanswered") : c.author.conceded ? t("step.conceded") : c.author.response ? t("step.answered") : t("step.noAnswer"),
+      time: null,
+    },
+    { key: "review", text: c.review.reason ? t("step.reviewed") : t("step.notReviewed"), time: null },
+    { key: "revision", text: c.revision ? t("step.revised", { version: c.revision.version }) : t("step.notRevised"), time: s.revisedAt },
+    { key: "status", text: t(`status.${c.status}`), time: null },
+  ];
   return (
     <li className="rounded-xl border border-line p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -90,6 +136,55 @@ function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
           {c.revision ? (c.revision.moot ? t("revisedMoot", { version: c.revision.version }) : t("revised", { version: c.revision.version })) : t("notRevised")}
         </dd>
       </dl>
+      <ol className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted" aria-label={t("stepsAria")}>
+        {steps.map((step, i) => (
+          <li key={step.key} className="flex items-center gap-1">
+            {i ? <span aria-hidden="true">→</span> : null}
+            <span className="rounded-md border border-line px-1.5 py-0.5">
+              {step.text}
+              {step.time ? (
+                <time dateTime={step.time} className="ml-1 font-mono">
+                  {format.dateTime(new Date(step.time), { timeStyle: "short" })}
+                </time>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="mt-2 text-xs text-primary underline">
+        {open ? t("hideSources") : t("showSources")}
+      </button>
+      {open ? (
+        <dl className="mt-2 grid gap-1.5 rounded-lg border border-line p-3 text-xs sm:grid-cols-[10rem_1fr]">
+          <dt className="text-muted">{t("src.objection")}</dt>
+          <dd>
+            <code className="font-mono">{s.objectionId}</code> · {when(s.raisedAt)}
+          </dd>
+          <dt className="text-muted">{t("src.message")}</dt>
+          <dd>
+            {s.message ? (
+              <>
+                <code className="font-mono">{s.message.id}</code> · {COUNCIL_PHASE_LABELS[s.message.phase as CouncilPhase] ?? s.message.phase}
+                {s.message.round != null ? ` · ${t("src.round", { n: s.message.round })}` : ""} · {when(s.message.createdAt)}
+                <span className="mt-1 block whitespace-pre-wrap text-text">{s.message.body}</span>
+              </>
+            ) : (
+              t("notStored")
+            )}
+          </dd>
+          <dt className="text-muted">{t("src.versions")}</dt>
+          <dd>
+            {s.attackedVersion != null || s.currentVersion != null
+              ? t("src.versionsText", {
+                  then: s.attackedVersion != null ? `v${s.attackedVersion}` : "–",
+                  now: s.currentVersion != null ? `v${s.currentVersion}` : "–",
+                })
+              : t("notStored")}
+          </dd>
+          <dt className="text-muted">{t("src.review")}</dt>
+          <dd>{c.review.reason ? `${c.review.by ? `${c.review.by}: ` : ""}${engine(c.review.reason)}` : t("notReviewed")}</dd>
+        </dl>
+      ) : null}
     </li>
   );
 }

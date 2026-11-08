@@ -1,8 +1,19 @@
 import "server-only";
 import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from "docx";
-import { reportTranslator, type DecisionReport, type ReportLocale, type ReportT } from "@consyrion/council";
+import {
+  approvalActionText,
+  blockedExplanation,
+  nextAction,
+  outcomeLine,
+  reportTranslator,
+  type DecisionReport,
+  type ReportLocale,
+  type ReportT,
+} from "@consyrion/council";
+import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrion/core/browser";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
 import type { DecisionAudit } from "./report-audit";
+import type { ReportStatus } from "./report-status";
 
 /**
  * PDF and Word versions of the decision report (#164). Both are rendered from the Markdown report, so every format
@@ -96,9 +107,36 @@ const BAR_MAIN = rgb(0.01, 0.41, 0.63);
 const BAR_OTHER = rgb(0.45, 0.66, 0.8);
 const BLOCKED = rgb(0.72, 0.74, 0.78);
 const HIGHLIGHT = rgb(0.8, 0.93, 0.98);
-const STATUS_FILL = { PASS: rgb(0.86, 0.97, 0.9), FAIL: rgb(1, 0.89, 0.89), UNKNOWN: rgb(1, 0.95, 0.8), DISPUTED: rgb(1, 0.95, 0.8) } as const;
-const STATUS_INK = { PASS: rgb(0.02, 0.4, 0.22), FAIL: rgb(0.6, 0.08, 0.08), UNKNOWN: rgb(0.5, 0.3, 0.02), DISPUTED: rgb(0.5, 0.3, 0.02) } as const;
-const STATUS_WORD = { PASS: "OK met", FAIL: "x not met", UNKNOWN: "? unconfirmed", DISPUTED: "! disputed" } as const; // translated when drawn
+const STATUS_FILL = {
+  PASS: rgb(0.86, 0.97, 0.9),
+  FAIL: rgb(1, 0.89, 0.89),
+  UNKNOWN: rgb(1, 0.95, 0.8),
+  DISPUTED: rgb(1, 0.95, 0.8),
+  PLAN_CONFIRMED: rgb(0.9, 0.93, 1),
+  MEASUREMENT_PLAN: rgb(0.9, 0.93, 1),
+} as const;
+const STATUS_INK = {
+  PASS: rgb(0.02, 0.4, 0.22),
+  FAIL: rgb(0.6, 0.08, 0.08),
+  UNKNOWN: rgb(0.5, 0.3, 0.02),
+  DISPUTED: rgb(0.5, 0.3, 0.02),
+  PLAN_CONFIRMED: rgb(0.15, 0.25, 0.6),
+  MEASUREMENT_PLAN: rgb(0.15, 0.25, 0.6),
+} as const;
+const PHASE_NAME: Record<string, string> = Object.fromEntries(COUNCIL_PHASES.map((p) => [p, COUNCIL_PHASE_LABELS[p]]));
+
+/** Symbol of a status in narrow cells (six proposals); explained in a legend under the table. */
+const STATUS_SYMBOL = { PASS: "OK", FAIL: "x", UNKNOWN: "?", DISPUTED: "!", PLAN_CONFIRMED: "P", MEASUREMENT_PLAN: "M" } as const;
+// Translated when drawn. PLAN_CONFIRMED (night test R4): a build check's plan is confirmed, the build proves it.
+const STATUS_WORD = {
+  PASS: "OK met",
+  FAIL: "x not met",
+  UNKNOWN: "? unconfirmed",
+  DISPUTED: "! disputed",
+  PLAN_CONFIRMED: "plan – proof pending",
+  // #249 part 2: a measurement check's plan is confirmed; only measuring the running implementation proves it.
+  MEASUREMENT_PLAN: "measurement plan – not measured",
+} as const;
 const one = (x: number | null | undefined) => (x === null || x === undefined ? "-" : (Math.round(x * 10) / 10).toFixed(1));
 
 /**
@@ -115,6 +153,9 @@ function drawSummary(
   /** The brief has no following pages, so it points to the other PDFs instead (ChatGPT test 06.11.26). */
   standalone = false,
   t: ReportT = reportTranslator("en"),
+  locale: ReportLocale = "en",
+  /** The status from the shared derivation (#268); without it (older callers) the report's own wording stays. */
+  status?: ReportStatus,
 ) {
   const { regular, bold } = fonts;
   const left = PAGE.margin;
@@ -150,40 +191,152 @@ function drawSummary(
   const approvable = report.decisionFormat?.approvable !== false && !report.requirementsConflict;
   const recommended = approvable ? report.recommendedSolution : null;
   const statusColor = recommended ? rgb(0.86, 0.97, 0.9) : rgb(1, 0.95, 0.8);
-  const statusTitle = recommended
+  // ChatGPT review 08.11.26: "no approvable recommendation" while the server lets a human choose (tie) contradicted
+  // the matrix; the title now says whether there is a choice, the box says why nothing was recommended.
+  const ownTitle = recommended
     ? `${t("Recommended: Proposal {label}", { label: recommended.label ?? "?" })}${recommended.title ? ` – ${recommended.title}` : ""}`
-    : t("No approvable recommendation");
-  const reason = pdfSafe(t(report.outcomeText));
-  const reasonLines: string[] = [];
-  {
+    : (report.approvableProposals ?? []).length
+      ? t("No automatic recommendation")
+      : t("No approvable recommendation");
+  // #268: the verdict title of the screen; a recommended proposal is named after it. "Not approvable" is on top.
+  const statusTitle = status?.title
+    ? recommended && status.approvable
+      ? `${status.title}: ${t("Proposal {label}", { label: recommended.label ?? "?" })}${recommended.title ? ` – ${recommended.title}` : ""}`
+      : status.title
+    : ownTitle;
+  if (status?.line) {
+    text(fit(status.line, width, 9, bold), left, y - 2, 9, bold, status.approvable ? STATUS_INK.PASS : STATUS_INK.UNKNOWN);
+    y -= 14;
+  }
+  const wrap = (value: string, max: number, size: number, font = regular) => {
+    const out: string[] = [];
     let line = "";
-    for (const word of reason.split(/\s+/)) {
+    for (const word of pdfSafe(value).split(/\s+/)) {
       const next = line ? `${line} ${word}` : word;
-      if (regular.widthOfTextAtSize(next, 9) > width - 24) {
-        reasonLines.push(line);
+      if (font.widthOfTextAtSize(next, size) > max) {
+        if (line) out.push(line);
         line = word;
       } else line = next;
     }
-    if (line) reasonLines.push(line);
-  }
-  const boxH = 34 + Math.min(3, reasonLines.length) * 12;
+    if (line) out.push(line);
+    return out;
+  };
+  const explanation = blockedExplanation(report, locale, t);
+  const reasonLines = [...wrap(outcomeLine(report, locale, t), width - 24, 9), ...(explanation ? wrap(explanation, width - 24, 9) : [])].slice(0, 6);
+  const boxH = 34 + reasonLines.length * 12;
+  const green = status ? status.approvable : Boolean(recommended);
   page.drawRectangle({
     x: left,
     y: y - boxH,
     width,
     height: boxH,
-    color: statusColor,
-    borderColor: recommended ? STATUS_INK.PASS : STATUS_INK.UNKNOWN,
+    color: status ? (green ? rgb(0.86, 0.97, 0.9) : rgb(1, 0.95, 0.8)) : statusColor,
+    borderColor: green ? STATUS_INK.PASS : STATUS_INK.UNKNOWN,
     borderWidth: 0.8,
   });
   text(fit(statusTitle, width - 24, 13, bold), left + 12, y - 20, 13, bold, INK);
-  reasonLines.slice(0, 3).forEach((l, i) => text(l, left + 12, y - 36 - i * 12, 9, regular, INK));
+  reasonLines.forEach((l, i) => text(l, left + 12, y - 36 - i * 12, 9, regular, INK));
   y -= boxH + 6;
+  // #249 part 2: a favourite or prototype build is a human action – shown right under the verdict, never as one.
+  for (const mark of status?.marks ?? []) {
+    for (const line of wrap(mark, width, 9, bold)) {
+      text(line, left, y - 9, 9, bold, STATUS_INK.UNKNOWN);
+      y -= 12;
+    }
+    y -= 4;
+  }
+  // The one thing the reader has to do now, right under the outcome (ChatGPT review 08.11.26).
+  {
+    const actionLines = wrap(nextAction(report, t), width - 12, 9.5);
+    text(t("What you need to do now"), left, y - 10, 10, bold, BRAND);
+    actionLines.forEach((l, i) => text(l, left, y - 24 - i * 12, 9.5, regular, INK));
+    y -= 24 + actionLines.length * 12 + 4;
+  }
+  // Night test R4: skill and context documents belong on the summary page too, not only in the full report.
+  const provenance = [
+    ...(report.skill
+      ? [
+          t("Skill: {name} (version {version}, hash {hash})", {
+            name: report.skill.name,
+            version: report.skill.version,
+            hash: report.skill.contentHash.slice(0, 12),
+          }),
+        ]
+      : []),
+    ...(report.contextDocuments?.length
+      ? [t("Context documents (read as untrusted data, never requirements): {names}", { names: report.contextDocuments.join(", ") })]
+      : []),
+  ];
+  for (const line of provenance) {
+    text(fit(line, width, 8), left, y - 9, 8, regular, MUTED);
+    y -= 12;
+  }
 
   const m = report.evaluationMatrix;
   const rows = [...(m?.proposals ?? [])].sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
   // Reports from before this field (or partial ones) mark nothing as blocked rather than everything.
   const approvableSet = new Set(report.approvableProposals ?? rows.map((r) => r.label));
+  // What each proposal is – title, author model and the start of its summary (Telegram live test 08.11.26).
+  const overview = report.proposalOverview ?? [];
+  if (overview.length) {
+    heading(t("The proposals"));
+    for (const p of overview) {
+      ensure(30);
+      const name = `${t("Proposal {label}", { label: p.label ?? "?" })}${p.kind === "hybrid" ? t(" (hybrid)") : ""}`;
+      text(name, left, y - 9, 9, bold);
+      const nameW = bold.widthOfTextAtSize(pdfSafe(name), 9) + 8;
+      text(fit(`${p.title ?? ""}${p.author ? ` (${p.author})` : ""}`, width - nameW, 9), left + nameW, y - 9, 9);
+      if (p.summary) text(fit(p.summary, width, 8), left, y - 21, 8, regular, MUTED);
+      y -= p.summary ? 30 : 17;
+    }
+  }
+  // #268 / #266: gate before score – the requirement matrix comes before any score, so no number can hide a FAIL.
+  const rm = report.requirementMatrix;
+  if (rm && rm.proposals.length) {
+    heading(t("Hard requirements by proposal"));
+    // #268 part 3: columns shrink with up to six proposals; below 70 pt a cell shows symbol + count (legend below), and
+    // the requirement text wraps instead of being cut. The header repeats on every new page.
+    const cellW = Math.max(42, Math.min(78, (width - 160) / rm.proposals.length));
+    const short = cellW < 70;
+    const firstCol = width - rm.proposals.length * cellW;
+    const header = () => {
+      text(t("Requirement"), left, y - 9, 8, bold, MUTED);
+      rm.proposals.forEach((p, i) =>
+        text(fit(short ? p.proposal : t("Proposal {label}", { label: p.proposal }), cellW - 4, 8, bold), left + firstCol + i * cellW, y - 9, 8, bold, MUTED),
+      );
+      y -= 15;
+    };
+    ensure(16);
+    header();
+    rm.requirements.forEach((r, ri) => {
+      const lines = wrap(`${r.id} ${r.text}`, firstCol - 8, 8.5);
+      const rowH = Math.max(18, lines.length * 11 + 7);
+      const before = page;
+      ensure(rowH + 2);
+      if (page !== before) header();
+      lines.forEach((l, li) => text(l, left, y - 10 - li * 11, 8.5));
+      rm.proposals.forEach((p, i) => {
+        const cell = p.cells[ri]!;
+        const key = (cell.status in STATUS_FILL ? cell.status : "UNKNOWN") as keyof typeof STATUS_FILL;
+        const x = left + firstCol + i * cellW;
+        page.drawRectangle({ x, y: y - 15, width: cellW - 4, height: 15, color: STATUS_FILL[key] });
+        const word = short ? STATUS_SYMBOL[key] : t(STATUS_WORD[key]);
+        text(`${word}${cell.expected ? ` ${cell.met}/${cell.expected}` : ""}`, x + 4, y - 10.5, 7.5, bold, STATUS_INK[key]);
+      });
+      y -= rowH;
+    });
+    if (short) {
+      const legend = (Object.keys(STATUS_SYMBOL) as Array<keyof typeof STATUS_SYMBOL>).map(
+        (k) => `${STATUS_SYMBOL[k]} = ${t(STATUS_WORD[k]).replace(/^(OK|x|\?|!) /, "")}`,
+      );
+      for (const l of wrap(legend.join(" · "), width, 7.5)) {
+        ensure(11);
+        text(l, left, y - 7, 7.5, regular, MUTED);
+        y -= 10;
+      }
+    }
+  }
+
   if (rows.length) {
     heading(t("Overall score (0–10)"));
     const labelW = 70;
@@ -193,13 +346,15 @@ function drawSummary(
       ensure(20);
       const isBlocked = !approvableSet.has(p.label);
       const isRec = recommended?.label === p.label;
+      // Passed the requirement check but the verdict as a whole is blocked: say that, not "not approvable" (matrix says eligible).
+      const passed = isBlocked && Boolean(p.eligible);
       text(t("Proposal {label}", { label: p.label }), left, y - 9, 9, isRec ? bold : regular);
       page.drawRectangle({ x: left + labelW, y: y - 11, width: trackW, height: 9, color: TRACK });
       const w = (Math.max(0, Math.min(10, p.total ?? 0)) / 10) * trackW;
       page.drawRectangle({ x: left + labelW, y: y - 11, width: w, height: 9, color: isBlocked ? BLOCKED : isRec ? BAR_MAIN : BAR_OTHER });
       text(one(p.total), left + labelW + trackW + 6, y - 9, 9, bold);
       text(
-        isBlocked ? t("not approvable") : isRec ? t("recommended") : "",
+        passed ? t("passes the requirements") : isBlocked ? t("not approvable") : isRec ? t("recommended") : "",
         left + labelW + trackW + 6 + valueW,
         y - 9,
         8,
@@ -240,48 +395,55 @@ function drawSummary(
     y -= 12;
   }
 
-  const rm = report.requirementMatrix;
-  if (rm && rm.proposals.length) {
-    heading(t("Hard requirements by proposal"));
-    const firstCol = width - rm.proposals.length * 78;
-    ensure(16);
-    text(t("Requirement"), left, y - 9, 8, bold, MUTED);
-    rm.proposals.forEach((p, i) => text(t("Proposal {label}", { label: p.proposal }), left + firstCol + i * 78, y - 9, 8, bold, MUTED));
-    y -= 15;
-    rm.requirements.forEach((r, ri) => {
-      ensure(20);
-      text(fit(`${r.id} ${r.text}`, firstCol - 8, 8.5), left, y - 10, 8.5);
-      rm.proposals.forEach((p, i) => {
-        const cell = p.cells[ri]!;
-        const key = (cell.status in STATUS_FILL ? cell.status : "UNKNOWN") as keyof typeof STATUS_FILL;
-        const x = left + firstCol + i * 78;
-        page.drawRectangle({ x, y: y - 15, width: 74, height: 15, color: STATUS_FILL[key] });
-        text(`${t(STATUS_WORD[key])}${cell.expected ? ` ${cell.met}/${cell.expected}` : ""}`, x + 4, y - 10.5, 7.5, bold, STATUS_INK[key]);
-      });
-      y -= 18;
-    });
-  }
-
-  const objections = report.objections ?? [];
-  // Same rule as the dashboard fact "critical/high objections open": objections made moot by a revision are not open.
-  const open = objections.filter((o) => (o.status === "accepted" || o.status === "unresolved" || o.status === "open") && !o.moot);
-  if (objections.length) {
-    heading(t("Open objections"));
-    const labels = rows.length ? rows.map((r) => r.label) : [...new Set(objections.map((o) => o.proposal))];
-    for (const l of labels) {
-      ensure(14);
-      const mine = open.filter((o) => o.proposal === l);
-      const counts = ["critical", "high", "medium", "low"].map((sv) => [sv, mine.filter((o) => o.severity === sv).length] as const).filter(([, n]) => n > 0);
-      text(
-        `${t("Proposal {label}", { label: l })}: ${counts.length ? counts.map(([sv, n]) => `${n} ${t(sv)}`).join(", ") : t("none open")}`,
-        left,
-        y - 9,
-        9,
-        regular,
-        counts.some(([sv]) => sv === "critical" || sv === "high") ? STATUS_INK.FAIL : INK,
-      );
-      y -= 13;
+  // #268 part 2: the key disputes and next steps of the screen when the shared derivation is given; older callers keep
+  // the per-proposal objection counts.
+  const block = (b: { title: string; lines: string[]; warn?: boolean }) => {
+    ensure(30);
+    for (const [i, raw] of [b.title, ...b.lines].entries()) {
+      const size = i === 0 ? 9 : 8.5;
+      const font = i === 0 ? bold : regular;
+      for (const line of wrap(raw, width - (i === 0 ? 0 : 10), size, font)) {
+        ensure(13);
+        text(line, left + (i === 0 ? 0 : 10), y - 9, size, font, i === 0 && b.warn ? STATUS_INK.FAIL : INK);
+        y -= 12;
+      }
     }
+    y -= 6;
+  };
+  if (status?.cruxes) {
+    heading(status.cruxes.title);
+    if (status.cruxes.items.length) status.cruxes.items.forEach(block);
+    else block({ title: "", lines: [status.cruxes.none] });
+  } else {
+    const objections = report.objections ?? [];
+    // Same rule as the dashboard fact "critical/high objections open": objections made moot by a revision are not open.
+    const open = objections.filter((o) => (o.status === "accepted" || o.status === "unresolved" || o.status === "open") && !o.moot);
+    if (objections.length) {
+      heading(t("Open objections"));
+      const labels = rows.length ? rows.map((r) => r.label) : [...new Set(objections.map((o) => o.proposal))];
+      for (const l of labels) {
+        ensure(14);
+        const mine = open.filter((o) => o.proposal === l);
+        const counts = ["critical", "high", "medium", "low"].map((sv) => [sv, mine.filter((o) => o.severity === sv).length] as const).filter(([, n]) => n > 0);
+        text(
+          `${t("Proposal {label}", { label: l })}: ${counts.length ? counts.map(([sv, n]) => `${n} ${t(sv)}`).join(", ") : t("none open")}`,
+          left,
+          y - 9,
+          9,
+          regular,
+          counts.some(([sv]) => sv === "critical" || sv === "high") ? STATUS_INK.FAIL : INK,
+        );
+        y -= 13;
+      }
+    }
+  }
+  if (status?.measurements) {
+    heading(status.measurements.title);
+    block({ ...status.measurements, title: status.measurements.lines[0] ?? "", lines: status.measurements.lines.slice(1) });
+  }
+  if (status?.nextSteps) {
+    heading(status.nextSteps.title);
+    block({ ...status.nextSteps, title: status.nextSteps.lines[0] ?? "", lines: status.nextSteps.lines.slice(1) });
   }
 
   heading(t("Your decision"));
@@ -289,7 +451,9 @@ function drawSummary(
   ensure(14);
   text(
     fit(
-      last ? `${last.action.replaceAll("_", " ")}${last.comment ? ` – ${last.comment}` : ""}` : t("Not decided yet. Nothing is built before a human approves."),
+      last
+        ? `${approvalActionText(last.action, t)}${last.comment ? ` – ${last.comment}` : ""}`
+        : t("Not decided yet. Nothing is built before a human approves."),
       width,
       9,
     ),
@@ -317,6 +481,12 @@ function drawSummary(
  * "report" = summary + full text report (default), "full" = report + audit appendix (every stored requirement check
  * and the model calls per phase, not shortened).
  */
+/**
+ * The PDF's language: the report language, except Chinese – the standard PDF fonts have no CJK glyphs, so a Chinese
+ * PDF stays English until a CJK font is embedded (#268). Markdown, JSON and Word are Chinese already.
+ */
+export const pdfLocale = (locale: ReportLocale): ReportLocale => (locale === "zh" ? "en" : locale);
+
 export type PdfLevel = "brief" | "report" | "full";
 export const PDF_LEVELS: readonly PdfLevel[] = ["brief", "report", "full"];
 
@@ -325,12 +495,21 @@ export async function reportPdf(
   meta: { title: string; sessionId: string; createdAt: Date },
   /** When given, page 1 is the graphical decision summary; the text report follows. */
   report?: DecisionReport,
-  options: { level?: PdfLevel; audit?: DecisionAudit; locale?: ReportLocale } = {},
+  options: { level?: PdfLevel; audit?: DecisionAudit; locale?: ReportLocale; status?: ReportStatus; verdictId?: string | null; generatedAt?: Date } = {},
 ): Promise<Uint8Array> {
   const level = options.level ?? "report";
   // Fixed wording in the interface language (#322); model output stays as written.
   const t = reportTranslator(options.locale ?? "en");
   const pdf = await PDFDocument.create();
+  const master = {
+    id: t("{project} · session {session} · verdict {verdict} · created {date}", {
+      project: report?.project ?? meta.title,
+      session: meta.sessionId,
+      verdict: options.verdictId ?? "–",
+      date: utcStamp(options.generatedAt ?? new Date()),
+    }),
+    note: t("AI assessment – not independent factual verification"),
+  };
   pdf.setTitle(pdfSafe(meta.title));
   pdf.setProducer("CONSYRION AI");
   pdf.setCreator("CONSYRION AI");
@@ -338,9 +517,9 @@ export async function reportPdf(
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const width = PAGE.width - 2 * PAGE.margin;
   const summary = Boolean(report?.evaluationMatrix);
-  if (summary) drawSummary(pdf, report!, { regular, bold }, meta, level === "brief", t);
+  if (summary) drawSummary(pdf, report!, { regular, bold }, meta, level === "brief", t, options.locale ?? "en", options.status);
   // The brief is the summary alone; without a summary (no verdict yet) it falls back to the text report.
-  if (level === "brief" && summary) return finish(pdf, regular);
+  if (level === "brief" && summary) return finish(pdf, regular, master);
   let page: PDFPage = pdf.addPage([PAGE.width, PAGE.height]);
   let y = PAGE.height - PAGE.margin;
 
@@ -390,6 +569,20 @@ export async function reportPdf(
   write("CONSYRION AI", { font: bold, size: 9, color: BRAND, gap: 2 });
   write(t("Session {id} · {date}", { id: meta.sessionId, date: meta.createdAt.toISOString().slice(0, 10) }), { size: 8, color: MUTED, gap: 10 });
 
+  // #268 part 4: the course of the council before the full text – timeline, participation and tokens, follow-up
+  // rounds, human decisions – from the screen's derivations (reportStatus.process).
+  const process = options.status?.process ?? [];
+  if (process.length) {
+    write(t("Course of the council"), { font: bold, size: 13, color: BRAND, gap: 4 });
+    for (const b of process) {
+      ensure(30);
+      write(b.title, { font: bold, size: 10, gap: 2 });
+      for (const line of b.lines) write(line.trimStart(), { size: 9, indent: line.startsWith("   ") ? 12 : 0, gap: 1 });
+      y -= 6;
+    }
+    y -= 6;
+  }
+
   for (const block of reportBlocks(markdown)) {
     if (block.kind === "heading") {
       const size = block.level === 1 ? 18 : block.level === 2 ? 13 : 11;
@@ -431,17 +624,21 @@ export async function reportPdf(
         write(c.requirement, { font: bold, size: 10, gap: 2 });
       }
       const flags = [
-        c.status === "PASS" && c.allPartsMet === false ? "not every part confirmed" : null,
+        c.status === "PASS" && c.allPartsMet === false ? t("not every part confirmed") : null,
         c.estimate ? t("estimate {value}", { value: c.estimate }) : null,
         c.counted ? null : t("did not count: {reason}", { reason: c.invalidReason ?? t("invalid") }),
       ].filter(Boolean);
-      write(`${t("Proposal {label}", { label: c.proposal })} · ${c.evaluator} · ${c.status}${flags.length ? ` (${flags.join("; ")})` : ""}`, {
-        size: 9,
-        indent: 10,
-        gap: 1,
-        font: bold,
-        color: c.counted ? INK : MUTED,
-      });
+      const statusKey = c.status in STATUS_WORD ? (c.status as keyof typeof STATUS_WORD) : null;
+      write(
+        `${t("Proposal {label}", { label: c.proposal })} · ${c.evaluator} · ${statusKey ? t(STATUS_WORD[statusKey]) : c.status}${flags.length ? ` (${flags.join("; ")})` : ""}`,
+        {
+          size: 9,
+          indent: 10,
+          gap: 1,
+          font: bold,
+          color: c.counted ? INK : MUTED,
+        },
+      );
       write(c.evidence || "–", { size: 9, indent: 10, gap: 4, color: c.counted ? INK : MUTED });
     }
     y -= 6;
@@ -449,8 +646,12 @@ export async function reportPdf(
     // Columns: model, phase, then right-aligned numbers.
     const textCols = [0, 170, 270]; // model, phase (left edges; the last value is the end of the phase column)
     const numberEdges = [310, 355, width - 75, width]; // right edges of calls, failed, input, output
-    const row = (cells: string[], font: PDFFont) => {
+    const usageHeader = ["Model", "Phase", "Calls", "Failed", "Input tok.", "Output tok."].map((h) => t(h));
+    const row = (cells: string[], font: PDFFont, isHeader = false) => {
+      const before = page;
       ensure(13);
+      // #268 part 3: a table continued on a new page repeats its header.
+      if (page !== before && !isHeader) row(usageHeader, bold, true);
       cells.forEach((cell, i) => {
         const text = pdfSafe(cell);
         let shown = text;
@@ -460,27 +661,41 @@ export async function reportPdf(
       });
       y -= 12;
     };
-    row(
-      ["Model", "Phase", "Calls", "Failed", "Input tok.", "Output tok."].map((h) => t(h)),
-      bold,
-    );
+    row(usageHeader, bold, true);
+    // The seven phases keep their exact product names (CLAUDE.md), never the raw id.
     for (const u of a.usage)
-      row([u.model, u.phase.replaceAll("_", " "), String(u.calls), String(u.failed), String(u.inputTokens), String(u.outputTokens)], regular);
+      row([u.model, PHASE_NAME[u.phase] ?? u.phase, String(u.calls), String(u.failed), String(u.inputTokens), String(u.outputTokens)], regular);
     y -= 4;
     const total = a.usage.reduce((sum, u) => ({ input: sum.input + u.inputTokens, output: sum.output + u.outputTokens }), { input: 0, output: 0 });
     write(t("Total: {input} input + {output} output tokens", { input: total.input, output: total.output }), { font: bold, size: 9, gap: 4 });
   }
-  return finish(pdf, regular);
+  return finish(pdf, regular, master);
 }
 
 /** Page numbers on every page, then the bytes. */
-async function finish(pdf: PDFDocument, regular: PDFFont): Promise<Uint8Array> {
+/**
+ * Page master (#268 part 3): on every page the document id (project · session · verdict · created, with time zone) at
+ * the top from page 2, and at the bottom the AI-assessment note and "x / y".
+ */
+async function finish(pdf: PDFDocument, regular: PDFFont, master?: { id: string; note: string }): Promise<Uint8Array> {
   const pages = pdf.getPages();
-  pages.forEach((p, index) =>
-    p.drawText(`${index + 1} / ${pages.length}`, { x: PAGE.width - PAGE.margin - 30, y: PAGE.margin / 2, size: 8, font: regular, color: MUTED }),
-  );
+  const width = PAGE.width - 2 * PAGE.margin;
+  const fitTo = (value: string, max: number) => {
+    let out = pdfSafe(value);
+    while (out.length > 3 && regular.widthOfTextAtSize(out, 7) > max) out = `${out.slice(0, -2)}…`.replace("……", "…");
+    return out;
+  };
+  pages.forEach((p, index) => {
+    p.drawText(`${index + 1} / ${pages.length}`, { x: PAGE.width - PAGE.margin - 30, y: PAGE.margin / 2, size: 8, font: regular, color: MUTED });
+    if (!master) return;
+    p.drawText(fitTo(master.note, width - 50), { x: PAGE.margin, y: PAGE.margin / 2, size: 7, font: regular, color: MUTED });
+    if (index > 0) p.drawText(fitTo(master.id, width), { x: PAGE.margin, y: PAGE.height - PAGE.margin / 2, size: 7, font: regular, color: MUTED });
+  });
   return pdf.save();
 }
+
+/** "2026-11-08 17:30 UTC" – the time zone is always named. */
+const utcStamp = (date: Date) => `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 
 /** Word document (DOCX) with real headings, lists and tables, so it can be edited and styled further. */
 export async function reportDocx(

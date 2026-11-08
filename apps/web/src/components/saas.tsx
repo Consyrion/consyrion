@@ -556,3 +556,50 @@ export function AdminStripeSetup({
     </div>
   );
 }
+
+/** Platform admin: which finished council of the own workspace every new workspace gets as its demo, per language. */
+export function AdminDemoTemplates({
+  templates,
+  candidates,
+}: {
+  templates: Partial<Record<string, string>>;
+  candidates: Array<{ sessionId: string; projectName: string; createdAt: string }>;
+}) {
+  const { busy, error, run } = useAction();
+  const [state, setState] = useState(templates);
+  const t = useTranslations("settings.admin.demo");
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted">{t("description")}</p>
+      <div className="grid gap-3 md:grid-cols-2">
+        {["de", "en", "fr", "es", "zh"].map((locale) => (
+          <label key={locale} className="block text-sm">
+            <span className="mb-1 block font-medium">{t(`locale.${locale}` as never)}</span>
+            <Select
+              value={state[locale] ?? ""}
+              disabled={busy}
+              onChange={(e) => {
+                const sessionId = e.target.value;
+                void run(async () => {
+                  const r = await fetchJson<{ templates: Partial<Record<string, string>> }>("/api/admin/demo", {
+                    method: "PUT",
+                    body: JSON.stringify({ locale, sessionId: sessionId || null }),
+                  });
+                  setState(r.templates);
+                });
+              }}
+            >
+              <option value="">{t("none")}</option>
+              {candidates.map((c) => (
+                <option key={c.sessionId} value={c.sessionId}>
+                  {c.projectName} ({c.createdAt.slice(0, 10)})
+                </option>
+              ))}
+            </Select>
+          </label>
+        ))}
+      </div>
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
+    </div>
+  );
+}

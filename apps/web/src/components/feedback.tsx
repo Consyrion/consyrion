@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "./ui/button";
 import { SelectField, TextAreaField, TextField } from "./ui/field";
@@ -15,6 +15,19 @@ export const FEEDBACK_KIND_KEYS = ["bug", "feature", "contact"] as const;
 export const FEEDBACK_STATE_KEYS = ["new", "in_progress", "done"] as const;
 const SUBJECT_MAX = 120;
 const TEXT_MAX = 4000;
+/** Same limit and formats as the server (FEEDBACK_LIMITS.screenshotBytes); the server checks the file signature again. */
+const SCREENSHOT_MAX = 3_000_000;
+const SCREENSHOT_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
+
+/** Reads a file as base64 without the data: prefix. */
+function readBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 type Kind = (typeof FEEDBACK_KIND_KEYS)[number];
 type State = (typeof FEEDBACK_STATE_KEYS)[number];
@@ -22,6 +35,14 @@ type State = (typeof FEEDBACK_STATE_KEYS)[number];
 /** A path of this app to attach as "page" – only same-origin paths, never a full URL from the query string. */
 function safePath(from: string | null | undefined, fallback: string) {
   return from && from.startsWith("/") && !from.startsWith("//") ? from.split(/[?#]/)[0]!.slice(0, 200) : fallback;
+}
+
+/** Project or council id in an app path (`/projects/<id>…`, `/sessions/<id>…`) – offered for sending, never sent unasked. */
+function contextOf(path: string): { projectId?: string; sessionId?: string } | null {
+  const session = /^\/sessions\/([\w-]{3,60})/.exec(path)?.[1];
+  if (session) return { sessionId: session };
+  const projectId = /^\/projects\/([\w-]{3,60})/.exec(path)?.[1];
+  return projectId ? { projectId } : null;
 }
 
 /**
@@ -39,10 +60,16 @@ export function FeedbackForm({ visitor = false, from }: { visitor?: boolean; fro
   const [text, setText] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [fileKey, setFileKey] = useState(0);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
+  // #295 stage 3: the project/council of the page is sent only when the user agrees (unchecked by default).
+  const pageContext = visitor ? null : contextOf(page);
+  const [shareContext, setShareContext] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -50,19 +77,36 @@ export function FeedbackForm({ visitor = false, from }: { visitor?: boolean; fro
     setError(null);
     setFieldErrors({});
     try {
+      const image = screenshot ? await readBase64(screenshot) : undefined;
       await fetchJson("/api/feedback", {
         method: "POST",
-        body: JSON.stringify({ kind, subject, text, email: visitor ? email : undefined, website, page, locale }),
+        body: JSON.stringify({
+          kind,
+          subject,
+          text,
+          email: visitor ? email : undefined,
+          website,
+          page,
+          locale,
+          screenshot: image,
+          ...(pageContext && shareContext ? { shareContext: true, context: pageContext } : {}),
+        }),
       });
       setSent(true);
       setSubject("");
       setText("");
+      setScreenshot(null);
+      setFileKey((k) => k + 1);
       if (!visitor) router.refresh();
     } catch (err) {
       if (err instanceof ApiRequestError) {
         const fields = Object.keys(err.fieldErrors ?? {});
         setFieldErrors(
-          Object.fromEntries(fields.filter((f) => ["subject", "text", "email"].includes(f)).map((f) => [f, t(`errors.${f as "subject" | "text" | "email"}`)])),
+          Object.fromEntries(
+            fields
+              .filter((f) => ["subject", "text", "email", "screenshot"].includes(f))
+              .map((f) => [f, t(`errors.${f as "subject" | "text" | "email" | "screenshot"}`)]),
+          ),
         );
         setError(err.status === 429 ? t("rateLimited") : fields.length ? t("errors.fields") : t("error"));
       } else setError(t("error"));
@@ -122,6 +166,53 @@ export function FeedbackForm({ visitor = false, from }: { visitor?: boolean; fro
         onChange={(e) => setText(e.target.value)}
         error={fieldErrors.text}
       />
+      <div className="text-sm">
+        <span id="feedback-screenshot-label" className="mb-1 block font-medium">
+          {t("screenshot")}
+        </span>
+        {/* The native file input is visually hidden: its button text ("Choose File") comes from the browser, not our translations. */}
+        <input
+          ref={fileInput}
+          key={fileKey}
+          id="feedback-screenshot"
+          type="file"
+          accept={SCREENSHOT_ACCEPT}
+          disabled={busy}
+          aria-labelledby="feedback-screenshot-label"
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            setFieldErrors(({ screenshot: _s, ...rest }) => rest);
+            if (file && (file.size > SCREENSHOT_MAX || !SCREENSHOT_ACCEPT.split(",").includes(file.type))) {
+              setFieldErrors((current) => ({ ...current, screenshot: t("errors.screenshot") }));
+              setScreenshot(null);
+              setFileKey((k) => k + 1);
+              return;
+            }
+            setScreenshot(file);
+          }}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => fileInput.current?.click()}>
+            {screenshot ? t("screenshotChange") : t("screenshotChoose")}
+          </Button>
+          <span className="min-w-0 text-muted [overflow-wrap:anywhere]">{screenshot ? screenshot.name : t("screenshotNone")}</span>
+          {screenshot ? (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                setScreenshot(null);
+                setFileKey((k) => k + 1);
+              }}
+            >
+              {t("screenshotRemove")}
+            </Button>
+          ) : null}
+        </div>
+        <span className={`mt-1 block text-xs ${fieldErrors.screenshot ? "text-danger" : "text-muted"}`}>{fieldErrors.screenshot ?? t("screenshotHint")}</span>
+      </div>
       {/* Honeypot: invisible for people and assistive technology; bots that fill every field are dropped silently. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
         <label>
@@ -129,7 +220,14 @@ export function FeedbackForm({ visitor = false, from }: { visitor?: boolean; fro
           <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
         </label>
       </div>
+      {pageContext ? (
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={shareContext} onChange={(e) => setShareContext(e.target.checked)} />
+          <span>{t(pageContext.sessionId ? "shareSession" : "shareProject")}</span>
+        </label>
+      ) : null}
       <p className="text-xs text-muted">{t("attached", { page })}</p>
+      <p className="text-xs text-muted">{t("storage")}</p>
       <p className="text-xs text-muted">
         {t("privacy")}{" "}
         <Link href="/datenschutz" className="underline hover:text-text">
@@ -177,10 +275,29 @@ export function FeedbackFilters({ kind, state }: { kind: string; state: string }
 }
 
 /** Actions on one report in the admin inbox: status, reply, delete (with an in-page confirmation). */
-export function AdminFeedbackActions({ id, state, listHref }: { id: string; state: State; listHref: string }) {
+export function AdminFeedbackActions({
+  id,
+  state,
+  listHref,
+  email,
+  visitor,
+  mailConfigured,
+}: {
+  id: string;
+  state: State;
+  listHref: string;
+  /** Author's address, shown next to the "also by e-mail" option. */
+  email: string;
+  visitor: boolean;
+  /** SMTP is set up on this server; without it the option is hidden and replies stay in the app. */
+  mailConfigured: boolean;
+}) {
   const t = useTranslations("feedback.admin");
   const router = useRouter();
   const [reply, setReply] = useState("");
+  // Visitors have no account, so e-mail is the only way they see the answer: checked by default for them.
+  const [byMail, setByMail] = useState(visitor);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -188,6 +305,7 @@ export function AdminFeedbackActions({ id, state, listHref }: { id: string; stat
   async function run(fn: () => Promise<unknown>, after?: () => void) {
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
       await fn();
       after?.();
@@ -222,13 +340,25 @@ export function AdminFeedbackActions({ id, state, listHref }: { id: string; stat
         className="space-y-2"
         onSubmit={(e) => {
           e.preventDefault();
+          const mail = mailConfigured && byMail;
           void run(
-            () => fetchJson(`/api/admin/feedback/${id}/reply`, { method: "POST", body: JSON.stringify({ text: reply }) }),
-            () => setReply(""),
+            () => fetchJson(`/api/admin/feedback/${id}/reply`, { method: "POST", body: JSON.stringify({ text: reply, email: mail }) }),
+            () => {
+              setReply("");
+              setNotice(mail ? t("replySentMail", { email }) : t("replySent"));
+            },
           );
         }}
       >
         <TextAreaField label={t("reply")} hint={t("replyHint")} maxLength={TEXT_MAX} rows={4} value={reply} onChange={(e) => setReply(e.target.value)} />
+        {mailConfigured ? (
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={byMail} onChange={(e) => setByMail(e.target.checked)} />
+            <span className="[overflow-wrap:anywhere]">{t("replyByMail", { email })}</span>
+          </label>
+        ) : (
+          <p className="text-xs text-muted">{t("replyNoMail")}</p>
+        )}
         <Button type="submit" disabled={busy || !reply.trim()}>
           {t("sendReply")}
         </Button>
@@ -259,6 +389,7 @@ export function AdminFeedbackActions({ id, state, listHref }: { id: string; stat
           {t("delete")}
         </Button>
       )}
+      {notice ? <Alert tone="success">{notice}</Alert> : null}
       {error ? <Alert>{error}</Alert> : null}
     </div>
   );

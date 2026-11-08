@@ -105,8 +105,15 @@ describe("Execution Council on a linked repository", () => {
       const result = routes[`${init?.method ?? "GET"} ${url.pathname}`];
       return result === undefined ? new Response("{}", { status: 404 }) : new Response(JSON.stringify(result), { status: 200 });
     };
-    const pr = await createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl });
+    // #400: the change set touches package.json scripts – nothing is published until they are confirmed.
+    await expect(createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: expect.stringContaining("package.json scripts changed"),
+    });
+    expect(calls.filter((c) => c.path.endsWith("/pulls"))).toHaveLength(0);
+    const pr = await createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl }, { confirmCiChanges: true });
     expect(pr).toEqual({ number: 9, url: "https://github.com/acme/calc/pull/9" });
+    expect((calls.find((c) => c.path.endsWith("/pulls"))!.body as { body: string }).body).toContain("CI-relevant changes");
     expect(calls[0]).toMatchObject({ path: "/app/installations/42/access_tokens", body: { repositories: ["calc"], permissions: { contents: "write", pull_requests: "write" } } });
     const tree = calls.find((c) => c.path.endsWith("/git/trees"))!.body as { tree: Array<{ path: string }> };
     expect(tree.tree.map((t) => t.path).sort()).toEqual(["package.json", "src/sum.js"]);
@@ -140,7 +147,7 @@ describe("Execution Council on a linked repository", () => {
     await expect(createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl })).rejects.toMatchObject({ code: "CONFLICT", message: expect.stringContaining("Quality gate") });
     await expect(createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl }, { overrideReason: "too short" })).rejects.toMatchObject({ code: "CONFLICT" });
     expect(bodies).toHaveLength(0);
-    const pr = await createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl }, { overrideReason: "Flaky test, verified manually in staging" });
+    const pr = await createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl }, { overrideReason: "Flaky test, verified manually in staging", confirmCiChanges: true });
     expect(pr.number).toBe(10);
     expect((bodies[0] as { body: string }).body).toContain("Quality gate overridden");
     const [audit] = await handle.db.select().from(schema.auditEvent).where(eq(schema.auditEvent.action, "github.pull_request_created"));

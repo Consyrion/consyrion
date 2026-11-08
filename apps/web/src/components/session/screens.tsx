@@ -1,5 +1,6 @@
 "use client";
 
+import { AskAssistantButton } from "../assistant-open";
 import { CRITERIA, dedupeStatements, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrion/core/browser";
 import { EngineText, useConfidenceIssueText } from "./engine-text";
 import { useFormatter, useTranslations } from "next-intl";
@@ -11,26 +12,33 @@ import { SelectField, TextAreaField } from "../ui/field";
 import { CouncilNetwork } from "../dashboard/council-network";
 import { Alert, Badge, Card, EmptyState } from "../ui/surface";
 import { RequirementGateTable, useFeasibilityLabel, type RequirementGateResult } from "./requirement-gate";
+import { FollowUpCard } from "./follow-up-card";
+import { explainNoRecommendation, type WhyProposal } from "./why-no-recommendation";
+import { MeasurementPanel } from "./measurement-panel";
 import {
   contentOf,
   latestRevision,
   modelName,
   proposalLabel,
-  readableFormula,
   SEVERITY_TONE,
   STATUS_TONE,
   useEnumText,
   useRoleLabel,
   useGateText,
+  useIneligibleReason,
+  useReadableFormula,
   useVerdictReason,
   type ProposalContent,
   type ProposalJson,
   type View,
 } from "./helpers";
+import { WhyPerspectives } from "./why-perspectives";
+import { CruxesCard } from "./cruxes-card";
 import { NextStepsCard } from "./next-steps-card";
 import { deriveNextSteps } from "./next-steps";
 import { ProcessCharts } from "./process-charts";
 import { score1 } from "./verdict-dashboard";
+import { nextStepsTarget, verdictStatus } from "./verdict-status";
 import { VerdictDashboard, type DashboardMatrix, type NextAction, type OutcomeKey } from "./verdict-dashboard";
 
 /** Criterion names, shared with the verdict dashboard (`verdict.dashboard.criteria`). */
@@ -357,6 +365,7 @@ export function TwelveMindsScreen({ view }: { view: View }) {
             );
           })}
         </ul>
+        <WhyPerspectives view={view} />
       </Card>
       {messages.length === 0 ? (
         <Waiting view={view} phase="twelve_minds_council" text={t("minds.waiting")} />
@@ -463,6 +472,8 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
   const consensusText = useEnumText("phaseScreens.consensus.status");
   return (
     <div className="space-y-5">
+      {/* #267: the decisive disputes above the long objection list, from the same stored rows. */}
+      <CruxesCard view={view} recommendedId={view.decision?.recommendedProposalId ?? null} />
       <div className="flex gap-2" role="tablist">
         <Button
           role="tab"
@@ -698,6 +709,68 @@ function MainReason({ view, matrix, canRepeat }: { view: View; matrix: DecisionM
   );
 }
 
+/**
+ * #230: why there is no approvable recommendation – one plain sentence per proposal (violated, disputed, not fully
+ * evaluated, not proven) and only the next steps that exist today. Explains the stored gate result, never re-decides.
+ */
+function WhyNoRecommendationCard({
+  view,
+  matrix,
+  outcome,
+  approvableProposals,
+  canFollowUp = false,
+  onChange,
+}: {
+  view: View;
+  matrix: DecisionMatrix;
+  outcome: string;
+  approvableProposals: number;
+  /** #228/#229: the owner may start a follow-up round (awaiting approval, decision:approve). */
+  canFollowUp?: boolean;
+  onChange?: () => Promise<void>;
+}) {
+  const t = useTranslations("verdictScreen.why");
+  const tp = useTranslations("phaseScreens");
+  const why = explainNoRecommendation(view, matrix.requirementGate, {
+    requirementsConflict: matrix.requirementsConflict,
+    failedEvaluators: (matrix.failedEvaluators ?? []).length,
+    approvableProposals,
+  });
+  if (!why || why.proposals.length === 0) return null;
+  const line = (p: WhyProposal) => {
+    const list = p.requirements.join(", ");
+    if (p.kind === "violated") return p.counts ? t("violatedCount", { list, fail: p.counts.fail, total: p.counts.total }) : t("violated", { list });
+    if (p.kind === "disputed") return p.counts ? t("disputedCount", { list, pass: p.counts.pass, fail: p.counts.fail }) : t("disputed", { list });
+    return t(p.kind, { list });
+  };
+  return (
+    <div className="mt-3 rounded-lg border border-line p-3 text-sm" data-testid="why-no-recommendation">
+      <p className="font-medium">{t("title")}</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-5">
+        {why.requirementsConflict ? <li>{t("conflict")}</li> : null}
+        {why.proposals.map((p) => (
+          <li key={p.proposalId}>
+            {tp("proposal", { label: proposalLabel(view, p.proposalId) })}: {line(p)}
+          </li>
+        ))}
+      </ul>
+      {outcome === "no_qualifying_solution" ? <p className="mt-1 text-muted">{t("onlyThese")}</p> : null}
+      <p className="mt-1 text-xs text-muted">{t("modelJudgement")}</p>
+      {why.steps.length ? (
+        <>
+          <p className="mt-2 font-medium">{t("nextTitle")}</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            {why.steps.map((step) => (
+              <li key={step}>{t(`next.${step}`)}</li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {canFollowUp && onChange ? <FollowUpCard sessionId={view.session.id} onStarted={onChange} /> : null}
+    </div>
+  );
+}
+
 export function EvaluationScreen({ view }: { view: View }) {
   const matrix = view.decision?.matrix as
     | {
@@ -712,6 +785,8 @@ export function EvaluationScreen({ view }: { view: View }) {
   const t = useTranslations("evaluationScreen");
   const tp = useTranslations("phaseScreens");
   const criterionLabel = useCriterionLabel();
+  const ineligibleReason = useIneligibleReason();
+  const formulaText = useReadableFormula();
   const feasibility = useFeasibilityLabel();
   if (!matrix) return <Waiting view={view} phase="final_verdict" text={t("waiting")} />;
   // A matrix of a format this version does not know (#181): the server says so; nothing is guessed from it.
@@ -794,7 +869,7 @@ export function EvaluationScreen({ view }: { view: View }) {
                   ) : null}
                   {p.ineligibleReasons.map((r) => (
                     <span key={r} className="mt-1 block text-xs text-danger">
-                      {r}
+                      {ineligibleReason(r)}
                     </span>
                   ))}
                 </td>
@@ -813,7 +888,7 @@ export function EvaluationScreen({ view }: { view: View }) {
       </div>
       <p className="text-sm text-muted">
         {t("formula", {
-          formula: readableFormula(view, matrix.formula),
+          formula: formulaText(view, matrix.formula, matrix.weights, (c) => criterionLabel(c as Criterion)),
           winner: matrix.majorityVoteWinnerId ? tp("proposal", { label: proposalLabel(view, matrix.majorityVoteWinnerId) }) : t("noMajority"),
         })}
       </p>
@@ -872,46 +947,17 @@ function ValidParticipation({ view }: { view: View }) {
   );
 }
 
-// Titles: `verdict.dashboard.outcome.<key>` (shared with the dashboard).
-// #230: no_qualifying_solution is about the proposals of this council, never about every possible solution.
-const OUTCOME: Record<string, { tone: "success" | "warning" | "danger" | "neutral" }> = {
-  recommended: { tone: "success" },
-  tie: { tone: "warning" },
-  no_qualifying_solution: { tone: "danger" },
-  insufficient_evidence: { tone: "warning" },
-};
-
+// Titles: `verdict.dashboard.outcome.<key>` (shared with the dashboard); derived in verdict-status.ts.
 export function VerdictScreen({ view, canApprove, onChange }: { view: View; canApprove: boolean; onChange: () => Promise<void> }) {
   const decision = view.decision;
   // Approvability comes from the server (#181, stage 1); this screen only displays it and never re-checks the format.
+  // One derivation for this screen, the header and the PDF (#268): verdictStatus.
   const status = view.decisionStatus;
-  const readable = status?.readable ?? false;
-  const notApprovable = status ? !status.approvable : false;
+  const verdict = verdictStatus(view);
+  const { readable, notApprovable, conflict, s1, initialAction } = verdict;
   const matrix = readable ? (decision?.matrix as unknown as DecisionMatrix | undefined) : undefined;
-  // The council found that the hard requirements conflict (#121): the only decisions are confirming the finding
-  // (reject, no build), more debate or a changed brief – never an implementation approval.
-  const conflict = !notApprovable && matrix?.requirementsConflict === true;
-  // Gate version 2 (#181, S1): no extra debate (it would discard the stored checks); the way on is a new council.
-  const s1 = status?.gateVersion === 2;
-  // Without a recommendation (tie, no qualifying solution) approving it is impossible – start with choosing one.
-  // Evaluators without usable scores can be asked again; scores already given stay (#145).
   const missingEvaluators = (matrix?.failedEvaluators ?? []).length;
-  const initialAction = notApprovable
-    ? missingEvaluators > 0
-      ? "repeat_evaluation"
-      : "request_changes"
-    : decision?.outcome === "recommended" && status?.canApproveRecommendation
-      ? "approve"
-      : (decision?.outcome === "insufficient_evidence" || decision?.outcome === "needs_verification") && missingEvaluators > 0
-        ? "repeat_evaluation"
-        : conflict
-          ? "reject"
-          : // No proposal can be approved (no qualifying solution, e.g. conflicting requirements – night test 07.11.26):
-            // the way on is a changed brief, not choosing one of the failed proposals.
-            readable && (status?.approvableProposalIds ?? []).length === 0
-            ? "request_changes"
-            : "select_alternative";
-  const [action, setAction] = useState(initialAction);
+  const [action, setAction] = useState<string>(initialAction);
   const [comment, setComment] = useState("");
   const [alternative, setAlternative] = useState("");
   const [busy, setBusy] = useState(false);
@@ -946,31 +992,27 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   };
   const change = recommended?.architectureChange ?? null;
   const blocked = new Set(view.objections.filter((o) => o.blocking && ["open", "accepted", "unresolved"].includes(o.status)).map((o) => o.proposalId));
-  // #249: a proposal passed every check but too few independent evaluators took part – say so in the title.
-  const provisional = (matrix?.requirementGate?.proposals ?? []).some((g) => g.limitedReview);
-  const outcomeKey: OutcomeKey = notApprovable
-    ? provisional
-      ? "provisional"
-      : decision.outcome === "needs_verification"
-        ? "needs_verification"
-        : "not_approvable"
-    : conflict
-      ? "conflict"
-      : OUTCOME[decision.outcome]
-        ? (decision.outcome as OutcomeKey)
-        : "not_approvable";
-  const outcome = {
-    title: tOutcome(outcomeKey),
-    tone: notApprovable ? ("warning" as const) : conflict ? ("danger" as const) : (OUTCOME[decision.outcome]?.tone ?? ("warning" as const)),
-  };
+  const outcomeKey: OutcomeKey = verdict.outcomeKey ?? "not_approvable";
+  const outcome = { title: tOutcome(outcomeKey), tone: verdict.tone };
   const findings = new Set((matrix?.proposals ?? []).filter((p) => p.implementable === false).map((p) => p.proposalId));
+  // #249 part 2 / #478: computed on the server, only displayed here.
+  const prototypeIds = new Set(status?.prototypeProposalIds ?? []);
+  const measuredIds = new Set(status?.measurementApprovableProposalIds ?? []);
   const approvableIds = new Set(status?.approvableProposalIds ?? []);
   const notImplementable = new Set(view.proposals.filter((p) => !approvableIds.has(p.id)).map((p) => p.id));
   // A proposal whose requirements are all confirmed but which another rule blocks must not read "requirements not met"
   // (ChatGPT test 06.11.26, Tags session): say what is true.
   const qualified = new Set((matrix?.requirementGate?.proposals ?? []).filter((g) => g.feasibility === "qualified").map((g) => g.proposalId));
+  // #511: an architecture candidate passed every check; only its measurement is open.
+  const candidates = new Map(
+    (matrix?.requirementGate?.proposals ?? [])
+      .filter((g) => g.architectureCandidate)
+      .map((g) => [g.proposalId, g.requirements.filter((r) => r.measurementPending).map((r) => r.requirementId).join(", ")]),
+  );
   const notApprovableText = (id: string) =>
-    s1
+    s1 && candidates.has(id)
+      ? t("notApprovable.architectureCandidate", { ids: candidates.get(id)! })
+      : s1
       ? qualified.has(id)
         ? t("notApprovable.qualifiedBlocked")
         : t("notApprovable.s1")
@@ -987,7 +1029,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
     try {
       await fetchJson(`/api/sessions/${view.session.id}/approval`, {
         method: "POST",
-        body: JSON.stringify({ action, comment, selectedProposalId: action === "select_alternative" ? alternative : undefined }),
+        body: JSON.stringify({ action, comment, selectedProposalId: PROPOSAL_ACTIONS.has(action) ? alternative : undefined }),
       });
       await onChange();
     } catch (err) {
@@ -999,6 +1041,10 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
 
   return (
     <div className="space-y-5">
+      {/* #279: ask the assistant about this decision – opens the panel with a question, nothing is sent yet. */}
+      <div className="flex justify-end">
+        <AskAssistantButton variant="ghost" />
+      </div>
       {matrix ? (
         <VerdictDashboard
           view={view}
@@ -1012,17 +1058,11 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         />
       ) : null}
       {(() => {
-        // #273: for the recommendation, or – when nothing can be approved – for the best-scored proposal.
-        if (!matrix) return null;
-        const recommendedId = notApprovable ? null : (decision.recommendedProposalId ?? null);
-        const best =
-          [...((matrix.proposals as Array<{ proposalId: string; total: number | null }>) ?? [])].sort((a, b) => (b.total ?? -1) - (a.total ?? -1))[0]
-            ?.proposalId ?? null;
-        // A human choice wins (ChatGPT test 06.11.26: decided tie sessions still read "nothing can be approved yet").
-        const last = view.approvals.at(-1);
-        const chosenId = last && (last.action === "approve" || last.action === "select_alternative") ? (last.selectedProposalId ?? recommendedId) : null;
-        const mode = chosenId ? "chosen" : recommendedId ? "recommended" : approvableIds.size ? "tie" : "blocked";
-        const steps = deriveNextSteps(view, chosenId ?? recommendedId ?? best, matrix.requirementGate);
+        // #273: for the recommendation, or – when nothing can be approved – for the best-scored proposal (#268: shared).
+        const target = matrix ? nextStepsTarget(view, verdict) : null;
+        if (!matrix || !target) return null;
+        const mode = target.mode;
+        const steps = deriveNextSteps(view, target.proposalId, matrix.requirementGate);
         return steps ? <NextStepsCard view={view} steps={steps} mode={mode} /> : null;
       })()}
       {matrix ? (
@@ -1046,6 +1086,16 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
       <Card className={outcome.tone === "success" ? "border-success/50" : outcome.tone === "danger" ? "border-danger/50" : ""}>
         <Badge tone={outcome.tone}>{outcome.title}</Badge>
         {matrix ? <MainReason view={view} matrix={matrix} canRepeat={canApprove} /> : null}
+        {matrix && s1 && (notApprovable || decision.outcome !== "recommended") ? (
+          <WhyNoRecommendationCard
+            view={view}
+            matrix={matrix}
+            outcome={decision.outcome}
+            approvableProposals={approvableIds.size}
+            canFollowUp={canApprove && view.session.status === "awaiting_approval"}
+            onChange={onChange}
+          />
+        ) : null}
         {notApprovable && status?.reason ? (
           <p className="mt-3 text-sm" data-testid="not-approvable-reason">
             {conflictReason ?? verdictReason(status.reason)} {t("notApprovableHint")}
@@ -1211,6 +1261,17 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         </a>
       </div>
 
+      {view.humanMark ? (
+        <Alert tone="warning">
+          <span data-testid="human-mark">
+            {t(view.humanMark.kind === "prototype_build" ? "mark.prototype" : "mark.favorite", { label: proposalLabel(view, view.humanMark.proposalId) })}
+          </span>
+        </Alert>
+      ) : null}
+      {readable && matrix?.requirementGate ? (
+        <MeasurementPanel view={view} gate={matrix.requirementGate} canRecord={canApprove && view.session.status === "awaiting_approval"} onChange={onChange} />
+      ) : null}
+
       <SendDecision sessionId={view.session.id} projectDefault={view.project.deliveryDefault ?? null} />
 
       {view.approvals.length ? (
@@ -1242,6 +1303,14 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
                 <option value="select_alternative" disabled={conflict || notApprovable || (readable && (status?.approvableProposalIds ?? []).length === 0)}>
                   {t("form.selectAlternative")}
                 </option>
+                {/* #249 part 2 / #478: a favourite or a marked prototype build – never a regular approval. */}
+                {prototypeIds.size ? (
+                  <>
+                    <option value="mark_favorite">{t("form.markFavorite")}</option>
+                    <option value="approve_prototype">{t("form.approvePrototype")}</option>
+                  </>
+                ) : null}
+                {measuredIds.size ? <option value="approve_after_measurement">{t("form.approveAfterMeasurement")}</option> : null}
                 <option value="repeat_evaluation" disabled={missingEvaluators === 0}>
                   {t("form.repeat", { n: missingEvaluators })}
                 </option>
@@ -1259,11 +1328,24 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
                     </option>
                   ))}
                 </SelectField>
+              ) : PROPOSAL_ACTIONS.has(action) ? (
+                <SelectField label={tp("proposalField")} value={alternative} onChange={(e) => setAlternative(e.target.value)}>
+                  <option value="">{t("form.choose")}</option>
+                  {view.proposals.map((p) => {
+                    const allowed = (action === "approve_after_measurement" ? measuredIds : prototypeIds).has(p.id) && !blocked.has(p.id);
+                    return (
+                      <option key={p.id} value={p.id} disabled={!allowed}>
+                        {tp("proposal", { label: p.label ?? "" })}
+                        {blocked.has(p.id) ? ` (${t("blocked")})` : ""}
+                      </option>
+                    );
+                  })}
+                </SelectField>
               ) : null}
             </div>
             <div className="mt-3">
               <TextAreaField
-                label={action === "select_alternative" || action === "request_changes" ? t("form.reason") : t("form.comment")}
+                label={action === "select_alternative" || action === "request_changes" || PROPOSAL_ACTIONS.has(action) ? t("form.reason") : t("form.comment")}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 maxLength={5000}
@@ -1285,5 +1367,8 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
     </div>
   );
 }
+
+/** Actions of the decision form that name a proposal (#249 part 2 adds favourite, prototype and after measurement). */
+const PROPOSAL_ACTIONS = new Set(["select_alternative", "mark_favorite", "approve_prototype", "approve_after_measurement"]);
 
 export { ExecutionScreen, ReviewTestsScreen } from "./execution";

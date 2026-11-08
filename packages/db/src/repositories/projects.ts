@@ -1,12 +1,13 @@
 import { assertCan, DomainError } from "@consyrion/core";
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, desc, eq, max, ne } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";
 import { newId } from "../ids";
-import { project, projectBrief } from "../schema";
+import { councilSession, project, projectBrief } from "../schema";
 import { recordAudit } from "./audit";
 import type { ActorContext } from "./context";
 import { assertEntitlement } from "./saas";
+import { assertNotDemoProject } from "./demo";
 
 const githubRepoUrl = z
   .string()
@@ -75,7 +76,12 @@ export async function createProject(db: Database, ctx: ActorContext, input: Proj
 
 export async function listProjects(db: Database, ctx: ActorContext) {
   assertCan(ctx.role, "project:read");
-  return db.select().from(project).where(eq(project.organizationId, ctx.organizationId)).orderBy(desc(project.updatedAt));
+  // #197: a project being deleted is gone for every reader.
+  return db
+    .select()
+    .from(project)
+    .where(and(eq(project.organizationId, ctx.organizationId), ne(project.status, "deleting")))
+    .orderBy(desc(project.updatedAt));
 }
 
 export async function getProject(db: Database, ctx: ActorContext, projectId: string) {
@@ -83,7 +89,7 @@ export async function getProject(db: Database, ctx: ActorContext, projectId: str
   const [found] = await db
     .select()
     .from(project)
-    .where(and(eq(project.id, projectId), eq(project.organizationId, ctx.organizationId)))
+    .where(and(eq(project.id, projectId), eq(project.organizationId, ctx.organizationId), ne(project.status, "deleting")))
     .limit(1);
   if (!found) throw new DomainError("NOT_FOUND", "Project not found");
   const [brief] = await db.select().from(projectBrief).where(eq(projectBrief.projectId, projectId)).orderBy(desc(projectBrief.version)).limit(1);
@@ -92,6 +98,10 @@ export async function getProject(db: Database, ctx: ActorContext, projectId: str
 
 /** Appends a new brief version; earlier versions stay immutable for traceability. */
 export async function updateBrief(db: Database, ctx: ActorContext, projectId: string, input: z.input<typeof briefInput>) {
+  // The demo project is read-only (owner decision 08.11.26, review of #374).
+  await assertNotDemoProject(db, ctx, projectId);
+  // #197: an archived project is read-only.
+  await assertProjectWritable(db, ctx, projectId);
   assertCan(ctx.role, "project:write");
   const data = parse(briefInput, input);
   await getProject(db, ctx, projectId);
@@ -131,7 +141,9 @@ export async function updateBrief(db: Database, ctx: ActorContext, projectId: st
 
 export async function archiveProject(db: Database, ctx: ActorContext, projectId: string) {
   assertCan(ctx.role, "project:delete");
-  await getProject(db, ctx, projectId);
+  const found = await getProject(db, ctx, projectId);
+  // Archiving twice changes nothing (#197: repeated requests end the same way).
+  if (found.status === "archived") return;
   await db
     .update(project)
     .set({ status: "archived" })
@@ -140,6 +152,55 @@ export async function archiveProject(db: Database, ctx: ActorContext, projectId:
     organizationId: ctx.organizationId,
     actorUserId: ctx.userId,
     action: "project.archived",
+    targetType: "project",
+    targetId: projectId,
+  });
+}
+
+/** #197 (ADR 0197): the message of every write refused because the project is archived. */
+export const PROJECT_ARCHIVED_MESSAGE = "This project is archived. Restore it on the project page to change it, start councils, approve or build.";
+
+/**
+ * #197 (ADR 0197): one rule for every write path – an archived project can be read and exported, but nothing new is
+ * started, confirmed, approved, measured or built in it. Running councils are not cancelled by archiving.
+ */
+export async function assertProjectWritable(db: Database, ctx: ActorContext, projectId: string): Promise<void> {
+  const [row] = await db
+    .select({ status: project.status })
+    .from(project)
+    .where(and(eq(project.id, projectId), eq(project.organizationId, ctx.organizationId)));
+  if (!row || row.status === "deleting") throw new DomainError("NOT_FOUND", "Project not found");
+  if (row.status === "archived") throw new DomainError("CONFLICT", PROJECT_ARCHIVED_MESSAGE);
+}
+
+/** #197: the same rule for actions that name a session (approval, measurement, build, pull request). */
+export async function assertSessionProjectWritable(db: Database, ctx: ActorContext, sessionId: string): Promise<void> {
+  const [row] = await db
+    .select({ status: project.status })
+    .from(councilSession)
+    .innerJoin(project, eq(project.id, councilSession.projectId))
+    .where(and(eq(councilSession.id, sessionId), eq(councilSession.organizationId, ctx.organizationId)));
+  if (!row || row.status === "deleting") throw new DomainError("NOT_FOUND", "Session not found");
+  if (row.status === "archived") throw new DomainError("CONFLICT", PROJECT_ARCHIVED_MESSAGE);
+}
+
+/**
+ * #197: brings an archived project back. It takes an active project slot again, so the plan limit is checked first. The
+ * project returns as "ready" (an archived draft had already been saved once; the brief is unchanged).
+ */
+export async function restoreProject(db: Database, ctx: ActorContext, projectId: string) {
+  assertCan(ctx.role, "project:delete");
+  const found = await getProject(db, ctx, projectId);
+  if (found.status !== "archived") throw new DomainError("CONFLICT", "Only an archived project can be restored");
+  await assertEntitlement(db, ctx.organizationId, "project");
+  await db
+    .update(project)
+    .set({ status: "ready" })
+    .where(and(eq(project.id, projectId), eq(project.organizationId, ctx.organizationId)));
+  await recordAudit(db, {
+    organizationId: ctx.organizationId,
+    actorUserId: ctx.userId,
+    action: "project.restored",
     targetType: "project",
     targetId: projectId,
   });

@@ -42,6 +42,15 @@ Consyrion charges a **platform subscription** (hosting, database, workers, sandb
 input/output tokens). An approximate cost appears only for models where the workspace entered its own price;
 the provider invoice is authoritative.
 
+**Prompt cache (#244).** Every call also records how many of its input tokens the provider served from its prompt
+cache (`usage_record.cached_input_tokens`: Anthropic `cache_read_input_tokens`, OpenAI `cached_tokens`, Gemini
+`cachedContentTokenCount`, OpenAI-compatible providers `prompt_tokens_details.cached_tokens`). Input tokens always
+include the cached ones – Anthropic reports them separately, the adapter adds them – so budgets count every token
+once. Billing shows the cached share per model ("of which cached"), a council's header shows it under the used
+tokens. Cached tokens are usually billed at a fraction of the input price; the price hint does not discount them
+yet. This is the measurement step: making the repository context cacheable (a stable prompt prefix) follows
+separately.
+
 ## Stripe
 
 **Set up from `/admin` → "Stripe and Pro price"** (same approach as OnJam): paste the secret key (`sk_test_…` for the
@@ -55,7 +64,10 @@ subscriptions keep their price. Before live sales: VAT registration/OSS and Stri
 Alternatively `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` in the environment enable Checkout (subscription mode)
 and the customer portal; the admin setup takes precedence.
 Webhook `/api/billing/webhook` verifies `Stripe-Signature` (5 min tolerance) and applies
-`customer.subscription.created|updated|deleted`. Without these variables nothing can be charged; the admin
+`customer.subscription.created|updated|deleted`. Stripe may deliver events late, twice or out of order, so the handler
+does not trust the snapshot in the event: it reads the subscription's current state from the Stripe API
+(`GET /v1/subscriptions/:id`) and applies that (#407) – an old "active" retried after "deleted" cannot reactivate a
+plan. A failed lookup answers 500 and Stripe retries. Without these variables nothing can be charged; the admin
 assigns plans manually. Stripe test mode keys are recommended until launch.
 
 ## Upgrade and back to Free (08.11.26)

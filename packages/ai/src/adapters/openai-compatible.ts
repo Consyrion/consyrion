@@ -3,8 +3,9 @@ import OpenAI from "openai";
 import { abortError, isAbortError, kindFromStatus, ProviderError } from "../errors";
 import { SDK_BACKSTOP_TIMEOUT_MS } from "../retry";
 import { parseJsonOutput } from "../json";
+import { parseToolArgs } from "../tools";
 import { isCouncilCapableModel } from "../model-filter";
-import type { DiscoveredModel, GenerateRequest, GenerateResult, ProviderAdapter, ProviderId, StopReason } from "../types";
+import { tokenUsage, type DiscoveredModel, type GenerateRequest, type GenerateResult, type ProviderAdapter, type ProviderId, type StopReason } from "../types";
 
 export type CompatibleProviderId = Extract<ProviderId, "deepseek" | "glm" | "kimi" | "qwen" | "xai">;
 
@@ -129,23 +130,49 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
         max_tokens: maxTokens,
         messages: [
           ...(request.system || schemaInstruction ? [{ role: "system" as const, content: `${request.system ?? ""}${schemaInstruction}` }] : []),
-          ...request.messages.map((m) =>
-            m.images?.length && m.role === "user"
-              ? {
+          ...request.messages.flatMap((m): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => {
+            // Native tool calling (#284): assistant tool_calls, then one "tool" message per result.
+            if (m.toolCalls?.length)
+              return [
+                {
+                  role: "assistant",
+                  content: m.content || null,
+                  tool_calls: m.toolCalls.map((c) => ({ id: c.id, type: "function" as const, function: { name: c.name, arguments: JSON.stringify(c.args) } })),
+                },
+              ];
+            if (m.toolResults?.length)
+              return [
+                ...m.toolResults.map((r) => ({ role: "tool" as const, tool_call_id: r.callId, content: r.content })),
+                ...(m.content ? [{ role: "user" as const, content: m.content }] : []),
+              ];
+            if (m.images?.length && m.role === "user")
+              return [
+                {
                   role: m.role,
                   content: [
                     ...m.images.map((i) => ({ type: "image_url" as const, image_url: { url: `data:${i.mediaType};base64,${i.data}` } })),
                     { type: "text" as const, text: m.content },
                   ],
-                }
-              : { role: m.role, content: m.content },
-          ),
+                },
+              ];
+            return [{ role: m.role, content: m.content }];
+          }),
         ],
         ...(request.jsonSchema ? { response_format: { type: "json_object" as const } } : {}),
+        ...(request.tools?.length
+          ? {
+              tools: request.tools.map((t) => ({
+                type: "function" as const,
+                function: { name: t.name, description: t.description, parameters: t.parameters },
+              })),
+            }
+          : {}),
       });
+      // Tools use the non-streaming call (#284); the text then reaches onText once at the end.
+      const streaming = Boolean(request.onText && !request.tools?.length);
       const call = (maxTokens: number): Promise<OpenAI.Chat.Completions.ChatCompletion> =>
         this.withEndpoint((client) =>
-          request.onText ? this.stream(client, body(maxTokens), request) : client.chat.completions.create(body(maxTokens), { signal: request.signal }),
+          streaming ? this.stream(client, body(maxTokens), request) : client.chat.completions.create(body(maxTokens), { signal: request.signal }),
         );
       let response;
       try {
@@ -174,13 +201,19 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
       const choice = response.choices[0];
       const text = choice?.message?.content ?? "";
       const stopReason = mapFinish(choice?.finish_reason);
+      if (request.onText && !streaming && text) request.onText(text);
+      const toolCalls = (choice?.message?.tool_calls ?? [])
+        .filter((c): c is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall => c.type === "function")
+        .map((c) => ({ id: c.id, name: c.function.name, args: parseToolArgs(c.function.arguments) }));
       return {
         provider: this.provider,
         model: response.model,
         text,
         json: request.jsonSchema && stopReason !== "refusal" ? parseJsonOutput(text) : undefined,
         stopReason,
-        usage: { inputTokens: response.usage?.prompt_tokens ?? 0, outputTokens: response.usage?.completion_tokens ?? 0 },
+        // prompt_tokens includes cached tokens (#244); prompt_tokens_details.cached_tokens is the cached part.
+        usage: tokenUsage(response.usage?.prompt_tokens ?? 0, response.usage?.completion_tokens ?? 0, response.usage?.prompt_tokens_details?.cached_tokens),
+        ...(request.tools?.length ? { toolCalls } : {}),
       };
     } catch (error) {
       throw this.normalize(error, request.signal);
@@ -252,7 +285,7 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
 }
 
 function mapFinish(reason: string | null | undefined): StopReason {
-  if (reason === "stop") return "completed";
+  if (reason === "stop" || reason === "tool_calls") return "completed";
   if (reason === "length") return "max_tokens";
   if (reason === "content_filter" || reason === "sensitive") return "refusal";
   return "other";

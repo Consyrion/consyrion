@@ -8,9 +8,12 @@ import { DocumentUpload } from "@/components/document-upload";
 import { RepositoryContext } from "@/components/repository-context";
 import { RepositoryLink } from "@/components/repository-link";
 import { DangerDelete } from "@/components/saas";
+import { DeletionNotice } from "@/components/deletion-notice";
+import { ProjectArchive } from "@/components/project-archive";
 import { PhaseOverview } from "@/components/phase-overview";
 import { ProjectOverview } from "@/components/project-overview";
 import { buttonClasses } from "@/components/ui/button";
+import { DemoNotice } from "@/components/demo-notice";
 import { Badge, Card, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
@@ -44,7 +47,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   // Requirement intake (#190): a council starts only on a list confirmed for the current brief and documents.
   const requirementsCurrent = Boolean(requirementList && source && requirementList.sourceHash === source.hash);
   const brief = project.brief;
-  const canRun = can(actor.role, "decision:run") && project.status !== "archived";
+  const canRun = can(actor.role, "decision:run") && project.status !== "archived" && !project.isDemo;
   // Project overview (owner request 08.11.26): council graphic of the newest session, a chosen one or all sessions.
   const overview = await loadProjectOverview(db, actor, sessions, (await searchParams).session);
 
@@ -67,6 +70,12 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
           </div>
         }
       />
+      {project.status === "archived" ? (
+        <div className="mb-4 rounded-lg border border-warning/40 bg-surface-2 px-4 py-3 text-sm text-warning" role="status" data-testid="archived-banner">
+          {t("archive.banner")}
+        </div>
+      ) : null}
+      {project.isDemo ? <DemoNotice /> : null}
       <ProjectOverview project={project} overview={overview} sessions={sessions} requirementList={requirementList} canRun={canRun} />
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card>
@@ -135,7 +144,24 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
             <>
               <h2 className="mt-6 font-semibold">{t("repoContext")}</h2>
               <div className="mt-2">
-                <RepositoryContext projectId={project.id} canWrite={can(actor.role, "project:write")} />
+                <RepositoryContext
+                  projectId={project.id}
+                  canWrite={can(actor.role, "project:write")}
+                  initial={(() => {
+                    // #242: the saved repository context is shown right away, without reading the repository first.
+                    const doc = documents.find((d) => d.origin?.kind === "github");
+                    return doc && doc.origin?.kind === "github"
+                      ? {
+                          id: doc.id,
+                          sizeBytes: doc.sizeBytes,
+                          repository: doc.origin.repository,
+                          branch: doc.origin.branch,
+                          commitSha: doc.origin.commitSha,
+                          paths: doc.origin.paths,
+                        }
+                      : null;
+                  })()}
+                />
               </div>
             </>
           ) : null}
@@ -165,10 +191,27 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         <h2 className="mb-3 font-semibold">{t("phases")}</h2>
         <PhaseOverview />
       </Card>
+      {can(actor.role, "project:delete") && !project.isDemo ? (
+        <Card className="mt-6">
+          <h2 className="font-semibold">{project.status === "archived" ? t("archive.restoreTitle") : t("archive.title")}</h2>
+          <div className="mt-2">
+            <ProjectArchive projectId={project.id} archived={project.status === "archived"} />
+          </div>
+        </Card>
+      ) : null}
       {can(actor.role, "project:delete") ? (
         <Card className="mt-6 border-danger/40">
           <h2 className="font-semibold text-danger">{t("delete")}</h2>
-          <p className="mt-1 mb-3 text-sm text-muted">{t("deleteText")}</p>
+          <p className="mt-1 text-sm text-muted">{t("deleteText")}</p>
+          {/* #197 (ADR 0197): what is deleted, counted from this project – and what CONSYRION cannot delete. */}
+          <p className="mt-2 text-sm" data-testid="delete-counts">
+            {t("deleteCounts", {
+              sessions: sessions.length,
+              running: sessions.filter((x) => x.status === "queued" || x.status === "running").length,
+              documents: documents.length,
+            })}
+          </p>
+          <DeletionNotice scope="project" />
           <DangerDelete url={`/api/projects/${project.id}/delete`} method="POST" name={project.name} label={t("deleteButton")} redirectTo="/projects" />
         </Card>
       ) : null}

@@ -140,3 +140,37 @@ describe("cancelled at the period end (owner request 07.11.26)", () => {
     expect((await getEntitlements(handle.db, orgId)).plan).toBe("starter");
   });
 });
+
+describe("late, repeated and out-of-order webhooks (#407)", () => {
+  it("applies the current subscription from Stripe, so an old 'active' after 'deleted' does not reactivate the plan", async () => {
+    const base = { id: "sub_9", customer: "cus_9", metadata: { organizationId: orgId, plan: "developer" }, current_period_end: 2_000_000_000 };
+    let current = { ...base, status: "active" };
+    const fetchCurrent = async (id: string) => {
+      expect(id).toBe("sub_9");
+      return current;
+    };
+    await handleStripeEvent(handle.db, { type: "customer.subscription.updated", data: { object: { ...base, status: "active" } } }, { fetchCurrent });
+    expect((await getEntitlements(handle.db, orgId)).plan).toBe("developer");
+    // The subscription ends; Stripe sends "deleted" …
+    current = { ...base, status: "canceled" };
+    await handleStripeEvent(handle.db, { type: "customer.subscription.deleted", data: { object: { ...base, status: "canceled" } } }, { fetchCurrent });
+    expect((await getEntitlements(handle.db, orgId)).plan).toBe("starter");
+    // … and then retries an older "updated" with status active, twice.
+    for (let i = 0; i < 2; i++)
+      await handleStripeEvent(handle.db, { type: "customer.subscription.updated", data: { object: { ...base, status: "active" } } }, { fetchCurrent });
+    expect(await getSubscription(handle.db, orgId)).toMatchObject({ status: "canceled", cancelAtPeriodEnd: false });
+    expect((await getEntitlements(handle.db, orgId)).plan).toBe("starter");
+  });
+
+  it("reads the subscription with the secret key and refuses ids that are not subscription ids", async () => {
+    const calls: string[] = [];
+    const fetchImpl: FetchLike = async (input, init) => {
+      calls.push(`${init?.method} ${input} ${new Headers(init?.headers).get("authorization")}`);
+      return new Response(JSON.stringify({ id: "sub_1", status: "active", customer: "cus_1" }), { status: 200 });
+    };
+    const client = new StripeClient({ secretKey: "sk_test_x", webhookSecret: "w" }, fetchImpl);
+    await expect(client.retrieveSubscription("sub_1")).resolves.toMatchObject({ status: "active" });
+    expect(calls).toEqual(["GET https://api.stripe.com/v1/subscriptions/sub_1 Bearer sk_test_x"]);
+    expect(() => client.retrieveSubscription("../customers/cus_1")).toThrow(/Invalid subscription id/);
+  });
+});

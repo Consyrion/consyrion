@@ -4,8 +4,14 @@ import {
   callTimeoutFor,
   estimateCalls,
   estimateTokens,
+  EVALUATION_TOKENS_PER_ITEM_MEASURED,
+  finalVerdictCallItems,
   finalVerdictFit,
   finalVerdictFitMessage,
+  MAX_CALL_OUTPUT_TOKENS,
+  minimumCouncilBudget,
+  splitRequirementIds,
+  SPLIT_GROUP_FILL,
   MODE_POLICIES,
   outputTokensFor,
   tokenBudgetError,
@@ -89,19 +95,37 @@ describe("workflow policies", () => {
   });
 });
 
-describe("#228: does each Final Verdict fit into one call?", () => {
-  it("3 models hold 12 requirements, 5 models 6; one more does not fit", () => {
-    expect(finalVerdictFit(3, 12)).toMatchObject({ items: 24, fits: true, maxRequirements: 12 });
-    expect(finalVerdictFit(3, 13)).toMatchObject({ items: 26, fits: false });
-    expect(finalVerdictFit(5, 6)).toMatchObject({ fits: true, maxRequirements: 6 });
-    expect(finalVerdictFit(5, 7).fits).toBe(false);
+describe("#228/#246: does each Final Verdict fit into one call, or is it split?", () => {
+  it("3 models hold 12 requirements in one call, 5 models 6; beyond that the evaluation is split", () => {
+    expect(finalVerdictFit(3, 12)).toMatchObject({ items: 24, fits: true, split: false, callsPerEvaluator: 1, maxRequirements: 12 });
+    expect(finalVerdictFit(3, 13)).toMatchObject({ items: 26, fits: true, split: true, callsPerEvaluator: 2, requirementsPerCall: 9 });
+    expect(finalVerdictFit(5, 6)).toMatchObject({ fits: true, split: false, maxRequirements: 6 });
+    expect(finalVerdictFit(5, 7)).toMatchObject({ fits: true, split: true, callsPerEvaluator: 2, requirementsPerCall: 4 });
     // The six live test cases of 30.10.26 (3 models, 4–6 requirements) fit without a warning.
-    expect(finalVerdictFit(3, 6)).toMatchObject({ fits: true, tight: false });
+    expect(finalVerdictFit(3, 6)).toMatchObject({ fits: true, tight: false, split: false });
   });
 
-  it("names the limit and the way out; warns when most of the call is used", () => {
-    expect(finalVerdictFitMessage(finalVerdictFit(6, 40), 6, 40)).toMatch(/^6 models × 40 requirements do not fit .* With 6 models use at most 5 requirements/);
+  it("names the split and its cost, warns when one call is nearly full, stays silent otherwise", () => {
+    expect(finalVerdictFitMessage(finalVerdictFit(6, 40), 6, 40)).toMatch(/^6 models × 40 requirements .* in 14 calls of at most 3 requirements.*hard budget include these calls/);
     expect(finalVerdictFitMessage(finalVerdictFit(3, 11), 3, 11)).toMatch(/fill most of one Final Verdict evaluation/);
     expect(finalVerdictFitMessage(finalVerdictFit(3, 6), 3, 6)).toBeNull();
+  });
+
+  it("splits into balanced groups in list order, deterministically, each well below the call limit", () => {
+    const ids = Array.from({ length: 13 }, (_, i) => `R${i + 1}`);
+    const groups = splitRequirementIds(ids, 2);
+    expect(groups).toEqual([ids.slice(0, 7), ids.slice(7)]);
+    expect(splitRequirementIds(ids, 2)).toEqual(groups);
+    expect(groups.flat()).toEqual(ids);
+    expect(splitRequirementIds(ids.slice(0, 12), 2)).toEqual([ids.slice(0, 12)]);
+    expect(splitRequirementIds([], 2)).toEqual([[]]);
+    for (const items of finalVerdictCallItems(5, 40)) expect(items * EVALUATION_TOKENS_PER_ITEM_MEASURED).toBeLessThanOrEqual(MAX_CALL_OUTPUT_TOKENS * SPLIT_GROUP_FILL);
+  });
+
+  it("counts the extra calls in the estimate and the minimum budget", () => {
+    const policy = buildPolicy("independent_expert", {}).policy;
+    expect(estimateCalls(policy, 3, 13).finalVerdict).toBe(6);
+    expect(estimateCalls(policy, 3, 12).finalVerdict).toBe(3);
+    expect(minimumCouncilBudget(policy, 2_000, ["anthropic", "openai", "google"], 13)).toBeGreaterThan(minimumCouncilBudget(policy, 2_000, ["anthropic", "openai", "google"], 12));
   });
 });

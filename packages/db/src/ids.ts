@@ -2,6 +2,14 @@ import { randomUUID } from "node:crypto";
 
 export type IdPrefix =
   | "org"
+  | "skl"
+  | "skv"
+  | "sml"
+  | "skr"
+  | "rpf"
+  | "msr"
+  | "plu"
+  | "rpv"
   | "mem"
   | "prj"
   | "brf"
@@ -45,7 +53,10 @@ export type IdPrefix =
   | "tgr"
   | "dlv"
   | "fbk"
-  | "fbr";
+  | "fbr"
+  | "asp"
+  | "asu"
+  | "ack";
 
 export function newId(prefix: IdPrefix): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;

@@ -10,6 +10,8 @@
 export type VerdictClass =
   | "recommended"
   | "needs_verification"
+  /** #249 part 2: every check passed, a requirement can only be confirmed by measuring the running implementation. */
+  | "architecture_candidate"
   | "no_qualifying_solution"
   | "requirements_conflict"
   | "tie"
@@ -105,14 +107,15 @@ export const REFERENCE_CASES: ReferenceCase[] = [
   },
   {
     id: "pos-latency-limit",
-    kind: "solvable",
+    kind: "after_implementation",
     brief: {
       idea: "Internal dashboard showing order numbers for 50 sales staff.",
       goal: "Sales staff see today's orders without asking finance.",
       requirements: ["95 % of page loads must complete within 300 ms inside the company network.", "Only sales staff may log in."],
     },
-    correct: ["recommended"],
-    rationale: "50 users on a cached, pre-aggregated query stay far below 300 ms on a LAN; access control is standard.",
+    correct: ["architecture_candidate"],
+    rationale:
+      "Owner decision 08.11.26 (#249, variant A): a latency limit in ms/s is proven only by measuring the running implementation. 50 users on a cached, pre-aggregated query can plausibly stay below 300 ms, so a confirmed measurement plan makes an architecture candidate – not a recommendation, and not a block.",
     reviewed: false,
   },
   {
@@ -202,7 +205,7 @@ export const REFERENCE_CASES: ReferenceCase[] = [
       goal: "Bands rehearse without meeting in person.",
       requirements: ["It must enable 2–4 musicians to play together in a rhythmically stable way.", "It must run in the browser without installation."],
     },
-    correct: ["needs_verification"],
+    correct: ["needs_verification", "architecture_candidate"],
     rationale:
       '"Rhythmically stable" names neither method nor limit; nobody can confirm it before musicians tried the solution. A recommendation means evaluators confirmed what they could not know.',
     reviewed: false,

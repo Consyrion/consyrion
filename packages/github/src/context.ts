@@ -51,17 +51,29 @@ function terms(text: string): Set<string> {
 
 /**
  * The files proposed for the context, as a deterministic suggestion the user changes: files the brief names first, then
- * README-like files, then Markdown documentation ranked by how many brief terms its path contains (unmatched ones last), until `suggestedBytes`.
+ * top-level README-like files, then Markdown documentation whose path matches brief terms (ranked by matches), until
+ * `suggestedBytes`. Unmatched documentation in sub-folders is not suggested (#242).
  */
 export function suggestContextFiles(files: readonly TreeEntry[], brief: string): string[] {
   const words = terms(brief);
+  // The same first five letters count as a match, so "latency" meets "Latenz" and "jitter-buffer" meets "Jitter".
+  const stems = new Set([...words].map((t) => t.slice(0, 5)));
+  const hitsOf = (f: TreeEntry) =>
+    f.path
+      .toLowerCase()
+      .split(/[^\p{L}\d]+/u)
+      .filter((w) => w.length >= 5 && stems.has(w.slice(0, 5))).length;
   const score = (f: TreeEntry) => {
-    const pathWords = f.path.toLowerCase().split(/[^\p{L}\d]+/u);
-    // The same first five letters count as a match, so "latency" meets "Latenz" and "jitter-buffer" meets "Jitter".
-    const stems = new Set([...words].map((t) => t.slice(0, 5)));
-    const hits = pathWords.filter((w) => w.length >= 5 && stems.has(w.slice(0, 5))).length;
-    return (DOC.test(f.path) && !f.path.includes("/") ? 100 : DOC.test(f.path) ? 50 : 0) + hits * 10 - f.path.split("/").length;
+    const hits = hitsOf(f);
+    // #242: a README-like file in a sub-folder gets the documentation bonus only when its path matches the brief.
+    return (DOC.test(f.path) && !f.path.includes("/") ? 100 : DOC.test(f.path) && hits > 0 ? 50 : 0) + hits * 10 - f.path.split("/").length;
   };
+  /**
+   * Documentation worth suggesting without a mention: README-like files at the top level, and files in sub-folders only
+   * when their path matches the brief (#242: for a latency question docs/messenger.md, web-landing/README.md and
+   * docs/legal/README.md were suggested).
+   */
+  const relevantDoc = (f: TreeEntry) => (MARKDOWN.test(f.path) || DOC.test(f.path)) && (!f.path.includes("/") || hitsOf(f) > 0);
   // Files the brief names by path or file name ("src/todos.js", "todos.js") come first, whatever their type (night test
   // 07.11.26: the requirements named src/todos.js, the suggestion was README.md only).
   const lower = brief.toLowerCase();
@@ -73,10 +85,7 @@ export function suggestContextFiles(files: readonly TreeEntry[], brief: string):
     return name.includes(".") && name.length >= 5 && new RegExp(`(^|[^\\w./-])${escape(name)}($|[^\\w])`).test(lower);
   };
   const mentioned = files.filter(named).sort((a, b) => a.path.localeCompare(b.path));
-  const ranked = [
-    ...mentioned,
-    ...files.filter((f) => !named(f) && (MARKDOWN.test(f.path) || DOC.test(f.path))).sort((a, b) => score(b) - score(a) || a.path.localeCompare(b.path)),
-  ];
+  const ranked = [...mentioned, ...files.filter((f) => !named(f) && relevantDoc(f)).sort((a, b) => score(b) - score(a) || a.path.localeCompare(b.path))];
   const chosen: string[] = [];
   let total = 0;
   for (const f of ranked) {

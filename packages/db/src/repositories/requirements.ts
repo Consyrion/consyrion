@@ -13,12 +13,14 @@ import {
   REQUIREMENT_LIMITS,
   type ExcludedRequirement,
   type RequirementCandidate,
+  type RequirementDecomposition,
   type RequirementSource,
   type RequirementSuspicion,
 } from "@consyrion/core";
+import { assertNotDemoProject } from "./demo";
 
 export { CONTEXT_EXCLUSION_REASON, DOCUMENT_EXCLUSION_REASON };
-import { extractRequirements, withoutQuotes } from "@consyrion/core/engine";
+import { decomposeRequirement, extractRequirements, withoutQuotes } from "@consyrion/core/engine";
 import { and, asc, desc, eq, max } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";
@@ -26,7 +28,7 @@ import { newId } from "../ids";
 import { projectBrief, projectDocument, requirementList } from "../schema";
 import { recordAudit } from "./audit";
 import type { ActorContext } from "./context";
-import { getProject, lockProjectSources } from "./projects";
+import { getProject, lockProjectSources, assertProjectWritable } from "./projects";
 
 /**
  * Requirement intake (#190): proposal, confirmation and the start check. The list a council runs on is the one the
@@ -114,6 +116,10 @@ export interface ProposedItem {
   isNew: boolean;
   /** Carried over from the previous list, but its statement is no longer in the brief or its document was removed. */
   sourceGone: boolean;
+  /** Part of a split requirement (#216): the original statement it came from. */
+  splitFrom?: string | null;
+  /** #216: suggestion to split this statement into independently checkable parts (deterministic, no model). */
+  decomposition?: RequirementDecomposition | null;
 }
 
 /**
@@ -270,6 +276,8 @@ export async function proposeRequirementList(db: Database, ctx: ActorContext, pr
         source: candidate ? candidate.source : item.source,
         isNew: false,
         sourceGone: item.source.kind !== "user" && !candidate,
+        splitFrom: item.splitFrom?.text ?? null,
+        decomposition: item.splitFrom ? null : decomposeRequirement(item.text),
       });
     }
     for (const entry of latest.excluded) {
@@ -301,7 +309,14 @@ export async function proposeRequirementList(db: Database, ctx: ActorContext, pr
       exclude(candidate, CONTEXT_EXCLUSION_REASON);
     else if (candidate.source.kind === "document" && !documentSoundsBinding(candidate.text)) exclude(candidate, DOCUMENT_EXCLUSION_REASON);
     else {
-      items.push({ text: candidate.text, candidateKey: candidate.key, source: candidate.source, isNew: Boolean(latest), sourceGone: false });
+      items.push({
+        text: candidate.text,
+        candidateKey: candidate.key,
+        source: candidate.source,
+        isNew: Boolean(latest),
+        sourceGone: false,
+        decomposition: decomposeRequirement(candidate.text),
+      });
       decided.add(candidate.key);
     }
   }
@@ -325,7 +340,17 @@ export const requirementConfirmationInput = z.object({
   /** The source hash the user reviewed; a change in between needs a new review. */
   sourceHash: z.string().min(1),
   items: z
-    .array(z.object({ text: z.string().max(REQUIREMENT_LIMITS.maxItemChars * 2), candidateKey: z.string().max(100).nullish() }))
+    .array(
+      z.object({
+        text: z.string().max(REQUIREMENT_LIMITS.maxItemChars * 2),
+        candidateKey: z.string().max(100).nullish(),
+        /** #216: original text of a split requirement; its parts share it. */
+        splitFrom: z
+          .string()
+          .max(REQUIREMENT_LIMITS.maxItemChars * 2)
+          .nullish(),
+      }),
+    )
     .max(REQUIREMENT_LIMITS.maxItems * 2),
   excluded: z.array(z.object({ candidateKey: z.string().max(100), reason: z.string().max(2_000) })).max(REQUIREMENT_LIMITS.maxCandidates * 2),
   noHardRequirements: z.boolean().optional(),
@@ -333,6 +358,10 @@ export const requirementConfirmationInput = z.object({
 
 /** Stores a new confirmed version. Refused when the brief or documents changed since the user's review. */
 export async function confirmRequirementList(db: Database, ctx: ActorContext, projectId: string, input: z.input<typeof requirementConfirmationInput>) {
+  // The demo project is read-only (owner decision 08.11.26, review of #374).
+  await assertNotDemoProject(db, ctx, projectId);
+  // #197: an archived project is read-only.
+  await assertProjectWritable(db, ctx, projectId);
   assertCan(ctx.role, "project:write");
   const parsed = requirementConfirmationInput.safeParse(input);
   if (!parsed.success) throw new DomainError("VALIDATION", "Invalid requirement list", z.flattenError(parsed.error));

@@ -28,6 +28,7 @@ only after human approval – implement it as a reviewed pull request.
 | `packages/engine` | Engine contract (`contract.ts`) and implementation (`src/`): verdict, requirement gate, prompts |
 | `packages/billing` | Stripe checkout/portal/webhooks for the platform subscription |
 | `apps/vscode` | VS Code extension (API token, decisions, approvals, diffs) |
+| `apps/obsidian` | Obsidian plugin (selected note text → council → report as a new note; integration token) |
 | `apps/worker` | Council worker process for PostgreSQL deployments |
 | `docs/` | Architecture, security, testing, data model, concept, screenshots |
 

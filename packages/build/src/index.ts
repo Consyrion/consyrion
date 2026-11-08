@@ -6,3 +6,4 @@ export * from "./service";
 export * from "./worker";
 export * from "./workspace";
 export * from "./github";
+export * from "./ci-risk";

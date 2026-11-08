@@ -4,6 +4,7 @@ export class ApiRequestError extends Error {
     message: string,
     readonly status: number,
     readonly fieldErrors: Record<string, string[]> = {},
+    readonly details?: unknown,
   ) {
     super(message);
   }
@@ -15,7 +16,7 @@ export async function fetchJson<T>(input: string, init?: RequestInit): Promise<T
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const fieldErrors = body?.error?.details?.fieldErrors ?? {};
-    throw new ApiRequestError(body?.error?.message ?? `Request failed (${response.status})`, response.status, fieldErrors);
+    throw new ApiRequestError(body?.error?.message ?? `Request failed (${response.status})`, response.status, fieldErrors, body?.error?.details);
   }
   return body as T;
 }

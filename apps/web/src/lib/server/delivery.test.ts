@@ -20,6 +20,10 @@ vi.mock("server-only", () => ({}));
 vi.mock("@consyrion/council", async () => ({
   // The real report wording (#322); only the session data is mocked.
   reportTranslator: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).reportTranslator,
+  reportLanguageIssues: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).reportLanguageIssues,
+  blockedExplanation: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).blockedExplanation,
+  nextAction: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).nextAction,
+  outcomeLine: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).outcomeLine,
   getSessionView: vi.fn(async (_db: unknown, _actor: unknown, id: string) => ({
     session: { id, createdAt: new Date("2026-10-27T12:00:00Z") },
     decision: { outcome: "recommended" },
@@ -233,5 +237,20 @@ describe("sending decisions (#165)", () => {
       "",
     );
     expect(legacy).toContain("Recommended: Proposal A – T");
+  });
+
+  it("writes the summary in the connection's language (Telegram live test 08.11.26)", () => {
+    type Report = Parameters<typeof deliverySummary>[0];
+    const report = {
+      project: "P",
+      recommendedSolution: null,
+      evaluationMatrix: { confidence: "reduced" },
+      outcomeText: "Tie – the leading solutions are too close to call; a human must choose.",
+      decisionFormat: { gateVersion: 2, approvable: true, reason: null },
+    } as unknown as Report;
+    const de = deliverySummary(report, "", "de");
+    expect(de).not.toContain("Tie – the leading");
+    expect(de).toContain("Zuversicht: eingeschränkt");
+    expect(deliverySummary(report, "")).toContain("Confidence: reduced");
   });
 });

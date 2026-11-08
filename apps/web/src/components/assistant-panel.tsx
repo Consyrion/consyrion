@@ -4,6 +4,8 @@ import { useFormatter, useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { MIN_QUESTION_TOKENS } from "@/lib/assistant-estimate";
+import { checkSummary, isSensitiveTopic, sameModelId, type CheckVerdict } from "@/lib/council-check";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Select } from "@/components/ui/select";
 
@@ -20,11 +22,41 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   model?: string | null;
-  tools?: Array<{ name: string }> | null;
+  tools?: Array<{ name: string; args?: Record<string, unknown> }> | null;
   links?: Array<{ label: string; href: string }> | null;
   actions?: Action[] | null;
   inputTokens?: number | null;
   outputTokens?: number | null;
+  /** Approximate cost from the workspace's model prices (#281); null without a price for that model. */
+  cost?: { amount: number; currency: string } | null;
+  /** Second opinion (#281): the answer another model checked. */
+  reviewOf?: string | null;
+  createdAt?: string;
+}
+/** Cross-check of one answer by another model of the council chat (#241 stage 2). */
+interface Check {
+  id: string;
+  messageId: string;
+  model: string;
+  verdict: CheckVerdict;
+  reason: string;
+}
+/** Messages the model still reads in full; older ones need a summary (#280) – same as HISTORY_MESSAGES on the server. */
+const HISTORY_MESSAGES = 20;
+/** Assistant settings of the user (#281), stored on the server. */
+interface Preference {
+  credentialId: string | null;
+  modelId: string | null;
+  reviewerCredentialId: string | null;
+  reviewerModelId: string | null;
+  dailyTokenLimit: number | null;
+  monthlyTokenLimit: number | null;
+}
+interface Budget {
+  today: number;
+  thisMonth: number;
+  dailyLimit: number | null;
+  monthlyLimit: number | null;
 }
 /** A suggestion of the assistant (#283): nothing runs until the user clicks. */
 interface Action {
@@ -49,9 +81,15 @@ interface Credential {
   error: string | null;
 }
 
+/** Event other components send to open the panel (#279), see `openAssistant` in assistant-open.ts. */
+export const OPEN_ASSISTANT_EVENT = "consyrion:open-assistant";
+
 const STORE_OPEN = "consyrion-assistant-open";
 const STORE_TAB = "consyrion-assistant-tab";
 const STORE_MODEL = "consyrion-assistant-model";
+const STORE_CHAT_MODE = "consyrion-assistant-chat-mode";
+/** Expert perspectives for one model (#241 stage 1b) – same list as PERSPECTIVES on the server. */
+const PERSPECTIVE_KEYS = ["security", "cost", "product", "architecture", "operations", "legal"] as const;
 
 const read = (key: string) => {
   try {
@@ -68,8 +106,15 @@ const write = (key: string, value: string) => {
   }
 };
 
+/** Translated name of a read tool ("Projekte" instead of list_projects); unknown names stay as they are. */
+function useToolName() {
+  const t = useTranslations("assistant.toolNames");
+  return (name: string) => (t.has(name) ? t(name) : name);
+}
+
 export function AssistantPanel() {
   const t = useTranslations("assistant");
+  const toolName = useToolName();
   const format = useFormatter();
   const pathname = usePathname();
   const [open, setOpenState] = useState(false);
@@ -78,6 +123,23 @@ export function AssistantPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<ChatSummary[] | null>(null);
   const [credentials, setCredentials] = useState<Credential[] | null>(null);
+  const [preference, setPreference] = useState<Preference | null>(null);
+  const [budget, setBudget] = useState<Budget | null>(null);
+  const [limits, setLimits] = useState({ daily: "", monthly: "" });
+  const [settingsNote, setSettingsNote] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  // #241 stage 2: cross-checks of council-chat answers; the preview (models + tokens) is shown before anything is paid.
+  const [checks, setChecks] = useState<Check[]>([]);
+  const [checking, setChecking] = useState<string | null>(null);
+  const [checkPreview, setCheckPreview] = useState<{ messageId: string; tokens: number; checks: number } | null>(null);
+  const [summaryUntil, setSummaryUntil] = useState<string | null>(null);
+  // #241: "single" = one model (optionally from an expert perspective), "council" = 2–4 models answer as own voices.
+  const [chatMode, setChatModeState] = useState<"single" | "council">("single");
+  const [councilModels, setCouncilModels] = useState<string[]>([]);
+  const [perspective, setPerspective] = useState("");
+  const [estimate, setEstimate] = useState<{ answers: number; withCheck: number; answering: number } | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summaryNote, setSummaryNote] = useState<string | null>(null);
   const [model, setModel] = useState<string>(""); // "credentialId|modelId"
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -116,10 +178,25 @@ export function AssistantPanel() {
     const savedTab = read(STORE_TAB);
     if (savedTab === "chat" || savedTab === "history" || savedTab === "settings") setTabState(savedTab);
     setModel(read(STORE_MODEL) ?? "");
+    if (read(STORE_CHAT_MODE) === "council") setChatModeState("council");
     return () => {
       delete document.body.dataset.assistant;
     };
   }, []);
+
+  // openAssistant({ prompt }) from anywhere in the app (#279): opens the chat tab with the question pre-filled – never
+  // sent automatically (a question costs tokens), and with the page context switched on.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const prompt = (e as CustomEvent<{ prompt?: string }>).detail?.prompt;
+      setTab("chat");
+      setUseContext(true);
+      if (typeof prompt === "string" && prompt.trim()) setInput(prompt.slice(0, 4_000));
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_ASSISTANT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, onOpen);
+  }, [setOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -135,20 +212,177 @@ export function AssistantPanel() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, setOpen]);
 
-  // Models from the user's own keys, loaded once when the panel is first opened.
+  // Models from the user's own keys and the stored assistant settings (#281), loaded once when the panel is first opened.
   useEffect(() => {
     if (!open || credentials) return;
-    fetchJson<{ credentials: Credential[] }>("/api/models")
-      .then((r) => {
+    Promise.all([
+      fetchJson<{ credentials: Credential[] }>("/api/models"),
+      fetchJson<{ preference: Preference; budget: Budget }>("/api/assistant/preferences").catch(() => null),
+    ])
+      .then(([r, settings]) => {
         setCredentials(r.credentials);
+        if (settings) applySettings(settings);
+        const exists = (value: string | null | undefined) =>
+          Boolean(value && r.credentials.some((c) => c.models.some((m) => `${c.credentialId}|${m.modelId}` === value)));
+        const stored = settings?.preference.credentialId ? `${settings.preference.credentialId}|${settings.preference.modelId}` : null;
         const first = r.credentials.find((c) => c.models.length);
-        setModel((current) => {
-          const valid = current && r.credentials.some((c) => c.models.some((m) => `${c.credentialId}|${m.modelId}` === current));
-          return valid ? current : first ? `${first.credentialId}|${first.models[0]!.modelId}` : "";
-        });
+        setModel((current) => (exists(stored) ? stored! : exists(current) ? current : first ? `${first.credentialId}|${first.models[0]!.modelId}` : ""));
       })
       .catch(() => setCredentials([]));
   }, [open, credentials]);
+
+  function applySettings(settings: { preference: Preference; budget: Budget }) {
+    setPreference(settings.preference);
+    setBudget(settings.budget);
+    setLimits({ daily: settings.preference.dailyTokenLimit?.toString() ?? "", monthly: settings.preference.monthlyTokenLimit?.toString() ?? "" });
+  }
+
+  async function saveSettings(changes: Partial<Preference>) {
+    setSettingsNote(null);
+    try {
+      applySettings(
+        await fetchJson<{ preference: Preference; budget: Budget }>("/api/assistant/preferences", { method: "PUT", body: JSON.stringify(changes) }),
+      );
+      setSettingsNote(t("settingsSaved"));
+    } catch (err) {
+      setSettingsNote(err instanceof ApiRequestError ? err.message : t("error"));
+    }
+  }
+
+  // #280: in a long chat the oldest messages drop out of the model's view; a summary (on click, costs tokens) keeps them.
+  const uncovered = messages
+    .filter((m) => !m.reviewOf)
+    .slice(0, -HISTORY_MESSAGES)
+    .filter((m) => !summaryUntil || !m.createdAt || new Date(m.createdAt) > new Date(summaryUntil)).length;
+
+  async function summarize() {
+    if (!chatId) return;
+    setSummarizing(true);
+    setSummaryNote(null);
+    try {
+      const r = await fetchJson<{ summaryUntil: string; covered: number }>(`/api/assistant/chats/${chatId}/summary`, { method: "POST", body: "{}" });
+      setSummaryUntil(r.summaryUntil);
+      setSummaryNote(t("summaryDone", { count: r.covered }));
+    } catch (err) {
+      setSummaryNote(err instanceof ApiRequestError ? err.message : t("error"));
+    } finally {
+      setSummarizing(false);
+    }
+  }
+
+  const setChatMode = (value: "single" | "council") => {
+    setChatModeState(value);
+    write(STORE_CHAT_MODE, value);
+  };
+  const modelLabel = (value: string) => {
+    const [credentialId, ...rest] = value.split("|");
+    const modelId = rest.join("|");
+    return credentials?.find((c) => c.credentialId === credentialId)?.models.find((m) => m.modelId === modelId)?.displayName || modelId;
+  };
+  const participantsOf = (values: string[]) =>
+    values.map((v) => {
+      const [credentialId, ...rest] = v.split("|");
+      return { credentialId: credentialId!, modelId: rest.join("|"), label: modelLabel(v) };
+    });
+
+  // #241: token estimate before sending in the council chat (no model call), refreshed while typing.
+  useEffect(() => {
+    if (chatMode !== "council" || councilModels.length < 2 || !input.trim()) {
+      setEstimate(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetchJson<{ estimate: { answers: number; withCheck: number }; answering: string[] }>(`/api/assistant/chats/${chatId ?? "new"}/council`, {
+        method: "POST",
+        body: JSON.stringify({ content: input, participants: participantsOf(councilModels), preview: true }),
+      })
+        .then((r) => setEstimate({ ...r.estimate, answering: r.answering.length }))
+        .catch(() => setEstimate(null));
+    }, 600);
+    return () => clearTimeout(timer);
+    // participantsOf depends on credentials only for labels; the estimate does not.
+  }, [chatMode, councilModels, input, chatId]);
+
+  /** Council chat turn or single expert perspective (#241): one request, all answers come back together. */
+  async function sendCouncil(content: string) {
+    const participants = chatMode === "council" ? participantsOf(councilModels) : participantsOf([model]);
+    setBusy(true);
+    setError(null);
+    setInput("");
+    setMessages((m) => [...m, { id: `local-${Date.now()}`, role: "user", content }]);
+    try {
+      const r = await fetchJson<{ chatId: string; messages: Message[]; failures: Array<{ model: string; error: string }> }>(
+        `/api/assistant/chats/${chatId ?? "new"}/council`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            content,
+            participants,
+            perspective: chatMode === "single" && perspective ? perspective : undefined,
+            context: sessionId && useContext ? { kind: "session", id: sessionId } : undefined,
+          }),
+        },
+      );
+      setChatId(r.chatId);
+      setMessages((m) => [...m, ...r.messages]);
+      if (r.failures.length) setError(t("councilFailures", { list: r.failures.map((f) => `${f.model} (${f.error})`).join(", ") }));
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("error"));
+      setInput(content);
+      setMessages((m) => m.slice(0, -1));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function secondOpinion(messageId: string) {
+    if (!chatId) return;
+    setReviewing(messageId);
+    setError(null);
+    try {
+      const { message } = await fetchJson<{ message: Message }>(`/api/assistant/chats/${chatId}/messages/${messageId}/review`, { method: "POST", body: "{}" });
+      setMessages((all) => {
+        const at = all.findIndex((x) => x.id === messageId);
+        return at < 0 ? [...all, message] : [...all.slice(0, at + 1), message, ...all.slice(at + 1)];
+      });
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("error"));
+    } finally {
+      setReviewing(null);
+    }
+  }
+
+  /** Cross-check (#241 stage 2): first click shows which models check and the estimated tokens, second click runs it. */
+  async function crossCheck(messageId: string, run: boolean) {
+    if (!chatId) return;
+    setError(null);
+    if (!run) {
+      try {
+        const r = await fetchJson<{ estimate: { tokens: number; checks: number } }>(`/api/assistant/chats/${chatId}/messages/${messageId}/check`, {
+          method: "POST",
+          body: JSON.stringify({ participants: participantsOf(councilModels), preview: true }),
+        });
+        setCheckPreview({ messageId, tokens: r.estimate.tokens, checks: r.estimate.checks });
+      } catch (err) {
+        setError(err instanceof ApiRequestError ? err.message : t("error"));
+      }
+      return;
+    }
+    setChecking(messageId);
+    setCheckPreview(null);
+    try {
+      const r = await fetchJson<{ checks: Check[]; failures: Array<{ model: string; error: string }> }>(
+        `/api/assistant/chats/${chatId}/messages/${messageId}/check`,
+        { method: "POST", body: JSON.stringify({ participants: participantsOf(councilModels) }) },
+      );
+      setChecks((all) => [...all, ...r.checks]);
+      if (r.failures.length) setError(t("councilFailures", { list: r.failures.map((f) => `${f.model} (${f.error})`).join(", ") }));
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("error"));
+    } finally {
+      setChecking(null);
+    }
+  }
 
   const loadChats = useCallback(() => {
     fetchJson<{ chats: ChatSummary[] }>("/api/assistant/chats")
@@ -165,9 +399,13 @@ export function AssistantPanel() {
   }, [messages, busy]);
 
   async function openChat(id: string) {
-    const r = await fetchJson<{ messages: Message[] }>(`/api/assistant/chats/${id}`);
+    const r = await fetchJson<{ chat: { summaryUntil: string | null }; messages: Message[]; checks?: Check[] }>(`/api/assistant/chats/${id}`);
     setChatId(id);
     setMessages(r.messages);
+    setChecks(r.checks ?? []);
+    setCheckPreview(null);
+    setSummaryUntil(r.chat.summaryUntil);
+    setSummaryNote(null);
     setTab("chat");
   }
 
@@ -180,15 +418,28 @@ export function AssistantPanel() {
   function newChat() {
     setChatId(null);
     setMessages([]);
+    setChecks([]);
+    setCheckPreview(null);
+    setSummaryUntil(null);
+    setSummaryNote(null);
     setError(null);
     setTab("chat");
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
-  async function send() {
-    const content = input.trim();
+  /**
+   * Sends the typed question. `override` (#241 stage 3): a prepared question answered by one given model in the normal
+   * 1-model path – e.g. "make it a council" after a council chat, which comes back with action cards.
+   */
+  async function send(override?: { content: string; model: string }) {
+    const content = (override?.content ?? input).trim();
     if (!content || busy) return;
-    const [credentialId, modelId] = model.split("|");
+    if (!override && chatMode === "council") {
+      if (councilModels.length < 2) return void setError(t("councilPickModels"));
+      return void sendCouncil(content);
+    }
+    if (!override && perspective && model) return void sendCouncil(content);
+    const [credentialId, modelId] = (override?.model ?? model).split("|");
     if (!credentialId || !modelId) {
       setError(t("chooseModel"));
       setTab("settings");
@@ -196,7 +447,7 @@ export function AssistantPanel() {
     }
     setBusy(true);
     setError(null);
-    setInput("");
+    if (!override) setInput("");
     setStreamText("");
     setStreamTool(null);
     setMessages((m) => [...m, { id: `local-${Date.now()}`, role: "user", content }]);
@@ -218,7 +469,7 @@ export function AssistantPanel() {
     } catch (err) {
       if (controller.signal.aborted) setError(t("stopped"));
       else setError(err instanceof ApiRequestError ? err.message : t("error"));
-      setInput(content);
+      if (!override) setInput(content);
       setMessages((m) => m.slice(0, -1));
     } finally {
       abortRef.current = null;
@@ -228,6 +479,15 @@ export function AssistantPanel() {
     }
   }
 
+  // At least two different models have answered in this chat – then "make it a council" makes sense (#241 stage 3).
+  const councilAnswered = new Set(messages.filter((m) => m.role === "assistant" && !m.reviewOf && m.model).map((m) => m.model)).size > 1;
+  /** Council models that may still check an answer: not its author, not already checked it (#241 stage 2). */
+  const uncheckedBy = (m: Message) =>
+    councilModels
+      .map((v) => v.split("|").slice(1).join("|"))
+      .filter((id) => !sameModelId(m.model, id) && !checks.some((c) => c.messageId === m.id && sameModelId(c.model, id)));
+  // Hidden right after it was used: the latest question is the prepared one (the cards are in the answer below it).
+  const justMadeCouncil = [...messages].reverse().find((m) => m.role === "user")?.content === t("makeCouncilPrompt");
   const noModels = credentials !== null && !credentials.some((c) => c.models.length);
 
   return (
@@ -310,6 +570,24 @@ export function AssistantPanel() {
         {tab === "chat" ? (
           <>
             <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
+              {uncovered > 0 && chatId ? (
+                <div className="rounded-xl border border-warning/40 bg-warning/5 p-2.5 text-xs">
+                  <p>{t("summaryHint", { count: uncovered })}</p>
+                  <button
+                    type="button"
+                    className="mt-1.5 rounded-lg border border-line px-2.5 py-1 hover:border-primary disabled:opacity-50"
+                    disabled={summarizing || busy}
+                    onClick={() => void summarize()}
+                  >
+                    {summarizing ? t("summaryBusy") : t("summaryCreate")}
+                  </button>
+                </div>
+              ) : null}
+              {summaryNote ? (
+                <p className="text-xs text-muted" role="status">
+                  {summaryNote}
+                </p>
+              ) : null}
               {messages.length === 0 ? (
                 <div className="space-y-2 text-sm text-muted">
                   <p>{t("empty")}</p>
@@ -334,6 +612,25 @@ export function AssistantPanel() {
                     key={m.id}
                     message={m}
                     chatId={chatId}
+                    review={
+                      m.role === "assistant" && !m.reviewOf && preference?.reviewerModelId && !messages.some((x) => x.reviewOf === m.id)
+                        ? { busy: reviewing === m.id, disabled: busy || reviewing !== null, run: () => void secondOpinion(m.id) }
+                        : null
+                    }
+                    checks={checks.filter((c) => c.messageId === m.id)}
+                    sensitive={m.role === "assistant" && isSensitiveTopic(questionBefore(messages, m.id))}
+                    crossCheck={
+                      m.role === "assistant" && !m.reviewOf && chatId && !m.id.startsWith("local-") && chatMode === "council" && uncheckedBy(m).length > 0
+                        ? {
+                            busy: checking === m.id,
+                            disabled: busy || checking !== null,
+                            preview: checkPreview?.messageId === m.id ? checkPreview : null,
+                            ask: () => void crossCheck(m.id, false),
+                            run: () => void crossCheck(m.id, true),
+                            cancel: () => setCheckPreview(null),
+                          }
+                        : null
+                    }
                     onAction={(updated) =>
                       setMessages((all) =>
                         all.map((x) => (x.id === m.id ? { ...x, actions: (x.actions ?? []).map((a) => (a.id === updated.id ? updated : a)) } : x)),
@@ -351,8 +648,21 @@ export function AssistantPanel() {
               ) : null}
               {busy && !streamText ? (
                 <p className="text-xs text-muted" role="status">
-                  {streamTool ? t("readingTool", { tool: streamTool }) : t("thinking")}
+                  {streamTool ? t("readingTool", { tool: toolName(streamTool) }) : t("thinking")}
                 </p>
+              ) : null}
+              {/* #241 stage 3: after a council chat, one model drafts the project and requirements as action cards. */}
+              {chatMode === "council" && councilModels.length >= 2 && chatId && !busy && councilAnswered && !justMadeCouncil ? (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-[11px]" data-testid="make-council">
+                  <button
+                    type="button"
+                    className="rounded-full border border-primary px-2 py-0.5 font-medium text-primary hover:bg-primary/10"
+                    onClick={() => void send({ content: t("makeCouncilPrompt"), model: councilModels[0]! })}
+                  >
+                    {t("makeCouncil")}
+                  </button>
+                  <p className="mt-1 text-muted">{t("makeCouncilNote", { model: modelLabel(councilModels[0]!) })}</p>
+                </div>
               ) : null}
               <div ref={endRef} />
             </div>
@@ -374,6 +684,99 @@ export function AssistantPanel() {
                   </button>
                 </p>
               ) : null}
+              {/* #241: one model (optionally an expert perspective) or a council chat of 2–4 models. */}
+              <div className="mb-2 space-y-1.5 text-[11px]">
+                <div className="flex items-center gap-1" role="radiogroup" aria-label={t("chatModeLabel")}>
+                  {(["single", "council"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      role="radio"
+                      aria-checked={chatMode === m}
+                      onClick={() => setChatMode(m)}
+                      tabIndex={open ? 0 : -1}
+                      className={`rounded-full border px-2.5 py-0.5 ${chatMode === m ? "border-primary bg-primary/15 text-primary" : "border-line text-muted hover:text-text"}`}
+                    >
+                      {t(m === "single" ? "modeSingle" : "modeCouncil")}
+                    </button>
+                  ))}
+                </div>
+                {chatMode === "council" ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {councilModels.map((v) => (
+                        <span key={v} className="flex items-center gap-1 rounded-full border border-primary/40 px-2 py-0.5 text-primary">
+                          {modelLabel(v)}
+                          <button
+                            type="button"
+                            aria-label={t("councilRemoveModel", { model: modelLabel(v) })}
+                            onClick={() => setCouncilModels((all) => all.filter((x) => x !== v))}
+                            tabIndex={open ? 0 : -1}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                      {councilModels.length < 4 ? (
+                        <Select
+                          aria-label={t("councilAddModel")}
+                          className="max-w-[12rem]"
+                          value=""
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v) setCouncilModels((all) => (all.includes(v) || all.length >= 4 ? all : [...all, v]));
+                          }}
+                          tabIndex={open ? 0 : -1}
+                        >
+                          <option value="">{t("councilAddModel")}</option>
+                          {(credentials ?? []).map((c) => (
+                            <optgroup key={c.credentialId} label={`${c.provider} · ${c.label}`}>
+                              {c.models
+                                .filter((m) => !councilModels.includes(`${c.credentialId}|${m.modelId}`))
+                                .map((m) => (
+                                  <option key={m.modelId} value={`${c.credentialId}|${m.modelId}`}>
+                                    {m.displayName || m.modelId}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          ))}
+                        </Select>
+                      ) : null}
+                    </div>
+                    <p className="text-muted">
+                      {councilModels.length < 2
+                        ? t("councilPickModels")
+                        : estimate
+                          ? t("councilEstimate", {
+                              answers: format.number(estimate.answers),
+                              n: estimate.answering,
+                              check: format.number(estimate.withCheck),
+                            })
+                          : t("councilHint")}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span id="assistant-perspective-label" className="text-muted">
+                      {t("perspective")}
+                    </span>
+                    <Select
+                      aria-labelledby="assistant-perspective-label"
+                      className="max-w-[12rem]"
+                      value={perspective}
+                      onChange={(e) => setPerspective(e.target.value)}
+                      tabIndex={open ? 0 : -1}
+                    >
+                      <option value="">{t("perspectiveNone")}</option>
+                      {PERSPECTIVE_KEYS.map((k) => (
+                        <option key={k} value={k}>
+                          {t(`perspectives.${k}`)}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+              </div>
               <div className="flex items-end gap-2">
                 <textarea
                   ref={inputRef}
@@ -432,6 +835,26 @@ export function AssistantPanel() {
                       <span className="block truncate">{c.title}</span>
                       <span className="text-[11px] text-muted">{format.dateTime(new Date(c.updatedAt), { dateStyle: "medium", timeStyle: "short" })}</span>
                     </button>
+                    <a
+                      href={`/api/assistant/chats/${c.id}/export`}
+                      download
+                      className="text-xs text-muted opacity-60 hover:text-text group-hover:opacity-100"
+                      aria-label={t("download", { title: c.title })}
+                      title={t("download", { title: c.title })}
+                      tabIndex={open ? 0 : -1}
+                    >
+                      ⤓
+                    </a>
+                    <a
+                      href={`/api/assistant/chats/${c.id}/export?format=pdf`}
+                      download
+                      className="text-[10px] font-medium text-muted opacity-60 hover:text-text group-hover:opacity-100"
+                      aria-label={t("downloadPdf", { title: c.title })}
+                      title={t("downloadPdf", { title: c.title })}
+                      tabIndex={open ? 0 : -1}
+                    >
+                      PDF
+                    </a>
                     <button
                       type="button"
                       className="text-xs text-muted opacity-60 hover:text-danger group-hover:opacity-100"
@@ -460,6 +883,9 @@ export function AssistantPanel() {
                 onChange={(e) => {
                   setModel(e.target.value);
                   write(STORE_MODEL, e.target.value);
+                  // Remembered on the server too (#281), so another device starts with the same model.
+                  const [credentialId, ...rest] = e.target.value.split("|");
+                  if (credentialId && rest.length) void saveSettings({ credentialId, modelId: rest.join("|") });
                 }}
                 tabIndex={open ? 0 : -1}
               >
@@ -476,6 +902,88 @@ export function AssistantPanel() {
               </Select>
             </div>
             <p className="text-xs text-muted">{t("modelNote")}</p>
+            <div className="block">
+              <span id="assistant-reviewer-label" className="block text-xs font-medium">
+                {t("reviewer")}
+              </span>
+              <Select
+                aria-labelledby="assistant-reviewer-label"
+                className="mt-1"
+                value={preference?.reviewerCredentialId ? `${preference.reviewerCredentialId}|${preference.reviewerModelId}` : ""}
+                onChange={(e) => {
+                  const [credentialId, ...rest] = e.target.value.split("|");
+                  void saveSettings(
+                    credentialId && rest.length
+                      ? { reviewerCredentialId: credentialId, reviewerModelId: rest.join("|") }
+                      : { reviewerCredentialId: null, reviewerModelId: null },
+                  );
+                }}
+                tabIndex={open ? 0 : -1}
+              >
+                <option value="">{t("reviewerNone")}</option>
+                {(credentials ?? []).map((c) => (
+                  <optgroup key={c.credentialId} label={`${c.provider} · ${c.label}`}>
+                    {c.models.map((m) => (
+                      <option key={m.modelId} value={`${c.credentialId}|${m.modelId}`}>
+                        {m.displayName || m.modelId}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-muted">{t("reviewerNote")}</p>
+            </div>
+            <form
+              className="space-y-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const parse = (v: string) => (v.trim() ? Number(v.replace(/[^0-9]/g, "")) : null);
+                void saveSettings({ dailyTokenLimit: parse(limits.daily), monthlyTokenLimit: parse(limits.monthly) });
+              }}
+            >
+              <span className="block text-xs font-medium">{t("limits")}</span>
+              <div className="grid grid-cols-2 gap-2">
+                {(["daily", "monthly"] as const).map((key) => (
+                  <label key={key} className="block text-xs">
+                    <span className="text-muted">{t(key === "daily" ? "limitDaily" : "limitMonthly")}</span>
+                    <input
+                      inputMode="numeric"
+                      value={limits[key]}
+                      onChange={(e) => setLimits((l) => ({ ...l, [key]: e.target.value }))}
+                      placeholder={t("limitNone")}
+                      className="mt-1 w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-text focus:border-primary focus:outline-none"
+                      tabIndex={open ? 0 : -1}
+                    />
+                  </label>
+                ))}
+              </div>
+              {/* #519: every call reserves its expected tokens first – a limit below one question lets nothing through. */}
+              <p className="text-xs text-muted">{t("limitReserveNote", { min: format.number(MIN_QUESTION_TOKENS) })}</p>
+              {(["daily", "monthly"] as const).some((key) => {
+                const n = Number(limits[key].replace(/\D/g, ""));
+                return limits[key].trim() !== "" && n > 0 && n < MIN_QUESTION_TOKENS;
+              }) ? (
+                <p className="text-xs text-warning" role="status">
+                  {t("limitTooSmall", { min: format.number(MIN_QUESTION_TOKENS) })}
+                </p>
+              ) : null}
+              {budget ? (
+                <p className="text-xs text-muted">
+                  {t("usage", {
+                    today: format.number(budget.today),
+                    month: format.number(budget.thisMonth),
+                  })}
+                </p>
+              ) : null}
+              <button type="submit" className="rounded-lg border border-line px-3 py-1.5 text-xs hover:border-primary" tabIndex={open ? 0 : -1}>
+                {t("saveLimits")}
+              </button>
+            </form>
+            {settingsNote ? (
+              <p className="text-xs text-muted" role="status">
+                {settingsNote}
+              </p>
+            ) : null}
             <p className="text-xs text-muted">{t("readOnly")}</p>
             <p className="text-xs text-muted">{t("shortcut")}</p>
           </div>
@@ -527,14 +1035,61 @@ async function streamAnswer(
   throw new ApiRequestError("The answer was interrupted.", 502);
 }
 
-function Bubble({ message: m, chatId, onAction }: { message: Message; chatId: string | null; onAction: (a: Action) => void }) {
+/** The expert perspective of a single-perspective answer (#241 stage 1b), from its marker. */
+function perspectiveOf(m: Message): (typeof PERSPECTIVE_KEYS)[number] | null {
+  const marker = m.tools?.find((x) => x.name === "_perspective") as { name: string; args?: { role?: string } } | undefined;
+  const role = marker?.args?.role;
+  return (PERSPECTIVE_KEYS as readonly string[]).includes(role ?? "") ? (role as (typeof PERSPECTIVE_KEYS)[number]) : null;
+}
+
+/** The user's question before an answer (for the medicine/law/security guard rail of the cross-check). */
+function questionBefore(messages: Message[], id: string): string {
+  const at = messages.findIndex((x) => x.id === id);
+  return [...messages.slice(0, Math.max(0, at))].reverse().find((x) => x.role === "user")?.content ?? "";
+}
+
+const VERDICT_ICON: Record<CheckVerdict, string> = { confirmed: "✓", contradicted: "⚠", unverifiable: "?" };
+
+function Bubble({
+  message: m,
+  chatId,
+  onAction,
+  review,
+  checks = [],
+  sensitive = false,
+  crossCheck,
+}: {
+  message: Message;
+  chatId: string | null;
+  onAction: (a: Action) => void;
+  /** Second opinion button (#281) – only under answers when a reviewer model is set. */
+  review?: { busy: boolean; disabled: boolean; run: () => void } | null;
+  /** Cross-checks of this answer (#241 stage 2) and whether its topic is never "verified" (medicine, law, security). */
+  checks?: Check[];
+  sensitive?: boolean;
+  crossCheck?: {
+    busy: boolean;
+    disabled: boolean;
+    preview: { tokens: number; checks: number } | null;
+    ask: () => void;
+    run: () => void;
+    cancel: () => void;
+  } | null;
+}) {
   const t = useTranslations("assistant");
+  const toolName = useToolName();
   const format = useFormatter();
   if (m.role === "user") {
     return <div className="ml-8 rounded-2xl rounded-br-sm bg-primary/15 px-3 py-2 text-sm whitespace-pre-wrap">{m.content}</div>;
   }
   return (
-    <div className="mr-4 rounded-2xl rounded-bl-sm border border-line bg-surface-2/60 px-3 py-2 text-sm">
+    <div
+      className={`mr-4 rounded-2xl rounded-bl-sm border px-3 py-2 text-sm ${m.reviewOf ? "ml-4 border-warning/40 bg-warning/5" : "border-line bg-surface-2/60"}`}
+    >
+      {m.reviewOf ? <p className="mb-1 text-[11px] font-medium text-warning">{t("secondOpinionTitle")}</p> : null}
+      {perspectiveOf(m) ? (
+        <p className="mb-1 text-[11px] font-medium text-warning">{t("perspectiveTitle", { role: t(`perspectives.${perspectiveOf(m)!}`) })}</p>
+      ) : null}
       <Markdown text={m.content} />
       {chatId && m.actions?.length ? (
         <div className="mt-2 space-y-2">
@@ -555,12 +1110,72 @@ function Bubble({ message: m, chatId, onAction }: { message: Message; chatId: st
       <p className="mt-1.5 text-[10px] text-muted">
         {[
           m.model,
-          m.tools?.length ? t("usedTools", { tools: [...new Set(m.tools.map((x) => x.name))].join(", ") }) : null,
+          m.tools?.some((x) => !x.name.startsWith("_"))
+            ? t("usedTools", { tools: [...new Set(m.tools.filter((x) => !x.name.startsWith("_")).map((x) => toolName(x.name)))].join(", ") })
+            : null,
           m.inputTokens != null ? t("tokens", { n: format.number((m.inputTokens ?? 0) + (m.outputTokens ?? 0)) }) : null,
+          m.cost ? t("cost", { amount: format.number(m.cost.amount, { style: "currency", currency: m.cost.currency, maximumSignificantDigits: 2 }) }) : null,
         ]
           .filter(Boolean)
           .join(" · ")}
       </p>
+      {review ? (
+        <button
+          type="button"
+          className="mt-1.5 rounded-full border border-line px-2 py-0.5 text-[11px] text-muted hover:border-primary hover:text-text disabled:opacity-50"
+          disabled={review.disabled}
+          onClick={review.run}
+        >
+          {review.busy ? t("secondOpinionBusy") : t("secondOpinion")}
+        </button>
+      ) : null}
+      {checks.length ? (
+        <div className="mt-2 space-y-1 border-t border-line pt-2" data-testid="cross-checks">
+          {(() => {
+            const summary = checkSummary(
+              checks.map((c) => c.verdict),
+              sensitive,
+            )!;
+            const tone = summary === "confirmed" ? "text-success" : summary === "contradicted" ? "text-danger" : "text-warning";
+            return (
+              <p className={`text-[11px] font-medium ${tone}`}>
+                {t(`checkSummary.${summary}`)}
+                {sensitive ? ` – ${t("checkSensitive")}` : ""}
+              </p>
+            );
+          })()}
+          {checks.map((c) => (
+            <p key={c.id} className="text-[11px]">
+              <span aria-label={t(`checkVerdict.${c.verdict}`)} title={t(`checkVerdict.${c.verdict}`)} className="mr-1 font-semibold">
+                {VERDICT_ICON[c.verdict]}
+              </span>
+              <span className="text-muted">{c.model}:</span> {c.reason}
+            </p>
+          ))}
+        </div>
+      ) : null}
+      {crossCheck ? (
+        crossCheck.preview ? (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="text-muted">{t("crossCheckConfirm", { n: crossCheck.preview.checks, tokens: format.number(crossCheck.preview.tokens) })}</span>
+            <button type="button" className="rounded-full border border-primary px-2 py-0.5 text-primary hover:bg-primary/10" onClick={crossCheck.run}>
+              {t("crossCheckRun")}
+            </button>
+            <button type="button" className="rounded-full border border-line px-2 py-0.5 text-muted hover:text-text" onClick={crossCheck.cancel}>
+              {t("crossCheckCancel")}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="mt-1.5 ml-1 rounded-full border border-line px-2 py-0.5 text-[11px] text-muted hover:border-primary hover:text-text disabled:opacity-50"
+            disabled={crossCheck.disabled}
+            onClick={crossCheck.ask}
+          >
+            {crossCheck.busy ? t("crossCheckBusy") : t("crossCheck")}
+          </button>
+        )
+      ) : null}
     </div>
   );
 }
@@ -733,6 +1348,23 @@ function ActionCard({ action, chatId, messageId, onChange }: { action: Action; c
             </>
           ) : null}
           {action.edited ? ` · ${t("edited")}` : ""}
+          {action.status === "executed" && action.type === "draft_customer_summary" && chatId ? (
+            <>
+              {" · "}
+              {(["pdf", "docx"] as const).map((f, i) => (
+                <Fragment key={f}>
+                  {i ? " · " : null}
+                  <a
+                    href={`/api/assistant/chats/${chatId}/messages/${messageId}/actions/${action.id}/document?format=${f}`}
+                    download
+                    className="text-primary underline"
+                  >
+                    {t(f === "pdf" ? "summaryPdf" : "summaryWord")}
+                  </a>
+                </Fragment>
+              ))}
+            </>
+          ) : null}
           {action.result?.href ? (
             <>
               {" · "}
@@ -749,7 +1381,11 @@ function ActionCard({ action, chatId, messageId, onChange }: { action: Action; c
 
 /** Small Markdown subset (paragraphs, bullets, **bold**, `code`, links) – only app-internal links become links. */
 function Markdown({ text }: { text: string }) {
-  const blocks = text.split(/\n{2,}/);
+  // "# …" to "###### …" headings (live test 08.11.26: "### Summary" showed raw) become a bold line of their own.
+  const blocks = text
+    .replace(/^#{1,6}\s+(.+?)\s*#*$/gm, "\n\n**$1**\n\n")
+    .trim()
+    .split(/\n{2,}/);
   return (
     <div className="space-y-2">
       {blocks.map((block, i) => {
@@ -781,7 +1417,8 @@ function Markdown({ text }: { text: string }) {
 
 function inline(text: string): ReactNode {
   const parts: ReactNode[] = [];
-  const re = /\[([^\]]+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|`([^`]+)`/g;
+  // Link labels may contain one level of brackets, e.g. project names like "[Benchmark] Todo" (#275).
+  const re = /\[((?:[^[\]\n]|\[[^[\]\n]*\])+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|`([^`]+)`/g;
   let last = 0;
   let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {

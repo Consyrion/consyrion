@@ -1,0 +1,14 @@
+# Recreates the sandbox egress firewall after every boot (#399). Installed by deploy.sh only with
+# SANDBOX_DISABLED=false. Until it has run, the worker refuses dependency installs (boot-id marker).
+[Unit]
+Description=CONSYRION AI sandbox egress firewall
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/consyrion/app/deploy/hetzner/sandbox-network.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

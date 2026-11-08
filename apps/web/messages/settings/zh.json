@@ -7,7 +7,9 @@
       "billing": "账单与用量",
       "account": "账户",
       "apiTokens": "API Token",
-      "feedback": "我的反馈"
+      "feedback": "我的反馈",
+      "skills": "技能",
+      "roleProfiles": "专业视角档案"
     },
     "pages": {
       "account": {
@@ -39,7 +41,7 @@
       },
       "integrations": {
         "title": "集成",
-        "description": "将决策发送到电子邮件、Telegram 或 Confluence，并可选择连接 GitHub：Council 会将你在项目中选择的仓库文件作为上下文读取，已批准的决策会构建为草稿 Pull Request。",
+        "description": "在你常用的工具中使用 CONSYRION AI——Claude Code、Cursor、VS Code、Telegram——通过电子邮件或 Confluence 发送决策，并连接 GitHub 以创建草稿拉取请求。",
         "connected": "GitHub 已连接。",
         "githubText": "最小权限：你在 GitHub 上选择仓库。CONSYRION AI 读取代码，只写入新分支并创建草稿 Pull Request，从不合并。",
         "addInstallation": "添加其他安装",
@@ -49,7 +51,8 @@
         "notInPlan": "你当前的套餐（{plan}）不包含 GitHub。Pro 套餐起可用——<link>查看账单与用量</link>。",
         "ownersOnly": "只有所有者可以连接 GitHub。",
         "allRepositories": "所有仓库",
-        "selectedRepositories": "选定的仓库"
+        "selectedRepositories": "选定的仓库",
+        "manageTitle": "管理连接"
       },
       "billing": {
         "title": "账单与用量"
@@ -91,6 +94,7 @@
       "colCalls": "调用",
       "colFailed": "失败",
       "colInput": "输入 Token",
+      "colCachedInput": "其中缓存",
       "colOutput": "输出 Token",
       "colCost": "≈ 费用",
       "pricesTitle": "你的提供商价格（可选，用于估算）",
@@ -289,7 +293,255 @@
       "colPlan": "套餐",
       "stripeTitle": "Stripe 与 Pro 价格",
       "catalogTitle": "套餐目录",
-      "catalogText": "限制在服务器端强制执行。1,000,000 及以上的限制表示无限制。Pro 价格及其 Stripe 价格在上方设置。CONSYRION AI 从不收取 AI Token 费用。"
+      "catalogText": "限制在服务器端强制执行。1,000,000 及以上的限制表示无限制。Pro 价格及其 Stripe 价格在上方设置。CONSYRION AI 从不收取 AI Token 费用。",
+      "demo": {
+        "title": "演示项目",
+        "description": "每个工作区会以其界面语言（否则为英语，再其次德语）一次性获得此处所选委员会的只读副本。只能选择你自己工作区中已完成的委员会。 每位新客户都会看到完整的委员会文本（提案、辩论、裁决）——请选择不含机密内容的委员会。技能知识和文档不会被复制。",
+        "none": "无演示",
+        "locale": {
+          "de": "德语",
+          "en": "英语",
+          "fr": "法语",
+          "es": "西班牙语",
+          "zh": "中文"
+        }
+      },
+      "intake": {
+        "title": "需求采集",
+        "description": "仅统计数量，不含文本——最近 {days} 天的需求列表和裁决（#245）。",
+        "ratio": "提议 : 采用",
+        "ratioDetail": "共发现 {proposed} 条陈述，采用 {kept} 条，涉及 {lists} 个列表——目标不超过 2 : 1",
+        "added": "用户补充",
+        "splitParts": "{n} 个拆分需求的部分",
+        "onlyOne": "仅因一项无法确认的需求而受阻",
+        "onlyOneDetail": "占无合格方案裁决的比例（共 {verdicts} 个裁决）"
+      },
+      "skillHub": {
+        "title": "SkillHub 审核",
+        "text": "提交公开的技能。红色永远不能发布；黄色和绿色需要你批准，除非开启了自动批准。",
+        "queueTitle": "审核队列",
+        "queueText": "内容以纯文本显示。批准仅适用于此版本（内容哈希）。",
+        "tab": {
+          "pending_review": "待审核",
+          "quarantined": "已拦截",
+          "published": "已公开"
+        },
+        "loading": "加载中…",
+        "empty": "暂无内容。",
+        "error": "出现错误。",
+        "scan": "扫描",
+        "ai": "AI",
+        "light": {
+          "green": "绿",
+          "yellow": "黄",
+          "red": "红"
+        },
+        "aiSkipped": "已跳过 AI：{reason}",
+        "hidden": "已隐藏",
+        "suspended": "发布者已停用",
+        "open": "打开",
+        "close": "关闭",
+        "field": {
+          "summary": "摘要",
+          "changelog": "变更说明",
+          "blocks": "需求模块",
+          "weights": "权重",
+          "rules": "会话规则",
+          "knowledge": "知识",
+          "owner": "作者"
+        },
+        "scanFindings": "静态扫描",
+        "aiFindings": "AI 审核",
+        "note": "给作者的说明",
+        "noteHint": "拒绝、拦截、隐藏或停用时必填。",
+        "approve": "批准",
+        "reject": "拒绝",
+        "quarantine": "拦截",
+        "restore": "退回审核",
+        "hide": "隐藏",
+        "unhide": "重新显示",
+        "suspend": "停用发布者",
+        "unsuspend": "恢复发布者",
+        "done": {
+          "approve": "已发布。",
+          "reject": "已拒绝。",
+          "quarantine": "已拦截。",
+          "restore": "已退回审核。",
+          "hide": "已隐藏。",
+          "unhide": "已重新显示。",
+          "suspend": "发布者已停用。",
+          "unsuspend": "发布者已恢复。",
+          "rescan": "{rescanned, plural, other {已重新检查 # 个版本}}，{quarantined, plural, other {已拦截 # 个}}。"
+        },
+        "errors": {
+          "red": "红色版本永远不能发布——作者需提交新版本。",
+          "hash_mismatch": "此版本已更改——请重新加载。",
+          "note_missing": "请给作者说明原因。",
+          "publisher_suspended": "发布者已停用。",
+          "invalid_transition": "当前状态下无法执行此步骤。"
+        },
+        "reviewer": {
+          "title": "AI 审核器",
+          "text": "静态扫描之后的第二个信号。静态扫描为红色的内容永远不会发送给模型。",
+          "loading": "加载中…",
+          "error": "出现错误。",
+          "saved": "已保存。",
+          "enabled": "开启模型审核（紧急开关）",
+          "provider": "提供商",
+          "chooseProvider": "选择…",
+          "model": "模型",
+          "modelHint": "提供商列出的模型 ID。",
+          "perReview": "每次审核的令牌上限",
+          "perMonth": "每月令牌上限",
+          "used": "本月已用：{used}",
+          "key": "审核器 API 密钥",
+          "keySet": "已存储密钥。输入新密钥即可替换。",
+          "keyMissing": "无密钥——每个版本都转为人工审核。",
+          "autoApprove": "两项检查均为绿色时自动发布",
+          "autoApproveHint": "默认关闭。每次自动批准都会记录；可随时关闭。",
+          "exception": "平台密钥——BYOK 原则的书面例外，所有者于 2026-11-08 批准（ADR 0368）：仅用于此审核，加密存储，不再显示。",
+          "save": "保存",
+          "removeKey": "删除密钥"
+        },
+        "reports": {
+          "title": "未处理的举报",
+          "text": "来自已登录用户的举报。举报永远不会自动隐藏技能——请在队列中打开技能以隐藏或拦截。",
+          "loading": "加载中…",
+          "empty": "没有未处理的举报。",
+          "error": "出现错误。",
+          "openOnSkill": "{n, plural, other {此技能有 # 条未处理举报}}",
+          "resolve": "已处理",
+          "dismiss": "驳回"
+        },
+        "rescan": "按当前规则重新检查",
+        "official": {
+          "title": "官方技能（@consyrion）",
+          "text": "随 CONSYRION AI 提供并显示在公开目录中。它们必须以绿色通过扫描；可在此隐藏，无需部署。",
+          "loading": "加载中…",
+          "error": "出现错误。",
+          "hidden": "已隐藏",
+          "hide": "隐藏",
+          "show": "显示"
+        }
+      }
+    },
+    "connect": {
+      "categories": {
+        "aiClients": {
+          "title": "AI 客户端",
+          "description": "在工作中随时通过 MCP 服务器询问 CONSYRION AI。"
+        },
+        "apps": {
+          "title": "应用",
+          "description": "随时随地发起并跟踪决策。"
+        },
+        "delivery": {
+          "title": "交付与代码",
+          "description": "决策发送到哪里，以及在哪里构建。"
+        }
+      },
+      "planned": "计划中",
+      "proBadge": "Pro",
+      "copy": "复制",
+      "copied": "已复制",
+      "back": "所有集成",
+      "detailTitle": "连接 {name}",
+      "whatTitle": "你可以做什么",
+      "setupTitle": "设置",
+      "proOnly": "托管于 app.consyrion.com：Pro 套餐起提供；自托管：始终可用。<link>查看价格</link>",
+      "safety": "批准、构建和删除始终在应用内进行。令牌以你在此工作区中的角色执行操作；council 使用你自己的 AI 密钥运行并在那里消耗 token。",
+      "items": {
+        "claude-code": {
+          "name": "Claude Code",
+          "by": "终端 · MCP",
+          "summary": "编程时遇到需要决策的问题，直接在终端中询问 CONSYRION AI。",
+          "what": "Claude Code 调用 ask_consyrion，用你的密钥启动 council，并通过 get_decision 获取结果和实施说明——无需离开终端。",
+          "steps": {
+            "token": "在<link>设置 → API 令牌</link>中创建令牌（“仅 council”即可），并在下方命令中替换占位符。",
+            "add": "在终端中添加服务器：",
+            "check": "在 Claude Code 中运行 <code>/mcp</code>，确认“consyrion”已连接。",
+            "ask": "直接提问：“问问 CONSYRION 我们该用 PostgreSQL 还是 SQLite。”Claude 会先向你展示需求和预算。"
+          }
+        },
+        "cursor": {
+          "name": "Cursor",
+          "by": "编辑器 · MCP",
+          "summary": "将 CONSYRION AI 作为 Cursor 代理的工具——无需切换应用即可获得决策。",
+          "what": "Cursor 代理可以准备项目、启动 council，并在你的项目中直接使用结果作为实施说明。",
+          "steps": {
+            "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
+            "open": "在 Cursor 中打开 设置 → MCP → “Add new MCP server”，或直接打开文件 <code>~/.cursor/mcp.json</code>。",
+            "paste": "粘贴以下配置并保存：",
+            "ask": "代理聊天中会出现“consyrion”及其工具。试试：“让 CONSYRION 决定：队列还是 cron？”"
+          }
+        },
+        "vscode": {
+          "name": "VS Code",
+          "by": "编辑器 · MCP（Copilot Chat）",
+          "summary": "在 Copilot Chat 的代理模式中使用 CONSYRION AI。",
+          "what": "在代理模式下，Copilot Chat 可以调用 CONSYRION 工具：读取决策、启动 council，并在你的项目中实施结果。",
+          "steps": {
+            "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
+            "paste": "在项目中创建文件 <code>.vscode/mcp.json</code>：",
+            "start": "在文件中点击“consyrion”上方的“Start”（或命令面板 → “MCP: List Servers”）。",
+            "ask": "将 Copilot Chat 切换到代理模式；工具列表中会出现“consyrion”。"
+          }
+        },
+        "claude-desktop": {
+          "name": "Claude Desktop",
+          "by": "桌面应用 · MCP",
+          "summary": "在 Mac 或 Windows 上的 Claude 应用中使用 CONSYRION AI。",
+          "what": "Claude Desktop 通过小型桥接工具 mcp-remote（需要 Node.js）连接到你的工作区，可使用与 Claude Code 相同的工具。",
+          "steps": {
+            "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
+            "open": "在 Claude Desktop 中打开 设置 → 开发者 → “编辑配置”。",
+            "paste": "将服务器添加到 <code>claude_desktop_config.json</code>：",
+            "restart": "重启 Claude Desktop；工具中会出现“consyrion”。"
+          }
+        },
+        "telegram": {
+          "name": "Telegram",
+          "by": "你自己的机器人 · 聊天",
+          "summary": "用 /frage 提问，在聊天中收到裁决及其 PDF。",
+          "what": "你自己的 Telegram 机器人接收问题，显示需求和预算，在你点击“Start”后才启动 council，并把结果发回。",
+          "steps": {
+            "bot": "通过 @BotFather 创建一个仅用于 CONSYRION AI 的机器人：",
+            "chat": "给机器人发一条消息并获取你的聊天 ID（例如通过 @userinfobot）。",
+            "connect": "在下方的<link>Telegram 连接</link>中填写机器人令牌和私人聊天 ID。",
+            "allow": "点击“允许通过 Telegram 提问”——机器人会向你问好。",
+            "ask": "在聊天中提问；以“- ”开头的行是硬性需求："
+          }
+        },
+        "vscode-extension": {
+          "name": "VS Code 扩展",
+          "by": "扩展",
+          "summary": "直接在 VS Code 中查看决策、审批和生成的更改。计划在 Marketplace 发布。"
+        },
+        "chat-connectors": {
+          "name": "claude.ai 和 ChatGPT",
+          "by": "连接器 · OAuth",
+          "summary": "为 claude.ai 和 ChatGPT 网页连接器提供 OAuth 登录——下一阶段。"
+        },
+        "github": {
+          "name": "GitHub",
+          "by": "GitHub App",
+          "summary": "council 读取所选仓库文件；已批准的决策会成为草稿拉取请求。"
+        },
+        "email": {
+          "name": "电子邮件",
+          "by": "交付",
+          "summary": "将完成的决策及其 PDF 通过电子邮件发送给你或你的团队。"
+        },
+        "confluence": {
+          "name": "Confluence",
+          "by": "交付",
+          "summary": "将决策作为页面保存到你的 Confluence 空间。"
+        }
+      },
+      "publicTitle": "集成",
+      "publicDescription": "CONSYRION AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude Desktop、Telegram、GitHub、电子邮件和 Confluence——附设置步骤。",
+      "signIn": "登录",
+      "dashboard": "打开仪表板"
     }
   },
   "executionScreen": {
@@ -340,6 +592,7 @@
     "errorChecks": "无法加载 CI 状态",
     "loading": "加载中…",
     "startTitle": "启动 Execution Council",
+    "buildBudget": "构建的 Token 预算",
     "startText": "已批准的方案会被转化为任务计划；Council 的模型（或你选择的模型）实现任务，测试只在隔离容器或你仓库的 GitHub Actions 中运行，失败会进入有限次数的修复循环，其他模型评审代码。在编写任何代码之前，你先审核计划。不会合并或部署任何内容。默认预算：{budget} Token。",
     "whoBuilds": "由谁构建？",
     "whoBuildsNew": "由谁构建新的运行？",
@@ -365,6 +618,15 @@
     "overrideReason": "仍然发布的理由",
     "overridePlaceholder": "例如：测试不稳定，已手动验证",
     "publishAnyway": "仍然发布草稿",
+    "ciRisksIntro": "<strong>你的 CI 会执行的更改。</strong>草稿拉取请求会进入你的仓库，工作流会在那里使用仓库的密钥运行。发布前请查看这些文件——生成的代码可能受到附件文档或仓库文件中文字的影响：",
+    "ciRisksConfirm": "我已查看这些更改；它们不会把密钥或数据发送到外部。",
+    "ciRisk": {
+      "package_scripts": "package.json 脚本已更改",
+      "lockfile": "锁文件已更改（依赖会在 CI 中安装）",
+      "build_config": "构建/CI 配置或脚本已更改",
+      "test_setup": "测试设置已更改（每次测试前运行）",
+      "network_call": "测试新增了网络调用"
+    },
     "retryOnly": "仅重试 {tasks}。",
     "finishedKept": "已完成的任务（{tasks}）及其文件保持不变。",
     "waitingAfter": "等待中的任务（{tasks}）随后开始。",
@@ -424,7 +686,64 @@
       "runFailed": "上次沙箱测试运行失败。",
       "highFindings": "{n, plural, other {# 个高严重度审查发现}}——合并前请检查。",
       "criticalFindings": "{n, plural, other {# 个严重审查发现}}：{list}"
-    }
+    },
+    "buildText": {
+      "badStructure": "回答不符合要求的结构",
+      "noRuntime": "没有可用的容器环境——命令未执行。",
+      "installNoSandbox": "未执行：安装步骤无法启动（此服务器上没有沙箱）。",
+      "installEnded": "未执行：安装步骤以 {status} 结束。",
+      "rejected": "被拒绝的文件：",
+      "kind": {
+        "implement": "实现",
+        "plan": "计划",
+        "review": "审查",
+        "repair": "修复"
+      },
+      "outcome": {
+        "ok": "成功",
+        "error": "错误"
+      },
+      "testKind": {
+        "test": "测试",
+        "repair": "修复 {n}",
+        "install": "{base} – 安装"
+      },
+      "testStatus": {
+        "failed": "失败",
+        "error": "错误",
+        "timeout": "超时",
+        "not_run": "未执行"
+      },
+      "check": {
+        "success": "通过",
+        "failure": "失败",
+        "neutral": "中性",
+        "cancelled": "已取消",
+        "skipped": "已跳过",
+        "timed_out": "超时",
+        "action_required": "需要操作",
+        "queued": "排队中",
+        "in_progress": "运行中",
+        "completed": "已完成",
+        "pending": "等待中"
+      },
+      "focus": {
+        "quality": "代码质量与正确性",
+        "security": "安全（注入、密钥、访问权限、依赖）"
+      },
+      "sandbox": {
+        "none": "无（GitHub Actions）",
+        "docker": "容器"
+      }
+    },
+    "buildProof": {
+      "verified": "已证明——CI 通过",
+      "failed": "未证明——CI 失败",
+      "pending": "待证明——CI 尚未完成"
+    },
+    "prototypeBadge": "原型/测量构建",
+    "prototypeNotice": "这是原型/测量构建——不是完成的解决方案。它用于测量委员会无法确认的要求；请在 Final Verdict 中填写测量结果。它不是常规批准。",
+    "prototypeStartTitle": "开始原型/测量构建"
   },
   "auth": {
     "failed": "身份验证失败",
@@ -452,6 +771,21 @@
     "verifyDoneText": "你的地址已确认。请登录以继续。",
     "verifyFailedTitle": "链接无效或已过期",
     "verifyFailedText": "此确认链接已失效。请使用电子邮件和密码登录，我们会向你发送新的链接。",
+    "forgotPassword": "忘记密码？",
+    "oauthNotLinked": "此电子邮箱已有一个带密码的 CONSYRION AI 账户。请先用邮箱和密码登录，然后在“设置 → 账户”中连接 Google 或 GitHub。忘记密码？请重置。",
+    "resetTitle": "重置密码",
+    "resetRequestText": "输入你的电子邮箱，我们会发送一个设置新密码的链接。",
+    "resetSend": "发送链接",
+    "resetSent": "如果 {email} 有对应账户，链接已发出，60 分钟内有效。",
+    "resetInvalidTitle": "链接无效或已过期",
+    "resetInvalidText": "此链接已失效，请重新申请。",
+    "resetRequestAgain": "重新申请链接",
+    "resetMismatch": "两次输入的密码不一致。",
+    "resetNewText": "请设置新密码。之后所有现有登录都会结束。",
+    "resetDone": "密码已更改，请使用新密码登录。",
+    "resetNewPassword": "新密码",
+    "resetConfirm": "再次输入新密码",
+    "resetSave": "保存密码",
     "shell": {
       "home": "CONSYRION AI 首页",
       "tagline": "辩论。 决策。 交付。",
@@ -496,5 +830,273 @@
       "signedInAs": "当前登录为 {email}。邀请仅对其发送到的地址有效。",
       "signedOut": "请使用受邀的电子邮件地址<signIn>登录</signIn>或<signUp>创建账户</signUp>，然后重新打开此链接。"
     }
+  },
+  "skills": {
+    "title": "技能",
+    "description": "可预先填写 council 的决策包：视角、要求模块、权重和规则。技能从不做决定——要求由你确认，批准也照常由你进行。",
+    "error": "操作未成功，请重试。",
+    "saved": "技能已保存。",
+    "imported": "技能已导入——目前为私有。",
+    "ignoredTitle": "未采用：{fields}。",
+    "ignoredText": "这些字段不属于技能格式，未被保存。其余内容均已保存。",
+    "newerSchema": "此技能由更新版本的 CONSYRION AI 创建（技能格式 {version}）。请更新 CONSYRION AI 后再导入。",
+    "shared": "已与团队共享。",
+    "unshared": "该技能已恢复为私有。",
+    "archived": "技能已归档。使用过它的 council 保留各自的版本。",
+    "versionShort": "v{version}",
+    "edit": "编辑",
+    "shareTeam": "与团队共享",
+    "makePrivate": "设为私有",
+    "teamNeedsPro": "与团队共享包含在 Pro 中。",
+    "export": "导出",
+    "archive": "归档",
+    "archiveConfirm": "确认归档",
+    "cancel": "取消",
+    "ownTitle": "你的技能",
+    "ownText": "你的方案包含 {max} 个自有技能，已用 {n} 个。官方技能不计入。",
+    "ownTextUnlimited": "你的方案中自有技能不限数量。",
+    "import": "导入 skill.json",
+    "new": "新建技能",
+    "limitReached": "已达到方案上限。请归档一个技能或升级到 Pro。",
+    "noOwn": "还没有自己的技能。新建一个，或复制官方技能进行调整。",
+    "editTitle": "编辑技能",
+    "newTitle": "新建技能",
+    "editorHint": "保存会创建新版本。服务器会检查内容：不得包含密钥、密码或电子邮件地址，也不得包含试图更改 council 规则的文字。",
+    "noSuggestion": "无建议",
+    "modelsValue": "{n} 个模型",
+    "save": "保存",
+    "previewTitle": "预览——此技能会预先填写的内容",
+    "previewHint": "开始前所有内容仍可更改。",
+    "previewBlocks": "要求模块（建议）",
+    "previewWeights": "权重",
+    "modeDefault": "模式默认值",
+    "safetyNote": "技能从不确认要求，从不跳过独立审查，也从不批准任何内容。",
+    "officialTitle": "官方技能",
+    "officialText": "由 CONSYRION AI 提供，只读。复制后即可作为自己的技能进行调整。",
+    "visibility": {
+      "private": "私有",
+      "team": "团队",
+      "official": "官方"
+    },
+    "category": {
+      "architecture": "架构",
+      "data_protection": "数据保护",
+      "vendor": "供应商选择",
+      "security": "安全",
+      "cost": "成本",
+      "other": "其他"
+    },
+    "field": {
+      "name": "名称",
+      "summary": "简短说明",
+      "category": "类别",
+      "mode": "建议模式",
+      "models": "建议模型数量",
+      "roles": "视角",
+      "blocks": "要求模块",
+      "blocksHint": "每行一个。需填写的值用花括号标记，例如“每月费用最多 '{amount}' CHF。”",
+      "useWeights": "设置裁决权重",
+      "sessionRules": "会话规则",
+      "knowledge": "领域知识 / 检查清单",
+      "knowledgeHint": "作为背景提供给模型——绝不作为指令。",
+      "changelog": "有哪些变化？（可选）",
+      "changelogHint": "简短说明，显示在版本列表和 SKILL.md 中——最多 500 个字符。"
+    },
+    "criteria": {
+      "technicalQuality": "技术质量",
+      "security": "安全",
+      "maintainability": "可维护性",
+      "operatingCost": "运营成本",
+      "implementationSpeed": "实施速度"
+    },
+    "picker": {
+      "label": "使用技能",
+      "none": "不使用技能",
+      "group": {
+        "own": "你的技能",
+        "team": "团队技能",
+        "official": "官方技能"
+      }
+    },
+    "setup": {
+      "prefilled": "已根据技能“{name}”（v{version}）预先填写。你可以修改任何内容。",
+      "blocksOpen": "技能“{name}”还有 {n, plural, other {# 个构建块}}未决定——仅为提示，不会阻止启动。",
+      "blocksOpenLink": "查看构建块",
+      "modelsRecommended": "该技能建议使用 {n} 个模型——请自行选择（使用你自己的密钥）。已选 {selected} / {n}。"
+    },
+    "intake": {
+      "label": "{name} 的要求模块",
+      "title": "来自技能“{name}”的模块",
+      "text": "仅为建议：填写数值并添加需要的模块。只有在你确认列表后，它们才会成为要求。",
+      "add": "添加为要求",
+      "added": "已添加",
+      "summary": "技能“{name}”建议 {n} 个构建块——已采用 {adopted} 个，待定 {open} 个。",
+      "summaryDismissed": "已舍弃 {n} 个。",
+      "view": "查看构建块",
+      "hide": "隐藏构建块",
+      "status": {
+        "adopted": "已采用",
+        "open": "待定",
+        "dismissed": "已舍弃"
+      },
+      "dismiss": "舍弃",
+      "reopen": "重新打开",
+      "adoptHint": "添加构建块会改变你的需求：编辑列表、填写数值并重新确认。不会自动采用任何内容。",
+      "adoptEdit": "编辑需求以添加构建块"
+    },
+    "duplicate": "复制",
+    "duplicated": "已创建“{name}”的私有副本——现在可以修改。",
+    "copyName": "{name}（副本）",
+    "forkedFrom": "{name} 的副本（v{version}）",
+    "versions": "版本",
+    "hideVersions": "隐藏版本",
+    "versionsLabel": "{name} 的版本",
+    "noChangelog": "无更新说明",
+    "hub": {
+      "publish": "发布…",
+      "withdraw": "从 SkillHub 撤回",
+      "withdrawn": "已从 SkillHub 撤回。各 Council 保留其使用过的版本。",
+      "status": {
+        "hidden": "已被审核隐藏",
+        "public": "公开 · v{version}",
+        "draft": "未提交",
+        "scanning": "检查中",
+        "pending_review": "审核中",
+        "published": "公开",
+        "rejected": "已拒绝",
+        "quarantined": "已拦截",
+        "withdrawn": "已撤回"
+      },
+      "panelLabel": "在 SkillHub 发布“{name}”",
+      "title": "在 SkillHub 发布",
+      "intro": "将此版本向所有人公开。公开前会先自动检查，再由管理员批准。之后的修改会生成新版本，需要单独审核。",
+      "error": "出现错误，请重试。",
+      "resultSubmitted": "已提交为 {address}。管理员审核后才会公开。",
+      "resultBlocked": "此版本被自动检查拦截，无法发布。请修改文本后提交新版本。",
+      "finding": {
+        "red": "已拦截",
+        "yellow": "待检查"
+      },
+      "kind": {
+        "secret": "密钥、令牌或密码",
+        "personal_data": "个人数据",
+        "instruction": "针对 Council 或其审核者的指令",
+        "encoded_content": "编码文本",
+        "obfuscation": "隐藏或形似字符",
+        "link": "链接",
+        "markup": "HTML 或 Markdown 链接",
+        "code": "命令或脚本",
+        "bias": "极端权重"
+      },
+      "close": "关闭",
+      "loading": "加载中…",
+      "notEligible": "你暂时还不能发布：",
+      "problem": {
+        "plan": "发布功能包含在 Pro 中。",
+        "email_unverified": "请验证你的电子邮件地址。",
+        "account_too_new": "你的账户需注册满 14 天（自 {date} 起）。",
+        "suspended": "你的发布者账户已被停用。"
+      },
+      "handle": "发布者标识",
+      "handleHint": "在每个公开技能上显示为 @标识。3–32 个小写字母、数字或连字符。之后无法更改。",
+      "claim": "保存标识",
+      "cancel": "取消",
+      "address": "地址",
+      "addressHint": "公开地址：{address}",
+      "listed": "在公开目录和搜索中显示",
+      "listedHint": "未列出的技能只能通过链接访问——这不是访问保护。",
+      "changelog": "此版本包含或更改的内容",
+      "changelogHint": "必填——显示在公开页面上。",
+      "license": "我以 {license} 发布此技能，并拥有相应权利。",
+      "reviewNote": "文本会被自动检查，包括由 CONSYRION AI 运营的外部 AI 服务。切勿包含个人数据、密钥或机密信息。",
+      "submit": "提交审核",
+      "errors": {
+        "handle_format": "使用 3–32 个小写字母、数字或单个连字符。",
+        "handle_reserved": "此标识已保留——它会暗示官方或第三方身份。",
+        "handle_set": "你的标识已设置，无法更改。",
+        "handle_taken": "此标识已被占用。",
+        "handle_missing": "请先选择你的发布者标识。",
+        "license_missing": "请接受许可后再发布。",
+        "changelog_missing": "请说明此版本包含或更改的内容。",
+        "already_submitted": "此版本已提交。请保存新版本以提交更改。",
+        "slug_format": "使用 3–60 个小写字母、数字或单个连字符。",
+        "slug_reserved": "此地址已保留。",
+        "slug_taken": "你已将此地址用于另一个技能。",
+        "not_public": "此技能未公开。"
+      }
+    }
+  },
+  "roleProfiles": {
+    "title": "专业视角档案",
+    "description": "细化 12 Minds Council 中某个角色的关注点：核心问题、审查视角、适用边界和来源。档案只是一种视角——绝不是额外的模型或投票。",
+    "perspectiveNotModel": "视角不是独立的 AI 模型：同一模型上的三个角色仍然是一个模型、一票。档案只改变角色关注什么，从不改变评审者数量、需求校验或审批。",
+    "error": "出现问题，请重试。",
+    "saved": "档案已保存。",
+    "shared": "已与团队共享。",
+    "unshared": "已设为私有。",
+    "archived": "档案已停用。使用过它的 Council 保留其版本。",
+    "ignoredTitle": "未采用：{fields}",
+    "versionShort": "v{version}",
+    "forRole": "适用角色：{role}",
+    "show": "显示",
+    "hide": "隐藏",
+    "edit": "编辑",
+    "shareTeam": "与团队共享",
+    "makePrivate": "设为私有",
+    "shareNeedsAdmin": "只有管理员或所有者可以与团队共享档案。",
+    "archive": "停用",
+    "archiveConfirm": "确认停用",
+    "cancel": "取消",
+    "own": "你和团队的档案",
+    "new": "新建档案",
+    "noOwn": "还没有自己的档案。新建一个吧。",
+    "editTitle": "编辑档案",
+    "newTitle": "新建档案",
+    "noPersons": "描述一种视角，而不是一个人：不用真实姓名，不模仿人物，不编造引语。",
+    "role": "12 Minds Council 角色",
+    "name": "名称",
+    "coreQuestion": "核心问题",
+    "lenses": "审查视角",
+    "lensesHint": "3–8 条，每行一条。",
+    "notSuitableFor": "不适用于",
+    "sources": "来源",
+    "noSources": "无来源。",
+    "sourcesHint": "无法引用来源时请选择“自有观点”。已核实的来源需要 https 链接和核实日期。",
+    "sourceTitle": "标题",
+    "sourceStatus": "状态",
+    "sourceUrl": "链接（https）",
+    "sourceCheckedAt": "核实日期",
+    "removeSource": "移除来源",
+    "addSource": "添加来源",
+    "save": "保存",
+    "curated": "精选档案",
+    "curatedHint": "随 CONSYRION AI 提供，只读。团队自有评估，不含人物和链接。",
+    "checkedAt": "核实于 {date}",
+    "visibility": {
+      "private": "私有",
+      "team": "团队",
+      "curated": "精选"
+    },
+    "status": {
+      "own_statement": "自有观点",
+      "unconfirmed": "未确认",
+      "verified": "已核实",
+      "outdated": "已过时"
+    },
+    "pickerTitle": "专业视角档案（可选）",
+    "pickerNote": "档案细化该角色的关注点，不会增加模型、投票或评审者。",
+    "pickerNone": "不使用档案"
+  },
+  "deletion": {
+    "title": "删除会移除什么——以及无法移除什么",
+    "removedProject": "从数据库中移除：项目及其简报、文档和需求，所有 Council 及其方案、辩论、决定和批准，构建计划、生成的代码、测试运行和用量记录。",
+    "removedWorkspace": "从数据库中移除：此工作区的所有项目和 Council、文档、生成的代码、加密的 API 密钥、集成和投递连接、邀请、API 令牌、助手对话、技能、角色配置以及工作区的审计日志。成员会失去访问权限；他们的账户保留。",
+    "auditProject": "工作区的审计日志会保留关于此项目的简短记录（谁在何时做了什么，不含方案内容），直到工作区被删除。工作区的助手对话不会随项目一起删除。",
+    "auditWorkspace": "会保留一条记录：此工作区已被删除、由谁删除以及何时删除——不含任何内容。",
+    "feedback": "你的反馈报告属于你的账户，在你删除它们或删除账户之前会一直保留。",
+    "backups": "数据库备份（服务器上以及位于德国的备份存储中）在 30 天后自动删除之前仍包含这些数据。",
+    "external": "在 CONSYRION AI 之外——我们无法删除：GitHub 上的 pull request 和分支（请在仓库中关闭或删除），通过电子邮件、Telegram 或 Confluence 发送的报告（保留在收件人处），以及你导出或下载的任何内容。",
+    "privacy": "更多信息请见隐私政策",
+    "running": "已在运行的模型调用仍可能由提供商计费（使用你自己的密钥）。"
   }
 }

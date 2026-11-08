@@ -34,12 +34,29 @@ function ProviderLogo({ provider }: { provider: keyof typeof SOCIAL_LABELS }) {
   );
 }
 
-export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up"; socialProviders: Array<keyof typeof SOCIAL_LABELS> }) {
+/** OAuth errors Better Auth sends back to `/sign-in?error=…` that get an explanation instead of a generic message. */
+const OAUTH_ERRORS = { account_not_linked: "oauthNotLinked" } as const;
+
+export function AuthForm({
+  mode,
+  socialProviders,
+  passwordReset = false,
+  oauthError = null,
+}: {
+  mode: "sign-in" | "sign-up";
+  socialProviders: Array<keyof typeof SOCIAL_LABELS>;
+  /** Shows "Forgot password?" (only when the server can send the reset link). */
+  passwordReset?: boolean;
+  /** `error` query parameter after a failed Google/GitHub sign-in. */
+  oauthError?: string | null;
+}) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("auth");
+  const [error, setError] = useState<string | null>(() =>
+    oauthError ? (oauthError in OAUTH_ERRORS ? t(OAUTH_ERRORS[oauthError as keyof typeof OAUTH_ERRORS]) : t("socialFailed")) : null,
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const t = useTranslations("auth");
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,7 +66,8 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
     setPending(true);
     setError(null);
     setNotice(null);
-    // The verification link (when the server requires one) leads to /verify-email, which signs the user in.
+    // The verification link (when the server requires one) leads to /verify-email, which confirms the address. After a
+    // successful sign-in the client follows the same URL; that page sends a signed-in user on to the dashboard.
     const result =
       mode === "sign-up"
         ? await authClient.signUp.email({ email, password, name: String(form.get("name")), callbackURL: "/verify-email" })
@@ -90,6 +108,13 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
           minLength={12}
           hint={mode === "sign-up" ? t("passwordHint") : undefined}
         />
+        {mode === "sign-in" && passwordReset ? (
+          <p className="-mt-2 text-right text-sm">
+            <Link className="text-muted hover:text-text hover:underline" href="/forgot-password">
+              {t("forgotPassword")}
+            </Link>
+          </p>
+        ) : null}
         {error ? <Alert>{error}</Alert> : null}
         {notice ? <Alert tone="success">{notice}</Alert> : null}
         <Button
@@ -114,7 +139,7 @@ export function AuthForm({ mode, socialProviders }: { mode: "sign-in" | "sign-up
               className="h-14 w-full gap-3 rounded-xl border-white/20 bg-transparent text-base font-semibold hover:border-primary hover:bg-white/5"
               onClick={async () => {
                 setError(null);
-                const result = await authClient.signIn.social({ provider, callbackURL: "/dashboard" });
+                const result = await authClient.signIn.social({ provider, callbackURL: "/dashboard", errorCallbackURL: "/sign-in" });
                 if (result.error) setError(result.error.message ?? t("socialFailed"));
               }}
             >

@@ -1,6 +1,6 @@
 import { createAdapter } from "@consyrion/ai";
 import { DomainError, type Keyring } from "@consyrion/core";
-import { decryptCredentialForOrganization, type Database } from "@consyrion/db";
+import { decryptCredentialForOrganization, newId, PROJECT_PURGE_JOB, purgeProject, schema, type Database } from "@consyrion/db";
 import type { AdapterResolver } from "./call";
 import { runSession } from "./engine";
 import { runWorker, type ClaimLimits, type JobHandler } from "./queue";
@@ -56,6 +56,23 @@ export function startCouncilWorker(options: {
         if (strength) await syncModelStrength(options.db, strength);
       },
       [COUNCIL_JOB]: async (job) => runSession({ db: options.db, resolveAdapter }, String(job.payload.sessionId)),
+      // #197 (ADR 0197): removes a deleted project once nothing of it runs; while something still stops, check again later.
+      [PROJECT_PURGE_JOB]: async (job) => {
+        const projectId = String(job.payload.projectId);
+        const requestedAt = new Date(String(job.payload.requestedAt));
+        if ((await purgeProject(options.db, projectId, requestedAt)) === "wait")
+          await options.db
+            .insert(schema.job)
+            .values({
+              id: newId("job"),
+              kind: PROJECT_PURGE_JOB,
+              payload: job.payload,
+              runAt: new Date(Date.now() + 30_000),
+              dedupeKey: `${PROJECT_PURGE_JOB}:${projectId}:${Date.now()}`,
+              organizationId: job.organizationId,
+            })
+            .onConflictDoNothing({ target: schema.job.dedupeKey });
+      },
     },
   });
 }

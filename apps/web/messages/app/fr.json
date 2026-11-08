@@ -172,7 +172,10 @@
       "changes_requested": "Modifications demandées",
       "failed": "Échouée",
       "cancelled": "Annulée"
-    }
+    },
+    "showArchived": "Afficher {n} sessions de projets archivés",
+    "hideArchived": "Masquer les sessions des projets archivés",
+    "archivedBadge": "archivé"
   },
   "projects": {
     "metaTitle": "Projets",
@@ -224,7 +227,7 @@
     "phases": "Phases",
     "executionAfterApproval": "Exécution uniquement après votre approbation",
     "delete": "Supprimer le projet",
-    "deleteText": "Supprime définitivement le projet avec toutes les sessions du Council, décisions, code généré et documents.",
+    "deleteText": "Supprime immédiatement ce projet et tout son contenu : les Councils et builds en cours sont d’abord arrêtés, puis toutes les données sont supprimées (généralement en quelques secondes).",
     "deleteButton": "Supprimer définitivement le projet",
     "overview": {
       "title": "Vue d'ensemble du projet",
@@ -252,7 +255,27 @@
       "emptyTitle": "Pas encore de council",
       "emptyText": "Lancez un council : plusieurs modèles d'IA réfléchissent indépendamment, débattent et parviennent à un verdict que vous approuvez. Vous verrez ensuite ici quels modèles ont participé.",
       "emptyNoRights": "Seuls les membres autorisés à lancer des décisions peuvent démarrer un council"
-    }
+    },
+    "demoBadge": "Démo",
+    "demo": {
+      "notice": "Ceci est une démo : un conseil terminé copié dans votre espace pour montrer à quoi ressemble une décision. Elle est en lecture seule et ne compte pas dans votre offre. Vous pouvez la supprimer à tout moment.",
+      "cta": "Créer votre propre projet"
+    },
+    "archive": {
+      "title": "Archiver le projet",
+      "restoreTitle": "Projet archivé",
+      "archiveText": "Les projets archivés restent lisibles et exportables, mais aucun nouveau Council, aucune approbation ni aucun build ne peut démarrer ; les Councils en cours continuent. Vous pouvez le restaurer à tout moment.",
+      "restoreText": "Ce projet est archivé. Restaurez-le pour démarrer à nouveau des Councils, approuver et construire (il occupe à nouveau une place de projet de votre offre).",
+      "archive": "Archiver le projet",
+      "confirm": "Oui, archiver",
+      "cancel": "Annuler",
+      "restore": "Restaurer le projet",
+      "working": "Enregistrement …",
+      "error": "La modification n’a pas pu être enregistrée.",
+      "banner": "Ce projet est archivé – lecture seule. Restaurez-le en bas de cette page pour continuer à y travailler.",
+      "listTitle": "Archives ({n})"
+    },
+    "deleteCounts": "Ce projet : {sessions, plural, one {# session de Council} other {# sessions de Council}} ({running} en cours ou en attente), {documents, plural, one {# document} other {# documents}}."
   },
   "councilSetup": {
     "metaTitle": "Configurer l’équipe IA",
@@ -361,7 +384,18 @@
     "size": "{n, plural, one {# fichier} other {# fichiers}}, {size} ≈ {tokens} tokens par appel de modèle",
     "limit": "au maximum {files} fichiers et {size}",
     "readingFiles": "Lecture des fichiers…",
-    "use": "Utiliser comme contexte"
+    "use": "Utiliser comme contexte",
+    "savedState": "Enregistré : {repo} @ {sha} · {n, plural, one {# fichier} other {# fichiers}} · {size} · ≈ {tokens} tokens par appel de modèle",
+    "change": "Modifier",
+    "remove": "Retirer",
+    "removed": "Contexte du dépôt retiré. Confirmez à nouveau les exigences avant le prochain council.",
+    "removeError": "Le contexte du dépôt n'a pas pu être retiré",
+    "removeConfirm": "Retirer le contexte du dépôt ? Les modèles ne liront plus ces fichiers et les exigences devront être confirmées à nouveau.",
+    "removeYes": "Retirer le contexte",
+    "cancel": "Annuler",
+    "newerCommit": "La branche a avancé depuis l'état enregistré ({saved} → {current}). Votre sélection est conservée ; enregistrez pour mettre le contexte à jour sur le nouveau commit.",
+    "saveConfirm": "Enregistrer ces fichiers comme contexte ? Les exigences devront ensuite être confirmées à nouveau avant le prochain council, car les sources changent.",
+    "saveYes": "Enregistrer comme contexte"
   },
   "requirements": {
     "suspicion": {
@@ -427,7 +461,33 @@
     },
     "undecidedError": "Au moins une affirmation proposée n’est ni conservée ni exclue avec un motif. Recharge la page et décide de chaque affirmation signalée.",
     "conflict": "{first} et {second} se contredisent peut-être : suppression au plus tard après {deleteDays} jours, mais conservation d’au moins {retainDays} jours. Aucune proposition ne peut satisfaire les deux – modifie l’une d’elles avant de lancer le council.",
-    "reasonMissingError": "Il manque le motif d’au moins une affirmation non reprise (au moins 3 caractères). Ajoute-le et confirme à nouveau."
+    "reasonMissingError": "Il manque le motif d’au moins une affirmation non reprise (au moins 3 caractères). Ajoute-le et confirme à nouveau.",
+    "buildCheck": "vérification au build",
+    "buildCheckHint": "Seule l’implémentation peut le prouver (tests, CI). Le conseil vérifie qu’une proposition nomme un plan de vérification concret ; le build le prouve.",
+    "split": {
+      "proposal": "Contient {n} parties vérifiables indépendamment :",
+      "proposalNote": "Chaque partie garde sa formulation, ses chiffres et ses négations et renvoie à l'original. Rien n'est divisé sans votre choix.",
+      "apply": "Diviser en {n} parties",
+      "keep": "Garder en un seul",
+      "coupled": "Conditions liées – vérifiées comme une seule exigence.",
+      "unclear": {
+        "alternatives": "Contient des alternatives (ou) – une division pourrait changer le sens. Divisez vous-même si les parties sont indépendantes.",
+        "shared_scope": "Un mot au début peut s'appliquer à chaque point (p. ex. « doit », « aucun », « uniquement ») – divisez vous-même si les parties sont indépendantes.",
+        "coverage": "Une division perdrait un chiffre ou une négation – divisez vous-même si les parties sont indépendantes."
+      },
+      "manual": "Diviser moi-même",
+      "limit": "Cela dépasserait 100 exigences par liste – supprimez ou fusionnez d'abord des exigences.",
+      "origin": "Partie {part} sur {of} – de : « {original} »",
+      "addPart": "Ajouter une partie",
+      "merge": "Refusionner en l'original",
+      "gaps": "L'original contient {tokens}, mais aucune partie – vérifiez les parties pour que rien ne se perde."
+    },
+    "checkability": {
+      "before": "vérifiable avant le démarrage",
+      "after_implementation": "mesurable seulement après la mise en œuvre",
+      "build": "vérifié dans le build",
+      "summary": "{before} vérifiables avant le démarrage · {after} mesurables seulement après la mise en œuvre · {build} vérifiées dans le build"
+    }
   },
   "voteWeights": {
     "noRanking": "Aucun classement chargé – neutre 5",
@@ -481,7 +541,8 @@
       "plan": "Votre offre {plan} autorise jusqu’à {n} modèles par session.",
       "roles": "Activez au moins un rôle du 12 Minds Council.",
       "weights": "Corrigez les poids du Final Verdict signalés (chacun 0–100).",
-      "total": "La somme des poids doit être 100 (actuellement {total})."
+      "total": "La somme des poids doit être 100 (actuellement {total}).",
+      "budgetTooSmall": "Le budget est trop petit pour cette équipe : il faut au moins {tokens} tokens pour que chaque modèle rédige une proposition et que le Final Verdict puisse encore s’exécuter."
     },
     "models": {
       "title": "1. Sélectionner les modèles IA",
@@ -495,9 +556,21 @@
       "unavailableHint": "Le dernier appel de ce modèle dans ce workspace a été refusé par le fournisseur (modèle introuvable). Il reste sélectionnable : chaque démarrage d'un council le vérifie à nouveau, et la note disparaît dès que le modèle répond ou après 24 heures."
     },
     "roles": {
+      "addedTitle": "{n, plural, one {Un modèle n’avait} other {# modèles n’avaient}} pas de perspective – ajoutée automatiquement pour que chaque modèle rende sa propre revue critique (toujours une voix par modèle) :",
+      "addedLine": "{model} : {role}",
+      "addedToggle": "Perspectives supplémentaires pour {n, plural, one {le modèle} other {les # modèles}} sans rôle",
+      "addedCost": "{calls, plural, one {# appel de modèle supplémentaire} other {# appels de modèle supplémentaires}} dans le 12 Minds Council (déjà dans l’estimation). Deux perspectives d’un même modèle ne sont pas deux avis indépendants – chaque modèle garde une voix.",
+      "addedOff": "Désactivé : {n, plural, one {un modèle ne donne} other {# modèles ne donnent}} pas de revue critique propre dans le 12 Minds Council.",
       "title": "3. Perspectives du 12 Minds Council",
       "intro": "{n} actives. Les perspectives ne sont pas des votes indépendants : les majorités sont comptées par modèle. Moins de rôles coûtent moins.",
-      "modelFor": "Modèle pour {role}"
+      "modelFor": "Modèle pour {role}",
+      "origin": {
+        "skill": "du skill",
+        "suggestion": "suggestion du projet",
+        "own": "votre choix"
+      },
+      "vsModels": "{models, plural, one {# modèle} other {# modèles}} · {perspectives, plural, one {# perspective} other {# perspectives}} · chaque proposition est vérifiée par jusqu'à {foreign, plural, one {# autre modèle} other {# autres modèles}} (s'ils continuent tous à répondre). Les perspectives ne sont pas des voix : plusieurs rôles sur un modèle restent un seul modèle.",
+      "instances": "{model} : {n} instances (clés différentes) comptent comme 1 voix indépendante – pour les majorités, le minimum de deux relecteurs indépendants et les contre-vérifications. Une instance ne relit jamais une autre instance du même modèle."
     },
     "settings": {
       "title": "4. Paramètres de session",
@@ -518,9 +591,12 @@
       "estimateDocs": "Environ <strong>{calls}</strong> appels de modèle au total, au maximum <strong>{tokens}</strong> tokens (limite supérieure), {docs, plural, one {# document joint inclus} other {# documents joints inclus}}.",
       "typical": "En général environ {tokens} tokens (médiane de vos {calls} derniers appels).",
       "noTypical": "Pas encore de valeur typique : trop peu d’appels antérieurs dans cet espace de travail.",
+      "splitVerdict": "Trop volumineux pour une seule évaluation : chaque modèle vérifie les exigences en {calls} appels d’au plus {perCall}. Le brief et les propositions sont envoyés à chaque appel – l’estimation et le budget en tiennent compte.",
       "twoModels": "Avec deux modèles, chaque proposition n’a qu’un seul évaluateur indépendant : ce Council peut désigner un favori provisoire, mais jamais une recommandation que vous pouvez approuver. Choisissez trois modèles ou plus pour une recommandation.",
       "failedOften": "Modèles souvent en échec",
       "failedRecently": "Souvent en échec récemment – {model}.",
+      "contextTooSmall": "Fenêtre de contexte trop petite",
+      "contextDoesNotFit": "{model} : le brief, les documents et toutes les propositions demandent environ {input} tokens, sa fenêtre de contexte en a {window}. Ses appels seraient refusés plutôt que tronqués – choisis un modèle avec une fenêtre plus grande ou un contexte de dépôt plus petit.",
       "overBudget": "La limite supérieure dépasse votre budget de {budget} tokens. J’accepte que les phases de débat puissent être raccourcies pour garder assez de budget pour le Final Verdict : si le budget devient insuffisant, Minority Review et Consensus Round sont supprimées et les propositions ne sont pas révisées – le verdict juge alors les premières versions et est marqué comme raccourci.",
       "checkWeights": "Vérifiez les poids des votes avant de démarrer :"
     },
@@ -532,6 +608,69 @@
       "label": "ID du modèle",
       "placeholder": "Ajouter un ID de modèle à la main",
       "add": "Ajouter"
+    }
+  },
+  "skillHub": {
+    "nav": {
+      "catalog": "SkillHub",
+      "app": "Ouvrir l'application"
+    },
+    "catalog": {
+      "metaTitle": "SkillHub – skills de décision",
+      "metaDescription": "Skills communautaires vérifiés pour les councils CONSYRION AI : perspectives, blocs d'exigences, pondérations et règles.",
+      "title": "SkillHub",
+      "intro": "Packs de décision partagés par la communauté. Chaque skill ici a été vérifié automatiquement et approuvé par un admin. Un skill ne fait que préremplir un council – vous confirmez les exigences et approuvez comme d'habitude.",
+      "search": "Rechercher des skills",
+      "category": "Catégorie",
+      "allCategories": "Toutes les catégories",
+      "searchButton": "Rechercher",
+      "empty": "Aucun skill public pour l'instant.",
+      "noResults": "Aucun skill ne correspond à votre recherche."
+    },
+    "detail": {
+      "reviewed": "vérifié",
+      "perspectives": "Perspectives",
+      "blocks": "Blocs d'exigences (propositions)",
+      "weights": "Pondérations du verdict",
+      "rules": "Règles de session",
+      "knowledge": "Connaissances métier",
+      "changelog": "Ce que cette version a changé",
+      "hash": "Hash du contenu",
+      "licenseText": "Publié sous {license} par @{handle}. L'utiliser crée votre propre copie qui cite l'original.",
+      "uses": "{n, plural, =0 {pas encore adopté} one {adopté par # espace} other {adopté par # espaces}}"
+    },
+    "disclaimer": "Skill communautaire – pas un conseil juridique, médical ou financier ni une garantie de CONSYRION AI. Un skill ne modifie jamais le contrôle des exigences, les examens ou l'approbation humaine.",
+    "actions": {
+      "adopt": "Utiliser dans CONSYRION",
+      "adoptHint": "Crée votre propre copie privée dans votre espace (connexion requise).",
+      "adopted": "Ajouté à vos skills.",
+      "mySkills": "Ouvrir mes skills",
+      "report": "Signaler",
+      "reason": "Motif",
+      "chooseReason": "Choisir…",
+      "note": "Quel est le problème ? (facultatif)",
+      "reportHint": "Les signalements vont aux admins. Ils ne masquent jamais un skill automatiquement.",
+      "sendReport": "Envoyer le signalement",
+      "reported": "Merci – les admins vont l'examiner.",
+      "signInNeeded": "Veuillez d'abord vous connecter.",
+      "signIn": "Se connecter",
+      "error": "Une erreur s'est produite.",
+      "reasons": {
+        "misleading": "Trompeur",
+        "injection": "Tente de manipuler le council",
+        "personal_data": "Données personnelles",
+        "impersonation": "Usurpation d'identité",
+        "spam": "Spam ou publicité",
+        "copyright": "Droit d'auteur",
+        "other": "Autre"
+      },
+      "errors": {
+        "already_reported": "Vous avez déjà signalé ce skill.",
+        "reason_missing": "Choisissez un motif."
+      }
+    },
+    "footer": {
+      "license": "Les skills communautaires sont publiés sous CC BY 4.0 par leurs auteurs (indiqués par @identifiant). Aucun conseil juridique, financier ou médical."
     }
   }
 }

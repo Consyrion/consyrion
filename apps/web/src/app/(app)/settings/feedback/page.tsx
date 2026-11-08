@@ -1,4 +1,4 @@
-import { listMyFeedback } from "@consyrion/db";
+import { listMyFeedback, markFeedbackRepliesSeen } from "@consyrion/db";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { FeedbackForm } from "@/components/feedback";
 import { Badge, Card, PageHeader } from "@/components/ui/surface";
@@ -18,7 +18,10 @@ export default async function FeedbackSettingsPage({ searchParams }: { searchPar
   const { from } = await searchParams;
   const t = await getTranslations("feedback");
   const format = await getFormatter();
-  const reports = await listMyFeedback(await getDb(), actor);
+  const db = await getDb();
+  // Read first (so new answers are highlighted once), then mark everything as seen – the sidebar badge clears (#295 stage 3).
+  const reports = await listMyFeedback(db, actor);
+  if (reports.some((r) => r.replies.some((reply) => reply.unread))) await markFeedbackRepliesSeen(db, actor);
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
@@ -46,6 +49,12 @@ export default async function FeedbackSettingsPage({ searchParams }: { searchPar
                     <div key={reply.id} className="rounded-xl border border-primary/30 bg-primary/5 p-3">
                       <p className="text-xs text-primary">
                         {t("mine.reply")} · {format.dateTime(reply.createdAt, { dateStyle: "medium", timeStyle: "short" })}
+                        {reply.unread ? (
+                          <>
+                            {" "}
+                            <Badge tone="primary">{t("mine.new")}</Badge>
+                          </>
+                        ) : null}
                       </p>
                       <p className="mt-1 text-sm whitespace-pre-wrap break-words">{reply.text}</p>
                     </div>

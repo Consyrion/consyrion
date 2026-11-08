@@ -6,6 +6,9 @@ import { handleMcpMessage } from "@/lib/server/mcp";
 import { mcpTools } from "@/lib/server/mcp-tools";
 import { rateLimit } from "@/lib/server/rate-limit";
 
+/** Largest JSON-RPC batch accepted in one request (#405). */
+const MCP_MAX_BATCH = 20;
+
 /**
  * MCP server endpoint (Streamable HTTP, stateless): `POST /api/mcp` with `Authorization: Bearer <API token>`.
  * Pro and up (entitlement `mcp`; self-hosted always). Read-only tokens (cnr_) see only read tools; integration (cni_)
@@ -20,7 +23,6 @@ export async function POST(request: Request) {
     const { userId, organizationId, scope } = await resolveApiToken(db, authorization.slice(7).trim());
     const actor = await resolveActor(db, userId, organizationId);
     await assertEntitlement(db, organizationId, "mcp");
-    rateLimit(`mcp:${userId}`, 120, 60_000);
 
     let body: unknown;
     try {
@@ -31,6 +33,11 @@ export async function POST(request: Request) {
     const origin = new URL(request.url).origin.replace("0.0.0.0", "localhost");
     const tools = mcpTools(db, actor, scope, process.env.BETTER_AUTH_URL?.replace(/\/$/, "") || origin);
     const messages = Array.isArray(body) ? body : [body];
+    // A JSON-RPC batch must not multiply what one request may do (#405): at most MCP_MAX_BATCH messages, and every
+    // message counts against the per-user limit on its own.
+    if (messages.length > MCP_MAX_BATCH)
+      return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: `A batch may contain at most ${MCP_MAX_BATCH} messages` } }, { status: 400 });
+    for (let i = 0; i < Math.max(messages.length, 1); i++) rateLimit(`mcp:${userId}`, 120, 60_000);
     const answers = (await Promise.all(messages.map((m) => handleMcpMessage((m ?? {}) as Record<string, never>, tools)))).filter(Boolean);
     // Only notifications: 202 without body (Streamable HTTP).
     if (!answers.length) return new Response(null, { status: 202 });

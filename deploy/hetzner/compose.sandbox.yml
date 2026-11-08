@@ -1,0 +1,9 @@
+# Only for SANDBOX_DISABLED=false (#398): the worker starts gVisor sandbox containers through the host's Docker.
+# The socket is root-equivalent, so it is mounted only when the sandbox is really on – deploy.sh and rollback.sh add
+# this file automatically when deploy.env says SANDBOX_DISABLED=false. Generated code never gets the socket: it runs
+# as uid 1000 with no capabilities, under gVisor, and without network for tests.
+services:
+  worker:
+    group_add: ["${DOCKER_GID:?set DOCKER_GID}"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

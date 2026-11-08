@@ -1,4 +1,5 @@
-import { MAX_CALL_OUTPUT_TOKENS, outputTokensFor, type WorkflowPolicy } from "@consyrion/core";
+import { MAX_CALL_OUTPUT_TOKENS, outputTokensFor, requirementVerification, type ModelLimits, type WorkflowPolicy } from "@consyrion/core";
+import type { RetryOptions } from "@consyrion/ai";
 import { schema, type Database } from "@consyrion/db";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { TRANSIENT_RETRY_DELAY_MS, type CallErrorKind } from "./call";
@@ -18,6 +19,8 @@ export class SessionContext {
     public session: Session,
     /** Wait before the late retry of an overloaded provider (#146); shortened in tests. */
     readonly transientRetryDelayMs = TRANSIENT_RETRY_DELAY_MS,
+    /** Sleep between the quick provider retries; only tests replace it. */
+    readonly retrySleep?: RetryOptions["sleep"],
   ) {}
 
   /** Tokens kept free for the Final Verdict while earlier phases run (#148); 0 during the Final Verdict. */
@@ -31,6 +34,27 @@ export class SessionContext {
 
   /** Provider-side failures per `${phase}:${participantId}` in this run, with the last error kind (#175). */
   readonly providerFailures = new Map<string, { count: number; last: CallErrorKind }>();
+
+  private readonly limits = new Map<string, Promise<ModelLimits>>();
+
+  /**
+   * Context window and output limit of a model as its provider reported them (#243, `ai_model`), read once per run.
+   * Unknown values stay null – nothing is guessed.
+   */
+  modelLimits(provider: string, modelId: string): Promise<ModelLimits> {
+    const key = `${provider}:${modelId}`;
+    let cached = this.limits.get(key);
+    if (!cached) {
+      cached = this.db
+        .select({ contextWindow: schema.aiModel.contextWindow, maxOutputTokens: schema.aiModel.maxOutputTokens })
+        .from(schema.aiModel)
+        .where(and(eq(schema.aiModel.provider, provider as (typeof schema.aiProviderId.enumValues)[number]), eq(schema.aiModel.modelId, modelId)))
+        .limit(1)
+        .then(([row]) => ({ contextWindow: row?.contextWindow ?? null, maxOutputTokens: row?.maxOutputTokens ?? null }));
+      this.limits.set(key, cached);
+    }
+    return cached;
+  }
 
   raiseOutputFloor(participantId: string, tokens: number) {
     if (tokens > (this.outputFloors.get(participantId) ?? 0)) this.outputFloors.set(participantId, tokens);
@@ -87,7 +111,12 @@ export class SessionContext {
           .from(schema.projectDocument)
           .where(inArray(schema.projectDocument.id, ids))
       : [];
-    return { ...row!, documents, missingDocuments: ids.length - documents.length, requirementList: requirementList ?? null };
+    // How each requirement is checked depends on the run's gate version (#249 part 2): a version-2 run never sees the
+    // measurement mark, a version-3 run gets it also for lists confirmed before it existed.
+    const list = requirementList
+      ? { ...requirementList, items: requirementList.items.map((item) => ({ ...item, verification: requirementVerification(item, this.session.gateVersion) })) }
+      : null;
+    return { ...row!, documents, missingDocuments: ids.length - documents.length, requirementList: list, skill: this.session.skill ?? null };
   }
 
   async participants(onlyActive = true): Promise<Participant[]> {

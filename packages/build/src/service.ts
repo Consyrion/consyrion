@@ -1,12 +1,23 @@
 import { randomUUID } from "node:crypto";
 import { assertCan, DomainError, MAX_TASK_ATTEMPTS, pullRequestReadiness, type ReadinessReview } from "@consyrion/core";
 import { assertEngineInstalled, enqueue } from "@consyrion/council";
-import { assertEntitlement, newId, recordAudit, schema, type ActorContext, type Database } from "@consyrion/db";
+import {
+  assertEntitlement,
+  assertNotDemoSession,
+  assertSessionProjectWritable,
+  consumeMonthlyRun,
+  newId,
+  recordAudit,
+  schema,
+  type ActorContext,
+  type Database,
+} from "@consyrion/db";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTwoFilesPatch } from "diff";
 import { assertApprovalBuildable } from "./buildable";
 import { changedFiles, currentFiles, setPlan } from "./executor";
+import { ciRisks } from "./ci-risk";
 
 export const EXECUTION_JOB = "execution.run";
 
@@ -29,6 +40,9 @@ export const planApprovalInput = z.object({
  * approval and no other active run. This is the only path to code generation.
  */
 export async function startExecution(db: Database, ctx: ActorContext, sessionId: string, input: z.input<typeof executionInput>) {
+  await assertNotDemoSession(db, ctx, sessionId);
+  // #197: nothing is built in an archived project.
+  await assertSessionProjectWritable(db, ctx, sessionId);
   assertCan(ctx.role, "decision:approve");
   assertEngineInstalled();
   const parsed = executionInput.safeParse(input);
@@ -38,11 +52,19 @@ export async function startExecution(db: Database, ctx: ActorContext, sessionId:
     .from(schema.councilSession)
     .where(and(eq(schema.councilSession.id, sessionId), eq(schema.councilSession.organizationId, ctx.organizationId)));
   if (!session) throw new DomainError("NOT_FOUND", "Session not found");
-  if (session.status !== "approved") throw new DomainError("CONFLICT", "The Execution Council needs an approved decision");
+  // An approved session builds its approved solution; a session still waiting for a decision builds only a marked
+  // prototype/measurement build of the latest prototype approval (#249 part 2, variant B) – never a finished solution.
+  const prototype = session.status === "awaiting_approval";
+  if (!prototype && session.status !== "approved") throw new DomainError("CONFLICT", "The Execution Council needs an approved decision");
   const [approval] = await db
     .select()
     .from(schema.humanApproval)
-    .where(and(eq(schema.humanApproval.sessionId, sessionId), inArray(schema.humanApproval.action, ["approve", "select_alternative"])))
+    .where(
+      and(
+        eq(schema.humanApproval.sessionId, sessionId),
+        inArray(schema.humanApproval.action, prototype ? ["approve_prototype"] : ["approve", "select_alternative", "approve_after_measurement"]),
+      ),
+    )
     .orderBy(desc(schema.humanApproval.createdAt))
     .limit(1);
   if (!approval?.selectedProposalId) throw new DomainError("CONFLICT", "No approved proposal found");
@@ -69,21 +91,27 @@ export async function startExecution(db: Database, ctx: ActorContext, sessionId:
   }
   const [project] = await db.select().from(schema.project).where(eq(schema.project.id, session.projectId));
   const id = newId("pln");
-  await db.insert(schema.developmentPlan).values({
-    id,
-    organizationId: ctx.organizationId,
-    sessionId,
-    approvalId: approval.id,
-    proposalId: approval.selectedProposalId,
-    plannerParticipantId: builderId ?? proposal!.authorParticipantId,
-    builderParticipantId: builderId ?? null,
-    tokenBudget: parsed.data.tokenBudget,
-    maxRepairAttempts: parsed.data.maxRepairAttempts,
-    requirePlanApproval: parsed.data.requirePlanApproval,
-    // A linked repository becomes the base of the workspace; otherwise the run starts empty.
-    repositoryFullName: project?.githubIntegrationId ? project.repositoryFullName : null,
-    baseBranch: project?.githubIntegrationId ? project.repositoryDefaultBranch : null,
-    createdById: ctx.userId,
+  // #201: the monthly build slot is booked together with the run, serialised on the workspace row.
+  const selectedProposalId = approval.selectedProposalId;
+  await db.transaction(async (tx) => {
+    await consumeMonthlyRun(tx, ctx.organizationId, "execution", id);
+    await tx.insert(schema.developmentPlan).values({
+      id,
+      kind: prototype ? "prototype" : "regular",
+      organizationId: ctx.organizationId,
+      sessionId,
+      approvalId: approval.id,
+      proposalId: selectedProposalId,
+      plannerParticipantId: builderId ?? proposal!.authorParticipantId,
+      builderParticipantId: builderId ?? null,
+      tokenBudget: parsed.data.tokenBudget,
+      maxRepairAttempts: parsed.data.maxRepairAttempts,
+      requirePlanApproval: parsed.data.requirePlanApproval,
+      // A linked repository becomes the base of the workspace; otherwise the run starts empty.
+      repositoryFullName: project?.githubIntegrationId ? project.repositoryFullName : null,
+      baseBranch: project?.githubIntegrationId ? project.repositoryDefaultBranch : null,
+      createdById: ctx.userId,
+    });
   });
   await recordAudit(db, {
     organizationId: ctx.organizationId,
@@ -91,7 +119,7 @@ export async function startExecution(db: Database, ctx: ActorContext, sessionId:
     action: "execution.started",
     targetType: "development_plan",
     targetId: id,
-    metadata: { sessionId, builderParticipantId: builderId ?? null },
+    metadata: { sessionId, builderParticipantId: builderId ?? null, kind: prototype ? "prototype" : "regular" },
   });
   await enqueue(db, EXECUTION_JOB, { planId: id }, `${EXECUTION_JOB}:${id}`, ctx.organizationId);
   return { id };
@@ -109,7 +137,12 @@ async function loadPlan(db: Database, ctx: ActorContext, planId: string) {
 export async function listExecutions(db: Database, ctx: ActorContext, sessionId: string) {
   assertCan(ctx.role, "project:read");
   return db
-    .select({ id: schema.developmentPlan.id, status: schema.developmentPlan.status, createdAt: schema.developmentPlan.createdAt })
+    .select({
+      id: schema.developmentPlan.id,
+      kind: schema.developmentPlan.kind,
+      status: schema.developmentPlan.status,
+      createdAt: schema.developmentPlan.createdAt,
+    })
     .from(schema.developmentPlan)
     .where(and(eq(schema.developmentPlan.sessionId, sessionId), eq(schema.developmentPlan.organizationId, ctx.organizationId)))
     .orderBy(desc(schema.developmentPlan.createdAt));
@@ -181,6 +214,8 @@ export async function getExecutionView(db: Database, ctx: ActorContext, planId: 
       tests.map((t) => ({ kind: t.kind, status: t.status })),
       reviews.map((r) => ({ focus: r.focus, verdict: r.verdict, findings: r.findings as ReadinessReview["findings"] })),
     ),
+    // Files the repository's CI would execute on the draft PR (#400); the UI lists them and asks for confirmation.
+    ciRisks: ciRisks(changes),
     usage: usage[0] ?? { calls: 0, tokens: 0 },
     participants,
   };
@@ -214,6 +249,8 @@ export async function decidePlan(db: Database, ctx: ActorContext, planId: string
   const plan = await loadPlan(db, ctx, planId);
   if (plan.status !== "awaiting_plan_approval") throw new DomainError("CONFLICT", "The plan is not waiting for approval");
   const { action, comment } = parsed.data;
+  // #197: rejecting a plan stays possible in an archived project; approving it would continue the build.
+  if (action === "approve") await assertSessionProjectWritable(db, ctx, plan.sessionId);
   if (action === "approve") {
     await setPlan(db, planId, { status: "queued", planApprovedAt: new Date(), planApprovedById: ctx.userId, planFeedback: comment ?? null });
     await enqueue(db, EXECUTION_JOB, { planId }, `${EXECUTION_JOB}:${planId}:implement`, ctx.organizationId);
@@ -247,6 +284,7 @@ export async function resumeExecution(db: Database, ctx: ActorContext, planId: s
   if (!parsed.success) throw new DomainError("VALIDATION", "Invalid resume request", z.flattenError(parsed.error));
   const plan = await loadPlan(db, ctx, planId);
   if (plan.status !== "failed") throw new DomainError("CONFLICT", "Only a failed run can be resumed");
+  await assertSessionProjectWritable(db, ctx, plan.sessionId);
   if (!plan.plan) throw new DomainError("CONFLICT", "The run failed before a plan existed – start a new run instead");
   if (plan.tokensUsed >= plan.tokenBudget) throw new DomainError("BUDGET_EXCEEDED", "The run's token budget is used up – start a new run with a fresh budget");
   const active = await db

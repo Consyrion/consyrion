@@ -1,0 +1,1 @@
+ALTER TABLE "council_session" ADD COLUMN "role_selection" jsonb;

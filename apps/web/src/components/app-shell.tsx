@@ -80,6 +80,7 @@ export function AppShell({
   organizationName,
   isAdmin = false,
   adminBadge = 0,
+  feedbackBadge = 0,
   showUpgrade = false,
   children,
 }: {
@@ -88,6 +89,8 @@ export function AppShell({
   isAdmin?: boolean;
   /** Number of new feedback reports, shown next to the Admin entry (#295). */
   adminBadge?: number;
+  /** Unread admin answers to the user's own feedback reports (#295 stage 3). */
+  feedbackBadge?: number;
   /** Free plan, online checkout open and allowed to manage billing: a visible way to upgrade. */
   showUpgrade?: boolean;
   children: ReactNode;
@@ -229,6 +232,11 @@ export function AppShell({
           >
             <Icon name="alert" className="size-4 shrink-0" />
             {tf("nav")}
+            {feedbackBadge > 0 ? (
+              <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-text" title={tf("unreadReplies", { count: feedbackBadge })}>
+                {feedbackBadge}
+              </span>
+            ) : null}
           </Link>
           {/* AGPL-3.0 §13: users of the hosted app get a link to its source code. */}
           <a href="https://github.com/Consyrion/consyrion" target="_blank" rel="noreferrer" className="block px-1 text-xs text-muted hover:text-text">

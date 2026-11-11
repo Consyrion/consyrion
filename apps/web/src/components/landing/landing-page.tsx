@@ -27,8 +27,8 @@ export const LANDING_CTAS = {
 } as const;
 
 /** Public source repository (AGPL-3.0) and its self-hosting guide. */
-export const SOURCE_URL = "https://github.com/Consyrion/consyrium";
-export const SELF_HOSTING_URL = "https://github.com/Consyrion/consyrium/blob/main/docs/self-hosting.md";
+export const SOURCE_URL = "https://github.com/Consyrium/consyrium";
+export const SELF_HOSTING_URL = "https://github.com/Consyrium/consyrium/blob/main/docs/self-hosting.md";
 
 /** Owner request 07.11.26: advantages, MCP & Telegram, open source and prices on the homepage (copy reviewed with ChatGPT). */
 const WHY_POINTS = ["perspectives", "review", "requirements", "transparent", "control"] as const;
@@ -224,7 +224,7 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
           </GlassPanel>
         </section>
 
-        {/* #163: the decision is the product; where it goes is the user's choice. Unbuilt targets are marked planned. */}
+        {/* #163: the decision is the product; where it goes is the user's choice. Unbuilt targets would be marked planned (none at the moment). */}
         <section id="delivery" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 md:px-8" aria-labelledby="delivery-title">
           <h2 id="delivery-title" className="font-[family-name:var(--font-display)] text-3xl font-semibold">
             {t("delivery.title")}

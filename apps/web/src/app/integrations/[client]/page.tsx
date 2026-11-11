@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { CodeWindow } from "@/components/connect/code-window";
 import { ConnectIcon } from "@/components/connect/connect-icon";
 import { Card } from "@/components/ui/surface";
-import { connectItem, connectSteps, isDetailSlug } from "@/lib/connect-catalog";
+import { OBSIDIAN_DOWNLOADS, connectItem, connectSteps, isDetailSlug } from "@/lib/connect-catalog";
 
 type Params = { params: Promise<{ client: string }> };
 
@@ -80,6 +80,16 @@ export default async function ConnectClientPage({ params }: Params) {
                       <Link href={stepLink(step.key)} className="text-primary underline">
                         {chunks}
                       </Link>
+                    ),
+                    main: (chunks) => (
+                      <a href={OBSIDIAN_DOWNLOADS.main} download className="text-primary underline">
+                        {chunks}
+                      </a>
+                    ),
+                    manifest: (chunks) => (
+                      <a href={OBSIDIAN_DOWNLOADS.manifest} download className="text-primary underline">
+                        {chunks}
+                      </a>
                     ),
                     code: (chunks) => <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs">{chunks}</code>,
                   })}

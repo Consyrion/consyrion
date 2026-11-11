@@ -108,11 +108,11 @@ describe("landing page", async () => {
     for (const label of Object.values(COUNCIL_PHASE_LABELS)) expect(html).toContain(label);
   });
 
-  it("leads with the decision and its delivery; the build is optional and unbuilt targets are planned (#163)", () => {
+  it("leads with the decision and its delivery; the build is optional; every listed target is built (#163, Obsidian since #609)", () => {
     expect(html).toContain("Your decision, where you work");
     expect(html).toContain("Optional: from verdict to pull request");
     expect(html).toContain("WITH A CONNECTED REPOSITORY");
-    expect(html).toContain("PLANNED");
+    expect(html).not.toContain("PLANNED");
     expect(html).not.toContain(">Build<");
   });
 

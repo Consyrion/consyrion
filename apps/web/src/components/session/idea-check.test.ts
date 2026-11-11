@@ -37,6 +37,7 @@ describe("idea check (#597): reading a verdict nothing can be approved in", () =
     expect(ideaCheck(matrix)).toEqual({
       kind: "favorite",
       leaders: ["p1"],
+      tiedWith: [],
       toClarify: ["r2", "r4"],
       // The highest total does not help a proposal that fails a requirement.
       excluded: [{ proposalId: "p3", requirementIds: ["r2", "r3"] }],
@@ -61,6 +62,21 @@ describe("idea check (#597): reading a verdict nothing can be approved in", () =
       requirementGate: gate(["p1", "p2", "p3"].map((id) => ({ id, feasibility: "needs_verification" as const, reqs: [req("r1", "UNKNOWN")] }))),
     };
     expect(ideaCheck(matrix)).toMatchObject({ kind: "several", leaders: ["p2", "p1"] });
+  });
+
+  it("prefers the proposal with fewer open points when the totals are level, and says so (live test 11.11.26)", () => {
+    // Proposal 3 only leaves R4 open, proposal 2 leaves R2–R4 open; their totals are within the tie margin.
+    const matrix: IdeaCheckMatrix = {
+      proposals: [
+        { proposalId: "p2", total: 8.1 },
+        { proposalId: "p3", total: 8.0 },
+      ],
+      requirementGate: gate([
+        { id: "p2", feasibility: "needs_verification", reqs: [req("r1", "PASS"), req("r2", "UNKNOWN"), req("r3", "UNKNOWN"), req("r4", "UNKNOWN")] },
+        { id: "p3", feasibility: "needs_verification", reqs: [req("r1", "PASS"), req("r2", "PASS"), req("r3", "PASS"), req("r4", "UNKNOWN")] },
+      ]),
+    };
+    expect(ideaCheck(matrix)).toMatchObject({ kind: "favorite", leaders: ["p3"], tiedWith: ["p2"], toClarify: ["r4"] });
   });
 
   it("says the idea does not hold up when every proposal fails a requirement", () => {

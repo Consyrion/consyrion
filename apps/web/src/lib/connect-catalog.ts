@@ -7,7 +7,7 @@
  */
 
 export type ConnectCategory = "aiClients" | "apps" | "delivery";
-export type ConnectIcon = "terminal" | "cursor" | "code" | "desktop" | "puzzle" | "telegram" | "github" | "mail" | "doc" | "chat";
+export type ConnectIcon = "terminal" | "cursor" | "code" | "desktop" | "puzzle" | "telegram" | "github" | "mail" | "doc" | "chat" | "note";
 export type ConnectStatus = "available" | "planned";
 
 export type ConnectItem = {
@@ -29,6 +29,7 @@ export const CONNECT_ITEMS: ConnectItem[] = [
   { slug: "vscode", category: "aiClients", icon: "code", status: "available", needsMcp: true },
   { slug: "claude-desktop", category: "aiClients", icon: "desktop", status: "available", needsMcp: true },
   { slug: "telegram", category: "apps", icon: "telegram", status: "available", needsMcp: true },
+  { slug: "obsidian", category: "apps", icon: "note", status: "available", needsMcp: false },
   { slug: "vscode-extension", category: "apps", icon: "puzzle", status: "planned", needsMcp: false },
   { slug: "chat-connectors", category: "apps", icon: "chat", status: "planned", needsMcp: false },
   { slug: "github", category: "delivery", icon: "github", status: "available", needsMcp: false, anchor: "github" },
@@ -37,7 +38,7 @@ export const CONNECT_ITEMS: ConnectItem[] = [
 ];
 
 /** Tools with their own public setup page (/integrations/<slug>). */
-export const DETAIL_SLUGS = ["claude-code", "cursor", "vscode", "claude-desktop", "telegram"] as const;
+export const DETAIL_SLUGS = ["claude-code", "cursor", "vscode", "claude-desktop", "telegram", "obsidian"] as const;
 export type DetailSlug = (typeof DETAIL_SLUGS)[number];
 
 export function isDetailSlug(slug: string): slug is DetailSlug {
@@ -54,6 +55,9 @@ export function connectHref(item: ConnectItem): string | null {
   if (item.anchor) return `/settings/integrations#${item.anchor}`;
   return `/integrations/${item.slug}`;
 }
+
+/** Where the web image serves the built Obsidian plugin (Dockerfile.web copies apps/obsidian/dist there). */
+export const OBSIDIAN_DOWNLOADS = { main: "/downloads/obsidian/main.js", manifest: "/downloads/obsidian/manifest.json" } as const;
 
 /** Placeholder people replace with their own token – never a real token. */
 export const TOKEN_PLACEHOLDER = "<TOKEN>";
@@ -122,6 +126,16 @@ export function connectSteps(slug: DetailSlug, mcpUrl: string): ConnectStep[] {
         { key: "connect" },
         { key: "allow" },
         { key: "ask", code: { label: "Telegram", text: "/frage PostgreSQL oder SQLite für 50 Nutzer?\n- muss selbst gehostet laufen" } },
+      ];
+    case "obsidian":
+      return [
+        { key: "token" },
+        { key: "download" },
+        { key: "folder", code: { label: "Vault", text: "<vault>/.obsidian/plugins/consyrium/" } },
+        { key: "enable" },
+        { key: "settings", code: { label: "Server", text: mcpUrl.replace(/\/api\/mcp$/, "") } },
+        { key: "use" },
+        { key: "mcp", code: { label: "MCP (HTTP)", text: `URL: ${mcpUrl}\nAuthorization: ${bearer}` } },
       ];
   }
 }

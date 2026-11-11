@@ -283,6 +283,7 @@ describe("requirements no proposal meets (night test 07.11.26)", () => {
     const idea = {
       kind: "favorite" as const,
       leaders: ["pro_a"],
+      tiedWith: [],
       toClarify: ["req_2"],
       excluded: [{ proposalId: "pro_b", requirementIds: ["req_1", "req_2"] }],
     };
@@ -290,7 +291,7 @@ describe("requirements no proposal meets (night test 07.11.26)", () => {
     expect(html).toContain("Idea checked – favourite with open points");
     expect(html).toContain("Clarify before the next step");
     expect(html).toContain("R2 – Existing tests keep passing");
-    expect(html).toContain("not met: R1, R2");
+    expect(html).toContain("Proposal B – not met: R1, R2");
     expect(html).toContain("This is an idea check, not an approval");
     // The strict wording of an approval council is not shown on top of it.
     expect(html).not.toContain("No proposal can be approved");

@@ -12,6 +12,7 @@ const PATHS: Record<IconName, string> = {
   mail: "M3 6h18v12H3zM3 6l9 7 9-7",
   doc: "M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6",
   chat: "M4 5h16v10H9l-5 4z",
+  note: "M5 4h14v11l-5 5H5zM14 20v-5h5M8 9h8M8 13h4",
 };
 
 export function ConnectIcon({ name, className = "" }: { name: IconName; className?: string }) {

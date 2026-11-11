@@ -12,6 +12,9 @@ import {
   splitObjections,
   type ConfidenceIssue,
   type VerdictResult,
+  councilPurpose,
+  ideaCheck,
+  type IdeaCheckMatrix,
 } from "@consyrium/core";
 import { decisionStatusOf } from "./decision-format";
 import type { ProposalContent } from "./schemas";
@@ -142,6 +145,11 @@ export function buildDecisionReport(view: SessionView) {
      */
     workflowStatus: awaitingReviewWithoutApproval(view.session.status, status) ? ("awaiting_review" as const) : view.session.status,
     approvalStatus: awaitingReviewWithoutApproval(view.session.status, status) ? ("no_approvable_proposal" as const) : null,
+    /**
+     * #597: the idea-check reading of a verdict nothing can be approved in – only for councils started with the purpose
+     * "idea_check", from the same derivation as the verdict screen (`ideaCheck`). Never an approval.
+     */
+    ideaCheck: ideaReading(view, awaitingReviewWithoutApproval(view.session.status, status), label),
     briefVersion: view.brief.version,
     /** The requirement list the user confirmed for this run (#190); null for runs before it. */
     confirmedRequirements: view.requirementList
@@ -692,7 +700,11 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
     t("Mode: {mode} · Brief version {version} · Status: {status}", {
       mode: report.mode,
       version: report.briefVersion,
-      status: report.approvalStatus ? t("awaiting your review · no approvable proposal") : t(statusLabel(report.status)),
+      status: report.approvalStatus
+        ? report.ideaCheck && report.ideaCheck.kind !== "none"
+          ? t("awaiting your review · idea checked")
+          : t("awaiting your review · no approvable proposal")
+        : t(statusLabel(report.status)),
     }),
     t("Participants: {list}", {
       list: report.participants
@@ -727,6 +739,7 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
     `## ${t("Outcome")}`,
     outcomeLine(report, locale, t),
     "",
+    ...ideaLines(report.ideaCheck, t),
     ...(report.proposalOverview.length
       ? [
           `### ${t("The proposals")}`,
@@ -902,4 +915,68 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
     t("Tokens used: {used} of {budget}", { used: reportNumber(locale, report.tokens.used), budget: reportNumber(locale, report.tokens.budget) }),
   );
   return lines.join("\n");
+}
+
+/** #597: the idea-check reading for the report, with proposal labels and requirement numbers instead of ids. */
+function ideaReading(view: SessionView, nothingApprovable: boolean, label: (proposalId: string | null) => string) {
+  if (!nothingApprovable || councilPurpose(view.session.policy) !== "idea_check") return null;
+  const result = ideaCheck(view.decision?.matrix as IdeaCheckMatrix | null | undefined);
+  if (!result) return null;
+  const items = view.requirementList?.items ?? [];
+  const number = (id: string) => {
+    const index = items.findIndex((i) => i.id === id);
+    return index < 0 ? id : `R${index + 1}`;
+  };
+  return {
+    kind: result.kind,
+    leaders: result.leaders.map(label),
+    tiedWith: result.tiedWith.map(label),
+    toClarify: result.toClarify.map((id) => ({ requirement: number(id), text: items.find((i) => i.id === id)?.text ?? "" })),
+    excluded: result.excluded.map((e) => ({ proposal: label(e.proposalId), requirements: e.requirementIds.map(number) })),
+  };
+}
+
+function ideaLines(idea: ReturnType<typeof ideaReading>, t: ReportT): string[] {
+  if (!idea) return [];
+  const proposal = (l: string) => t("Proposal {label}", { label: l });
+  const lead =
+    idea.kind === "none"
+      ? t("Every proposal breaks at least one hard requirement. As described, the idea does not work out – change the idea or the requirements.")
+      : idea.kind === "several"
+        ? t(
+            "No evaluator ruled these proposals out, and they are level on score and open points: {list}. The idea holds up – which variant fits better is your call.",
+            {
+              list: idea.leaders.map(proposal).join(", "),
+            },
+          )
+        : idea.tiedWith.length
+          ? t(
+              "{proposal} is level on score with {list} but leaves the fewest points open, and no evaluator ruled it out. The idea holds up; some points are not proven yet.",
+              {
+                proposal: proposal(idea.leaders[0]!),
+                list: idea.tiedWith.map(proposal).join(", "),
+              },
+            )
+          : t("No evaluator ruled {proposal} out, and it has the best overall score. The idea holds up; some points are not proven yet.", {
+              proposal: proposal(idea.leaders[0]!),
+            });
+  return [
+    `### ${t("Idea check")}`,
+    lead,
+    ...(idea.toClarify.length
+      ? ["", t("Clarify before the next step (not proven yet):"), ...idea.toClarify.map((r) => `- ${r.requirement}${r.text ? ` – ${r.text}` : ""}`)]
+      : []),
+    ...(idea.excluded.length
+      ? [
+          "",
+          t("Ruled out:"),
+          ...idea.excluded.map((e) => `- ${t("{proposal} – not met: {list}", { proposal: proposal(e.proposal), list: e.requirements.join(", ") })}`),
+        ]
+      : []),
+    "",
+    t(
+      "This is an idea check, not an approval. Nothing is built until the open points are proven and a council with the purpose “Approve a decision” confirms them.",
+    ),
+    "",
+  ];
 }

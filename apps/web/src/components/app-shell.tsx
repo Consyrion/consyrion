@@ -239,7 +239,7 @@ export function AppShell({
             ) : null}
           </Link>
           {/* AGPL-3.0 §13: users of the hosted app get a link to its source code. */}
-          <a href="https://github.com/Consyrion/consyrium" target="_blank" rel="noreferrer" className="block px-1 text-xs text-muted hover:text-text">
+          <a href="https://github.com/Consyrium/consyrium" target="_blank" rel="noreferrer" className="block px-1 text-xs text-muted hover:text-text">
             {t("source")}
           </a>
         </div>

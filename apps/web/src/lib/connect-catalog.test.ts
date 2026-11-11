@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { messagesFor } from "@/i18n/all-messages";
 import { LOCALES } from "@/i18n/locales";
-import { CONNECT_CATEGORIES, CONNECT_ITEMS, DETAIL_SLUGS, TOKEN_PLACEHOLDER, connectHref, connectSteps, isDetailSlug } from "./connect-catalog";
+import {
+  CONNECT_CATEGORIES,
+  CONNECT_ITEMS,
+  DETAIL_SLUGS,
+  OBSIDIAN_DOWNLOADS,
+  TOKEN_PLACEHOLDER,
+  connectHref,
+  connectSteps,
+  isDetailSlug,
+} from "./connect-catalog";
 
 type Tree = Record<string, unknown>;
 const at = (tree: unknown, path: string) => path.split(".").reduce<unknown>((node, key) => (node as Tree | undefined)?.[key], tree);
@@ -35,6 +44,18 @@ describe("connect catalog (integrations grid, 08.11.26)", () => {
         expect(codes.join("\n"), slug).toContain(TOKEN_PLACEHOLDER);
       }
       for (const text of codes) expect(text).not.toMatch(/\bcn[rsi]_[A-Za-z0-9]/);
+    }
+  });
+
+  it("offers the Obsidian plugin without the MCP entitlement and serves its two files from this server", () => {
+    const item = CONNECT_ITEMS.find((i) => i.slug === "obsidian")!;
+    expect(item).toMatchObject({ status: "available", needsMcp: false });
+    expect(connectSteps("obsidian", mcpUrl).find((s) => s.key === "settings")?.code?.text).toBe("https://app.example.test");
+    expect(Object.values(OBSIDIAN_DOWNLOADS)).toEqual(["/downloads/obsidian/main.js", "/downloads/obsidian/manifest.json"]);
+    for (const locale of LOCALES) {
+      const text = String(at(messagesFor(locale), "settings.connect.items.obsidian.steps.download"));
+      expect(text, locale).toContain("<main>");
+      expect(text, locale).toContain("<manifest>");
     }
   });
 

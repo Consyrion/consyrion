@@ -6,7 +6,7 @@
   "publisher": "consyrium",
   "private": true,
   "license": "AGPL-3.0-only",
-  "repository": { "type": "git", "url": "https://github.com/Consyrion/consyrium" },
+  "repository": { "type": "git", "url": "https://github.com/Consyrium/consyrium" },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Other"],
   "main": "./dist/extension.js",

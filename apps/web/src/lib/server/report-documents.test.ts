@@ -159,6 +159,64 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
     expect(okText).toContain("Wartet auf deine Entscheidung");
   });
 
+  it("reads an idea-check council in the PDF as the verdict screen does: favourite, open points, not an approval (#597)", async () => {
+    const { reportStatus } = await import("./report-status");
+    const cell = (requirementId: string, status: string) => ({ requirementId, status, pass: [], fail: [], unknown: [], open: [], conflicts: [] });
+    const view = {
+      session: { status: "awaiting_approval", policy: { purpose: "idea_check" } },
+      proposals: [
+        { id: "p1", label: "1", revisions: [{ version: 1, content: { title: "Tabelle" } }] },
+        { id: "p2", label: "2", revisions: [{ version: 1, content: { title: "Web-App" } }] },
+      ],
+      requirementList: {
+        version: 1,
+        items: [
+          { id: "r1", text: "Kosten höchstens 30 € im Monat" },
+          { id: "r2", text: "Ehrenamtliche können damit arbeiten" },
+        ],
+      },
+      decision: {
+        outcome: "needs_verification",
+        matrix: {
+          proposals: [
+            { proposalId: "p1", total: 8.4 },
+            { proposalId: "p2", total: 7.1 },
+          ],
+          requirementGate: {
+            comparisonComplete: true,
+            comparisonNote: null,
+            summary: null,
+            proposals: [
+              { proposalId: "p1", feasibility: "needs_verification", causes: [], requirements: [cell("r1", "PASS"), cell("r2", "UNKNOWN")] },
+              { proposalId: "p2", feasibility: "fail", causes: [], requirements: [cell("r1", "FAIL"), cell("r2", "UNKNOWN")] },
+            ],
+          },
+        },
+      },
+      decisionStatus: { readable: true, approvable: false, gateVersion: 3, approvableProposalIds: [] },
+    };
+    const status = reportStatus(view, "de");
+    expect(status.title).toBe("Idee geprüft – Favorit unter Vorbehalt: Vorschlag 1");
+    expect(status.line).toBe("Wartet auf deine Prüfung · Idee geprüft");
+    expect(status.approvable).toBe(false);
+    expect(status.idea?.lines).toEqual(
+      expect.arrayContaining(["• R2 – Ehrenamtliche können damit arbeiten", "• Vorschlag 2 – nicht erfüllt: R1", expect.stringContaining("keine Freigabe")]),
+    );
+    const blocked = { ...report, approvableProposals: [], decisionFormat: { approvable: false } };
+    const bytes = await reportPdf(markdown, meta, blocked as never, { locale: "de", status, level: "brief" });
+    const { extractText } = await import("unpdf");
+    const all = ((await extractText(new Uint8Array(bytes), { mergePages: false })).text as string[]).join("\n");
+    expect(all).toContain("Idee geprüft – Favorit unter Vorbehalt: Vorschlag 1");
+    expect(all).toContain("R2 – Ehrenamtliche können damit arbeiten");
+    // The same verdict in an approval council (and in older councils without a purpose) keeps the strict wording.
+    const strict = reportStatus({ ...view, session: { status: "awaiting_approval", policy: {} } }, "de");
+    expect(strict.title).toBe("Prüfung nötig – nicht freigebbar");
+    expect(strict.idea).toBeNull();
+    expect(strict.line).toBe("Wartet auf deine Prüfung · Kein freigebbarer Vorschlag");
+    // Once a human decided, the reading is gone – the decision is the status.
+    expect(reportStatus({ ...view, approvals: [{ action: "reject" }] }, "de").idea).toBeNull();
+  });
+
   it("brief: requirements before scores, then the key disputes and next steps of the screen, decision in words (#268 part 2)", async () => {
     const { reportStatus } = await import("./report-status");
     const t0 = "2026-11-05T10:00:00Z";

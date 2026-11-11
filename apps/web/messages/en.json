@@ -394,10 +394,12 @@
         },
         "lead": {
           "favorite": "No evaluator ruled this proposal out, and it has the best overall score. The idea holds up – but some points are not proven yet.",
+          "favoriteTied": "This proposal is level on score with {list} but leaves the fewest points open – and no evaluator ruled it out. The idea holds up; some points are not proven yet.",
           "several": "No evaluator ruled these proposals out, and their scores are level: {list}. The idea holds up – which variant fits better is your call.",
           "none": "Every proposal breaks at least one of your hard requirements. As described, the idea does not work out – change the idea or the requirements."
         },
         "clarify": "Clarify before the next step (not proven yet):",
+        "clarifyFor": "Clarify before the next step – for {label} (not proven yet):",
         "excluded": "Ruled out:",
         "excludedItem": "{label} – not met: {list}",
         "note": "This is an idea check, not an approval. Nothing is built until the open points are proven and a council with the purpose “Approve a decision” confirms them."

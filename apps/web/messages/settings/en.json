@@ -520,6 +520,21 @@
             "ask": "Ask in the chat; lines starting with \"- \" are hard requirements:"
           }
         },
+        "obsidian": {
+          "name": "Obsidian",
+          "by": "Plugin · notes",
+          "summary": "Send selected text from a note to a council and save the report as a new note.",
+          "what": "The CONSYRIUM plugin for Obsidian (desktop) sends only the text you select, shows the cost estimate before the start and saves the finished report as a new note in your vault. Existing notes are never overwritten.",
+          "steps": {
+            "token": "Create a token with the scope \"Councils only\" under <link>Settings → API tokens</link>.",
+            "download": "Download the two plugin files: <main>main.js</main> and <manifest>manifest.json</manifest>.",
+            "folder": "Create this folder in your vault and copy both files into it (the <code>.obsidian</code> folder is hidden):",
+            "enable": "In Obsidian open Settings → Community plugins, turn community plugins on and enable \"CONSYRIUM AI\".",
+            "settings": "Under Settings → CONSYRIUM AI enter the server address and your token, then click \"Test connection\". The token is stored as plain text in the vault – give it an expiry date.",
+            "use": "Select text in a note and run \"Consult CONSYRIUM AI on the selection\" from the command palette. The council can only be started after \"Check cost\".",
+            "mcp": "Alternatively via MCP: Obsidian itself has no MCP client. If you use a community plugin with an MCP client (HTTP server with a custom header), enter these details there. The MCP server is included from the Pro plan when hosted."
+          }
+        },
         "vscode-extension": {
           "name": "VS Code extension",
           "by": "Extension",
@@ -547,7 +562,7 @@
         }
       },
       "publicTitle": "Integrations",
-      "publicDescription": "What you can connect CONSYRIUM AI to: Claude Code, Cursor, VS Code, Claude Desktop, Telegram, GitHub, e-mail and Confluence – with setup steps.",
+      "publicDescription": "What you can connect CONSYRIUM AI to: Claude Code, Cursor, VS Code, Claude Desktop, Telegram, Obsidian, GitHub, e-mail and Confluence – with setup steps.",
       "signIn": "Sign in",
       "dashboard": "Open dashboard"
     }

@@ -41,6 +41,22 @@ const DE: Dictionary = {
   "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
     "Die Vorschläge {labels} sind Architektur-Kandidaten: Markiere einen in der App als Favorit, gib einen Prototyp-/Mess-Build frei oder trage das Messergebnis ein – als fertige Lösung wird nichts freigegeben.",
   " (instance {index} of {of} – one independent voice)": " (Instanz {index} von {of} – eine unabhängige Stimme)",
+  // #597: idea check.
+  "awaiting your review · idea checked": "wartet auf deine Prüfung · Idee geprüft",
+  "Idea check": "Ideen-Check",
+  "Every proposal breaks at least one hard requirement. As described, the idea does not work out – change the idea or the requirements.":
+    "Jeder Vorschlag verletzt mindestens eine harte Anforderung. So, wie die Idee beschrieben ist, geht sie nicht auf – ändere die Idee oder die Anforderungen.",
+  "No evaluator ruled these proposals out, and they are level on score and open points: {list}. The idea holds up – which variant fits better is your call.":
+    "Diese Vorschläge hat kein Bewerter ausgeschlossen, und sie liegen bei Wertung und offenen Punkten gleichauf: {list}. Die Idee hat Hand und Fuß – welche Variante besser passt, entscheidest du.",
+  "{proposal} is level on score with {list} but leaves the fewest points open, and no evaluator ruled it out. The idea holds up; some points are not proven yet.":
+    "{proposal} liegt in der Wertung gleichauf mit {list}, lässt aber die wenigsten Punkte offen, und kein Bewerter hat ihn ausgeschlossen. Die Idee hat Hand und Fuß; einzelne Punkte sind noch nicht belegt.",
+  "No evaluator ruled {proposal} out, and it has the best overall score. The idea holds up; some points are not proven yet.":
+    "Kein Bewerter hat {proposal} ausgeschlossen, und er hat die beste Gesamtwertung. Die Idee hat Hand und Fuß; einzelne Punkte sind noch nicht belegt.",
+  "Clarify before the next step (not proven yet):": "Vor dem nächsten Schritt klären (noch nicht belegt):",
+  "Ruled out:": "Ausgeschlossen:",
+  "{proposal} – not met: {list}": "{proposal} – nicht erfüllt: {list}",
+  "This is an idea check, not an approval. Nothing is built until the open points are proven and a council with the purpose “Approve a decision” confirms them.":
+    "Das ist ein Ideen-Check, keine Freigabe. Gebaut wird erst, wenn die offenen Punkte belegt sind und ein Council mit dem Zweck „Entscheidung freigeben“ sie bestätigt.",
   "awaiting your review · no approvable proposal": "wartet auf deine Prüfung · kein freigebbarer Vorschlag",
   "marked as favourite": "als Favorit markiert",
   "prototype/measurement build approved": "Prototyp-/Mess-Build freigegeben",
@@ -338,6 +354,22 @@ const FR: Dictionary = {
   "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
     "Les propositions {labels} sont des candidats d’architecture : marque-en une comme favorite dans l’app, approuve un build prototype/de mesure ou saisis le résultat mesuré – rien n’est approuvé comme solution finie.",
   " (instance {index} of {of} – one independent voice)": " (instance {index} sur {of} – une seule voix indépendante)",
+  // #597: idea check.
+  "awaiting your review · idea checked": "en attente de ton examen · idée vérifiée",
+  "Idea check": "Vérification d’idée",
+  "Every proposal breaks at least one hard requirement. As described, the idea does not work out – change the idea or the requirements.":
+    "Chaque proposition enfreint au moins une exigence stricte. Telle qu’elle est décrite, l’idée ne fonctionne pas – modifie l’idée ou les exigences.",
+  "No evaluator ruled these proposals out, and they are level on score and open points: {list}. The idea holds up – which variant fits better is your call.":
+    "Aucun évaluateur n’a écarté ces propositions, et elles sont à égalité de score et de points ouverts : {list}. L’idée tient la route – c’est à toi de choisir la variante.",
+  "{proposal} is level on score with {list} but leaves the fewest points open, and no evaluator ruled it out. The idea holds up; some points are not proven yet.":
+    "{proposal} est à égalité de score avec {list}, mais laisse le moins de points ouverts, et aucun évaluateur ne l’a écartée. L’idée tient la route ; certains points ne sont pas encore prouvés.",
+  "No evaluator ruled {proposal} out, and it has the best overall score. The idea holds up; some points are not proven yet.":
+    "Aucun évaluateur n’a écarté {proposal}, et elle a le meilleur score global. L’idée tient la route ; certains points ne sont pas encore prouvés.",
+  "Clarify before the next step (not proven yet):": "À clarifier avant l’étape suivante (pas encore prouvé) :",
+  "Ruled out:": "Écartées :",
+  "{proposal} – not met: {list}": "{proposal} – non remplies : {list}",
+  "This is an idea check, not an approval. Nothing is built until the open points are proven and a council with the purpose “Approve a decision” confirms them.":
+    "Ceci est une vérification d’idée, pas une approbation. Rien n’est construit tant que les points ouverts ne sont pas prouvés et qu’un council avec l’objectif « Approuver une décision » ne les a pas confirmés.",
   "awaiting your review · no approvable proposal": "en attente de ton examen · aucune proposition approuvable",
   "marked as favourite": "marquée comme favorite",
   "prototype/measurement build approved": "build prototype/de mesure approuvé",
@@ -614,6 +646,22 @@ const ES: Dictionary = {
   "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
     "Las propuestas {labels} son candidatos de arquitectura: marca una como favorita en la app, aprueba un build de prototipo/medición o registra el resultado medido – nada se aprueba como solución terminada.",
   " (instance {index} of {of} – one independent voice)": " (instancia {index} de {of} – una sola voz independiente)",
+  // #597: idea check.
+  "awaiting your review · idea checked": "esperando tu revisión · idea revisada",
+  "Idea check": "Revisión de la idea",
+  "Every proposal breaks at least one hard requirement. As described, the idea does not work out – change the idea or the requirements.":
+    "Cada propuesta incumple al menos un requisito obligatorio. Tal como está descrita, la idea no funciona: cambia la idea o los requisitos.",
+  "No evaluator ruled these proposals out, and they are level on score and open points: {list}. The idea holds up – which variant fits better is your call.":
+    "Ningún evaluador descartó estas propuestas y están igualadas en puntuación y puntos abiertos: {list}. La idea se sostiene; qué variante encaja mejor lo decides tú.",
+  "{proposal} is level on score with {list} but leaves the fewest points open, and no evaluator ruled it out. The idea holds up; some points are not proven yet.":
+    "{proposal} está igualada en puntuación con {list}, pero deja menos puntos abiertos, y ningún evaluador la descartó. La idea se sostiene; algunos puntos aún no están demostrados.",
+  "No evaluator ruled {proposal} out, and it has the best overall score. The idea holds up; some points are not proven yet.":
+    "Ningún evaluador descartó {proposal} y tiene la mejor puntuación global. La idea se sostiene; algunos puntos aún no están demostrados.",
+  "Clarify before the next step (not proven yet):": "Aclarar antes del siguiente paso (aún sin demostrar):",
+  "Ruled out:": "Descartadas:",
+  "{proposal} – not met: {list}": "{proposal}: no cumple {list}",
+  "This is an idea check, not an approval. Nothing is built until the open points are proven and a council with the purpose “Approve a decision” confirms them.":
+    "Esto es una revisión de la idea, no una aprobación. No se construye nada hasta que los puntos abiertos estén demostrados y un council con el propósito «Aprobar una decisión» los confirme.",
   "awaiting your review · no approvable proposal": "esperando tu revisión · ninguna propuesta aprobable",
   "marked as favourite": "marcada como favorita",
   "prototype/measurement build approved": "build de prototipo/medición aprobado",
@@ -889,6 +937,22 @@ const ZH: Dictionary = {
   "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
     "方案 {labels} 是架构候选:请在应用中将其中一个标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
   " (instance {index} of {of} – one independent voice)": "(实例 {index}/{of} – 一个独立声音)",
+  // #597: idea check.
+  "awaiting your review · idea checked": "等待你的审查 · 想法已检查",
+  "Idea check": "想法检查",
+  "Every proposal breaks at least one hard requirement. As described, the idea does not work out – change the idea or the requirements.":
+    "每个方案都至少违反了一项硬性要求。按当前描述,这个想法行不通 – 请修改想法或要求。",
+  "No evaluator ruled these proposals out, and they are level on score and open points: {list}. The idea holds up – which variant fits better is your call.":
+    "没有评估者排除这些方案,且它们的得分和未决要点相当:{list}。这个想法站得住脚 – 哪个方案更合适由你决定。",
+  "{proposal} is level on score with {list} but leaves the fewest points open, and no evaluator ruled it out. The idea holds up; some points are not proven yet.":
+    "{proposal}与 {list} 得分相当,但未决要点最少,且没有评估者排除它。这个想法站得住脚;个别要点尚未得到证实。",
+  "No evaluator ruled {proposal} out, and it has the best overall score. The idea holds up; some points are not proven yet.":
+    "没有评估者排除{proposal},且它的总分最高。这个想法站得住脚;个别要点尚未得到证实。",
+  "Clarify before the next step (not proven yet):": "下一步之前需要澄清(尚未证实):",
+  "Ruled out:": "已排除:",
+  "{proposal} – not met: {list}": "{proposal} – 不满足要求 {list}",
+  "This is an idea check, not an approval. Nothing is built until the open points are proven and a council with the purpose “Approve a decision” confirms them.":
+    "这是想法检查,不是批准。只有在未决要点得到证实、并由目的为“批准决定”的 council 确认后才会构建。",
   "awaiting your review · no approvable proposal": "等待你的审查 · 没有可批准的方案",
   "marked as favourite": "已标记为首选",
   "prototype/measurement build approved": "已批准原型/测量构建",

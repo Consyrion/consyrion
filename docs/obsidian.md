@@ -3,6 +3,17 @@
 `apps/obsidian` – send explicitly selected note text to a council and save the report as a new note. User guide:
 `apps/obsidian/README.md`.
 
+## Getting the plugin
+
+- Hosted and Docker installs: the web image builds the plugin (`Dockerfile.web`) and serves `main.js` and
+  `manifest.json` under `/downloads/obsidian/`. The public setup page `/integrations/obsidian` links both files and
+  lists the steps (texts: `settings.connect.items.obsidian`, catalog: `apps/web/src/lib/connect-catalog.ts`).
+- From source: `pnpm --filter consyrium-obsidian build` → `apps/obsidian/dist/`.
+- The plugin uses the REST API with a "Councils only" token and needs no MCP entitlement (works on the Free plan).
+- MCP: Obsidian has no MCP client of its own (checked up to 1.15). Community plugins with an MCP client that speak
+  Streamable HTTP with a custom `Authorization` header can use `/api/mcp` (see `docs/mcp.md`); the setup page shows
+  the address and header. Not verified by us inside a specific community plugin.
+
 ## Data flow
 
 ```

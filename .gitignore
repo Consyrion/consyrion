@@ -16,3 +16,6 @@ next-env.d.ts
 # Playwright (auth E2E)
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Built Obsidian plugin, copied in by Dockerfile.web
+apps/web/public/downloads/

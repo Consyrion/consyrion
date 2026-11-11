@@ -11,6 +11,7 @@ import { measurementRows } from "@/components/session/measurements";
 import { PARTICIPATION_PHASES, participationMatrix, silentIn } from "@/components/session/participation";
 import { processQualityLines } from "@/components/session/process-quality-lines";
 import { buildReplayEvents } from "@/components/session/replay-events";
+import { councilPurpose, ideaCheck, type IdeaCheckMatrix } from "@/components/session/idea-check";
 import { nextStepsTarget, verdictStatus } from "@/components/session/verdict-status";
 
 /**
@@ -35,6 +36,11 @@ export interface ReportStatus {
   /** #249 gate 2: acceptance by measurement as on the screen, every result named as a self-declaration with evidence. */
   measurements?: ReportBlock | null;
   nextSteps?: ReportBlock | null;
+  /**
+   * #597: the idea-check reading of a verdict nothing can be approved in – the same derivation and words as the hero of
+   * the verdict screen. Null for approval councils and whenever the screen shows no such reading.
+   */
+  idea?: ReportBlock | null;
   /**
    * #268 part 4: the course of the council for the report pages – phase timeline (stored stage times, as in the
    * replay), participation and tokens per model (the participation matrix of the Council Room), follow-up check
@@ -179,15 +185,60 @@ export function reportStatus(view: unknown, locale: ReportLocale): ReportStatus 
       }
     : null;
   const process = processBlocks(json, tv, tr, locale);
+  // #597: an idea-check council – same condition as the screen (nothing approvable, purpose idea_check, no human decision).
+  const decided = json.approvals.some((a) => ["approve", "select_alternative", "reject"].includes(a.action));
+  const ideaResult =
+    status.notApprovable && !decided && councilPurpose(json.session?.policy) === "idea_check"
+      ? ideaCheck(json.decision?.matrix as unknown as IdeaCheckMatrix)
+      : null;
+  const proposalName = (id: string) => tv("verdict.dashboard.proposal", { label: labelOf(id) });
+  const requirementName = (id: string, withText: boolean) => {
+    const index = (json.requirementList?.items ?? []).findIndex((r) => r.id === id);
+    const item = json.requirementList?.items[index];
+    return index < 0 || !item ? id : withText ? `R${index + 1} – ${item.text}` : `R${index + 1}`;
+  };
+  const idea: ReportBlock | null = ideaResult
+    ? {
+        title: tr(`verdict.dashboard.idea.title.${ideaResult.kind}`) + (ideaResult.kind === "favorite" ? `: ${proposalName(ideaResult.leaders[0]!)}` : ""),
+        lines: [
+          ideaResult.kind === "favorite" && ideaResult.tiedWith.length
+            ? tv("verdict.dashboard.idea.lead.favoriteTied", { list: ideaResult.tiedWith.map(proposalName).join(", ") })
+            : tv(`verdict.dashboard.idea.lead.${ideaResult.kind}`, { list: ideaResult.leaders.map(proposalName).join(", ") }),
+          ...(ideaResult.toClarify.length
+            ? [
+                ideaResult.kind === "several"
+                  ? tv("verdict.dashboard.idea.clarifyFor", { label: proposalName(ideaResult.leaders[0]!) })
+                  : tr("verdict.dashboard.idea.clarify"),
+                ...ideaResult.toClarify.map((id) => `• ${requirementName(id, true)}`),
+              ]
+            : []),
+          ...(ideaResult.excluded.length
+            ? [
+                tr("verdict.dashboard.idea.excluded"),
+                ...ideaResult.excluded.map(
+                  (e) =>
+                    `• ${tv("verdict.dashboard.idea.excludedItem", { label: proposalName(e.proposalId), list: e.requirementIds.map((id) => requirementName(id, false)).join(", ") })}`,
+                ),
+              ]
+            : []),
+          tr("verdict.dashboard.idea.note"),
+        ],
+        warn: ideaResult.kind === "none",
+      }
+    : null;
+  const ideaChecked = Boolean(ideaResult && ideaResult.kind !== "none");
   return {
+    idea,
     cruxes,
     nextSteps,
     marks,
     measurements,
     process,
-    title: status.outcomeKey ? tr(`verdict.dashboard.outcome.${status.outcomeKey}`) : null,
+    title: idea ? idea.title : status.outcomeKey ? tr(`verdict.dashboard.outcome.${status.outcomeKey}`) : null,
     approvable,
-    line: status.nothingApprovable ? `${workflow} · ${tr("sessionWorkspace.status.noApprovableProposal")}` : workflow,
+    line: status.nothingApprovable
+      ? `${workflow} · ${tr(ideaChecked ? "sessionWorkspace.status.ideaChecked" : "sessionWorkspace.status.noApprovableProposal")}`
+      : workflow,
   };
 }
 

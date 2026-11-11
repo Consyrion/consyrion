@@ -31,3 +31,4 @@ export * from "./untrusted";
 export * from "./call-size";
 export * from "./independence";
 export * from "./impersonation";
+export * from "./idea-check";

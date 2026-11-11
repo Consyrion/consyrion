@@ -394,10 +394,12 @@
         },
         "lead": {
           "favorite": "Ningún evaluador descartó esta propuesta y tiene la mejor puntuación global. La idea se sostiene, pero algunos puntos aún no están demostrados.",
+          "favoriteTied": "Esta propuesta está igualada en puntuación con {list}, pero deja menos puntos abiertos, y ningún evaluador la descartó. La idea se sostiene; algunos puntos aún no están demostrados.",
           "several": "Ningún evaluador descartó estas propuestas y sus puntuaciones están igualadas: {list}. La idea se sostiene; qué variante encaja mejor lo decides tú.",
           "none": "Cada propuesta incumple al menos uno de tus requisitos obligatorios. Tal como está descrita, la idea no funciona: cambia la idea o los requisitos."
         },
         "clarify": "Aclarar antes del siguiente paso (aún sin demostrar):",
+        "clarifyFor": "Aclarar antes del siguiente paso – para {label} (aún sin demostrar):",
         "excluded": "Descartadas:",
         "excludedItem": "{label}: no cumple {list}",
         "note": "Esto es una revisión de la idea, no una aprobación. No se construye nada hasta que los puntos abiertos estén demostrados y un council con el propósito «Aprobar una decisión» los confirme."

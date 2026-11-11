@@ -16,7 +16,7 @@ export const DELIVERY_TARGETS: DeliveryTarget[] = [
   { name: "E-mail", detail: "Summary with the report attached", status: "available" },
   { name: "Telegram", detail: "Short verdict and link to your chat", status: "available" },
   { name: "Confluence", detail: "A page in your team space", status: "available" },
-  { name: "Obsidian", detail: "The report as a note in your vault", status: "planned" },
+  { name: "Obsidian", detail: "The report as a note in your vault", status: "available" },
   { name: "GitHub pull request", detail: "Optional build by the Execution Council – reviewed, tested, as a draft", status: "with_github" },
 ];
 

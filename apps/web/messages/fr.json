@@ -394,10 +394,12 @@
         },
         "lead": {
           "favorite": "Aucun évaluateur n'a écarté cette proposition et elle a le meilleur score global. L'idée tient la route – mais certains points ne sont pas encore prouvés.",
+          "favoriteTied": "Cette proposition est à égalité de score avec {list}, mais laisse le moins de points ouverts – et aucun évaluateur ne l'a écartée. L'idée tient la route ; certains points ne sont pas encore prouvés.",
           "several": "Aucun évaluateur n'a écarté ces propositions et leurs scores sont au même niveau : {list}. L'idée tient la route – c'est à toi de choisir la variante.",
           "none": "Chaque proposition enfreint au moins une de tes exigences strictes. Telle qu'elle est décrite, l'idée ne fonctionne pas – modifie l'idée ou les exigences."
         },
         "clarify": "À clarifier avant l'étape suivante (pas encore prouvé) :",
+        "clarifyFor": "À clarifier avant l'étape suivante – pour {label} (pas encore prouvé) :",
         "excluded": "Écartées :",
         "excludedItem": "{label} – non remplies : {list}",
         "note": "Ceci est une vérification d'idée, pas une approbation. Rien n'est construit tant que les points ouverts ne sont pas prouvés et qu'un council avec l'objectif « Approuver une décision » ne les a pas confirmés."

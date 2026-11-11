@@ -736,8 +736,15 @@ only want to know whether the idea holds up".
   the user adds the missing evidence to the brief or changes the requirements and starts a new council.
 - Readers outside the verdict screen keep the strict wording on purpose: MCP `get_decision` (an agent must not build
   from an idea check), the decision list and the VS Code tree.
-- Not yet: the idea-check reading in the PDF/Markdown report and in delivery messages (they show the strict wording);
-  one merged gate result per option when several proposals choose the same option (#597 point 4).
+- Level totals (live test 11.11.26): among the proposals within the tie margin the one that leaves the fewest
+  requirements open is the favourite, and the text says that it is level on score with the others; only when the open
+  points are equal too does the reading say "several proposals hold up". The list "clarify before the next step" names
+  the proposal it belongs to.
+- The same reading in the reports (one derivation, `ideaCheck` in `packages/core/src/idea-check.ts`): the PDF shows the
+  idea-check title, the status "Idea checked" and the block with open points and ruled-out proposals
+  (`report-status.ts`, also used by delivery messages and the assistant); the Markdown/Word/JSON report has the section
+  "Idea check" and `ideaCheck` in its data. The reading disappears once a human decided.
+- Not yet: one merged gate result per option when several proposals choose the same option (#597 point 4).
 
 ## Independence groups (engine contract 6, owner decision 08.11.2026)
 

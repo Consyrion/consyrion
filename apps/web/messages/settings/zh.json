@@ -520,6 +520,21 @@
             "ask": "在聊天中提问；以“- ”开头的行是硬性需求："
           }
         },
+        "obsidian": {
+          "name": "Obsidian",
+          "by": "插件 · 笔记",
+          "summary": "把笔记中选中的文字发送给 council，并将报告保存为新笔记。",
+          "what": "CONSYRIUM 的 Obsidian 插件（桌面版）只发送你选中的文字，在启动前显示费用估算，并把完成的报告保存为库中的新笔记。现有笔记绝不会被覆盖。",
+          "steps": {
+            "token": "在<link>设置 → API 令牌</link>中创建范围为“仅 council”的令牌。",
+            "download": "下载两个插件文件：<main>main.js</main> 和 <manifest>manifest.json</manifest>。",
+            "folder": "在你的库中创建此文件夹，并把两个文件复制进去（<code>.obsidian</code> 文件夹是隐藏的）：",
+            "enable": "在 Obsidian 中打开 设置 → 第三方插件，开启第三方插件并启用“CONSYRIUM AI”。",
+            "settings": "在 设置 → CONSYRIUM AI 中填写服务器地址和你的令牌，然后点击“Test connection”。令牌以明文保存在库中——请设置过期日期。",
+            "use": "在笔记中选中文字，从命令面板运行“Consult CONSYRIUM AI on the selection”。只有在“Check cost”之后才能启动 council。",
+            "mcp": "也可以通过 MCP：Obsidian 本身没有 MCP 客户端。如果你使用带 MCP 客户端的第三方插件（支持自定义请求头的 HTTP 服务器），请在其中填写以下信息。托管版从 Pro 套餐起包含 MCP 服务器。"
+          }
+        },
         "vscode-extension": {
           "name": "VS Code 扩展",
           "by": "扩展",
@@ -547,7 +562,7 @@
         }
       },
       "publicTitle": "集成",
-      "publicDescription": "CONSYRIUM AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude Desktop、Telegram、GitHub、电子邮件和 Confluence——附设置步骤。",
+      "publicDescription": "CONSYRIUM AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude Desktop、Telegram、Obsidian、GitHub、电子邮件和 Confluence——附设置步骤。",
       "signIn": "登录",
       "dashboard": "打开仪表板"
     }

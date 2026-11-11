@@ -181,6 +181,20 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
     ).rejects.toMatchObject({ code: "CONFLICT" });
     const report = buildDecisionReport(view);
     expect(JSON.stringify(report)).not.toMatch(/cannot be met together|No solution can meet these requirements/);
+    // #597: an approval council (no purpose) has no idea-check reading; the same stored verdict of an idea-check
+    // council reads as a favourite with R1 to clarify – and is still not approvable (asserted above, the gate is untouched).
+    expect(report.ideaCheck).toBeNull();
+    const { reportToMarkdown } = await import("../src");
+    expect(reportToMarkdown(report, "de")).toContain("kein freigebbarer Vorschlag");
+    const asIdea = buildDecisionReport({ ...view, session: { ...view.session, policy: { ...(view.session.policy as object), purpose: "idea_check" } } });
+    expect(asIdea.ideaCheck).toMatchObject({ toClarify: [{ requirement: "R1" }], excluded: [] });
+    expect(asIdea.ideaCheck!.kind).not.toBe("none");
+    expect(asIdea.decisionFormat?.approvable).toBe(false);
+    const markdown = reportToMarkdown(asIdea, "de");
+    expect(markdown).toContain("wartet auf deine Prüfung · Idee geprüft");
+    expect(markdown).toContain("### Ideen-Check");
+    expect(markdown).toContain("Vor dem nächsten Schritt klären (noch nicht belegt):");
+    expect(markdown).toContain("Das ist ein Ideen-Check, keine Freigabe.");
   });
 
   it("a PASS without the statement that every part is met never counts (owner rule 4)", async () => {

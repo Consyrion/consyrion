@@ -394,10 +394,12 @@
         },
         "lead": {
           "favorite": "Kein Bewerter hat diesen Vorschlag ausgeschlossen, und er hat die beste Gesamtwertung. Die Idee hat damit Hand und Fuß – einzelne Punkte sind aber noch nicht belegt.",
+          "favoriteTied": "Dieser Vorschlag liegt in der Wertung gleichauf mit {list}, lässt aber die wenigsten Punkte offen – und kein Bewerter hat ihn ausgeschlossen. Die Idee hat damit Hand und Fuß; einzelne Punkte sind noch nicht belegt.",
           "several": "Diese Vorschläge hat kein Bewerter ausgeschlossen, und sie liegen in der Wertung gleichauf: {list}. Die Idee hat Hand und Fuß – welche Variante besser passt, entscheidest du.",
           "none": "Jeder Vorschlag verletzt mindestens eine deiner harten Anforderungen. So, wie die Idee beschrieben ist, geht sie nicht auf – ändere die Idee oder die Anforderungen."
         },
         "clarify": "Vor dem nächsten Schritt klären (noch nicht belegt):",
+        "clarifyFor": "Vor dem nächsten Schritt klären – für {label} (noch nicht belegt):",
         "excluded": "Ausgeschlossen:",
         "excludedItem": "{label} – nicht erfüllt: {list}",
         "note": "Das ist ein Ideen-Check, keine Freigabe. Gebaut wird erst, wenn die offenen Punkte belegt sind und ein Council mit dem Zweck „Entscheidung freigeben“ sie bestätigt."

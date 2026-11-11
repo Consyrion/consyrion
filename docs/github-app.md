@@ -45,7 +45,7 @@ and owner. Secrets go from GitHub to the server without being shown. The webhook
   "default_events": [] }
 ```
 
-Production app: `consyrion-ai` (https://github.com/apps/consyrion-ai), owned by the organisation
+Production app: `consyrium-ai` (https://github.com/apps/consyrium-ai, renamed 11 Nov 2026 together with the organisation), owned by the organisation
 `Consyrium` (transferred 30 Oct 2026; id, key and server values unchanged). Customers never create an app – they click *Connect GitHub*.
 
 ## Flow

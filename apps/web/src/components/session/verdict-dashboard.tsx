@@ -210,10 +210,16 @@ export function VerdictDashboard({
           </p>
           {ideaShown ? (
             <div className="mt-2 max-w-3xl space-y-2 text-sm text-text" data-testid="idea-check">
-              <p>{t(`idea.lead.${ideaShown.kind}`, { list: ideaShown.leaders.map(label).join(", ") })}</p>
+              <p>
+                {ideaShown.kind === "favorite" && ideaShown.tiedWith.length
+                  ? t("idea.lead.favoriteTied", { list: ideaShown.tiedWith.map((id) => t("proposal", { label: label(id) })).join(", ") })
+                  : t(`idea.lead.${ideaShown.kind}`, { list: ideaShown.leaders.map((id) => t("proposal", { label: label(id) })).join(", ") })}
+              </p>
               {ideaShown.toClarify.length ? (
                 <div>
-                  <p className="font-medium">{t("idea.clarify")}</p>
+                  <p className="font-medium">
+                    {ideaShown.kind === "several" ? t("idea.clarifyFor", { label: t("proposal", { label: label(ideaShown.leaders[0]!) }) }) : t("idea.clarify")}
+                  </p>
                   <ul className="mt-1 list-disc space-y-0.5 pl-5">
                     {ideaShown.toClarify.map((id) => {
                       const r = requirementOrder.find((x) => x.id === id);
@@ -229,7 +235,7 @@ export function VerdictDashboard({
                     {ideaShown.excluded.map((e) => (
                       <li key={e.proposalId}>
                         {t("idea.excludedItem", {
-                          label: label(e.proposalId),
+                          label: t("proposal", { label: label(e.proposalId) }),
                           list: e.requirementIds.map((id) => requirementOrder.find((x) => x.id === id)?.short ?? id).join(", "),
                         })}
                       </li>
@@ -254,7 +260,7 @@ export function VerdictDashboard({
           {unmetByAll.length ? (
             <p className="mt-2 max-w-3xl text-sm font-medium text-text">{t("unmetByAll", { list: unmetByAll.join(", "), n: unmetByAll.length })}</p>
           ) : null}
-          {openByAll.length ? (
+          {openByAll.length && !ideaShown ? (
             <p className="mt-2 max-w-3xl text-sm font-medium text-text">{t("openByAll", { list: openByAll.join(", "), n: openByAll.length })}</p>
           ) : null}
           <p className="mt-2 text-xs text-muted">

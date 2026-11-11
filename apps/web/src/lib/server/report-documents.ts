@@ -460,6 +460,11 @@ function drawSummary(
       }
     }
   }
+  // #597: the idea-check reading as on the verdict screen – before measurements and next steps.
+  if (status?.idea) {
+    heading(status.idea.title);
+    block({ ...status.idea, title: status.idea.lines[0] ?? "", lines: status.idea.lines.slice(1) });
+  }
   if (status?.measurements) {
     heading(status.measurements.title);
     block({ ...status.measurements, title: status.measurements.lines[0] ?? "", lines: status.measurements.lines.slice(1) });

@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { MarkShapes } from "../brand/consyrion-logo";
+import { MarkShapes } from "../brand/consyrium-logo";
 import { Icon } from "../ui/icons";
 import { PROVIDER_COLOR, PROVIDER_NAME, type ActivityNode } from "./activity-network-data";
 

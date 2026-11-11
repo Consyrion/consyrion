@@ -106,8 +106,16 @@ function splitSentences(block: string): string[] {
     start = end;
   }
   parts.push(block.slice(start));
-  return parts.map((p) => p.trim()).filter((p) => p.length > 0);
+  return parts.map((p) => p.trim().replace(INLINE_LEAD_IN, "")).filter((p) => p.length > 0);
 }
+
+/**
+ * A list heading written into the same line as its first item ("Harte Anforderungen: Die Kosten …") is not part of the
+ * requirement (test council 11.11.26: R1 kept the heading). Only these known headings are removed, and only in front
+ * of a sentence that starts with a capital letter or a digit – every other wording stays untouched.
+ */
+const INLINE_LEAD_IN =
+  /^(?:(?:harte|feste|verbindliche|hard|binding|must-have)\s+)?(?:anforderungen|muss-kriterien|rahmenbedingungen|bedingungen|requirements|constraints|must-haves)\s*:\s+(?=["„(]?[A-ZÄÖÜ0-9])/i;
 
 /**
  * Splits free text into statements without changing their wording. List items and complete lines are statements;
@@ -222,6 +230,25 @@ function isQuestionOrOption(text: string, options: string[]): boolean {
   return options.some((option) => option.includes(normalized));
 }
 
+/**
+ * Sections that are context, never hard requirements (#215 stage 3): a Markdown heading line ending with "[context]"
+ * (e.g. "## Assumptions (unconfirmed) [context]", "## Options [context]") starts a section that lasts until the next
+ * heading. The assistant writes options, unconfirmed assumptions and the user's leaning this way; the intake leaves them
+ * out. The brief's source hash still covers the whole text, so changing such a section still asks for a new confirmation.
+ */
+const SECTION_HEADING = /^\s{0,3}#{1,6}\s/;
+const CONTEXT_HEADING = /^\s{0,3}#{1,6}\s.*\[context\]\s*$/i;
+export function stripContextSections(text: string): string {
+  if (!text || !/\[context\]/i.test(text)) return text;
+  const kept: string[] = [];
+  let skipping = false;
+  for (const line of text.split("\n")) {
+    if (SECTION_HEADING.test(line)) skipping = CONTEXT_HEADING.test(line);
+    if (!skipping) kept.push(line);
+  }
+  return kept.join("\n");
+}
+
 export function extractRequirements(source: RequirementIntakeSource): RequirementProposal {
   const candidates: RequirementCandidate[] = [];
   const seen = new Set<string>();
@@ -248,9 +275,12 @@ export function extractRequirements(source: RequirementIntakeSource): Requiremen
       });
     }
   };
-  add(segmentRequirementText(source.requirements), { kind: "requirements" }, true);
-  add(segmentRequirementText(source.goal), { kind: "goal" }, false, optionStatements(source.goal));
-  add(segmentRequirementText(source.idea), { kind: "idea" }, false, optionStatements(source.idea));
+  const requirements = stripContextSections(source.requirements);
+  const goal = stripContextSections(source.goal);
+  const idea = stripContextSections(source.idea);
+  add(segmentRequirementText(requirements), { kind: "requirements" }, true);
+  add(segmentRequirementText(goal), { kind: "goal" }, false, optionStatements(goal));
+  add(segmentRequirementText(idea), { kind: "idea" }, false, optionStatements(idea));
   const unscannedDocuments: Array<{ id: string; name: string }> = [];
   for (const doc of source.documents) {
     if (!PROSE_DOCUMENT.test(doc.name)) {

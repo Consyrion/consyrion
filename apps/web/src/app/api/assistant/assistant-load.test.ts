@@ -4,7 +4,7 @@
  * so parallel requests really overlap between the limit check and the usage booking.
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv, type Entitlements } from "@consyrion/core";
+import { keyringFromEnv, type Entitlements } from "@consyrium/core";
 import {
   addAssistantMessage,
   createAssistantChat,
@@ -19,7 +19,7 @@ import {
   updatePlanDefinition,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -35,8 +35,8 @@ vi.mock("next-intl/server", () => ({ getTranslations: async () => (key: string) 
 /** Scripted provider: answers after `delay` ms with fixed usage; a check request gets a verdict. */
 const USAGE = { inputTokens: 100, outputTokens: 50 };
 let delay = 40;
-vi.mock("@consyrion/ai", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@consyrion/ai")>();
+vi.mock("@consyrium/ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@consyrium/ai")>();
   return {
     ...actual,
     createAdapter: () => ({

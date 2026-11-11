@@ -18,6 +18,11 @@ export const reportNumber = (locale: ReportLocale, value: number) => value.toLoc
 type Dictionary = Record<string, string>;
 
 const DE: Dictionary = {
+  "Proposal {label} is your favourite: approve a prototype / measurement build in the app or record the measured result – nothing is approved as a finished solution.":
+    "Vorschlag {label} ist dein Favorit: Gib in der App einen Prototyp-/Mess-Build frei oder trage das Messergebnis ein – als fertige Lösung wird nichts freigegeben.",
+  "A prototype / measurement build of Proposal {label} is approved: record the measured result in the app – only a met measurement allows the approval after measurement.":
+    "Für Vorschlag {label} ist ein Prototyp-/Mess-Build freigegeben: Trage in der App das Messergebnis ein – erst eine erfüllte Messung erlaubt die Freigabe nach Messung.",
+  "not called (phase shortened by the budget)": "nicht aufgerufen (Phase vom Budget verkürzt)",
   "Course of the council": "Ablauf des Councils",
   "Phase timeline": "Zeitleiste der Phasen",
   "{phase}: {start} – {end} ({minutes} min)": "{phase}: {start} – {end} ({minutes} Min.)",
@@ -72,7 +77,7 @@ const DE: Dictionary = {
   "more debate requested": "weitere Debatte angefordert",
   "alternative selected": "Alternative gewählt",
   "evaluation repeated": "Bewertung wiederholt",
-  "Open in CONSYRION AI": "In CONSYRION AI öffnen",
+  "Open in CONSYRIUM AI": "In CONSYRIUM AI öffnen",
   "Decision: {project}": "Entscheidung: {project}",
   "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
     "Gesamtwert = Summe über alle Kriterien aus stimmgewichtetem Durchschnitt der unabhängigen Bewertungen × Gewicht / 100; Gewichte: {weights}; Stimmgewichte: {votes}",
@@ -310,6 +315,11 @@ const DE: Dictionary = {
 };
 
 const FR: Dictionary = {
+  "Proposal {label} is your favourite: approve a prototype / measurement build in the app or record the measured result – nothing is approved as a finished solution.":
+    "La proposition {label} est ta favorite : approuve un build prototype/de mesure dans l’app ou saisis le résultat mesuré – rien n’est approuvé comme solution finie.",
+  "A prototype / measurement build of Proposal {label} is approved: record the measured result in the app – only a met measurement allows the approval after measurement.":
+    "Un build prototype/de mesure de la proposition {label} est approuvé : saisis le résultat mesuré dans l’app – seule une mesure satisfaite permet l’approbation après mesure.",
+  "not called (phase shortened by the budget)": "non appelé (phase raccourcie par le budget)",
   "Course of the council": "Déroulement du council",
   "Phase timeline": "Chronologie des phases",
   "{phase}: {start} – {end} ({minutes} min)": "{phase} : {start} – {end} ({minutes} min)",
@@ -364,7 +374,7 @@ const FR: Dictionary = {
   "more debate requested": "débat supplémentaire demandé",
   "alternative selected": "alternative choisie",
   "evaluation repeated": "évaluation répétée",
-  "Open in CONSYRION AI": "Ouvrir dans CONSYRION AI",
+  "Open in CONSYRIUM AI": "Ouvrir dans CONSYRIUM AI",
   "Decision: {project}": "Décision : {project}",
   "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
     "total = somme sur tous les critères de la moyenne pondérée par les votes des notes indépendantes × poids / 100 ; poids : {weights} ; poids des votes : {votes}",
@@ -581,6 +591,11 @@ const FR: Dictionary = {
 };
 
 const ES: Dictionary = {
+  "Proposal {label} is your favourite: approve a prototype / measurement build in the app or record the measured result – nothing is approved as a finished solution.":
+    "La propuesta {label} es tu favorita: aprueba un build de prototipo/medición en la app o registra el resultado medido – nada se aprueba como solución terminada.",
+  "A prototype / measurement build of Proposal {label} is approved: record the measured result in the app – only a met measurement allows the approval after measurement.":
+    "Hay un build de prototipo/medición aprobado para la propuesta {label}: registra el resultado medido en la app – solo una medición cumplida permite la aprobación tras la medición.",
+  "not called (phase shortened by the budget)": "no llamado (fase acortada por el presupuesto)",
   "Course of the council": "Desarrollo del council",
   "Phase timeline": "Cronología de las fases",
   "{phase}: {start} – {end} ({minutes} min)": "{phase}: {start} – {end} ({minutes} min)",
@@ -635,7 +650,7 @@ const ES: Dictionary = {
   "more debate requested": "se pidió más debate",
   "alternative selected": "alternativa elegida",
   "evaluation repeated": "evaluación repetida",
-  "Open in CONSYRION AI": "Abrir en CONSYRION AI",
+  "Open in CONSYRIUM AI": "Abrir en CONSYRIUM AI",
   "Decision: {project}": "Decisión: {project}",
   "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
     "total = suma sobre todos los criterios de la media ponderada por votos de las puntuaciones independientes × peso / 100; pesos: {weights}; pesos de voto: {votes}",
@@ -853,6 +868,11 @@ const ES: Dictionary = {
 
 /** Chinese (#268): fixed report wording; the PDF embeds a CJK font for it (see report-documents). */
 const ZH: Dictionary = {
+  "Proposal {label} is your favourite: approve a prototype / measurement build in the app or record the measured result – nothing is approved as a finished solution.":
+    "方案 {label} 是你的首选:请在应用中批准原型/测量构建或记录测量结果 – 不会作为完成的方案获批。",
+  "A prototype / measurement build of Proposal {label} is approved: record the measured result in the app – only a met measurement allows the approval after measurement.":
+    "方案 {label} 的原型/测量构建已获批准:请在应用中记录测量结果 – 只有满足要求的测量才允许测量后批准。",
+  "not called (phase shortened by the budget)": "未调用(该阶段因预算被缩短)",
   "Course of the council": "council 过程",
   "Phase timeline": "阶段时间线",
   "{phase}: {start} – {end} ({minutes} min)": "{phase}:{start} – {end}({minutes} 分钟)",
@@ -863,13 +883,13 @@ const ZH: Dictionary = {
   "targeted review": "定向复查",
   completion: "补全",
   "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so no proposal can be approved as a finished solution yet. Mark it as favourite, approve a prototype / measurement build or record the measured result.":
-    "架构候选 – 性能证明待定:{ids} 只能通过测量运行中的实现来确认。council 确认的是测量计划,而不是需求本身,因此目前还没有提案能作为完成的方案获批。请将其标记为首选、批准原型/测量构建,或记录测量结果。",
+    "架构候选 – 性能证明待定:{ids} 只能通过测量运行中的实现来确认。council 确认的是测量计划,而不是需求本身,因此目前还没有方案能作为完成的方案获批。请将其标记为首选、批准原型/测量构建,或记录测量结果。",
   "Proposal {label} is an architecture candidate: mark it as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
-    "提案 {label} 是架构候选:请在应用中将其标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
+    "方案 {label} 是架构候选:请在应用中将其标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
   "Proposals {labels} are architecture candidates: mark one as favourite, approve a prototype / measurement build or record the measured result in the app – nothing is approved as a finished solution.":
-    "提案 {labels} 是架构候选:请在应用中将其中一个标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
+    "方案 {labels} 是架构候选:请在应用中将其中一个标记为首选、批准原型/测量构建,或记录测量结果 – 不会作为完成的方案获批。",
   " (instance {index} of {of} – one independent voice)": "(实例 {index}/{of} – 一个独立声音)",
-  "awaiting your review · no approvable proposal": "等待你的审查 · 没有可批准的提案",
+  "awaiting your review · no approvable proposal": "等待你的审查 · 没有可批准的方案",
   "marked as favourite": "已标记为首选",
   "prototype/measurement build approved": "已批准原型/测量构建",
   "approved after measurement": "测量后已批准",
@@ -882,11 +902,11 @@ const ZH: Dictionary = {
   "Architecture candidate – performance proof open: {ids} can only be confirmed by measuring the running implementation; the evaluators confirmed the measurement plan, not the requirement.":
     "架构候选 – 性能证明待定:{ids} 只能通过测量运行中的实现来确认;评估者确认的是测量计划,而不是需求本身。",
   "Architecture candidate – performance proof open: a requirement can only be confirmed by measuring the running implementation. The council confirmed the measurement plan, not the requirement, so this proposal cannot be approved as a finished solution.":
-    "架构候选 – 性能证明待定:有一项需求只能通过测量运行中的实现来确认。council 确认的是测量计划,而不是需求本身,因此该提案不能作为完成的方案获批。",
+    "架构候选 – 性能证明待定:有一项需求只能通过测量运行中的实现来确认。council 确认的是测量计划,而不是需求本身,因此该方案不能作为完成的方案获批。",
   "Context of the question, not a requirement the user listed": "问题的背景,不是用户列出的需求",
   "Reads like an instruction to the AI models, not a product requirement": "读起来像是给 AI 模型的指令,而不是产品需求",
   "Says when a requirement counts as met instead of describing the product – the council judges proposals on substance":
-    "说明的是需求何时算作满足,而不是描述产品 – council 按实质评判提案",
+    "说明的是需求何时算作满足,而不是描述产品 – council 按实质评判方案",
   "From the idea or goal – context, not a hard requirement. Keep it if it is one.": "来自想法或目标 – 是背景,不是硬性需求。如果它确实是需求,请保留。",
   "A work instruction to the council for this run, not a product requirement. Keep it if it is one.":
     "是给本次 council 的工作指令,不是产品需求。如果它确实是需求,请保留。",
@@ -900,7 +920,7 @@ const ZH: Dictionary = {
   "more debate requested": "已要求更多辩论",
   "alternative selected": "已选择替代方案",
   "evaluation repeated": "已重复评估",
-  "Open in CONSYRION AI": "在 CONSYRION AI 中打开",
+  "Open in CONSYRIUM AI": "在 CONSYRIUM AI 中打开",
   "Decision: {project}": "决策:{project}",
   "total = sum over all criteria of the vote-weighted average of the independent scores × weight / 100; weights: {weights}; vote weights: {votes}":
     "总分 = 所有标准上独立评分的投票加权平均值 × 权重 / 100 之和;权重:{weights};投票权重:{votes}",
@@ -945,17 +965,17 @@ const ZH: Dictionary = {
   "Change the conflicting requirements and start a new council – nothing can be built under these requirements.":
     "修改相互冲突的需求并启动新的 council – 在这些需求下无法构建任何内容。",
   "Check Proposal {label} and approve it in the app – nothing is built before a human approves.":
-    "检查提案 {label} 并在应用中批准 – 在人工批准之前不会构建任何内容。",
+    "检查方案 {label} 并在应用中批准 – 在人工批准之前不会构建任何内容。",
   "Choose one of the approvable proposals in the app: {list}. The council left this choice to a human.":
-    "请在应用中从可批准的提案中选择一个:{list}。council 把这个选择留给了人。",
+    "请在应用中从可批准的方案中选择一个:{list}。council 把这个选择留给了人。",
   "Nothing can be approved in this council. Proposal {label} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
-    "本次 council 中没有任何内容可以获批。提案 {label} 通过了需求检查 – 请先解决下面的未决事项(异议、未确认的检查),然后启动新的 council。",
+    "本次 council 中没有任何内容可以获批。方案 {label} 通过了需求检查 – 请先解决下面的未决事项(异议、未确认的检查),然后启动新的 council。",
   "Nothing can be approved in this council. Proposals {labels} passed the requirement check – clear the open points below (objections, unconfirmed checks) and start a new council.":
-    "本次 council 中没有任何内容可以获批。提案 {labels} 通过了需求检查 – 请先解决下面的未决事项(异议、未确认的检查),然后启动新的 council。",
+    "本次 council 中没有任何内容可以获批。方案 {labels} 通过了需求检查 – 请先解决下面的未决事项(异议、未确认的检查),然后启动新的 council。",
   "No proposal meets all confirmed requirements. Change the brief or the requirements and start a new council.":
-    "没有任何提案满足所有已确认的需求。请修改任务说明或需求,然后启动新的 council。",
-  "Proposal {label} passed the requirement check.": "提案 {label} 通过了需求检查。",
-  "Proposals {labels} passed the requirement check.": "提案 {labels} 通过了需求检查。",
+    "没有任何方案满足所有已确认的需求。请修改任务说明或需求,然后启动新的 council。",
+  "Proposal {label} passed the requirement check.": "方案 {label} 通过了需求检查。",
+  "Proposals {labels} passed the requirement check.": "方案 {labels} 通过了需求检查。",
   "No automatic recommendation: {reasons}.": "没有自动推荐:{reasons}。",
   "passes the requirements": "满足需求",
   "No automatic recommendation": "没有自动推荐",
@@ -969,8 +989,8 @@ const ZH: Dictionary = {
   "{id} not confirmed: {k} of {n} evaluators could not confirm it.": "{id} 未确认:{n} 位评估者中有 {k} 位无法确认。",
   "{id} not confirmed: {k} of {n} evaluators gave no valid answer.": "{id} 未确认:{n} 位评估者中有 {k} 位没有给出有效回答。",
   "None of the evaluated proposals meets all confirmed requirements according to these evaluations.":
-    "根据这些评估,所评估的提案中没有一个满足所有已确认的需求。",
-  "The proposals": "提案",
+    "根据这些评估,所评估的方案中没有一个满足所有已确认的需求。",
+  "The proposals": "方案",
   Recommended: "推荐",
   "Not approvable: this verdict cannot be approved or built.": "不可批准:此裁决不能获批或构建。",
   "Confidence: {level}": "置信度:{level}",
@@ -1002,12 +1022,12 @@ const ZH: Dictionary = {
   "**Not approvable:** this verdict cannot be approved or built.": "**不可批准:**此裁决不能获批或构建。",
   "Conflicting requirements": "相互冲突的需求",
   "Requirement check (model judgements with reasons, not a fact check)": "需求检查(附理由的模型判断,不是事实核查)",
-  "Proposal {label}": "提案 {label}",
+  "Proposal {label}": "方案 {label}",
   "Confirmed requirements (list version {version})": "已确认的需求(清单版本 {version})",
   "Not taken over:": "未采纳:",
   "**Architecture change:** revision v{to} replaced the solution of v{from}": "**架构变更:**修订 v{to} 替换了 v{from} 的方案",
-  "; it resembles Proposal {list}": ";它类似于提案 {list}",
-  "Leading proposal (not approvable)": "领先提案(不可批准)",
+  "; it resembles Proposal {list}": ";它类似于方案 {list}",
+  "Leading proposal (not approvable)": "领先方案(不可批准)",
   "Recommended solution": "推荐方案",
   "Author: {author}": "作者:{author}",
   Architecture: "架构",
@@ -1016,7 +1036,7 @@ const ZH: Dictionary = {
   "Rationale (independent evaluators)": "理由(独立评估者)",
   "Evaluation matrix": "评估矩阵",
   "Formula: {formula}": "公式:{formula}",
-  Proposal: "提案",
+  Proposal: "方案",
   Total: "总分",
   Implementable: "可实施",
   Eligible: "合格",
@@ -1047,11 +1067,11 @@ const ZH: Dictionary = {
   "Disagreements:": "分歧:",
   "Human decisions": "人工决定",
   "Tokens used: {used} of {budget}": "已用 token:{used} / {budget}",
-  "Objection by {by} against Proposal {proposal}: {claim}": "{by} 对提案 {proposal} 的异议:{claim}",
+  "Objection by {by} against Proposal {proposal}: {claim}": "{by} 对方案 {proposal} 的异议:{claim}",
   " Reasoning: {text}": " 理由:{text}",
   "objection open": "异议未决",
   "objection refuted": "异议被驳回",
-  "objection resolved by the proposal": "异议已由提案解决",
+  "objection resolved by the proposal": "异议已由方案解决",
   "objection accepted": "异议成立",
   "objection unresolved": "异议未解决",
   " – blocks approval": " – 阻止批准",
@@ -1064,15 +1084,15 @@ const ZH: Dictionary = {
   "No verdict yet.": "尚无裁决。",
   "This verdict cannot be approved or built.": "此裁决不能获批或构建。",
   "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.":
-    "需要核实 – council 无法确认有提案满足每一项需求。它不能获批或构建。",
+    "需要核实 – council 无法确认有方案满足每一项需求。它不能获批或构建。",
   "This proposal does not meet every confirmed requirement according to the evaluations (or it could not be confirmed). It cannot be approved or built. Change the brief or the requirements and start a new council.":
-    "根据评估,该提案未满足每一项已确认的需求(或无法确认)。它不能获批或构建。请修改任务说明或需求,然后启动新的 council。",
+    "根据评估,该方案未满足每一项已确认的需求(或无法确认)。它不能获批或构建。请修改任务说明或需求,然后启动新的 council。",
   "Too few independent models checked this proposal (at least 2 are needed). It is a provisional favourite and cannot be approved or built. Start a new council with at least 3 models.":
-    "检查该提案的独立模型太少(至少需要 2 个)。它是暂定首选,不能获批或构建。请用至少 3 个模型启动新的 council。",
+    "检查该方案的独立模型太少(至少需要 2 个)。它是暂定首选,不能获批或构建。请用至少 3 个模型启动新的 council。",
   "This verdict uses a result this version does not know. It cannot be approved or built here.": "此裁决使用了本版本不认识的结果。在这里不能获批或构建。",
   "Session {id} · {date}": "会话 {id} · {date}",
   "Decision summary": "决策摘要",
-  "Recommended: Proposal {label}": "推荐:提案 {label}",
+  "Recommended: Proposal {label}": "推荐:方案 {label}",
   "No approvable recommendation": "没有可批准的推荐",
   "Overall score (0–10)": "总分(0–10)",
   "not approvable": "不可批准",
@@ -1084,8 +1104,8 @@ const ZH: Dictionary = {
   Maintainability: "可维护性",
   "Operating cost": "运营成本",
   Speed: "速度",
-  "Highlighted: highest value per criterion among approvable proposals; grey = not approvable.": "高亮:可批准提案中每项标准的最高值;灰色 = 不可批准。",
-  "Hard requirements by proposal": "各提案的硬性需求",
+  "Highlighted: highest value per criterion among approvable proposals; grey = not approvable.": "高亮:可批准方案中每项标准的最高值;灰色 = 不可批准。",
+  "Hard requirements by proposal": "各方案的硬性需求",
   Requirement: "需求",
   "OK met": "OK 满足",
   "x not met": "x 未满足",
@@ -1105,7 +1125,7 @@ const ZH: Dictionary = {
     "得分和需求检查是附理由的模型判断,不是事实核查。详细内容见后续页面。",
   "Audit appendix": "审计附录",
   "Every stored requirement check (requirement × proposal × evaluator), also checks that did not count, and every model call per phase. Versions: brief v{brief}, requirements v{requirements}, gate v{gate}. Model statements, not a fact check.":
-    "每一项已存储的需求检查(需求 × 提案 × 评估者),包括未计入的检查,以及每个阶段的每次模型调用。版本:任务说明 v{brief},需求 v{requirements},关卡 v{gate}。模型陈述,不是事实核查。",
+    "每一项已存储的需求检查(需求 × 方案 × 评估者),包括未计入的检查,以及每个阶段的每次模型调用。版本:任务说明 v{brief},需求 v{requirements},关卡 v{gate}。模型陈述,不是事实核查。",
   "Requirement checks ({n})": "需求检查({n})",
   "No requirement checks are stored for this session.": "本会话没有存储任何需求检查。",
   "estimate {value}": "估计 {value}",

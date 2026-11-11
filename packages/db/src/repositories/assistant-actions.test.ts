@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { createDatabase, type DatabaseHandle } from "../client";
 import { assistantMessage, auditEvent, membership, user } from "../schema";
 import { addAssistantMessage, createAssistantChat, getAssistantChat } from "./assistant";
-import { acceptActionProposals, ASSISTANT_ACTION_TYPES, decideAssistantAction } from "./assistant-actions";
+import { acceptActionProposals, ASSISTANT_ACTION_TYPES, completeCouncilStartAction, decideAssistantAction, getAssistantAction } from "./assistant-actions";
 import { resolveActor, type ActorContext } from "./context";
 import { createOrganization, ensurePersonalOrganization } from "./organizations";
 import { createProject, getProject, listProjects } from "./projects";
@@ -41,7 +41,6 @@ const FORBIDDEN = [
   "approve",
   "reject",
   "approve_proposal",
-  "start_council",
   "start_build",
   "delete_project",
   "archive_project",
@@ -67,7 +66,24 @@ describe("assistant actions (#283): suggested by the model, run only on the user
     expect(rejected.filter((r) => r.reason === "not_allowed").map((r) => r.type)).toEqual(FORBIDDEN);
     expect(rejected.filter((r) => r.reason === "invalid")).toHaveLength(1);
     // The allowlist itself contains nothing that approves, starts, deletes, bills or changes settings/members.
-    expect(ASSISTANT_ACTION_TYPES.some((t) => /approve|reject|start|build|delete|billing|key|setting|member/.test(t))).toBe(false);
+    expect(ASSISTANT_ACTION_TYPES.some((t) => /approve|reject|build|delete|billing|key|setting|member/.test(t))).toBe(false);
+    // The only start is start_council (#215 stage 2), and the generic route never runs it (see the test below).
+    expect(ASSISTANT_ACTION_TYPES.filter((t) => /start/.test(t))).toEqual(["start_council"]);
+  });
+
+  it("keeps a project card when the model slipped on a detail: overlong name, unknown type, null goal (#583)", () => {
+    const { actions, rejected } = acceptActionProposals([
+      {
+        type: "create_project_draft",
+        params: { name: "N".repeat(200), type: "sap_migration", idea: "Kann die Abrechnung in das neue System übernommen werden?", goal: null },
+        summary: "Projektentwurf",
+      },
+      // A draft without a real idea stays invalid – nothing is invented.
+      { type: "create_project_draft", params: { name: "Leer", idea: "zu kurz" }, summary: "x" },
+    ]);
+    expect(rejected).toEqual([{ type: "create_project_draft", reason: "invalid" }]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0]!.params).toMatchObject({ name: "N".repeat(120), type: "idea", goal: "" });
   });
 
   it("accepts the requirements of a project draft as a list and joins them into lines (live test 08.11.26)", () => {
@@ -189,5 +205,73 @@ describe("assistant actions (#283): suggested by the model, run only on the user
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     const [row] = await handle.db.select().from(assistantMessage).where(eq(assistantMessage.id, own.message.id));
     expect(row?.actions?.[0]?.status).toBe("proposed"); // failed run leaves it open
+  });
+});
+
+describe("council start card (#215 stage 2)", () => {
+  it("is never run by the generic action route, can be dismissed, and is completed once with an audit entry", async () => {
+    // An existing project of earlier tests (the plan allows only a few active projects).
+    const [project] = await listProjects(handle.db, alice);
+    if (!project) throw new Error("no project");
+    const { chat, message, actions } = await answerWith(alice, [{ type: "start_council", params: { projectId: project.id, tokenBudget: 200_000 } }]);
+    const ids = { chatId: chat.id, messageId: message.id, actionId: actions[0]!.id };
+    expect(actions[0]).toMatchObject({ type: "start_council", params: { projectId: project.id, tokenBudget: 200_000 } });
+    // A budget above the maximum is not even a valid suggestion.
+    expect(acceptActionProposals([{ type: "start_council", params: { projectId: project.id, tokenBudget: 50_000_000 }, summary: "x" }]).actions).toHaveLength(
+      0,
+    );
+    // The generic "Run" never starts a council – only the council route with preview and cost confirmation.
+    await expect(decideAssistantAction(handle.db, alice, { ...ids, decision: "execute" })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await getAssistantAction(handle.db, alice, ids)).status).toBe("proposed");
+    // Another workspace cannot read or complete the card.
+    await expect(getAssistantAction(handle.db, bob, ids)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(completeCouncilStartAction(handle.db, bob, ids, { sessionId: "ses_x", label: "x", tokenBudget: 1 })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+
+    const first = await completeCouncilStartAction(handle.db, alice, ids, { sessionId: "ses_started", label: project.name, tokenBudget: 200_000 });
+    expect(first).toMatchObject({ status: "executed", result: { href: "/sessions/ses_started" } });
+    // A second click finds it executed and gets the same session, no second audit entry.
+    const again = await completeCouncilStartAction(handle.db, alice, ids, { sessionId: "ses_other", label: project.name, tokenBudget: 200_000 });
+    expect(again.result).toEqual(first.result);
+    const audits = await handle.db
+      .select()
+      .from(auditEvent)
+      .where(and(eq(auditEvent.action, "assistant.council_started"), eq(auditEvent.targetId, chat.id)));
+    expect(audits).toHaveLength(1);
+    expect(audits[0]!.metadata).toMatchObject({ sessionId: "ses_started", budget: 200_000, proposedBy: "ai_assistant", confirmedBy: "alice" });
+
+    // A dismissed card cannot be started.
+    const other = await answerWith(alice, [{ type: "start_council", params: { projectId: project.id } }]);
+    const otherIds = { chatId: other.chat.id, messageId: other.message.id, actionId: other.actions[0]!.id };
+    await decideAssistantAction(handle.db, alice, { ...otherIds, decision: "dismiss" });
+    await expect(completeCouncilStartAction(handle.db, alice, otherIds, { sessionId: "ses_y", label: "x", tokenBudget: 1 })).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+  });
+});
+
+describe("the user's leaning is never a weight (#215 stage 3)", () => {
+  it("no card type can carry weights, vote weights or roles", () => {
+    for (const type of ASSISTANT_ACTION_TYPES) {
+      const parsed = acceptActionProposals([
+        {
+          type,
+          params: {
+            projectId: "prj_1",
+            name: "x",
+            idea: "A decision with options A and B to compare.",
+            text: "t",
+            channel: "email",
+            requirements: ["r"],
+            weights: { a: 1 },
+            voteWeight: 9,
+            roles: ["security"],
+          },
+          summary: "s",
+        },
+      ]).actions[0];
+      if (parsed) for (const key of ["weights", "voteWeight", "roles"]) expect(parsed.params).not.toHaveProperty(key);
+    }
   });
 });

@@ -1,3 +1,4 @@
+import { adoptPublicRoleProfile } from "./role-profiles";
 import {
   assertCan,
   DomainError,
@@ -7,14 +8,17 @@ import {
   SKILL_PUBLICATION_LICENSE,
   SKILL_REPORT_REASONS,
   skillContentHash,
-  validateSkillContent,
+  hubAdapter,
+  isHubKind,
+  type HubKind,
+  type RoleProfileContent,
   type SkillContent,
   type SkillReportReason,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import { and, desc, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
-import { platformSetting, skill, skillModerationLog, skillPublisher, skillReport, skillVersion } from "../schema";
+import { feedback, platformSetting, roleProfile, skill, skillModerationLog, skillPublisher, skillReport, skillVersion } from "../schema";
 import { recordAudit } from "./audit";
 import { createFeedback } from "./feedback";
 import type { ActorContext } from "./context";
@@ -30,7 +34,11 @@ import { createSkill } from "./skills";
  */
 
 export interface PublicSkillSummary {
+  /** HubKind: a decision skill or an expert profile (#368). */
+  kind: HubKind;
   handle: string;
+  /** Optional public name of the publisher (shown next to @handle). */
+  publisherName: string | null;
   slug: string;
   name: string;
   summary: string;
@@ -41,7 +49,8 @@ export interface PublicSkillSummary {
 
 export interface PublicSkill extends PublicSkillSummary {
   skillId: string;
-  content: SkillContent;
+  /** SkillContent for `kind: "skill"`, RoleProfileContent for `kind: "role_profile"`. */
+  content: SkillContent | RoleProfileContent;
   changelog: string | null;
   contentHash: string;
   license: string;
@@ -54,7 +63,7 @@ const visible = and(isNotNull(skill.publicVersion), isNull(skill.hiddenAt), isNu
 
 function base(db: Database) {
   return db
-    .select({ skill, version: skillVersion, handle: skillPublisher.handle })
+    .select({ skill, version: skillVersion, handle: skillPublisher.handle, publisherName: skillPublisher.displayName })
     .from(skill)
     .innerJoin(skillPublisher, eq(skillPublisher.userId, skill.ownerUserId))
     .innerJoin(
@@ -63,19 +72,28 @@ function base(db: Database) {
     );
 }
 
-function toPublic(row: { skill: typeof skill.$inferSelect; version: typeof skillVersion.$inferSelect; handle: string }): PublicSkill | null {
-  const checked = validateSkillContent(row.version.content);
+function toPublic(row: {
+  skill: typeof skill.$inferSelect;
+  version: typeof skillVersion.$inferSelect;
+  handle: string;
+  publisherName: string | null;
+}): PublicSkill | null {
+  const adapter = hubAdapter(row.skill.kind);
+  const checked = adapter.validate(row.version.content);
   if (!checked.ok || !row.skill.slug) return null;
+  const shown = adapter.display(checked.content);
   return {
+    kind: row.skill.kind,
     skillId: row.skill.id,
     handle: row.handle,
+    publisherName: row.publisherName,
     slug: row.skill.slug,
-    name: checked.content.name,
-    summary: checked.content.summary,
-    category: checked.content.category,
+    name: shown.name,
+    summary: shown.summary,
+    category: shown.category,
     version: row.version.version,
     publishedAt: row.version.publishedAt,
-    content: checked.content,
+    content: checked.content as SkillContent | RoleProfileContent,
     changelog: row.version.changelog,
     contentHash: row.version.contentHash,
     license: row.version.license ?? SKILL_PUBLICATION_LICENSE.id,
@@ -84,11 +102,11 @@ function toPublic(row: { skill: typeof skill.$inferSelect; version: typeof skill
 }
 
 /**
- * Official skills (#368 PR 7): shipped with CONSYRION AI under the reserved handle @consyrion, so the catalog is never
+ * Official skills (#368 PR 7): shipped with CONSYRIUM AI under the reserved handle @consyrium, so the catalog is never
  * empty. They come from the reviewed repository (no database row, no fake user), must pass the publication scan green
  * (enforced by a test) and can be hidden by a platform admin at runtime (platform setting, audited) and reported.
  */
-export const OFFICIAL_SKILL_HANDLE = "consyrion";
+export const OFFICIAL_SKILL_HANDLE = "consyrium";
 export const SKILLHUB_OFFICIAL_SETTING = "skillhub_official";
 
 async function hiddenOfficialSlugs(db: Database): Promise<Set<string>> {
@@ -99,8 +117,10 @@ async function hiddenOfficialSlugs(db: Database): Promise<Set<string>> {
 function officialPublic(o: (typeof OFFICIAL_SKILLS)[number]): PublicSkill | null {
   if (scanSkillForPublication(o.content).light !== "green") return null;
   return {
+    kind: "skill",
     skillId: `official:${o.slug}`,
     handle: OFFICIAL_SKILL_HANDLE,
+    publisherName: "CONSYRIUM AI",
     slug: o.slug,
     name: o.content.name,
     summary: o.content.summary,
@@ -125,8 +145,9 @@ async function officialSkills(db: Database): Promise<PublicSkill[]> {
 /** The public catalog: listed skills only, newest first, optional text search and category. */
 export async function listPublicSkills(
   db: Database,
-  filter: { q?: string | null; category?: string | null; limit?: number; offset?: number } = {},
+  filter: { q?: string | null; category?: string | null; kind?: string | null; limit?: number; offset?: number } = {},
 ): Promise<PublicSkillSummary[]> {
+  const kind = isHubKind(filter.kind) ? filter.kind : null;
   const q = (filter.q ?? "").trim().slice(0, 100);
   const category = SKILL_CATEGORIES.includes(filter.category as never) ? filter.category : null;
   const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -135,6 +156,7 @@ export async function listPublicSkills(
       and(
         visible,
         eq(skill.listed, true),
+        kind ? eq(skill.kind, kind) : undefined,
         q ? or(ilike(skill.name, like), ilike(skillPublisher.handle, like), sql`${skillVersion.content}->>'summary' ilike ${like}`) : undefined,
         category ? sql`${skillVersion.content}->>'category' = ${category}` : undefined,
       ),
@@ -144,7 +166,7 @@ export async function listPublicSkills(
     .offset(Math.max(filter.offset ?? 0, 0));
   const needle = q.toLowerCase();
   const official =
-    (filter.offset ?? 0) > 0
+    (filter.offset ?? 0) > 0 || (kind !== null && kind !== "skill")
       ? []
       : (await officialSkills(db)).filter(
           (o) =>
@@ -152,8 +174,10 @@ export async function listPublicSkills(
             (!needle || o.name.toLowerCase().includes(needle) || o.summary.toLowerCase().includes(needle) || OFFICIAL_SKILL_HANDLE.includes(needle)),
         );
   return [...official, ...rows.map(toPublic).filter((s): s is PublicSkill => s !== null)].map(
-    ({ handle, slug, name, summary, category, version, publishedAt }) => ({
+    ({ kind: k, handle, publisherName, slug, name, summary, category, version, publishedAt }) => ({
+      kind: k,
       handle,
+      publisherName,
       slug,
       name,
       summary,
@@ -167,13 +191,22 @@ export async function listPublicSkills(
 /** One public skill by `@handle/slug` (unlisted ones too – by link). Null when it is not public. */
 /**
  * How many other workspaces adopted a public skill (copies that name it as origin). The author's own workspace never
- * counts, and each workspace counts once – a counter that self-adoption or repeated clicks cannot inflate.
+ * counts, each workspace counts once and archived copies do not count – a counter that self-adoption, repeated clicks
+ * or test copies cannot inflate.
  */
-export async function countSkillAdoptions(db: Database, skillId: string, ownerOrganizationId: string | null): Promise<number> {
+export async function countSkillAdoptions(db: Database, skillId: string, ownerOrganizationId: string | null, kind: HubKind = "skill"): Promise<number> {
+  // Skills are adopted into `skill`, expert profiles into `role_profile` (#368 profile hub, live check 09.11.2026).
+  const table = kind === "role_profile" ? roleProfile : skill;
   const [row] = await db
-    .select({ n: sql<number>`count(distinct ${skill.organizationId})` })
-    .from(skill)
-    .where(and(sql`${skill.forkedFrom}->>'skillId' = ${skillId}`, ownerOrganizationId ? sql`${skill.organizationId} <> ${ownerOrganizationId}` : undefined));
+    .select({ n: sql<number>`count(distinct ${table.organizationId})` })
+    .from(table)
+    .where(
+      and(
+        sql`${table.forkedFrom}->>'skillId' = ${skillId}`,
+        isNull(table.archivedAt),
+        ownerOrganizationId ? sql`${table.organizationId} <> ${ownerOrganizationId}` : undefined,
+      ),
+    );
   return Number(row?.n ?? 0);
 }
 
@@ -187,7 +220,7 @@ export async function getPublicSkill(db: Database, handle: string, slug: string)
   }
   const [row] = await base(db).where(and(visible, eq(skillPublisher.handle, h), eq(skill.slug, s)));
   const found = row ? toPublic(row) : null;
-  return found ? { ...found, uses: await countSkillAdoptions(db, found.skillId, row!.skill.organizationId) } : null;
+  return found ? { ...found, uses: await countSkillAdoptions(db, found.skillId, row!.skill.organizationId, found.kind) } : null;
 }
 
 /** Copies the public version into the caller's workspace as a private skill that names its origin. */
@@ -195,8 +228,32 @@ export async function adoptPublicSkill(db: Database, ctx: ActorContext, handle: 
   assertCan(ctx.role, "project:write");
   const found = await getPublicSkill(db, handle, slug);
   if (!found) throw new DomainError("NOT_FOUND", "Skill not found");
+  // Expert profiles (owner decision 08.11.26): adopting one creates a private role profile with its origin.
+  if (found.kind === "role_profile")
+    return adoptPublicRoleProfile(
+      db,
+      ctx,
+      { skillId: found.skillId, version: found.version, contentHash: found.contentHash, handle: found.handle, slug: found.slug },
+      found.content,
+    );
+  if (found.kind !== "skill") throw new DomainError("VALIDATION", "This entry cannot be adopted.", { reason: "kind_not_adoptable" });
+  // Idempotent (Gesamttest 3): a second click returns the caller's existing copy of this version instead of a duplicate.
+  const [existing] = await db
+    .select({ id: skill.id })
+    .from(skill)
+    .where(
+      and(
+        eq(skill.organizationId, ctx.organizationId),
+        eq(skill.ownerUserId, ctx.userId),
+        isNull(skill.archivedAt),
+        sql`${skill.forkedFrom}->>'skillId' = ${found.skillId}`,
+        sql`(${skill.forkedFrom}->>'version')::int = ${found.version}`,
+      ),
+    )
+    .limit(1);
+  if (existing) return { id: existing.id, alreadyAdopted: true as const };
   return createSkill(db, ctx, {
-    content: found.content,
+    content: found.content as SkillContent,
     forkedFrom: { skillId: found.skillId, name: `@${found.handle}/${found.slug}`, version: found.version, contentHash: found.contentHash },
   });
 }
@@ -209,7 +266,14 @@ export async function reportPublicSkill(db: Database, ctx: ActorContext, input: 
   if (!found) throw new DomainError("NOT_FOUND", "Skill not found");
   const note = typeof input.note === "string" ? input.note.trim().slice(0, 1_000) : null;
   if (found.handle === OFFICIAL_SKILL_HANDLE) {
-    // Official skills have no database row: their reports go to the platform admins' feedback inbox.
+    // Official skills have no database row: their reports go to the platform admins' feedback inbox – once per user.
+    const subjectPrefix = `SkillHub report: @${found.handle}/${found.slug} (`;
+    const [already] = await db
+      .select({ id: feedback.id })
+      .from(feedback)
+      .where(and(eq(feedback.userId, ctx.userId), sql`${feedback.subject} like ${`${subjectPrefix}%`}`))
+      .limit(1);
+    if (already) throw new DomainError("VALIDATION", "You already reported this skill.", { reason: "already_reported" });
     await createFeedback(
       db,
       { kind: "user", actor: ctx },

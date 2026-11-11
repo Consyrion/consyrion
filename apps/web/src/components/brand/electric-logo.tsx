@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, type CSSProperties } from "react";
 import { usePageVisible, usePrefersReducedMotion } from "@/lib/motion";
-import { MarkShapes } from "./consyrion-logo";
+import { MarkShapes } from "./consyrium-logo";
 import { EXECUTION_PATH, MARK_VIEWBOX, RING_LENGTH, RING_PATH } from "./geometry";
 
 export type ElectricMode = "ambient" | "hover" | "intro";
@@ -21,11 +21,11 @@ interface ElectricLogoProps {
 
 const INTRO_MS = 2_600;
 
-/** Dash pattern plus a seamless travel distance (whole periods) for the consyrion-flow keyframes. */
+/** Dash pattern plus a seamless travel distance (whole periods) for the consyrium-flow keyframes. */
 function flow(dash: number, gap: number, periods: number, duration: string, reverse = false) {
   return {
     strokeDasharray: `${dash} ${gap}`,
-    style: { "--travel": `${-(dash + gap) * periods}px`, animation: `consyrion-flow ${duration} linear infinite${reverse ? " reverse" : ""}` } as CSSProperties,
+    style: { "--travel": `${-(dash + gap) * periods}px`, animation: `consyrium-flow ${duration} linear infinite${reverse ? " reverse" : ""}` } as CSSProperties,
   };
 }
 
@@ -34,12 +34,12 @@ const ARC = flow(RING_LENGTH * 0.05, RING_LENGTH * 0.35, 2, "3.4s", true);
 const EXECUTION = flow(4, 6, 4, "1.6s");
 
 /**
- * Original CONSYRION AI Electric Logo (issue #67). Electric sparks run along the mark's outline: dashed
+ * Original CONSYRIUM AI Electric Logo (issue #67). Electric sparks run along the mark's outline: dashed
  * strokes travel the ring while an animated turbulence filter makes them crackle. Pure SVG/CSS – no
  * WebGL, no third-party code. With reduced motion, a hidden tab or before hydration only the static mark
  * is rendered, so the logo is always recognisable.
  */
-export function ElectricLogo({ size = 40, mode = "intro", title = "CONSYRION AI", className = "" }: ElectricLogoProps) {
+export function ElectricLogo({ size = 40, mode = "intro", title = "CONSYRIUM AI", className = "" }: ElectricLogoProps) {
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
   const [hovering, setHovering] = useState(false);

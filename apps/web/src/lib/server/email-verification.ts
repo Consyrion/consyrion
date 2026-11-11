@@ -22,11 +22,11 @@ export function verificationMail(input: { to: string; name: string; url: string 
   return {
     from: options.from,
     to: [input.to],
-    subject: "CONSYRION AI: E-Mail-Adresse bestätigen / Confirm your e-mail address",
+    subject: "CONSYRIUM AI: E-Mail-Adresse bestätigen / Confirm your e-mail address",
     text: [
       `Hallo ${name || ""}`.trim() + ",",
       "",
-      "bitte bestätige deine E-Mail-Adresse für CONSYRION AI mit diesem Link:",
+      "bitte bestätige deine E-Mail-Adresse für CONSYRIUM AI mit diesem Link:",
       input.url,
       "",
       `Der Link ist ${VERIFICATION_LINK_HOURS} Stunden gültig. Wenn du kein Konto erstellt hast, ignoriere diese E-Mail.`,
@@ -35,7 +35,7 @@ export function verificationMail(input: { to: string; name: string; url: string 
       "",
       `Hello ${name || ""}`.trim() + ",",
       "",
-      "please confirm your e-mail address for CONSYRION AI with this link:",
+      "please confirm your e-mail address for CONSYRIUM AI with this link:",
       input.url,
       "",
       `The link is valid for ${VERIFICATION_LINK_HOURS} hours. If you did not create an account, ignore this e-mail.`,
@@ -61,7 +61,7 @@ export async function sendVerificationMail(
   try {
     const send = deps.sendMail === undefined ? await smtpSenderFromEnv(env) : deps.sendMail;
     if (!send) return "skipped";
-    await send(verificationMail(input, { from: env.MAIL_FROM ?? "CONSYRION AI <no-reply@consyrion.com>" }));
+    await send(verificationMail(input, { from: env.MAIL_FROM ?? "CONSYRIUM AI <no-reply@consyrium.com>" }));
     return "sent";
   } catch (error) {
     logger.warn("Verification e-mail failed", { error: error instanceof Error ? error.message.slice(0, 200) : "unknown" });
@@ -83,11 +83,11 @@ export function passwordResetMail(input: { to: string; name: string; url: string
   return {
     from: options.from,
     to: [input.to],
-    subject: "CONSYRION AI: Passwort zurücksetzen / Reset your password",
+    subject: "CONSYRIUM AI: Passwort zurücksetzen / Reset your password",
     text: [
       `Hallo ${name || ""}`.trim() + ",",
       "",
-      "mit diesem Link setzt du ein neues Passwort für CONSYRION AI. Danach sind alle bisherigen Anmeldungen beendet:",
+      "mit diesem Link setzt du ein neues Passwort für CONSYRIUM AI. Danach sind alle bisherigen Anmeldungen beendet:",
       input.url,
       "",
       `Der Link ist ${PASSWORD_RESET_LINK_MINUTES} Minuten gültig und funktioniert einmal. Wenn du das nicht angefordert hast, ignoriere diese E-Mail – dein Passwort bleibt unverändert.`,
@@ -96,7 +96,7 @@ export function passwordResetMail(input: { to: string; name: string; url: string
       "",
       `Hello ${name || ""}`.trim() + ",",
       "",
-      "use this link to set a new password for CONSYRION AI. All existing sign-ins end afterwards:",
+      "use this link to set a new password for CONSYRIUM AI. All existing sign-ins end afterwards:",
       input.url,
       "",
       `The link is valid for ${PASSWORD_RESET_LINK_MINUTES} minutes and works once. If you did not ask for this, ignore this e-mail – your password stays unchanged.`,
@@ -114,7 +114,7 @@ export async function sendPasswordResetMail(
   try {
     const send = deps.sendMail === undefined ? await smtpSenderFromEnv(env) : deps.sendMail;
     if (!send) return "skipped";
-    await send(passwordResetMail(input, { from: env.MAIL_FROM ?? "CONSYRION AI <no-reply@consyrion.com>" }));
+    await send(passwordResetMail(input, { from: env.MAIL_FROM ?? "CONSYRIUM AI <no-reply@consyrium.com>" }));
     return "sent";
   } catch (error) {
     logger.warn("Password reset e-mail failed", { error: error instanceof Error ? error.message.slice(0, 200) : "unknown" });

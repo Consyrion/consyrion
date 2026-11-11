@@ -2,10 +2,10 @@
  * Council worker for PostgreSQL deployments. Several instances may run in parallel; the job queue
  * uses SKIP LOCKED and lock heartbeats, and interrupted sessions resume from their last checkpoint.
  */
-import { EXECUTION_JOB, executionJobHandlers } from "@consyrion/build";
-import { keyringFromEnv, redactSecrets } from "@consyrion/core";
-import { startCouncilWorker, workerCapacityFromEnv } from "@consyrion/council";
-import { createDatabase } from "@consyrion/db";
+import { EXECUTION_JOB, executionJobHandlers } from "@consyrium/build";
+import { keyringFromEnv, redactSecrets } from "@consyrium/core";
+import { startCouncilWorker, workerCapacityFromEnv } from "@consyrium/council";
+import { createDatabase } from "@consyrium/db";
 
 const url = process.env.DATABASE_URL;
 if (!url || !/^postgres(ql)?:\/\//.test(url)) {

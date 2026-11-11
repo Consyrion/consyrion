@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
-import { createDatabase, getPlanCatalog, schema, type DatabaseHandle } from "@consyrion/db";
+import { keyringFromEnv } from "@consyrium/core";
+import { createDatabase, getPlanCatalog, schema, type DatabaseHandle } from "@consyrium/db";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStripe, stripeConfig, stripeStatus, type FetchLike } from "../src";
 

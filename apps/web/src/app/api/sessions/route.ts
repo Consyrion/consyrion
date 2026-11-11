@@ -1,4 +1,4 @@
-import { listSessions } from "@consyrion/council";
+import { listSessions } from "@consyrium/council";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

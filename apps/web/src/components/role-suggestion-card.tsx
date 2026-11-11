@@ -1,6 +1,6 @@
 "use client";
 
-import type { CouncilRole, ProfileSuggestion, RoleSuggestionResult } from "@consyrion/core/browser";
+import type { CouncilRole, ProfileSuggestion, RoleSuggestionResult } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { Button } from "./ui/button";
 

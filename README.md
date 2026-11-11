@@ -1,12 +1,12 @@
-# CONSYRION AI
+# CONSYRIUM AI
 
 **Multiple AI Minds. Better Decisions. Real Execution.**
 
-CONSYRION AI lets several AI models analyse an idea independently, challenge each other, protect minority
+CONSYRIUM AI lets several AI models analyse an idea independently, challenge each other, protect minority
 positions and reach a documented decision. After human approval, coding agents implement the decision as
 a reviewed pull request.
 
-**Open source (AGPL-3.0), self-hosted, bring your own keys.** You run CONSYRION AI on your own machine or server
+**Open source (AGPL-3.0), self-hosted, bring your own keys.** You run CONSYRIUM AI on your own machine or server
 and connect your own API keys from Anthropic, OpenAI, Google, DeepSeek and others. AI usage is billed by those
 providers directly to you; there is no hosted service, no account with us and no fee.
 
@@ -15,7 +15,7 @@ providers directly to you; there is no hosted service, no account with us and no
 Requirements: Docker with Compose, `openssl`.
 
 ```bash
-git clone <this repository> consyrion && cd consyrion
+git clone <this repository> consyrium && cd consyrium
 deploy/selfhost/init.sh                                   # writes deploy/selfhost/.env with fresh secrets
 docker compose -f deploy/selfhost/compose.yml up -d --build
 ```
@@ -34,7 +34,7 @@ Open http://localhost:3000, create an account and add your provider keys under
 - Futuristic glassmorphism design system (ink navy, cyan/emerald/violet), original animated Electric Logo,
   public homepage at `/` as a scroll-driven 3D process story (`docs/design/homepage-story.md`), sign-in with
   three 3D spheres orbiting the original logo, component gallery at `/design`, light mode, reduced-motion
-  support (`docs/design/consyrion-futuristic-glassmorphism.md`)
+  support (`docs/design/consyrium-futuristic-glassmorphism.md`)
 - **Council sessions** with the seven phases, three modes, token budget, live progress, minority review,
   deterministic verdict with a separate feasibility gate (a finding that the requirements conflict is never
   approvable or buildable), human approval and Markdown/JSON report (`docs/council-engine.md`)
@@ -58,7 +58,7 @@ Open http://localhost:3000, create an account and add your provider keys under
   CSP and rate limits (`docs/deployment.md`, `docs/operations.md`, `docs/security-review.md`)
 
 To look at every screen without provider keys, sign up locally and run
-`pnpm --filter @consyrion/council seed:demo -- <your email>` while the dev server is stopped. It creates a
+`pnpm --filter @consyrium/council seed:demo -- <your email>` while the dev server is stopped. It creates a
 session from scripted test models, clearly labelled as demo data.
 
 ## Local development
@@ -94,20 +94,20 @@ you change – `pnpm format <files>` / `pnpm format:check <files>`. The existing
 - [Concept](docs/KONZEPT.md) · [Architecture](docs/architecture.md) · [Data model](docs/data-model.md)
 - [Security: credentials & tenancy](docs/security.md) · [Testing](docs/testing.md) · [Roadmap](docs/roadmap.md)
 - [Council engine](docs/council-engine.md) · [Engine](docs/engine.md) · [Requirement intake](docs/requirements-intake.md) · [Execution Council](docs/execution-council.md) · [GitHub App](docs/github-app.md) · [SaaS](docs/saas.md)
-- [Design system](docs/design/consyrion-futuristic-glassmorphism.md) · [API](docs/api.md) · [VS Code](docs/vscode.md) · [Obsidian](docs/obsidian.md) · [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Security review](docs/security-review.md) · [Release checklist](docs/release-checklist.md)
+- [Design system](docs/design/consyrium-futuristic-glassmorphism.md) · [API](docs/api.md) · [VS Code](docs/vscode.md) · [Obsidian](docs/obsidian.md) · [Deployment](docs/deployment.md) · [Operations](docs/operations.md) · [Security review](docs/security-review.md) · [Release checklist](docs/release-checklist.md)
 - [Self-hosting](docs/self-hosting.md) · [Feedback inbox](docs/feedback.md) · [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md)
 - Contributor and agent rules: [CLAUDE.md](CLAUDE.md)
 
 ## License
 
-CONSYRION AI is free software under the [GNU Affero General Public License v3.0](LICENSE). You may use, change and
+CONSYRIUM AI is free software under the [GNU Affero General Public License v3.0](LICENSE). You may use, change and
 share it; if you offer a modified version to others over a network, you must make its source code available to them
 under the same license.
 
 ## Languages
 
 The interface is available in English, German, French, Spanish and Chinese (`apps/web/messages/*.json`, next-intl,
-no locale in the URL): the user's choice is stored in the `consyrion-locale` cookie, otherwise the browser language
+no locale in the URL): the user's choice is stored in the `consyrium-locale` cookie, otherwise the browser language
 is used. Adding a language = one messages file plus an entry in `apps/web/src/i18n/locales.ts`; a test checks that
 every file has the same keys, placeholders and list lengths as English. The seven phase names stay the canonical
 product names in every language. The language the models write in is a separate per-council setting (planned).
@@ -122,7 +122,7 @@ change settings – see `docs/assistant.md`.
 
 ## MCP server
 
-Use CONSYRION AI from Claude Code, Claude Desktop, Cursor or VS Code: `POST /api/mcp` with an API token (Pro and up on
+Use CONSYRIUM AI from Claude Code, Claude Desktop, Cursor or VS Code: `POST /api/mcp` with an API token (Pro and up on
 the hosted app, always when self-hosted). Read decisions, prepare projects and requirements, start councils on your own
 keys with a budget limit – approving, building and deleting stay in the app. See `docs/mcp.md`.
 

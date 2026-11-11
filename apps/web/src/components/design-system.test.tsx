@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { COUNCIL_PHASE_LABELS } from "@consyrion/core";
+import { COUNCIL_PHASE_LABELS } from "@consyrium/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
@@ -10,11 +10,11 @@ import { messagesFor } from "../i18n/all-messages";
 import { ICON_SVG, LOGO_SVG, MARK_SVG } from "../../scripts/brand-assets";
 import { AuthShell } from "./auth-shell";
 import { PasswordField } from "./ui/password-field";
-import { ConsyrionOrbitalLogo, orbitAngle, orbitState } from "./brand/orbital-logo";
+import { ConsyriumOrbitalLogo, orbitAngle, orbitState } from "./brand/orbital-logo";
 import { ActivityNetwork } from "./dashboard/activity-network";
 import { failureSummary, objectionProgress, voiceStates } from "./session/council-room";
 import type { View } from "./session/helpers";
-import { ConsyrionMark } from "./brand/consyrion-logo";
+import { ConsyriumMark } from "./brand/consyrium-logo";
 import { ElectricLockup } from "./brand/electric-lockup";
 import { ElectricLogo } from "./brand/electric-logo";
 import { PHASE_NODES } from "./brand/geometry";
@@ -59,43 +59,43 @@ function pageRoutes(dir = appDir, prefix = ""): string[] {
   });
 }
 
-describe("Consyrion logo", () => {
+describe("Consyrium logo", () => {
   it("renders an accessible static mark with seven phase nodes", () => {
-    const html = renderToStaticMarkup(<ConsyrionMark title="CONSYRION AI" />);
+    const html = renderToStaticMarkup(<ConsyriumMark title="CONSYRIUM AI" />);
     expect(html).toContain('role="img"');
-    expect(html).toContain('aria-label="CONSYRION AI"');
+    expect(html).toContain('aria-label="CONSYRIUM AI"');
     expect(html.match(/<circle/g)).toHaveLength(PHASE_NODES.length + 2);
     expect(PHASE_NODES).toHaveLength(7);
   });
 
   it("is decorative when visible text already names it", () => {
-    const html = renderToStaticMarkup(<ConsyrionMark title="" />);
+    const html = renderToStaticMarkup(<ConsyriumMark title="" />);
     expect(html).toContain('aria-hidden="true"');
     expect(html).not.toContain("role=");
   });
 
   it("server-renders the Electric Logo as the static fallback (no animation before hydration)", () => {
-    const html = renderToStaticMarkup(<ElectricLogo mode="ambient" title="CONSYRION AI" />);
+    const html = renderToStaticMarkup(<ElectricLogo mode="ambient" title="CONSYRIUM AI" />);
     expect(html).toContain('data-electric="off"');
     expect(html).not.toContain("<animate");
-    expect(html).not.toContain("consyrion-flow");
-    expect(html).toContain('aria-label="CONSYRION AI"');
+    expect(html).not.toContain("consyrium-flow");
+    expect(html).toContain('aria-label="CONSYRIUM AI"');
   });
 
   it("server-renders the electric logo + name lockup as a readable static outline", () => {
-    const html = renderToStaticMarkup(<ElectricLockup label="CONSYRION AI" />);
-    expect(html).toContain('aria-label="CONSYRION AI"');
+    const html = renderToStaticMarkup(<ElectricLockup label="CONSYRIUM AI" />);
+    expect(html).toContain('aria-label="CONSYRIUM AI"');
     expect(html).toContain('data-electric="off"');
-    expect(html).toContain("CONSYRION");
+    expect(html).toContain("CONSYRIUM");
     expect(html).not.toContain("<animate");
-    expect(html).not.toContain("consyrion-flicker");
+    expect(html).not.toContain("consyrium-flicker");
   });
 
   it("keeps the favicon and SVG assets in sync with the shared geometry", () => {
     const root = new URL("../../", import.meta.url);
     expect(readFileSync(new URL("src/app/icon.svg", root), "utf8")).toBe(ICON_SVG);
-    expect(readFileSync(new URL("public/brand/consyrion-mark.svg", root), "utf8")).toBe(MARK_SVG);
-    expect(readFileSync(new URL("public/brand/consyrion-logo.svg", root), "utf8")).toBe(LOGO_SVG);
+    expect(readFileSync(new URL("public/brand/consyrium-mark.svg", root), "utf8")).toBe(MARK_SVG);
+    expect(readFileSync(new URL("public/brand/consyrium-logo.svg", root), "utf8")).toBe(LOGO_SVG);
   });
 });
 
@@ -103,7 +103,7 @@ describe("landing page", async () => {
   const html = await renderLanding(false);
 
   it("shows the brand, tagline and all seven canonical stages", () => {
-    expect(html).toContain("CONSYRION");
+    expect(html).toContain("CONSYRIUM");
     expect(html).toContain("Debate. Decide. Deliver.");
     for (const label of Object.values(COUNCIL_PHASE_LABELS)) expect(html).toContain(label);
   });
@@ -170,7 +170,7 @@ describe("council network", () => {
   it("shows no motion at all for an idle council", () => {
     const html = renderIntl(<CouncilNetwork nodes={[{ id: "a", label: "Architect", state: "idle" }]} />);
     expect(html).not.toContain("data-pulse");
-    expect(html).not.toContain("consyrion-flow");
+    expect(html).not.toContain("consyrium-flow");
   });
 });
 
@@ -199,7 +199,7 @@ describe("auth shell", () => {
         </AuthShell>
       </NextIntlClientProvider>,
     );
-    expect(html).toContain('aria-label="CONSYRION AI home"');
+    expect(html).toContain('aria-label="CONSYRIUM AI home"');
     expect(html).toContain("Debate. Decide. Deliver.");
     expect(html).toContain('aria-label="Sign in form"');
     // Always-dark stage with the full-page ribbon canvas, static on the server.
@@ -209,7 +209,7 @@ describe("auth shell", () => {
 });
 
 describe("orbital sign-in logo (#67)", () => {
-  const html = renderToStaticMarkup(<ConsyrionOrbitalLogo />);
+  const html = renderToStaticMarkup(<ConsyriumOrbitalLogo />);
   it("is decorative, static on the server and has exactly three distributed spheres", () => {
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('data-orbital="off"');
@@ -220,7 +220,7 @@ describe("orbital sign-in logo (#67)", () => {
     );
     expect(positions).toHaveLength(3);
     expect(new Set(positions).size).toBe(3);
-    expect(html).not.toContain("consyrion-spin-surface");
+    expect(html).not.toContain("consyrium-spin-surface");
   });
   it("orbits slowly and continuously, larger on the near side than on the far side", () => {
     expect(orbitAngle(0)).toBe(0);
@@ -238,8 +238,8 @@ describe("orbital sign-in logo (#67)", () => {
         <AuthShell>x</AuthShell>
       </NextIntlClientProvider>,
     );
-    expect(shell).toContain("CONSYRION");
-    expect(shell).toContain('aria-label="CONSYRION AI home"');
+    expect(shell).toContain("CONSYRIUM");
+    expect(shell).toContain('aria-label="CONSYRIUM AI home"');
   });
 });
 
@@ -265,7 +265,7 @@ describe("dashboard activity network", () => {
       />,
     );
     expect(html.match(/data-pulse="true"/g)).toHaveLength(1);
-    expect(html.match(/consyrion-flow/g)).toHaveLength(1);
+    expect(html.match(/consyrium-flow/g)).toHaveLength(1);
     expect(html).toContain("OpenAI gpt-x: Working, Anthropic claude-x: Done");
   });
 });
@@ -358,7 +358,7 @@ describe("design follow-ups #79–#83", () => {
     expect(html).toContain("No council has run yet");
     expect(html).toContain('href="/settings/providers"');
     expect(html).not.toContain("data-node-state");
-    expect(html).not.toContain("consyrion-flow");
+    expect(html).not.toContain("consyrium-flow");
   });
 
   it("names every model and its state in text on the compact mobile council card", async () => {

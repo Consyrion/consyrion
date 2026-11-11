@@ -1,5 +1,5 @@
-import { DomainError, PLAN_KEYS, type PlanKey } from "@consyrion/core";
-import { setSubscriptionPlan } from "@consyrion/db";
+import { DomainError, PLAN_KEYS, type PlanKey } from "@consyrium/core";
+import { setSubscriptionPlan } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";

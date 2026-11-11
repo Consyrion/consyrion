@@ -1,4 +1,4 @@
-import { independenceKey } from "@consyrion/core";
+import { independenceKey } from "@consyrium/core";
 
 /**
  * Independence group per participant (user decision 08.11.26): instances of one model through different keys share a

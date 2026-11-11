@@ -1,5 +1,5 @@
 /**
- * Minimal client for the CONSYRION AI REST API with an integration token ("Councils only", prefix cni_). No Obsidian
+ * Minimal client for the CONSYRIUM AI REST API with an integration token ("Councils only", prefix cni_). No Obsidian
  * imports: the HTTP call is injected (Obsidian's requestUrl in the plugin, a fake in tests). Only endpoints that accept
  * integration tokens are used – the plugin can never approve, build, merge or read keys.
  */
@@ -18,7 +18,7 @@ export type Http = (request: HttpRequest) => Promise<HttpResponse>;
 
 export type ApiErrorKind = "offline" | "auth" | "forbidden" | "not_found" | "rate_limited" | "validation" | "conflict" | "provider" | "server";
 
-export class ConsyrionError extends Error {
+export class ConsyriumError extends Error {
   constructor(
     readonly kind: ApiErrorKind,
     message: string,
@@ -65,25 +65,26 @@ export interface SessionStatus {
 }
 
 /**
- * Remote servers need HTTPS; http only for localhost when the user enabled the development option. consyrion.com is
- * mapped to the app host (a redirect to another host would drop the Authorization header).
+ * Remote servers need HTTPS; http only for localhost when the user enabled the development option. consyrium.com and
+ * the former consyrion.com addresses are mapped to the app host (a redirect to another host would drop the
+ * Authorization header).
  */
 export function validateServerUrl(raw: string, allowLocalHttp: boolean): string {
   const trimmed = raw.trim().replace(/\/+$/, "");
-  if (/^https?:\/\/(www\.)?consyrion\.com$/i.test(trimmed)) return "https://app.consyrion.com";
+  if (/^https?:\/\/((www\.)?consyri(um|on)\.com|app\.consyrion\.com)$/i.test(trimmed)) return "https://app.consyrium.com";
   let url: URL;
   try {
     url = new URL(trimmed);
   } catch {
-    throw new ConsyrionError("validation", "invalid_url");
+    throw new ConsyriumError("validation", "invalid_url");
   }
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
   if (url.protocol === "https:") return trimmed;
   if (url.protocol === "http:" && local && allowLocalHttp) return trimmed;
-  throw new ConsyrionError("validation", local ? "local_http_disabled" : "https_required");
+  throw new ConsyriumError("validation", local ? "local_http_disabled" : "https_required");
 }
 
-export class ConsyrionApi {
+export class ConsyriumApi {
   constructor(
     private readonly baseUrl: string,
     private readonly token: string,
@@ -105,7 +106,7 @@ export class ConsyrionApi {
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
     } catch {
-      throw new ConsyrionError("offline", "offline");
+      throw new ConsyriumError("offline", "offline");
     }
     if (response.status >= 200 && response.status < 300) return (raw ? response.text : response.text ? JSON.parse(response.text) : {}) as T;
     let message = `HTTP ${response.status}`;
@@ -132,7 +133,7 @@ export class ConsyrionApi {
                   : response.status === 502
                     ? "provider"
                     : "server";
-    throw new ConsyrionError(kind, message, response.status);
+    throw new ConsyriumError(kind, message, response.status);
   }
 
   async models(): Promise<ModelChoice[]> {

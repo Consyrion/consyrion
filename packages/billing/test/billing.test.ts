@@ -8,7 +8,7 @@ import {
   schema,
   upsertStripeSubscription,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { handleStripeEvent, isMissingStripeCustomer, StripeClient, verifyStripeSignature, type FetchLike } from "../src";
 

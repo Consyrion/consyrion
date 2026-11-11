@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import {
   FEEDBACK_KINDS,
   FEEDBACK_STATES,
@@ -7,7 +7,7 @@ import {
   listFeedbackForAdmin,
   type FeedbackKind,
   type FeedbackState,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";

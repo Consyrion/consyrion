@@ -1,8 +1,8 @@
 import { generateKeyPairSync, randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
-import { createSession, runSession, submitApproval } from "@consyrion/council";
-import { createCredential, createDatabase, createProject, ensurePersonalOrganization, linkRepository, resolveActor, schema, type ActorContext, type DatabaseHandle, setSubscriptionPlan } from "@consyrion/db";
-import type { FetchLike } from "@consyrion/github";
+import { keyringFromEnv } from "@consyrium/core";
+import { createSession, runSession, submitApproval } from "@consyrium/council";
+import { createCredential, createDatabase, createProject, ensurePersonalOrganization, linkRepository, resolveActor, schema, type ActorContext, type DatabaseHandle, setSubscriptionPlan } from "@consyrium/db";
+import type { FetchLike } from "@consyrium/github";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createPullRequestForPlan, exportPatch, getExecutionView, runExecution, startExecution, type RepositoryAccess, type Sandbox } from "../src";
@@ -16,7 +16,7 @@ let projectId: string;
 let credentialId: string;
 const keyring = keyringFromEnv({ CREDENTIALS_MASTER_KEY_V1: randomBytes(32).toString("base64") });
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs8", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } });
-const config = { appId: "1", privateKey, slug: "consyrion-test", clientId: "c", clientSecret: "s", webhookSecret: "w" };
+const config = { appId: "1", privateKey, slug: "consyrium-test", clientId: "c", clientSecret: "s", webhookSecret: "w" };
 
 const passing: Sandbox = { name: "fake", available: async () => true, run: async () => ({ status: "passed", exitCode: 0, output: "ok", durationMs: 1 }) };
 /** TEST DOUBLE repository: a small existing codebase. */
@@ -117,7 +117,7 @@ describe("Execution Council on a linked repository", () => {
     expect(calls[0]).toMatchObject({ path: "/app/installations/42/access_tokens", body: { repositories: ["calc"], permissions: { contents: "write", pull_requests: "write" } } });
     const tree = calls.find((c) => c.path.endsWith("/git/trees"))!.body as { tree: Array<{ path: string }> };
     expect(tree.tree.map((t) => t.path).sort()).toEqual(["package.json", "src/sum.js"]);
-    expect(calls.find((c) => c.path.endsWith("/pulls"))!.body).toMatchObject({ draft: true, head: `consyrion/${id}`, base: "main" });
+    expect(calls.find((c) => c.path.endsWith("/pulls"))!.body).toMatchObject({ draft: true, head: `consyrium/${id}`, base: "main" });
     // Idempotent: a second click does not create another PR.
     expect(await createPullRequestForPlan(handle.db, actor, id, { config, fetchImpl })).toEqual(pr);
     expect(calls.filter((c) => c.path.endsWith("/pulls"))).toHaveLength(1);

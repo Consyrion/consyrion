@@ -12,7 +12,9 @@ All endpoints are under `/api`. Authentication: browser session cookie **or** `A
 | GET/POST `/projects/:id/requirements` | Proposed hard requirements, confirmed list versions; confirm a new version (#190, `docs/requirements-intake.md`) | project:read / project:write |
 | POST/DELETE `/projects/:id/repository` | Link GitHub repository | project:write + plan |
 | GET/POST `/projects/:id/sessions`, POST `/projects/:id/sessions/preview` | Councils, cost preview; a start needs a requirement list confirmed for the current brief and documents (409 otherwise) | decision:run |
-| GET `/sessions`, GET `/sessions/:id`, GET `/sessions/:id/events` (SSE), GET `/sessions/:id/report?format=json` | Session view and report | project:read |
+| GET `/sessions`, GET `/sessions/:id`, GET `/sessions/:id/report?format=json` | Session view and report | project:read |
+| GET `/sessions/:id/timeline?after=<cursor>&limit=200` | Run events in order (#12): contributions, model calls with tokens, phase start/end, revisions, scores, votes, objections, verdict, decisions, builds – ids, kinds and figures only, no text. Resume with `after` = `nextCursor`; events of the last 5 s are held back until settled, so no late commit is skipped; `complete` once the run is final | project:read |
+| GET `/sessions/:id/events?after=<cursor>` (SSE) | Live stream (#12): `session` = full view on every change; `usage` = running totals on every change (`status`, `phase`, `calls`, `failedCalls`, input/output/cached tokens, `tokensUsed` incl. reservations of running calls, `tokenBudget`, `share` 0..1, `phaseless` calls/tokens outside the council phases); `timeline` = each timeline event once, SSE `id` = its cursor. A reconnecting browser resumes via `Last-Event-ID`, other clients with `?after=`; no gaps, no repeats. Closes when the run is final and the last settled events are sent | project:read |
 | POST `/sessions/:id/cancel` | Stop a session | decision:run |
 | POST `/sessions/:id/approval` | approve, select_alternative, reject, request_changes, request_more_debate | decision:approve |
 | GET/POST `/sessions/:id/executions` | Execution Council runs | read / decision:approve |
@@ -39,7 +41,7 @@ All endpoints are under `/api`. Authentication: browser session cookie **or** `A
 
 | Scope | Prefix | May use |
 |---|---|---|
-| Integration (default) | `cni_` | projects (list, create, read, new brief version), documents (incl. image description), requirements (read, confirm), credentials and models (read, never secrets), cost preview, council start, session list/view/events/report, cancel |
+| Integration (default) | `cni_` | projects (list, create, read, new brief version), documents (incl. image description), requirements (read, confirm), credentials and models (read, never secrets), cost preview, council start, session list/view/events/timeline/report, cancel |
 | Full access | `cns_` | everything the user's role allows, including approvals, builds, pull requests and keys (VS Code extension) – except creating/revoking tokens and managing the team, which need the web app (#403) |
 
 Every handler that accepts an integration token opts in with `requireActor({ integration: true })`; all others refuse
@@ -57,12 +59,12 @@ calls; calls already running finish and are billed by the provider.
 
 **What goes to the AI providers.** Exactly what the council needs: the brief, the attached documents as text and the
 confirmed requirements, sent with your own keys to the providers of the models you selected; nothing else of the
-workspace. Provider-side retention follows the provider's API terms; CONSYRION AI stores the council (proposals,
+workspace. Provider-side retention follows the provider's API terms; CONSYRIUM AI stores the council (proposals,
 evaluations, report) in the workspace until the project or workspace is deleted.
 
 ```bash
 TOKEN=cni_...   # Settings → API tokens, "Councils only"
-API=https://app.consyrion.com/api/v1
+API=https://app.consyrium.com/api/v1
 PROJECT=$(curl -s -X POST $API/projects -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"name":"Clinic SaaS","type":"architecture","brief":{"idea":"Scheduling SaaS for 120 clinics in Germany.","requirements":"Health data must stay in Germany."}}' | jq -r .project.id)
 REQ=$(curl -s $API/projects/$PROJECT/requirements -H "Authorization: Bearer $TOKEN")

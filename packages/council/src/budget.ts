@@ -1,6 +1,6 @@
-import { finalVerdictCallItems, outputTokensFor } from "@consyrion/core";
+import { finalVerdictCallItems, outputTokensFor } from "@consyrium/core";
 import type { SessionContext } from "./context";
-import { schema } from "@consyrion/db";
+import { schema } from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { briefBlock } from "./prompts";
 

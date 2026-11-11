@@ -1,11 +1,11 @@
-import { can, DomainError, suggestRoles } from "@consyrion/core";
-import { getEntitlements, getPlanCatalog, getProject, getSkillForUse, listSkills, proposeRequirementList } from "@consyrion/db";
+import { can, DomainError, suggestRoles } from "@consyrium/core";
+import { getEntitlements, getPlanCatalog, getProject, getSkillForUse, listSkills, proposeRequirementList } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { RequirementIntake, type IntakeProposal } from "@/components/requirement-intake";
 import { SkillPicker } from "@/components/skills/skill-picker";
 import { TeamConfig, type SkillPrefill } from "@/components/team-config";
-import { PageHeader } from "@/components/ui/surface";
+import { Alert, PageHeader } from "@/components/ui/surface";
 import { requirePageActor } from "@/lib/server/actor";
 import { getDb } from "@/lib/server/db";
 
@@ -67,7 +67,7 @@ export default async function CouncilSetupPage({ params, searchParams }: { param
   const skillId = (await searchParams).skill;
   const chosen = skillId ? await getSkillForUse(db, actor, skillId).catch(() => null) : null;
   // #420: dismissed blocks are remembered per project and skill version (in the browser; a reading aid, not a decision).
-  const blocksKey = chosen ? `consyrion.skillBlocks.dismissed:${project.id}:${chosen.ref.skillId}@${chosen.ref.contentHash}` : null;
+  const blocksKey = chosen ? `consyrium.skillBlocks.dismissed:${project.id}:${chosen.ref.skillId}@${chosen.ref.contentHash}` : null;
   const blockList = chosen?.content.requirementBlocks ?? [];
   const prefill: SkillPrefill | null = chosen
     ? {
@@ -79,6 +79,7 @@ export default async function CouncilSetupPage({ params, searchParams }: { param
         roles: chosen.content.roles,
         weights: chosen.content.weights,
         sessionRules: chosen.content.sessionRules,
+        foreign: !chosen.editable || Boolean(chosen.forkedFrom),
         blocks:
           blockList.length && blocksKey
             ? { list: blockList, confirmed: proposal.current ? (proposal.latest?.items.map((i) => i.text) ?? []) : [], storageKey: blocksKey }
@@ -86,9 +87,16 @@ export default async function CouncilSetupPage({ params, searchParams }: { param
       }
     : null;
   const t = await getTranslations("councilSetup");
+  const tPicker = await getTranslations("skills.picker");
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
+      {skillId && !chosen ? (
+        // Gesamttest 3 (#12): an archived or invisible skill in the link is named instead of silently ignored.
+        <div className="mb-4">
+          <Alert tone="warning">{tPicker("unavailable")}</Alert>
+        </div>
+      ) : null}
       <div className="mb-4">
         <SkillPicker
           value={chosen?.ref.skillId ?? null}
@@ -96,6 +104,8 @@ export default async function CouncilSetupPage({ params, searchParams }: { param
             id: s.id,
             name: s.name,
             group: s.visibility === "official" ? "official" : s.visibility === "team" && !s.editable ? "team" : "own",
+            version: s.version,
+            copyOf: s.forkedFrom?.name ?? null,
           }))}
         />
       </div>
@@ -117,6 +127,8 @@ export default async function CouncilSetupPage({ params, searchParams }: { param
         maxModels={entitlements.maxParticipantsPerSession}
         requirementsConfirmed={proposal.current}
         roleSuggestion={roleSuggestion}
+        // #597: a repository project is there to be built – its council starts as an approval council; everything else as an idea check.
+        initialPurpose={project.type === "repository" || project.brief?.repositoryUrl ? "approval" : "idea_check"}
       />
     </>
   );

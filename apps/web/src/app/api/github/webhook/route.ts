@@ -1,5 +1,5 @@
-import { suspendGitHubInstallation, unsuspendGitHubInstallation } from "@consyrion/db";
-import { verifyWebhookSignature } from "@consyrion/github";
+import { suspendGitHubInstallation, unsuspendGitHubInstallation } from "@consyrium/db";
+import { verifyWebhookSignature } from "@consyrium/github";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
 import { githubConfig } from "@/lib/server/github";

@@ -26,7 +26,7 @@ export default function DatenschutzPage() {
           </a>
         </p>
         <p>
-          Diese Erklärung gilt für app.consyrion.com und consyrion.com. Massgebend sind das Schweizer Datenschutzgesetz (DSG) und, für Personen in der EU, die
+          Diese Erklärung gilt für app.consyrium.com und consyrium.com. Massgebend sind das Schweizer Datenschutzgesetz (DSG) und, für Personen in der EU, die
           Datenschutz-Grundverordnung (DSGVO).
         </p>
       </Section>
@@ -72,9 +72,9 @@ export default function DatenschutzPage() {
           <li>Stripe Payments Europe Ltd., Irland, und verbundene Gesellschaften: Zahlungsabwicklung für Pro.</li>
           <li>GitHub, Inc., USA: nur wenn Sie ein Repository verbinden oder sich mit GitHub anmelden.</li>
           <li>Google LLC, USA: nur bei Anmeldung mit Google.</li>
-          <li>Vercel Inc., USA: Weiterleitung von consyrion.com auf die App (technische Protokolle).</li>
+          <li>Vercel Inc., USA: Weiterleitung von consyrium.com (und der früheren Adresse consyrion.com) auf die App (technische Protokolle).</li>
           <li>
-            Hostinger International Ltd., Zypern: E-Mail-Postfach support@consyrion.com und Versand von Entscheidungen per E-Mail, wenn Sie diese Funktion
+            Hostinger International Ltd., Zypern: E-Mail-Postfach support@consyrium.com und Versand von Entscheidungen per E-Mail, wenn Sie diese Funktion
             nutzen.
           </li>
         </ul>
@@ -94,6 +94,11 @@ export default function DatenschutzPage() {
           Meldungen sind im Datenexport Ihres Arbeitsbereichs enthalten.
         </p>
         <p>
+          Melden Sie eine Unterhaltung mit dem KI-Assistenten, senden wir nur den in der Vorschau gezeigten, gekürzten Auszug (letzte Nachrichten, ohne Schlüssel
+          und Tool-Daten) zusammen mit Ihrer Erklärung an das Feedback-Postfach, und nur nach Ihrer ausdrücklichen Zustimmung; er wird wie eine Meldung
+          behandelt.
+        </p>
+        <p>
           Wir bewahren Meldungen auf, bis sie erledigt sind und wir sie nicht mehr benötigen; mit dem Löschen des Kontos werden auch Ihre Meldungen gelöscht.
           Auf Wunsch löschen wir eine Meldung samt Antworten sofort – schreiben Sie an {o.email}.
         </p>
@@ -102,7 +107,7 @@ export default function DatenschutzPage() {
       <Section title="Aufbewahrung">
         <p>
           Kontodaten und Inhalte speichern wir, bis Sie sie oder das Konto löschen (in den Einstellungen möglich, inklusive Export aller Daten).
-          Datensicherungen (auf dem Server und auf einem Sicherungsspeicher von Hetzner in Deutschland) werden nach 30 Tagen gelöscht. Abrechnungsbelege
+          Datensicherungen (auf dem Server und verschlüsselt auf einem Sicherungsspeicher von Hetzner in Finnland, EU) werden nach 30 Tagen gelöscht. Abrechnungsbelege
           bewahren wir so lange auf, wie es das Gesetz verlangt (in der Schweiz 10 Jahre).
         </p>
         <p className="mt-3">

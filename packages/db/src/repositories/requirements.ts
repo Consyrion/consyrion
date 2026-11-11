@@ -16,11 +16,11 @@ import {
   type RequirementDecomposition,
   type RequirementSource,
   type RequirementSuspicion,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import { assertNotDemoProject } from "./demo";
 
 export { CONTEXT_EXCLUSION_REASON, DOCUMENT_EXCLUSION_REASON };
-import { decomposeRequirement, extractRequirements, withoutQuotes } from "@consyrion/core/engine";
+import { decomposeRequirement, extractRequirements, withoutQuotes } from "@consyrium/core/engine";
 import { and, asc, desc, eq, max } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";
@@ -162,8 +162,8 @@ const EVALUATION_RULE =
 const OUTPUT_LANGUAGE =
   /\b(?:proposals?|critiques?|evaluations?|answers?|responses?|reasoning|outputs?|vorschläge|bewertungen|antworten|begründung\w*|ausgaben?)\b.{0,160}?\b(?:in|auf)\s+(?:english|englisch|german|deutsch|french|französisch|spanish|spanisch)\b/i;
 /**
- * R3 (ChatGPT P3): rules about CONSYRION's own workflow ("Kein automatischer Merge.", "Der Draft-PR soll durch die
- * bestehende Pipeline geprüft werden") describe how the build is delivered – CONSYRION only opens draft pull requests
+ * R3 (ChatGPT P3): rules about CONSYRIUM's own workflow ("Kein automatischer Merge.", "Der Draft-PR soll durch die
+ * bestehende Pipeline geprüft werden") describe how the build is delivered – CONSYRIUM only opens draft pull requests
  * and never merges – not what the product must do.
  */
 const WORKFLOW_RULE =

@@ -1,5 +1,5 @@
 /**
- * The seven official Consyrion decision phases. Names are canonical and must be used
+ * The seven official Consyrium decision phases. Names are canonical and must be used
  * unchanged in the workflow engine, the database and the UI (issue #58).
  */
 export const COUNCIL_PHASES = [

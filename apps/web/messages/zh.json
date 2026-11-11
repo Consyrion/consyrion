@@ -13,7 +13,7 @@
       "dashboardShort": "控制台",
       "startShort": "开始",
       "main": "主导航",
-      "home": "CONSYRION AI 首页",
+      "home": "CONSYRIUM AI 首页",
       "skip": "跳到内容",
       "openSource": "开源",
       "pricing": "价格",
@@ -43,7 +43,7 @@
     },
     "byok": {
       "title": "你的密钥，你的服务商。",
-      "text": "CONSYRION AI 只使用你自己的 API 密钥。你自行连接并直接向服务商付费——CONSYRION AI 不出售 AI 额度，也没有备用密钥。",
+      "text": "CONSYRIUM AI 只使用你自己的 API 密钥。你自行连接并直接向服务商付费——CONSYRIUM AI 不出售 AI 额度，也没有备用密钥。",
       "p1": "密钥在存储前用 AES-256-GCM 加密，之后不再显示。",
       "p2": "每个密钥都会向服务商验证；模型列表实时来自服务商。",
       "p3": "每个会话都有服务器强制执行的固定 Token 预算。",
@@ -135,7 +135,7 @@
       "integrations": "集成"
     },
     "why": {
-      "title": "为什么选择 CONSYRION AI？",
+      "title": "为什么选择 CONSYRIUM AI？",
       "text": "多个 AI 模型分别提出方案、相互质询并打分。在你做决定之前，可以看到论据、未解决的异议和结果。",
       "points": {
         "perspectives": {
@@ -161,13 +161,13 @@
       }
     },
     "channels": {
-      "title": "在你工作的地方使用 CONSYRION AI",
+      "title": "在你工作的地方使用 CONSYRIUM AI",
       "text": "不必为每个问题打开网页应用。使用 Pro，你可以从开发工具或私人 Telegram 聊天发起决策。",
       "mcp": {
         "kicker": "MCP 服务器",
         "title": "融入开发流程",
-        "text": "内置 MCP 服务器将 CONSYRION AI 连接到 Claude Code、Claude Desktop、Cursor 和 VS Code。",
-        "p1": "用 ask_consyrion 向 council 提问，用 get_decision 获取结论。",
+        "text": "内置 MCP 服务器将 CONSYRIUM AI 连接到 Claude Code、Claude Desktop、Cursor 和 VS Code。",
+        "p1": "用 ask_consyrium 向 council 提问，用 get_decision 获取结论。",
         "p2": "通过 API 令牌访问，也支持只读令牌。",
         "p3": "批准、构建、删除、密钥和计费永远无法通过 MCP 执行。"
       },
@@ -182,7 +182,7 @@
     },
     "openSource": {
       "title": "开源，也可运行在你自己的服务器上。",
-      "text": "CONSYRION AI 是免费的开源软件。从 GitHub 下载源代码，用 Docker Compose 自行部署。",
+      "text": "CONSYRIUM AI 是免费的开源软件。从 GitHub 下载源代码，用 Docker Compose 自行部署。",
       "cta": "在 GitHub 上查看",
       "guide": "自托管指南",
       "p1": "AGPL-3.0 许可证——免费下载",
@@ -191,8 +191,8 @@
       "p4": "使用你自己的 AI 密钥：直接向提供商付费"
     },
     "pricing": {
-      "title": "选择你使用 CONSYRION AI 的方式",
-      "text": "自行托管或直接在线开始。AI 调用始终使用你自己的 API 密钥——CONSYRION AI 不出售 AI 额度。",
+      "title": "选择你使用 CONSYRIUM AI 的方式",
+      "text": "自行托管或直接在线开始。AI 调用始终使用你自己的 API 密钥——CONSYRIUM AI 不出售 AI 额度。",
       "note": "Pro 可随时在 Stripe 客户门户取消。所有方案中，AI API 费用都直接支付给相应提供商。",
       "plans": {
         "selfhost": {
@@ -209,7 +209,7 @@
         "free": {
           "name": "Free",
           "price": "0 €",
-          "priceNote": "在 app.consyrion.com · AI 费用由提供商另行收取",
+          "priceNote": "在 app.consyrium.com · AI 费用由提供商另行收取",
           "p1": "1 名成员，3 个项目",
           "p2": "每月 2 次 council",
           "p3": "每次 council 最多 3 个 AI 模型",
@@ -232,7 +232,7 @@
     }
   },
   "story": {
-    "title": "CONSYRION AI 如何工作——从你的问题到有理有据的决策",
+    "title": "CONSYRIUM AI 如何工作——从你的问题到有理有据的决策",
     "chaptersLabel": "章节",
     "illustration": "示意图——非实时数据",
     "example": "示例场景——示意图，非实时数据。",
@@ -248,14 +248,14 @@
     },
     "chapters": {
       "top": {
-        "kicker": "CONSYRION AI",
+        "kicker": "CONSYRIUM AI",
         "title": "辩论。 决策。 交付。",
         "text": "Claude、OpenAI、Gemini、Grok、DeepSeek、Kimi 等 AI 模型独立思考、相互质询，并得出有据可查的结论。由你批准——然后把决策带到你工作的地方：作为报告、导入你的工具，或在连接 GitHub 仓库后作为经过评审的 Pull Request。"
       },
       "prepare": {
         "kicker": "Council 之前",
         "title": "你的问题成为任务说明",
-        "text": "创建项目并描述要做的决策。选择模型和最多十二个视角。你连接自己的服务商密钥并设定固定的 Token 预算——CONSYRION AI 不出售 AI 额度。",
+        "text": "创建项目并描述要做的决策。选择模型和最多十二个视角。你连接自己的服务商密钥并设定固定的 Token 预算——CONSYRIUM AI 不出售 AI 额度。",
         "example": "问题：“我们的 SaaS 产品应采用哪种数据库架构？”——三个模型、十二个视角、使用你自己密钥的预算。",
         "points": [
           "项目、问题和背景",
@@ -385,6 +385,23 @@
       "proposal": "方案 {label}",
       "approvableYes": "{n, plural, other {# 个方案可以批准}}",
       "approvableNo": "没有可批准的方案",
+      "whoActs": "这意味着：CONSYRIUM 只放行每位评估者对每项要求都确认的内容——这是应用的规则，这里不需要任何人再“核查”。现在轮到你：在任务说明中补充缺失的证据，或修改要求，然后启动新的 council。",
+      "idea": {
+        "title": {
+          "favorite": "想法已检查——有保留的首选",
+          "several": "想法已检查——多个方案成立",
+          "none": "想法已检查——按当前描述不成立"
+        },
+        "lead": {
+          "favorite": "没有评估者排除该方案，且它的总分最高。这个想法站得住脚——但仍有个别要点尚未得到证实。",
+          "several": "没有评估者排除这些方案，且它们的得分相当：{list}。这个想法站得住脚——哪个方案更合适由你决定。",
+          "none": "每个方案都至少违反了你的一项硬性要求。按当前描述，这个想法行不通——请修改想法或要求。"
+        },
+        "clarify": "下一步之前需要澄清（尚未证实）：",
+        "excluded": "已排除：",
+        "excludedItem": "{label}——不满足要求 {list}",
+        "note": "这是想法检查，不是批准。只有在未决要点得到证实、并由目的为“批准决定”的 council 确认后才会构建。"
+      },
       "yourDecision": "你的决定：{action}",
       "nothingBuilt": "在你做出决定之前不会构建任何内容。这些是模型有理由的判断，而不是事实核查。",
       "nextStep": "下一步",
@@ -395,7 +412,10 @@
         "request_changes": "要求修改需求说明",
         "reject": "拒绝",
         "request_more_debate": "要求继续辩论",
-        "mark_favorite": "将架构候选标记为首选（不批准）"
+        "mark_favorite": "将架构候选标记为首选（不批准）",
+        "approve_prototype": "批准原型/测量构建(非正式批准)",
+        "approve_after_measurement": "测量后批准",
+        "record_measurement": "记录测量结果"
       },
       "outcome": {
         "recommended": "推荐方案",
@@ -448,7 +468,11 @@
       "requirements": {
         "title": "硬性要求",
         "intro": "每项要求对照每个方案，依据独立评估者的判断。点击单元格查看每位评估者的理由。",
-        "requirement": "要求"
+        "requirement": "要求",
+        "legend": "图例",
+        "search": "搜索需求",
+        "onlyProblems": "仅显示问题",
+        "shown": "显示 {n}/{of}"
       },
       "req": {
         "PASS": "已满足",
@@ -459,7 +483,8 @@
         "noAnswer": "无回答",
         "noEvaluation": "无评估",
         "count": "{n} / {of} 确认",
-        "MEASURE": "测量计划已确认——待测量"
+        "MEASURE": "测量计划已确认——待测量",
+        "disputedCount": "{pass} 个确认,{fail} 个认为未满足"
       },
       "cell": {
         "aria": "评估者对此要求的理由",
@@ -482,10 +507,9 @@
       },
       "allBlocked": "全部 {n} 个方案均不可批准 – 分数反映质量，而非胜出者。",
       "decided": {
-        "chosen": "已决定：方案 {label}",
-        "approved": "已决定：已批准推荐方案",
-        "rejected": "已决定：已拒绝",
-        "aiVerdict": "AI 裁决：{verdict}"
+        "mark_favorite": "已标记为首选(未批准)",
+        "approve_prototype": "已批准原型/测量构建",
+        "approve_after_measurement": "测量后已批准"
       },
       "unmetByAll": "没有任何方案满足 {list}。{n, plural, one {该要求可能无法实现} other {这些要求可能相互矛盾}}——请修改需求说明并开始新的委员会。",
       "openByAll": "没有任何方案确认：{list}。请在任务说明中补充已知信息，或要求方案明确证明{n, plural, other {这些需求}}。"
@@ -563,7 +587,8 @@
         "method": "测试：{text}",
         "success": "满足以下条件即确认：{text}",
         "noSuccess": "成功标准：未说明。"
-      }
+      },
+      "introFavorite": "目前还没有可以批准的方案。针对你的首选,方案 {label}:缺少什么,以及你在决定前要检查什么。"
     }
   },
   "scene": {
@@ -733,7 +758,7 @@
       "independent_critical_thinker": "其他人忽略了什么——有没有更简单或更安全的方法？"
     },
     "titleAlternative": "备选：为本项目推荐的视角",
-    "introAlternative": "技能“{name}”已启用——其 {n} 个视角已在下方选中。根据你的需求说明和要求得出的此建议仅为备选。",
+    "introAlternative": "技能“{name}”已启用——其视角已在下方预选。根据你的简报和需求得出的此建议是一个备选方案。",
     "replace": "替换为 {n} 个视角",
     "add": "补充缺少的 {n} 个",
     "effect": "应用后，将用这 {n} 个视角替换你当前的选择（{current} 个已启用）。",
@@ -758,7 +783,12 @@
     "examples": {
       "open": "我的工作区里有哪些未完成的步骤？",
       "waiting": "哪些决策在等待我的批准？",
-      "summary": "用五句话为客户总结这项决策。"
+      "summary": "用五句话为客户总结这项决策。",
+      "against": "有哪些理由反对该建议？哪些异议仍未解决？",
+      "next": "这个决策的下一步是什么？我需要做什么？",
+      "projectGaps": "这个项目的需求说明中缺少或不清楚什么？",
+      "projectReady": "这个项目是否已准备好进行 council？哪些需求尚未确认？",
+      "projectRisks": "council 应该为这个项目检查哪些风险？"
     },
     "thinking": "助手正在查询……",
     "placeholder": "提出问题……（Enter 发送，Shift+Enter 换行）",
@@ -805,6 +835,7 @@
         "text": "文本"
       },
       "run": "执行",
+      "runCreateProject": "立即创建项目",
       "copy": "复制文本",
       "openForm": "打开 Council 表单",
       "edit": "修改",
@@ -876,7 +907,7 @@
       "summaryTitle": "客户摘要",
       "summaryTitleProject": "客户摘要：{project}",
       "summarySubtitle": "AI 摘要 · {date}",
-      "summaryNote": "由 AI 模型根据此 CONSYRION AI 工作区的数据撰写，并在导出前由用户审阅。这不是 council 的结论。",
+      "summaryNote": "由 AI 模型根据此 CONSYRIUM AI 工作区的数据撰写，并在导出前由用户审阅。这不是 council 的结论。",
       "chatSubtitle": "助手对话 · 导出于 {date}",
       "chatNote": "AI 助手的回答通过只读工具来自工作区数据；模型的陈述不是事实核查。",
       "lostCharacters": "此 PDF 无法显示部分字符（显示为 ?）。Word 文件包含完整文本。"
@@ -923,8 +954,87 @@
     "checkSensitive": "医疗、法律或安全：务必由专业人士核查",
     "makeCouncil": "转为正式 council",
     "makeCouncilPrompt": "把这次 council 对话转为正式 council：根据我的问题起草项目（想法和目标），把各模型一致的观点作为需求，把每个未解决的分歧作为必须核查的需求。",
-    "makeCouncilNote": "{model} 会回答一次并附带操作卡片（项目草稿、需求）。不会自动启动：你确认需求后，在表单中查看成本估算并启动 council。",
+    "makeCouncilNote": "{model} 会回答一次并附带项目卡片。点击“立即创建项目”会将项目保存为草稿。council 不会自动启动：你确认需求后，在表单中查看成本估算并启动。",
+    "cardMissing": "此回答没有卡片：模型的建议不完整或未送达。没有创建任何内容。",
+    "cardRetry": "重新请求卡片",
     "limitReserveNote": "每个问题会先预留预计的令牌（简短问题约 {min}），若会超出限额则被拒绝；之后只计算实际令牌。",
-    "limitTooSmall": "此限额小于一个问题（约 {min} 个令牌）——任何问题都无法通过。"
+    "limitTooSmall": "此限额小于一个问题（约 {min} 个令牌）——任何问题都无法通过。",
+    "contextProject": "关于此项目",
+    "report": {
+      "open": "报告此对话",
+      "title": "向 CONSYRIUM 团队报告此对话",
+      "explanation": "哪里有问题？（必填）",
+      "previewLabel": "将发送的正是以下摘录（最近的消息，已缩短，不含密钥、工具数据或链接）：",
+      "consent": "我同意将此摘录和我的说明发送到 CONSYRIUM 团队的反馈收件箱。",
+      "send": "发送报告",
+      "sent": "谢谢——报告已进入反馈收件箱。你可以在“反馈与问题”中跟进。",
+      "secondOpinion": "第二意见",
+      "subject": "已报告助手对话：{title}"
+    },
+    "interview": {
+      "start": "和我一起准备项目",
+      "startNote": "我会询问 council 所需的信息——每次只问几个问题——然后提出项目草稿。",
+      "empty": "用一两句话描述你的想法或决策。",
+      "title": "正在准备项目",
+      "progress": "已明确 {done}/{total} 项",
+      "notYet": "开始",
+      "end": "结束",
+      "open": "仍待明确",
+      "assumed": "未确认的假设",
+      "keys": {
+        "decision": "决策",
+        "options": "选项",
+        "goal": "目标与成功衡量",
+        "constraints": "硬性限制",
+        "scope": "仅决策还是实施",
+        "reversibility": "可逆性",
+        "preference": "你的倾向"
+      }
+    },
+    "councilStart": {
+      "title": "启动 council",
+      "project": "项目",
+      "models": "模型（与上次 council 相同）",
+      "budget": "预算",
+      "upperBound": "上限 {tokens}",
+      "typical": "通常 {tokens}",
+      "shortened": "上限高于预算——必要时会缩短阶段以控制在预算内。",
+      "requirementsNotCurrent": "需求列表尚未针对当前需求说明确认——请先在项目页面确认。",
+      "note": "使用你自己的 API 密钥消耗令牌。在你勾选并点击“启动”之前不会开始。",
+      "consent": "我确认费用：在我自己的密钥上最多 {tokens} 个令牌。",
+      "start": "启动 council",
+      "starting": "正在启动 …",
+      "adjust": "在表单中调整",
+      "dismiss": "忽略",
+      "started": "council 已启动。",
+      "status": "状态：{status} · 阶段：{phase} · 已用 {tokens} 个令牌",
+      "open": "打开 council“{name}”",
+      "dismissed": "已忽略——未启动 council。",
+      "loading": "正在加载费用预估 …",
+      "failed": "操作未成功。",
+      "verdictReady": "裁决已就绪——打开 council 查看裁决和后续步骤。",
+      "budgetTooSmall": "预算低于这些模型所需的最低 {min} 个令牌——请让助手提出预算更高的卡片，或在表单中调整。"
+    }
+  },
+  "interventions": {
+    "humanQuestion": "人工提问",
+    "noEffect": "不影响裁决和核查",
+    "noAnswer": "无回答（{reason}）",
+    "questionPlaceholder": "你向 council 提出的问题 …",
+    "statementPlaceholder": "可选：希望他们回应什么？",
+    "preview": "回答者：{models} · 约 {tokens} 个令牌",
+    "overCap": "单次干预内容过长——请缩短问题。",
+    "consent": "我确认费用：在我自己的密钥上约 {tokens} 个令牌。",
+    "send": "提问",
+    "asking": "正在提问 …",
+    "checkCosts": "查看费用",
+    "failed": "操作未成功。",
+    "markedImportant": "已标记为重要",
+    "mark": "标记为重要",
+    "unmark": "取消标记",
+    "requestStatement": "请求表态",
+    "councilTitle": "向 council 提问",
+    "councilNote": "每个模型就其自己的方案回答一次。回答只是附录——不会改变任何评分、核查、投票或裁决。",
+    "cruxCount": "人工提问：{questions} · 已标记：{marks}"
   }
 }

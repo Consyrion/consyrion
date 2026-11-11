@@ -11,6 +11,7 @@
       "rejected": "Abgelehnt",
       "changes_requested": "Änderungen angefordert",
       "awaitingReview": "Wartet auf deine Prüfung",
+      "ideaChecked": "Idee geprüft",
       "noApprovableProposal": "Kein freigebbarer Vorschlag"
     },
     "cancelError": "Abbrechen nicht möglich",
@@ -49,7 +50,8 @@
       "failed": "fehlgeschlagen",
       "blocked": "blockiert",
       "cancelled": "abgebrochen",
-      "skipped": "übersprungen"
+      "skipped": "übersprungen",
+      "shortened": "verkürzt"
     },
     "execText": {
       "notStarted": "nicht gestartet",
@@ -150,7 +152,9 @@
     "gateEnded": "Der Council endete ohne Urteil – daraus kann nichts freigegeben oder gebaut werden.",
     "gateDebate": "Debatte läuft; die endgültige Freigabe folgt nach dem Urteil.",
     "reviewVerdict": "Urteil prüfen",
-    "viewVerdict": "Urteil ansehen"
+    "viewVerdict": "Urteil ansehen",
+    "archived": "Projekt archiviert.",
+    "gateArchived": "Hier kann nichts freigegeben, markiert oder gebaut werden – stelle das Projekt auf seiner Seite wieder her, um weiterzumachen."
   },
   "phaseScreens": {
     "none": "keine",
@@ -456,7 +460,8 @@
       "onlyOwners": "Nur Besitzer und Admins können Entscheidungen freigeben.",
       "markFavorite": "Als Favorit markieren (keine Freigabe, kein Build)",
       "approvePrototype": "Prototyp-/Mess-Build freigeben (keine fertige Lösung)",
-      "approveAfterMeasurement": "Nach Messung freigeben"
+      "approveAfterMeasurement": "Nach Messung freigeben",
+      "archived": "Dieses Projekt ist archiviert – stelle es zuerst auf der Projektseite wieder her, um zu entscheiden, zu markieren, zu messen oder zu bauen."
     },
     "reasons": {
       "needsVerification": "Prüfung nötig – der Council konnte nicht bestätigen, dass ein Vorschlag alle Anforderungen erfüllt. Er kann nicht freigegeben oder gebaut werden.",
@@ -494,7 +499,7 @@
     },
     "followUp": {
       "title": "Nachprüfung (optional, kostet Tokens)",
-      "intro": "Dieselben KI-Bewerter schauen noch einmal hin – nur auf die genannten Prüfungen, an den eingefrorenen Vorschlägen. Ein FAIL wird nie neu gefragt oder ersetzt. Sie läuft erst, wenn du ein Zusatzbudget bestätigst.",
+      "intro": "Dieselben KI-Bewerter schauen noch einmal hin – nur auf die genannten Prüfungen, an den eingefrorenen Vorschlägen. Ein „nicht erfüllt“ wird nie neu gefragt oder ersetzt. Sie läuft erst, wenn du ein Zusatzbudget bestätigst.",
       "completion": {
         "button": "{n} fehlende Prüfungen ergänzen (≈ {tokens} Tokens)",
         "explain": "Die Bewerter, die Prüfungen ausgelassen haben, werden genau danach gefragt. Danach wird das Urteil neu berechnet."
@@ -517,7 +522,7 @@
   },
   "requirementGate": {
     "title": "Bestätigte Anforderungen je Vorschlag",
-    "intro": "Eine Anforderung gilt nur als erfüllt, wenn jeder erwartete Bewerter jeden Teil davon mit Begründung bestätigt hat. PASS und FAIL sind gespeicherte, begründete Einschätzungen der Modelle, keine unabhängige Faktenprüfung.",
+    "intro": "Eine Anforderung gilt nur als erfüllt, wenn jeder erwartete Bewerter jeden Teil davon mit Begründung bestätigt hat. „Bestätigt“ und „nicht erfüllt“ sind gespeicherte, begründete Einschätzungen der Modelle, keine unabhängige Faktenprüfung.",
     "proposal": "Vorschlag {label}",
     "feasibility": {
       "qualified": "erfüllt alle bestätigten Anforderungen",
@@ -547,7 +552,8 @@
         "across": "bei {k} von {n} Bewertern reicht die Spanne über die Grenze",
         "noEstimate": "{k} von {n} Bewertern gaben keine brauchbare Schätzung",
         "noAnswer": "{k} von {n} Bewertern gaben keine gültige Antwort"
-      }
+      },
+      "summary": "Geschätzt von {n, plural, one {# Modell} other {# Modellen}}: {low}–{high}{unit} (Median {median}) · Grenze {relation} {limit}{unit}. Nur erfüllt, wenn jede Spanne die Grenze einhält."
     },
     "relation": {
       "below": "unter",
@@ -555,8 +561,8 @@
       "above": "über",
       "atLeast": "mindestens"
     },
-    "pass": "PASS: {names}.",
-    "fail": "FAIL: {names}.",
+    "pass": "Bestätigt von: {names}.",
+    "fail": "Nicht erfüllt laut: {names}.",
     "unknown": "Nicht eindeutig: {names}.",
     "open": "Keine Antwort: {names}.",
     "conflicts": "Widersprüchlich (als FAIL gezählt): {names}.",
@@ -602,7 +608,7 @@
       "single_evaluator": "Vorschlag {label} wurde nur von einem unabhängigen Bewerter bewertet (nur zwei aktive Modelle)",
       "requirements_disputed": "{failed} von {total} unabhängigen Bewertern sehen bei Vorschlag {label} eine harte Anforderung verfehlt",
       "insufficient_evaluators": "Nur {evaluators} von {expected} erwarteten Bewertern lieferten verwertbare Bewertungen – zu wenige für eine Council-Entscheidung; wiederhole die Bewertung",
-      "no_debate_contribution": "{model} hat keine Rollenprüfung zum 12 Minds Council beigetragen (alle Aufrufe fehlgeschlagen); seine Perspektiven fehlen in der Debatte, seine Stimme zählt im Final Verdict aber, wenn es bewertet hat",
+      "no_debate_contribution": "{model} hat im 12 Minds Council keine Rollenprüfung beigetragen (kein erfolgreicher Aufruf – die Aufrufe schlugen fehl oder das Budget hat die Phase vor seinem Zug verkürzt); seine Perspektiven fehlen in der Debatte, seine Stimme zählt im Final Verdict aber weiter, wenn es bewertet hat",
       "undefended_proposal": "Vorschlag {label} wurde nicht verteidigt – {reason}: {count, plural, one {# Einwand dagegen bleibt} other {# Einwände dagegen bleiben}} unbeantwortet, was nicht dasselbe ist wie unwidersprochene Kritik",
       "phase_shortened": "{phase} wurde gekürzt, um das Token-Budget für das Final Verdict zu sichern; das Urteil beruht auf den bis dahin vorliegenden Fassungen",
       "weighting_changed_winner_both": "Die Stimmgewichte haben entschieden: Mit gleichen Gewichten würde der Council Vorschlag {unweighted} empfehlen, gewichtet empfiehlt er Vorschlag {weighted}",
@@ -753,7 +759,62 @@
     "exportPdf": "Vollständiger Bericht (PDF)",
     "exportMarkdown": "Bericht (Markdown)",
     "stopFirst": "Dieser Council läuft noch – stoppe ihn zuerst (und brich einen aktiven Build ab), dann lösche die Session.",
-    "external": "Bereits versendete Berichte, Draft-PRs auf GitHub und Backups (bis zum Ablauf ihrer Frist) löscht CONSYRION nicht. Die Zahl der Councils im Monat wird nicht zurückgesetzt.",
+    "external": "Bereits versendete Berichte, Draft-PRs auf GitHub und Backups (bis zum Ablauf ihrer Frist) löscht CONSYRIUM nicht. Die Zahl der Councils im Monat wird nicht zurückgesetzt.",
     "button": "Session löschen"
+  },
+  "processQuality": {
+    "title": "Prozessqualität",
+    "intro": "Wie dieser Council gearbeitet hat, berechnet aus seinen gespeicherten Daten. Das beschreibt den Ablauf – es beweist nicht, dass das Urteil richtig ist.",
+    "notMeasurable": "für diesen Council nicht messbar",
+    "participation": {
+      "title": "Beteiligung",
+      "value": "{valid} von {total} Modellen haben in jeder Phase geliefert ({groupsValid} von {groups} unabhängigen Modellen – Instanzen eines Modells zählen einmal)."
+    },
+    "convergence": {
+      "title": "Annäherung der Vorschläge",
+      "strong": "Stark: Die Vorschläge haben sich deutlich angenähert (gemeinsamer Wortschatz {initial} → {latest}). Prüfe, ob echte Alternativen verloren gegangen sind.",
+      "moderate": "Mittel: Die Vorschläge haben sich etwas angenähert (gemeinsamer Wortschatz {initial} → {latest}).",
+      "little": "Kaum: Die Vorschläge sind unterschiedlich geblieben (gemeinsamer Wortschatz {initial} → {latest}).",
+      "fewer_than_two_proposals": "nicht messbar – weniger als zwei Vorschläge",
+      "no_revisions": "nicht messbar – kein Vorschlag wurde überarbeitet",
+      "limit": "Gemessen an gemeinsamen Wörtern, nicht am Inhalt."
+    },
+    "objections": {
+      "title": "Wirkung der Einwände",
+      "none": "Es wurden keine Einwände erhoben – das allein ist kein Qualitätsmerkmal.",
+      "value": "{total} Einwände: {survived} bestehen am Ende noch, {refuted} widerlegt. Von den bestehenden: {revised} mit anschließender Überarbeitung, {blocking} blockierend, {noEffect} ohne sichtbare Wirkung.",
+      "limit": "Zugeordnet nach Zeitpunkt und Zielvorschlag, nicht als Ursache bewiesen."
+    },
+    "weight": {
+      "title": "Gewicht der Stimmen",
+      "changed": "Die Stimmgewichte haben den Sieger entschieden: gewichtet Vorschlag {weighted}, mit gleichen Stimmen Vorschlag {unweighted}. Das stärkste unabhängige Modell hält {share} der Stimme.",
+      "unchanged": "Die Gewichte haben den Sieger nicht verändert. Das stärkste unabhängige Modell hält {share} der Stimme ({groups} unabhängige Modelle).",
+      "noWinner": "nicht anwendbar – es gibt keinen freigebbaren Sieger"
+    },
+    "footer": "Nur aus gespeicherten Daten berechnet; kein Modellaufruf, kein Vergleich mit einem einzelnen Modell."
+  },
+  "processQualityOverview": {
+    "title": "Prozessqualität",
+    "description": "Wie die letzten Councils dieses Workspace gearbeitet haben – Zahlen aus gespeicherten Daten, ohne Inhalte. Das beschreibt den Ablauf, es beweist nicht, dass Urteile richtig sind.",
+    "back": "Zurück zu den Entscheidungen",
+    "emptyTitle": "Noch kein Urteil",
+    "emptyText": "Die Prozessqualität erscheint, sobald ein Council ein Urteil erreicht hat.",
+    "summaryTitle": "Letzte {n, plural, one {# Council} other {# Councils}}",
+    "summary": {
+      "participation": "{full} von {n} Councils, in denen jedes Modell in jeder Phase geliefert hat.",
+      "convergence": "Annäherung der Vorschläge: {strong} stark, {moderate} mittel, {little} kaum, {none} nicht messbar.",
+      "objections": "{total} Einwände, {survived} bestehen am Ende noch, davon {noEffect} ohne sichtbare Wirkung.",
+      "weight": "In {n} von {total} Councils haben die Stimmgewichte den Sieger entschieden."
+    },
+    "col": {
+      "council": "Council"
+    },
+    "level": {
+      "strong": "stark",
+      "moderate": "mittel",
+      "little": "kaum"
+    },
+    "weightDecided": "Gewicht entschied",
+    "legend": "Beteiligung zählt unabhängige Modelle (Instanzen eines Modells einmal); Einwände: bestehend/gesamt; Gewicht: Anteil des stärksten unabhängigen Modells oder „Gewicht entschied“, wenn es den Sieger verändert hat."
   }
 }

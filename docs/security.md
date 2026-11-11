@@ -96,7 +96,7 @@ to an account is refused with a hint ("sign in with your password, then connect 
 Before #395 Better Auth linked such logins automatically when both sides were verified, so somebody who
 pre-registered a victim's address could receive the victim's later Google login. A signed-in user can connect further methods under **Settings → Account** (Better Auth
 `linkSocial`); different e-mail addresses are allowed only for this explicit linking. A login that already
-belongs to another Consyrion account is refused, and the last remaining method cannot be removed.
+belongs to another Consyrium account is refused, and the last remaining method cannot be removed.
 
 ## Dependency overrides (Dependabot, 08.11.26)
 

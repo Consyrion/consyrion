@@ -1,4 +1,4 @@
-import type { CouncilPhase } from "@consyrion/core";
+import type { CouncilPhase } from "@consyrium/core";
 
 export interface StoryChapter {
   /** Anchor id – chapters can be opened directly. */
@@ -24,7 +24,7 @@ export const EXAMPLE_QUESTION = "Which database architecture should our SaaS pro
 export const STORY_CHAPTERS: StoryChapter[] = [
   {
     id: "top",
-    kicker: "CONSYRION AI",
+    kicker: "CONSYRIUM AI",
     title: "Debate. Decide. Deliver.",
     text: "Claude, OpenAI, Gemini, Grok, DeepSeek, Kimi and other AI models think independently, challenge each other and reach a documented verdict with evidence. You approve – and take the decision where you work: as a report, in your tools or, with a connected GitHub repository, as a reviewed pull request.",
   },
@@ -32,7 +32,7 @@ export const STORY_CHAPTERS: StoryChapter[] = [
     id: "prepare",
     kicker: "Before the council",
     title: "Your question becomes a brief",
-    text: "Create a project and describe the decision. Choose the models and up to twelve perspectives. You connect your own provider keys and set a hard token budget – CONSYRION AI sells no AI credits.",
+    text: "Create a project and describe the decision. Choose the models and up to twelve perspectives. You connect your own provider keys and set a hard token budget – CONSYRIUM AI sells no AI credits.",
     example: "Question: “Which database architecture should our SaaS product use?” – three models, twelve perspectives, a budget on your own keys.",
     points: ["Project, question and context", "Models and perspectives you pick", "Your own API keys, your budget"],
   },

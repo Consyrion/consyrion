@@ -40,6 +40,8 @@ jobs:
         run: bash deploy/hetzner/rollback-guard.test.sh
       - name: Post-restore scrub tests (ADR 0206)
         run: bash deploy/hetzner/post-restore-scrub.test.sh
+      - name: Off-site backup tests (#526)
+        run: bash deploy/hetzner/backup-offsite.test.sh
       - name: Check that migrations match the schema
         run: |
           pnpm db:generate
@@ -58,12 +60,12 @@ jobs:
         image: postgres:17
         env:
           POSTGRES_PASSWORD: e2e
-          POSTGRES_DB: consyrion_e2e
+          POSTGRES_DB: consyrium_e2e
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      E2E_DATABASE_URL: postgres://postgres:e2e@127.0.0.1:5432/consyrion_e2e
+      E2E_DATABASE_URL: postgres://postgres:e2e@127.0.0.1:5432/consyrium_e2e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -76,8 +78,8 @@ jobs:
       - run: pnpm db:migrate
         env:
           DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
-      - run: pnpm --filter @consyrion/web exec playwright install --with-deps chromium
-      - run: pnpm --filter @consyrion/web e2e
+      - run: pnpm --filter @consyrium/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @consyrium/web e2e
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -96,11 +98,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter consyrion package
+      - run: pnpm --filter consyrium package
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: consyrion-vsix
-          path: apps/vscode/dist/consyrion.vsix
+          name: consyrium-vsix
+          path: apps/vscode/dist/consyrium.vsix
 
   docker-images:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-import type { SessionView } from "@consyrion/council";
+import type { SessionView } from "@consyrium/council";
 
 /** Shape of server data after JSON serialization (Dates become strings). */
 export type Jsonify<T> = T extends Date

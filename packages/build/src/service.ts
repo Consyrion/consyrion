@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { assertCan, DomainError, MAX_TASK_ATTEMPTS, pullRequestReadiness, type ReadinessReview } from "@consyrion/core";
-import { assertEngineInstalled, enqueue } from "@consyrion/council";
+import { assertCan, DomainError, MAX_TASK_ATTEMPTS, pullRequestReadiness, type ReadinessReview } from "@consyrium/core";
+import { assertEngineInstalled, enqueue } from "@consyrium/council";
 import {
   assertEntitlement,
   assertNotDemoSession,
@@ -11,7 +11,7 @@ import {
   schema,
   type ActorContext,
   type Database,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTwoFilesPatch } from "diff";

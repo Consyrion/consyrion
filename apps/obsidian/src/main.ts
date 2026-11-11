@@ -1,11 +1,11 @@
 import { Modal, moment, normalizePath, Notice, Plugin, PluginSettingTab, requestUrl, Setting, type App } from "obsidian";
-import { ConsyrionApi, ConsyrionError, FINISHED, validateServerUrl, type Http, type Mode, type ModelChoice, type Participant } from "./api";
+import { ConsyriumApi, ConsyriumError, FINISHED, validateServerUrl, type Http, type Mode, type ModelChoice, type Participant } from "./api";
 import { idempotencyKey, prepareProject, validateTeam } from "./flow";
 import { resolveLocale, translator, type Key } from "./i18n";
 import { freePath, reportFileName, reportNote } from "./note";
 
 /**
- * CONSYRION AI for Obsidian (#103): send explicitly selected text to a council and save the report as a new note.
+ * CONSYRIUM AI for Obsidian (#103): send explicitly selected text to a council and save the report as a new note.
  * Talks only to the configured server with an integration token; reads nothing from the vault except the text the user
  * selected (shown before sending); never approves, builds or merges.
  */
@@ -31,10 +31,10 @@ interface Settings {
 }
 
 const DEFAULTS: Settings = {
-  serverUrl: "https://app.consyrion.com",
+  serverUrl: "https://app.consyrium.com",
   token: "",
   allowLocalHttp: false,
-  folder: "CONSYRION",
+  folder: "CONSYRIUM",
   tokenBudget: 300_000,
   language: "auto",
   pending: [],
@@ -48,7 +48,7 @@ const obsidianHttp: Http = async (request) => {
   return { status: response.status, text: response.text };
 };
 
-export default class ConsyrionPlugin extends Plugin {
+export default class ConsyriumPlugin extends Plugin {
   settings: Settings = { ...DEFAULTS };
   private statusEl: HTMLElement | null = null;
   private timer: number | null = null;
@@ -59,7 +59,7 @@ export default class ConsyrionPlugin extends Plugin {
 
   /** A readable message for any failure, never the token or a request body. */
   explain(error: unknown): string {
-    if (error instanceof ConsyrionError) {
+    if (error instanceof ConsyriumError) {
       if (error.message.startsWith("instructions:")) return this.t("instructionsFound", { list: error.message.slice("instructions:".length) });
       if (error.kind === "validation" && ["invalid_url", "https_required", "local_http_disabled"].includes(error.message))
         return this.t(`err_${error.message}` as Key);
@@ -68,14 +68,14 @@ export default class ConsyrionPlugin extends Plugin {
     return this.t("err_server", { message: error instanceof Error ? error.message : "unknown" });
   }
 
-  api(): ConsyrionApi {
-    if (!this.settings.token.trim()) throw new ConsyrionError("auth", "missing token");
-    return new ConsyrionApi(validateServerUrl(this.settings.serverUrl, this.settings.allowLocalHttp), this.settings.token.trim(), obsidianHttp);
+  api(): ConsyriumApi {
+    if (!this.settings.token.trim()) throw new ConsyriumError("auth", "missing token");
+    return new ConsyriumApi(validateServerUrl(this.settings.serverUrl, this.settings.allowLocalHttp), this.settings.token.trim(), obsidianHttp);
   }
 
   async onload() {
     this.settings = { ...DEFAULTS, ...((await this.loadData()) as Partial<Settings> | null) };
-    this.addSettingTab(new ConsyrionSettingTab(this.app, this));
+    this.addSettingTab(new ConsyriumSettingTab(this.app, this));
     this.statusEl = this.addStatusBarItem();
     this.addCommand({
       id: "consult-selection",
@@ -118,7 +118,7 @@ export default class ConsyrionPlugin extends Plugin {
       this.statusEl?.setText("");
       return;
     }
-    let api: ConsyrionApi;
+    let api: ConsyriumApi;
     try {
       api = this.api();
     } catch {
@@ -140,7 +140,7 @@ export default class ConsyrionPlugin extends Plugin {
         );
       } catch (error) {
         // Offline or a short server error: keep the run and try again later; a deleted council is dropped.
-        if (error instanceof ConsyrionError && (error.kind === "not_found" || error.kind === "auth")) {
+        if (error instanceof ConsyriumError && (error.kind === "not_found" || error.kind === "auth")) {
           new Notice(this.explain(error));
           if (error.kind === "not_found") await this.dropRun(run);
         }
@@ -150,7 +150,7 @@ export default class ConsyrionPlugin extends Plugin {
     if (this.settings.pending.some((p) => p.sessionId)) this.timer = window.setTimeout(() => void this.poll(), POLL_MS);
   }
 
-  private async finish(api: ConsyrionApi, run: PendingRun, status: Awaited<ReturnType<ConsyrionApi["status"]>>) {
+  private async finish(api: ConsyriumApi, run: PendingRun, status: Awaited<ReturnType<ConsyriumApi["status"]>>) {
     for (const failure of status.failures) new Notice(this.t("partialFailure", { model: failure.modelId, reason: failure.reason }), 10_000);
     if (status.status === "failed" || status.status === "cancelled") {
       new Notice(this.t("runFailed", { name: status.projectName, status: status.status, error: status.error ?? "" }), 15_000);
@@ -158,7 +158,7 @@ export default class ConsyrionPlugin extends Plugin {
       return;
     }
     const report = await api.report(run.sessionId!);
-    const folder = normalizePath(this.settings.folder || "CONSYRION");
+    const folder = normalizePath(this.settings.folder || "CONSYRIUM");
     if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder).catch(() => undefined);
     const date = new Date();
     const path = freePath(folder, reportFileName(run.question, date), (p) => Boolean(this.app.vault.getAbstractFileByPath(normalizePath(p))));
@@ -204,7 +204,7 @@ class ConsultModal extends Modal {
 
   constructor(
     app: App,
-    private readonly plugin: ConsyrionPlugin,
+    private readonly plugin: ConsyriumPlugin,
     private readonly text: string,
     private readonly sourcePath: string | null,
   ) {
@@ -219,7 +219,7 @@ class ConsultModal extends Modal {
     const { contentEl } = this;
     contentEl.createEl("p", { text: t("modalSent") });
     // The exact text that will be sent (#103: the preview must match what is transmitted).
-    const pre = contentEl.createEl("pre", { cls: "consyrion-preview" });
+    const pre = contentEl.createEl("pre", { cls: "consyrium-preview" });
     pre.setText(this.text);
     pre.style.maxHeight = "12em";
     pre.style.overflow = "auto";
@@ -314,7 +314,7 @@ class ConsultModal extends Modal {
   private async previewCost(): Promise<string> {
     const t = this.plugin.t.bind(this.plugin);
     const participants = this.participants();
-    if (!validateTeam(participants)) throw new ConsyrionError("validation", t("pickModels"));
+    if (!validateTeam(participants)) throw new ConsyriumError("validation", t("pickModels"));
     const api = this.plugin.api();
     if (!this.prepared) {
       const { projectId } = await prepareProject(api, {
@@ -377,7 +377,7 @@ class ConsultModal extends Modal {
 class RunsModal extends Modal {
   constructor(
     app: App,
-    private readonly plugin: ConsyrionPlugin,
+    private readonly plugin: ConsyriumPlugin,
   ) {
     super(app);
   }
@@ -416,10 +416,10 @@ class RunsModal extends Modal {
   }
 }
 
-class ConsyrionSettingTab extends PluginSettingTab {
+class ConsyriumSettingTab extends PluginSettingTab {
   constructor(
     app: App,
-    private readonly plugin: ConsyrionPlugin,
+    private readonly plugin: ConsyriumPlugin,
   ) {
     super(app, plugin);
   }

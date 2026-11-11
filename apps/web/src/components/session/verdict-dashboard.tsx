@@ -1,11 +1,13 @@
 "use client";
 
-import { CRITERIA, type Criterion } from "@consyrion/core/browser";
+import { CRITERIA, type Criterion } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Card } from "../ui/surface";
 import { CruxesCard } from "./cruxes-card";
 import { modelName, proposalLabel, type View } from "./helpers";
+import type { IdeaCheckResult } from "./idea-check";
+import { filterRequirementRows, REQUIREMENT_CELL, requirementCellKey } from "./requirement-status";
 import { useFeasibilityLabel, type RequirementGateResult } from "./requirement-gate";
 
 /**
@@ -52,19 +54,8 @@ const TONE_ICON: Record<Tone, string> = { success: "✓", warning: "!", danger: 
 /** One decimal: 8.51 and 8.54 are not meaningfully different, so the dashboard never pretends they are. */
 export const score1 = (x: number | null | undefined) => (x === null || x === undefined ? "–" : (Math.round(x * 10) / 10).toFixed(1));
 
-const REQ_STATUS: Record<string, { icon: string; tone: "success" | "warning" | "danger" }> = {
-  PASS: { icon: "✓", tone: "success" },
-  FAIL: { icon: "✕", tone: "danger" },
-  DISPUTED: { icon: "≠", tone: "warning" },
-  UNKNOWN: { icon: "?", tone: "warning" },
-  // Build check (night test R4): the plan is confirmed, the proof comes from the build – never shown as met.
-  PLAN: { icon: "◷", tone: "warning" },
-};
-const CELL_CLASS: Record<"success" | "warning" | "danger", string> = {
-  success: "border-success/50 bg-success/10 text-success",
-  warning: "border-warning/50 bg-warning/10 text-warning",
-  danger: "border-danger/50 bg-danger/10 text-danger",
-};
+/** From this many requirements the heatmap offers a search and a problems-only filter (#266). */
+const HEATMAP_FILTER_FROM = 20;
 
 const SEVERITIES = ["critical", "high", "medium", "low"] as const;
 
@@ -94,7 +85,18 @@ export type OutcomeKey =
   | "not_approvable";
 
 /** The one next step the decision form will offer first (#266) – the dashboard links to it, it never acts itself. */
-export type NextAction = "approve" | "select_alternative" | "repeat_evaluation" | "request_changes" | "reject" | "request_more_debate" | "mark_favorite";
+export type NextAction =
+  | "approve"
+  | "select_alternative"
+  | "repeat_evaluation"
+  | "request_changes"
+  | "reject"
+  | "request_more_debate"
+  | "mark_favorite"
+  | "approve_prototype"
+  | "approve_after_measurement"
+  /** Not a decision but the measurement panel (#249 gate 2): the link goes there. */
+  | "record_measurement";
 
 export function VerdictDashboard({
   view,
@@ -105,6 +107,7 @@ export function VerdictDashboard({
   approvableIds,
   recommendedId,
   nextAction,
+  idea,
 }: {
   view: View;
   matrix: DashboardMatrix & { failedEvaluators?: { participantId: string; modelId: string; outcome: string }[] };
@@ -116,10 +119,18 @@ export function VerdictDashboard({
   recommendedId: string | null;
   /** Set while the owner can still decide; the button scrolls to the decision form with this action preselected. */
   nextAction?: NextAction | null;
+  /**
+   * #597: set for a council started as an idea check whose verdict nothing can be approved in – the hero then reads the
+   * result as a favourite with open points instead of "not approvable". Read from the stored matrix, never a new status.
+   */
+  idea?: IdeaCheckResult | null;
 }) {
   const t = useTranslations("verdict.dashboard");
   const [asTable, setAsTable] = useState(false);
   const [cell, setCell] = useState<{ requirementId: string; proposalId: string } | null>(null);
+  // #266: from 20 requirements on, the heatmap gets a search and a "problems only" filter (rows with any status but met).
+  const [query, setQuery] = useState("");
+  const [onlyProblems, setOnlyProblems] = useState(false);
   const label = (id: string) => proposalLabel(view, id);
   const feasibility = useFeasibilityLabel();
   const gateStatus = (proposalId: string) => {
@@ -143,8 +154,9 @@ export function VerdictDashboard({
         ? { title: t("decided.rejected"), tone: "neutral" as const }
         : { title: chosen ? t("decided.chosen", { label: label(chosen) }) : t("decided.approved"), tone: "success" as const }
       : null;
-  const title = decided?.title ?? aiTitle;
-  const heroTone = decided?.tone ?? outcome.tone;
+  const ideaShown = !decided && idea ? idea : null;
+  const title = decided?.title ?? (ideaShown ? t(`idea.title.${ideaShown.kind}`) : aiTitle);
+  const heroTone = decided?.tone ?? (ideaShown ? (ideaShown.kind === "none" ? "danger" : "success") : outcome.tone);
   const expectedEvaluators = Math.max(0, view.participants.length - 1);
   // Requirements that no proposal meets (night test 07.11.26: "all copies stay in CH" vs. "nightly copy in the USA"):
   // named in the hero so the owner sees which ones to change; only when nothing can be approved.
@@ -181,10 +193,11 @@ export function VerdictDashboard({
   ).length;
   const failed = matrix.failedEvaluators ?? [];
 
+  const visibleRequirements = filterRequirementRows(requirementOrder, gate, { query, onlyProblems });
   return (
     <section aria-label={t("aria")} className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* 1. Status: what CONSYRION recommends, or why it does not – and the one next step. */}
+        {/* 1. Status: what CONSYRIUM recommends, or why it does not – and the one next step. */}
         <div className={`rounded-2xl border p-5 lg:col-span-2 ${TONE_CLASS[heroTone]}`}>
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">{t("verdict")}</p>
           <p className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold text-text">
@@ -193,10 +206,51 @@ export function VerdictDashboard({
             </span>
             {title}
             {!decided && recommendedId ? <span className="text-muted">{t("proposal", { label: label(recommendedId) })}</span> : null}
+            {ideaShown?.kind === "favorite" ? <span className="text-muted">{t("proposal", { label: label(ideaShown.leaders[0]!) })}</span> : null}
           </p>
+          {ideaShown ? (
+            <div className="mt-2 max-w-3xl space-y-2 text-sm text-text" data-testid="idea-check">
+              <p>{t(`idea.lead.${ideaShown.kind}`, { list: ideaShown.leaders.map(label).join(", ") })}</p>
+              {ideaShown.toClarify.length ? (
+                <div>
+                  <p className="font-medium">{t("idea.clarify")}</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                    {ideaShown.toClarify.map((id) => {
+                      const r = requirementOrder.find((x) => x.id === id);
+                      return <li key={id}>{r ? `${r.short} – ${r.text}` : id}</li>;
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+              {ideaShown.excluded.length ? (
+                <div>
+                  <p className="font-medium">{t("idea.excluded")}</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                    {ideaShown.excluded.map((e) => (
+                      <li key={e.proposalId}>
+                        {t("idea.excludedItem", {
+                          label: label(e.proposalId),
+                          list: e.requirementIds.map((id) => requirementOrder.find((x) => x.id === id)?.short ?? id).join(", "),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <p className="text-xs text-muted">{t("idea.note")}</p>
+            </div>
+          ) : null}
           {decided ? <p className="mt-1 text-xs text-muted">{t("decided.aiVerdict", { verdict: aiTitle })}</p> : null}
-          <p className="mt-1 text-xs font-medium text-text">{approvableIds.size ? t("approvableYes", { n: approvableIds.size }) : t("approvableNo")}</p>
-          {reason ? <p className="mt-2 max-w-3xl text-sm text-text">{reason}</p> : null}
+          {ideaShown ? null : (
+            <p className="mt-1 text-xs font-medium text-text">{approvableIds.size ? t("approvableYes", { n: approvableIds.size }) : t("approvableNo")}</p>
+          )}
+          {reason && !ideaShown ? <p className="mt-2 max-w-3xl text-sm text-text">{reason}</p> : null}
+          {/* #597: who has to act – the lock is a rule of the app, not a decision someone still has to make. */}
+          {!decided && !ideaShown && !approvableIds.size ? (
+            <p className="mt-2 max-w-3xl text-sm text-text" data-testid="who-acts">
+              {t("whoActs")}
+            </p>
+          ) : null}
           {unmetByAll.length ? (
             <p className="mt-2 max-w-3xl text-sm font-medium text-text">{t("unmetByAll", { list: unmetByAll.join(", "), n: unmetByAll.length })}</p>
           ) : null}
@@ -205,12 +259,18 @@ export function VerdictDashboard({
           ) : null}
           <p className="mt-2 text-xs text-muted">
             {decision
-              ? `${t("yourDecision", { action: t.has(`action.${decision.action}`) ? t(`action.${decision.action}`) : decision.action.replaceAll("_", " ") })}${decision.comment ? ` – “${decision.comment}”` : ""}`
+              ? `${t("yourDecision", {
+                  action: t.has(`decided.${decision.action}`)
+                    ? t(`decided.${decision.action}`)
+                    : t.has(`action.${decision.action}`)
+                      ? t(`action.${decision.action}`)
+                      : decision.action.replaceAll("_", " "),
+                })}${decision.comment ? ` – “${decision.comment}”` : ""}`
               : t("nothingBuilt")}
           </p>
           {nextAction ? (
             <a
-              href="#your-decision"
+              href={nextAction === "record_measurement" ? "#measurements" : "#your-decision"}
               data-next-action={nextAction}
               className="mt-3 inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-1.5 text-sm font-medium text-text hover:border-primary"
             >
@@ -241,6 +301,23 @@ export function VerdictDashboard({
         <Card>
           <h3 className="font-semibold">{t("requirements.title")}</h3>
           <p className="text-xs text-muted">{t("requirements.intro")}</p>
+          {requirementOrder.length >= HEATMAP_FILTER_FROM ? (
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs" data-testid="heatmap-filter">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("requirements.search")}
+                aria-label={t("requirements.search")}
+                className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1"
+              />
+              <label className="flex items-center gap-1.5">
+                <input type="checkbox" checked={onlyProblems} onChange={(e) => setOnlyProblems(e.target.checked)} />
+                {t("requirements.onlyProblems")}
+              </label>
+              <span className="text-muted">{t("requirements.shown", { n: visibleRequirements.length, of: requirementOrder.length })}</span>
+            </div>
+          ) : null}
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[28rem] border-separate border-spacing-1 text-xs">
               <thead>
@@ -254,7 +331,7 @@ export function VerdictDashboard({
                 </tr>
               </thead>
               <tbody>
-                {requirementOrder.map((r) => (
+                {visibleRequirements.map((r) => (
                   <tr key={r.id}>
                     <th scope="row" className="max-w-[22rem] text-left font-normal" title={r.text}>
                       <span className="font-medium">{r.short}</span>{" "}
@@ -262,13 +339,9 @@ export function VerdictDashboard({
                     </th>
                     {gate.proposals.map((g) => {
                       const req = g.requirements.find((x) => x.requirementId === r.id);
-                      const key =
-                        req?.buildVerification && req.status === "PASS"
-                          ? "PLAN"
-                          : req?.measurementPending && req.status === "PASS"
-                            ? "MEASURE"
-                            : (req?.status ?? "UNKNOWN");
-                      const st = REQ_STATUS[key] ?? REQ_STATUS.UNKNOWN!;
+                      // One derivation for the cell, its detail panel and the Evaluation tab (#266).
+                      const key = requirementCellKey(req);
+                      const st = REQUIREMENT_CELL[key];
                       const who = req
                         ? [
                             ...req.pass.map((id) => `${modelName(view, id)}: ${t("req.PASS")}`),
@@ -287,11 +360,15 @@ export function VerdictDashboard({
                             title={who}
                             aria-pressed={selected}
                             onClick={() => setCell(selected ? null : { requirementId: r.id, proposalId: g.proposalId })}
-                            className={`w-full rounded-md border px-2 py-1.5 text-center ${CELL_CLASS[st.tone]} ${selected ? "ring-2 ring-primary" : ""}`}
+                            className={`w-full rounded-md border px-2 py-1.5 text-center ${st.className} ${selected ? "ring-2 ring-primary" : ""}`}
                           >
                             <span aria-hidden="true">{st.icon}</span> {t(`req.${key}`)}
                             {req && expected ? (
-                              <span className="block text-[10px] opacity-80">{t("req.count", { n: req.pass.length, of: expected })}</span>
+                              <span className="block text-[10px] opacity-80">
+                                {key === "DISPUTED"
+                                  ? t("req.disputedCount", { pass: req.pass.length, fail: req.fail.length })
+                                  : t("req.count", { n: req.pass.length, of: expected })}
+                              </span>
                             ) : null}
                           </button>
                         </td>
@@ -302,6 +379,14 @@ export function VerdictDashboard({
               </tbody>
             </table>
           </div>
+          {/* #266: word and symbol carry the meaning; the legend names every state shown. */}
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted" aria-label={t("requirements.legend")} data-testid="heatmap-legend">
+            {(["PASS", "FAIL", "DISPUTED", "UNKNOWN", "PLAN", "MEASURE"] as const).map((k) => (
+              <li key={k}>
+                <span aria-hidden="true">{REQUIREMENT_CELL[k].icon}</span> {t(`req.${k}`)}
+              </li>
+            ))}
+          </ul>
           {cell ? <CellDetail view={view} gate={gate} cell={cell} requirements={requirementOrder} onClose={() => setCell(null)} /> : null}
         </Card>
       ) : null}
@@ -503,7 +588,7 @@ function CellDetail({
     <div className="mt-3 rounded-xl border border-line bg-surface-2 p-3 text-xs" role="region" aria-label={t("cell.aria")} data-testid="cell-detail">
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium">
-          {r?.short} · {t("proposal", { label: proposalLabel(view, cell.proposalId) })} · {t(`req.${req?.status ?? "UNKNOWN"}`)}
+          {r?.short} · {t("proposal", { label: proposalLabel(view, cell.proposalId) })} · {t(`req.${requirementCellKey(req)}`)}
         </p>
         <button type="button" className="text-muted underline" onClick={onClose}>
           {t("cell.close")}

@@ -1,6 +1,6 @@
 # Model weighting (#139, #140, #141)
 
-Stronger models' votes may count more in the Final Verdict. CONSYRION suggests a vote weight from 1 to 10 per model
+Stronger models' votes may count more in the Final Verdict. CONSYRIUM suggests a vote weight from 1 to 10 per model
 from a current external ranking; the user sees it before the run and can change it.
 
 ## Strength catalog (#139)
@@ -28,7 +28,7 @@ from a current external ranking; the user sees it before the run and can change 
   itself contains "preview". `gemini-2.5-flash` takes "Gemini 2.5 Flash", never "Gemini 2.5 Flash Preview"; with only
   a preview in the ranking it stays unknown. A preview id prefers the preview entry and falls back to the GA one.
 - **Variants** (#170): a ranking often lists one model several times – "GPT-5.4 mini (Xhigh)", "(medium)",
-  "(Non-reasoning)". The provider adapters send **no reasoning effort**, so CONSYRION runs every model at its
+  "(Non-reasoning)". The provider adapters send **no reasoning effort**, so CONSYRIUM runs every model at its
   provider default. The match therefore takes:
   - an explicit variant in the id (`grok-4.20-0309-non-reasoning`, `…-reasoning`, `…-thinking`; chat models such as
     `gpt-5.2-chat-latest` count as non-reasoning) – that variant, else the plain entry, else **unknown** (a chat model

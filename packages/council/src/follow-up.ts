@@ -1,5 +1,5 @@
-import { assertCan, DomainError, EVALUATION_TOKENS_PER_ITEM_MEASURED, isSelfHosted } from "@consyrion/core";
-import { newId, recordAudit, schema, type ActorContext, type Database } from "@consyrion/db";
+import { assertCan, DomainError, EVALUATION_TOKENS_PER_ITEM_MEASURED, isSelfHosted } from "@consyrium/core";
+import { assertSessionProjectWritable, newId, recordAudit, schema, type ActorContext, type Database } from "@consyrium/db";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { enqueue } from "./queue";
 
@@ -146,11 +146,24 @@ export async function loadRoundsWithChecks(db: Database, sessionId: string) {
 }
 
 /** What the owner can start now: per trigger the number of items and the estimate (no model call). */
+/** True when the session's project is archived (#197); other refusals (not found, deleting) are raised as usual. */
+async function projectArchived(db: Database, ctx: ActorContext, sessionId: string): Promise<boolean> {
+  try {
+    await assertSessionProjectWritable(db, ctx, sessionId);
+    return false;
+  } catch (error) {
+    if (error instanceof DomainError && error.code === "CONFLICT") return true;
+    throw error;
+  }
+}
+
 export async function previewFollowUp(db: Database, ctx: ActorContext, sessionId: string) {
   assertCan(ctx.role, "decision:approve");
   const session = await sessionOf(db, ctx, sessionId);
   const enabled = followUpRoundEnabled();
   const empty = { items: 0, estimatedTokens: 0 };
+  // #197 / Gesamttest 3: an archived project is read-only – the paid follow-up is not even offered.
+  if (await projectArchived(db, ctx, sessionId)) return { enabled, available: false, reason: "archived", completion: empty, targetedReview: empty };
   if (session.gateVersion < 2) return { enabled, available: false, reason: "old_gate", completion: empty, targetedReview: empty };
   const { first, followUps, base, rowsOf } = await loadRoundsWithChecks(db, sessionId);
   if (!first) return { enabled, available: false, reason: "no_round", completion: empty, targetedReview: empty };
@@ -220,6 +233,8 @@ export async function startFollowUp(
   if (!followUpRoundEnabled()) throw new DomainError("FORBIDDEN", "Follow-up rounds are switched off on this installation");
   if (input.kind !== "completion" && input.kind !== "targeted_review") throw new DomainError("VALIDATION", "Unknown follow-up kind");
   if (!input.confirmBudget) throw new DomainError("VALIDATION", "Confirm the extra budget first – a follow-up costs tokens on your own keys");
+  // #197 / Gesamttest 3 (HIGH): an archived project starts nothing that costs tokens – the same rule as approval and builds.
+  await assertSessionProjectWritable(db, ctx, sessionId);
   const session = await sessionOf(db, ctx, sessionId);
   if (session.gateVersion < 2) throw new DomainError("CONFLICT", "Follow-up rounds exist only for councils with the requirement gate");
   if (session.status !== "awaiting_approval") throw new DomainError("CONFLICT", "A follow-up can only start while the verdict waits for your decision");

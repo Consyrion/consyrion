@@ -1,5 +1,5 @@
 /**
- * Geometry of the original Consyrion mark (issue #67): an open council ring shaped like a "C" with seven
+ * Geometry of the original Consyrium mark (issue #67): an open council ring shaped like a "C" with seven
  * nodes – one per canonical phase – around a central verdict node, and an execution line leaving the
  * ring through its opening. Shared by the static mark, the Electric Logo, the favicon and the SVG assets.
  */

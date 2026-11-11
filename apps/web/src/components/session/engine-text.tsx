@@ -1,6 +1,6 @@
 "use client";
 
-import type { ConfidenceIssue } from "@consyrion/core/browser";
+import type { ConfidenceIssue } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 
 /**

@@ -82,6 +82,9 @@ order to produce the list). The user confirms the list anyway, so a model would 
 
 In prose, the rules are:
 
+- Sections whose Markdown heading ends with `[context]` (for example `## Assumptions (unconfirmed) [context]`, written by
+  the assistant for options, assumptions and the user's leaning, #215) are skipped up to the next heading – in idea,
+  goal and requirements. The source hash still covers them, so editing them still asks for a new confirmation.
 - The text is never rewritten; the splitter only decides where one statement ends. Statement boundaries are list
   items, line breaks between complete lines, and sentence ends. Commas, semicolons, "and"/"und", "without"/"ohne"
   and similar words never split, so a coupled condition such as "up to 4 hours offline without data loss and without
@@ -205,8 +208,8 @@ requirements no proposal meets (#339).
   a requirements-field item ("Die Geschäftsführung hat verlangt, dass … spätestens nach sieben Tagen gelöscht …") is
   proposed as excluded (`DUPLICATE_EXCLUSION_REASON`, `requirements.reasons.duplicate`); one click keeps it.
 - Soft goals and workflow rules (GitHub build test 08.11.26): an idea/goal sentence with soft wording ("möglichst",
-  "idealerweise", "preferably", "if possible" …) is context; a rule about CONSYRION's own delivery ("Kein automatischer
-  Merge.", "Der Draft-PR soll … geprüft werden") is a work instruction – CONSYRION only opens draft pull requests.
+  "idealerweise", "preferably", "if possible" …) is context; a rule about CONSYRIUM's own delivery ("Kein automatischer
+  Merge.", "Der Draft-PR soll … geprüft werden") is a work instruction – CONSYRIUM only opens draft pull requests.
 
 ## Build checks (night test R4, 08.11.26)
 

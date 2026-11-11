@@ -1,5 +1,5 @@
 {
-  "name": "@consyrion/worker",
+  "name": "@consyrium/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,10 +8,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@consyrion/core": "workspace:*",
-    "@consyrion/council": "workspace:*",
-    "@consyrion/db": "workspace:*",
-    "@consyrion/build": "workspace:*"
+    "@consyrium/core": "workspace:*",
+    "@consyrium/council": "workspace:*",
+    "@consyrium/db": "workspace:*",
+    "@consyrium/build": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

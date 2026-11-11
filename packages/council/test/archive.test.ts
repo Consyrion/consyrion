@@ -3,7 +3,7 @@
  * no council, approval, mark or measurement; reading stays possible; restore brings it back (plan limit applies).
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   archiveProject,
   createCredential,
@@ -18,7 +18,7 @@ import {
   updateBrief,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSession, getSessionView, listSessions, runSession, submitApproval, type SessionInput } from "../src";

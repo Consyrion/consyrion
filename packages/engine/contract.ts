@@ -1,5 +1,5 @@
 /**
- * Contract between the public application and the CONSYRION engine (#188).
+ * Contract between the public application and the CONSYRIUM engine (#188).
  *
  * The engine holds the business-critical logic (verdict, requirement gate, content checks, prompts, strength
  * catalog). Its implementation lives in packages/engine/src; this file only describes the interface, so keep it free
@@ -185,8 +185,8 @@ export const ENGINE_NOT_INSTALLED = "ENGINE_NOT_INSTALLED";
 
 /** Why councils cannot run with this engine, or null when they can. */
 export function engineProblem(engine: Pick<Engine, "info">): string | null {
-  if (engine.info.kind === "stub") return "This installation has no CONSYRION engine, so councils cannot run.";
+  if (engine.info.kind === "stub") return "This installation has no CONSYRIUM engine, so councils cannot run.";
   if (engine.info.contract !== ENGINE_CONTRACT_VERSION)
-    return `The installed CONSYRION engine implements contract ${engine.info.contract}, this release needs contract ${ENGINE_CONTRACT_VERSION}.`;
+    return `The installed CONSYRIUM engine implements contract ${engine.info.contract}, this release needs contract ${ENGINE_CONTRACT_VERSION}.`;
   return null;
 }

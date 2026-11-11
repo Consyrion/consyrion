@@ -1,6 +1,6 @@
 # Reference set and study plan (#182)
 
-**Question:** Does CONSYRION decide _correctly_, and how does that depend on the models? This plan measures the share of
+**Question:** Does CONSYRIUM decide _correctly_, and how does that depend on the models? This plan measures the share of
 **correct verdicts** on human-labelled reference cases. It does not measure the recommendation rate: a correct
 rejection is a useful result, and a recommendation for an impossible brief is the worst one.
 
@@ -13,7 +13,7 @@ scripted models. The reference set tests real councils.
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `packages/council/eval/reference-cases.ts` | 12 synthetic briefs, each with a gold label (`correct`), a checkable rationale and `reviewed`                        |
 | `packages/council/eval/reference-score.ts` | Classifies a Decision Report and scores it against the label. Offline, so it needs no provider call and no database. |
-| `packages/council/eval/reference-cli.ts`   | `pnpm --filter @consyrion/council reference <dir>` prints the comparison table                                       |
+| `packages/council/eval/reference-cli.ts`   | `pnpm --filter @consyrium/council reference <dir>` prints the comparison table                                       |
 
 Each case has a **kind**. The table shows how many cases have it and which verdicts count as correct:
 
@@ -102,7 +102,7 @@ Each configuration runs live, and only after the owner approves its budget:
    - application version (`/api/health` → `version`) and engine contract
    - models, mode and date
    - tokens, and the provider cost from the provider console
-5. Run `pnpm --filter @consyrion/council reference <dir>` and file the result together with the raw notes,
+5. Run `pnpm --filter @consyrium/council reference <dir>` and file the result together with the raw notes,
    including negative and inconsistent findings.
 
 Report JSONs contain the full debate. Keep them out of the repository and publish only the aggregated table.

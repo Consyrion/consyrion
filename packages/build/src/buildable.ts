@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import {
   assertCanEvaluateSession,
   assertDecisionApprovable,
@@ -7,8 +7,8 @@ import {
   checkPrototypeEligibility,
   latestMeasurements,
   sessionGateVersions,
-} from "@consyrion/council";
-import { schema, type Database } from "@consyrion/db";
+} from "@consyrium/council";
+import { schema, type Database } from "@consyrium/db";
 import { and, eq } from "drizzle-orm";
 
 /**

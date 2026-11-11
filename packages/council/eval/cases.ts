@@ -3,7 +3,7 @@
  * test models (see test/scripted-adapter.ts) and states the properties the outcome must have. They are
  * regression guards for the decision logic – not a measure of real model quality (see eval/README.md).
  */
-import type { DecisionMode } from "@consyrion/core";
+import type { DecisionMode } from "@consyrium/core";
 import type { Script } from "../test/scripted-adapter";
 
 export interface GoldenCase {

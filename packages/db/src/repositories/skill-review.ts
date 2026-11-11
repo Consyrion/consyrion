@@ -1,19 +1,19 @@
 import {
   normalizeSkillReviewerSettings,
-  scanSkillForPublication,
+  scanHubContent,
   SKILL_REVIEWER_SETTING,
-  validateSkillContent,
+  validateHubContent,
+  type HubKind,
   type Keyring,
   type PublicationScanResult,
   type SkillAiReview,
-  type SkillContent,
   type SkillReviewerSettings,
   type SkillReviewSkipReason,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
-import { skillModerationLog, skillVersion } from "../schema";
+import { skill, skillModerationLog, skillVersion } from "../schema";
 import { getPlatformSetting, setPlatformSetting } from "./platform-settings";
 
 /**
@@ -59,8 +59,10 @@ export async function skillReviewTokensThisMonth(db: Database, now = new Date())
 
 export interface SkillVersionForReview {
   skillId: string;
+  kind: HubKind;
   version: number;
-  content: SkillContent;
+  /** Validated content of `kind` (SkillContent or RoleProfileContent). */
+  content: unknown;
   contentHash: string;
   changelog: string | null;
   scan: PublicationScanResult;
@@ -69,14 +71,15 @@ export interface SkillVersionForReview {
 /** Content of one version plus its static scan (computed now when it was not stored yet). */
 export async function getSkillVersionForReview(db: Database, skillId: string, version: number): Promise<SkillVersionForReview | null> {
   const [row] = await db
-    .select()
+    .select({ version: skillVersion, kind: skill.kind })
     .from(skillVersion)
+    .innerJoin(skill, eq(skill.id, skillVersion.skillId))
     .where(and(eq(skillVersion.skillId, skillId), eq(skillVersion.version, version)));
   if (!row) return null;
-  const checked = validateSkillContent(row.content);
+  const checked = validateHubContent(row.kind, row.version.content);
   if (!checked.ok) return null;
-  const scan = row.scanResult ?? scanSkillForPublication(checked.content, { changelog: row.changelog });
-  return { skillId, version, content: checked.content, contentHash: row.contentHash, changelog: row.changelog, scan };
+  const scan = row.version.scanResult ?? scanHubContent(row.kind, checked.content, { changelog: row.version.changelog });
+  return { skillId, kind: row.kind, version, content: checked.content, contentHash: row.version.contentHash, changelog: row.version.changelog, scan };
 }
 
 export type StoredSkillAiReview = SkillAiReview | { skipped: SkillReviewSkipReason | "provider_error"; reviewedAt: string; promptVersion: number };

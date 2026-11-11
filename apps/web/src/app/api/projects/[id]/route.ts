@@ -1,4 +1,4 @@
-import { archiveProject, getProject, updateBrief } from "@consyrion/db";
+import { archiveProject, getProject, updateBrief } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

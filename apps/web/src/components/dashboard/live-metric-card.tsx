@@ -49,7 +49,7 @@ export function LiveMetricCard({ label, value, hint, tone = "cyan", series, live
           {demo ? <Badge tone="warning">{t("demo")}</Badge> : null}
           {live ? (
             <span className="flex items-center gap-1.5 text-xs text-success" data-live="true">
-              <span className="size-2 rounded-full bg-success [animation:consyrion-pulse_1.6s_ease-in-out_infinite]" />
+              <span className="size-2 rounded-full bg-success [animation:consyrium-pulse_1.6s_ease-in-out_infinite]" />
               {t("live")}
             </span>
           ) : null}

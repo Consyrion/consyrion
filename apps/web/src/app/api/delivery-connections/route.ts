@@ -1,4 +1,4 @@
-import { createDeliveryConnection, listDeliveryConnections } from "@consyrion/db";
+import { createDeliveryConnection, listDeliveryConnections } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

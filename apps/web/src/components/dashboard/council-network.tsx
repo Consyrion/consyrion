@@ -123,7 +123,7 @@ export function CouncilNetwork({ nodes, centerLabel, caption, className = "" }: 
             strokeOpacity={node.state === "idle" ? 0.25 : 0.55}
             strokeWidth={1.2}
             strokeDasharray={node.state === "working" ? "4 8" : undefined}
-            style={node.state === "working" ? ({ "--travel": "-48px", animation: "consyrion-flow 1.4s linear infinite" } as CSSProperties) : undefined}
+            style={node.state === "working" ? ({ "--travel": "-48px", animation: "consyrium-flow 1.4s linear infinite" } as CSSProperties) : undefined}
             data-state={node.state}
           />
         ))}
@@ -143,7 +143,7 @@ export function CouncilNetwork({ nodes, centerLabel, caption, className = "" }: 
                 r={23}
                 fill="var(--primary)"
                 opacity={0.14}
-                style={{ transformOrigin: `${node.x}px ${node.y}px`, animation: "consyrion-pulse 1.6s ease-in-out infinite" }}
+                style={{ transformOrigin: `${node.x}px ${node.y}px`, animation: "consyrium-pulse 1.6s ease-in-out infinite" }}
                 data-pulse="true"
               />
             ) : null}

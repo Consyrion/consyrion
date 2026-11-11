@@ -1,4 +1,4 @@
-import type { GenerateRequest, GenerateResult, ProviderAdapter } from "@consyrion/ai";
+import type { GenerateRequest, GenerateResult, ProviderAdapter } from "@consyrium/ai";
 import type { ScriptedAdapter } from "../../council/test/scripted-adapter";
 
 /** TEST DOUBLE: answers planning/coding/review prompts with fixed engineering output. */

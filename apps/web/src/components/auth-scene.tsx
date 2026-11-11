@@ -3,7 +3,7 @@
 import { useMessages, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { usePageVisible, usePrefersReducedMotion } from "@/lib/motion";
-import { ConsyrionOrbitalLogo } from "./brand/orbital-logo";
+import { ConsyriumOrbitalLogo } from "./brand/orbital-logo";
 import type { SceneLabels, StoryScene } from "./landing/story-scene";
 
 /**
@@ -88,7 +88,7 @@ export function AuthScene({ className = "" }: { className?: string }) {
     };
   }, [ready, reduced, visible, paused]);
 
-  if (failed) return <ConsyrionOrbitalLogo className={className} />;
+  if (failed) return <ConsyriumOrbitalLogo className={className} />;
   return (
     <div className={`relative aspect-[4/3] w-full ${className}`}>
       <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 size-full" />

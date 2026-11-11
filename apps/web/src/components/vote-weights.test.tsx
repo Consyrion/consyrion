@@ -1,4 +1,4 @@
-import { voteWeightWarnings } from "@consyrion/core";
+import { voteWeightWarnings } from "@consyrium/core";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";

@@ -18,7 +18,7 @@ const MARKERS = {
   "readiness (pull request gate)": "No sandbox test run exists for this change.",
   "revisions / binding (stopword lists)": "the and for with that this from are was were will",
   prompts: "a structured decision council of several independent AI models",
-  "engine guard": "This installation has no CONSYRION engine",
+  "engine guard": "This installation has no CONSYRIUM engine",
 };
 
 const engineMarkers = join(root, "packages/engine/src/bundle-markers.json");

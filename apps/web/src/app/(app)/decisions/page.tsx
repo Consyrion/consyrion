@@ -1,5 +1,5 @@
-import { listSessions } from "@consyrion/council";
-import { DECISION_MODE_LABELS } from "@consyrion/core";
+import { listSessions } from "@consyrium/council";
+import { DECISION_MODE_LABELS } from "@consyrium/core";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Badge, EmptyState, PageHeader } from "@/components/ui/surface";
@@ -21,7 +21,16 @@ export default async function DecisionsPage({ searchParams }: { searchParams: Pr
   const format = await getFormatter();
   return (
     <>
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          // #182: how the councils of this workspace worked – figures only.
+          <Link href="/decisions/quality" className="text-sm text-primary underline" data-testid="quality-link">
+            {t("qualityLink")}
+          </Link>
+        }
+      />
       {archivedCount ? (
         <p className="mb-3 text-sm">
           <Link href={showArchived ? "/decisions" : "/decisions?archived=1"} className="text-primary underline" data-testid="archived-filter">

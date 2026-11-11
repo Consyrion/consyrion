@@ -13,7 +13,7 @@
       "dashboardShort": "Panel",
       "startShort": "Empezar",
       "main": "Navegación principal",
-      "home": "Inicio de CONSYRION AI",
+      "home": "Inicio de CONSYRIUM AI",
       "skip": "Saltar al contenido",
       "openSource": "Código abierto",
       "pricing": "Precios",
@@ -43,7 +43,7 @@
     },
     "byok": {
       "title": "Tus claves. Tus proveedores.",
-      "text": "CONSYRION AI funciona solo con tus propias claves API. Las conectas tú y pagas directamente a los proveedores – CONSYRION AI no vende créditos de IA ni tiene clave de respaldo.",
+      "text": "CONSYRIUM AI funciona solo con tus propias claves API. Las conectas tú y pagas directamente a los proveedores – CONSYRIUM AI no vende créditos de IA ni tiene clave de respaldo.",
       "p1": "Las claves se cifran con AES-256-GCM antes de guardarse y nunca se vuelven a mostrar.",
       "p2": "Cada clave se comprueba con el proveedor; las listas de modelos llegan en directo del proveedor.",
       "p3": "Cada sesión tiene un presupuesto fijo de tokens que el servidor hace cumplir.",
@@ -135,7 +135,7 @@
       "integrations": "Integraciones"
     },
     "why": {
-      "title": "¿Por qué CONSYRION AI?",
+      "title": "¿Por qué CONSYRIUM AI?",
       "text": "Varios modelos de IA elaboran soluciones, se cuestionan entre sí y las evalúan. Ves los argumentos, las objeciones abiertas y los resultados antes de decidir.",
       "points": {
         "perspectives": {
@@ -161,13 +161,13 @@
       }
     },
     "channels": {
-      "title": "CONSYRION AI donde trabajas",
+      "title": "CONSYRIUM AI donde trabajas",
       "text": "No tienes que abrir la aplicación web para cada pregunta. Con Pro inicias decisiones desde tu herramienta de desarrollo o tu chat privado de Telegram.",
       "mcp": {
         "kicker": "Servidor MCP",
         "title": "En tu flujo de desarrollo",
-        "text": "El servidor MCP integrado conecta CONSYRION AI con Claude Code, Claude Desktop, Cursor y VS Code.",
-        "p1": "Envía una pregunta al council con ask_consyrion y obtén el veredicto con get_decision.",
+        "text": "El servidor MCP integrado conecta CONSYRIUM AI con Claude Code, Claude Desktop, Cursor y VS Code.",
+        "p1": "Envía una pregunta al council con ask_consyrium y obtén el veredicto con get_decision.",
         "p2": "Acceso con tokens de API, también de solo lectura.",
         "p3": "Aprobaciones, builds, borrados, claves y facturación quedan excluidos por MCP."
       },
@@ -182,7 +182,7 @@
     },
     "openSource": {
       "title": "Código abierto. También en tu propio servidor.",
-      "text": "CONSYRION AI es software de código abierto gratuito. Descarga el código fuente de GitHub y ejecútalo tú mismo con Docker Compose.",
+      "text": "CONSYRIUM AI es software de código abierto gratuito. Descarga el código fuente de GitHub y ejecútalo tú mismo con Docker Compose.",
       "cta": "Ver en GitHub",
       "guide": "Guía de autoalojamiento",
       "p1": "Licencia AGPL-3.0 – descarga gratuita",
@@ -191,8 +191,8 @@
       "p4": "Tus propias claves de IA: pagas directamente a los proveedores"
     },
     "pricing": {
-      "title": "Elige cómo usar CONSYRION AI",
-      "text": "Alójalo tú mismo o empieza en línea ahora. La IA siempre funciona con tus propias claves de API – CONSYRION AI no vende créditos de IA.",
+      "title": "Elige cómo usar CONSYRIUM AI",
+      "text": "Alójalo tú mismo o empieza en línea ahora. La IA siempre funciona con tus propias claves de API – CONSYRIUM AI no vende créditos de IA.",
       "note": "Pro se cancela en cualquier momento en el portal de clientes de Stripe. En todas las opciones pagas el uso de las API de IA directamente al proveedor.",
       "plans": {
         "selfhost": {
@@ -209,7 +209,7 @@
         "free": {
           "name": "Free",
           "price": "0 €",
-          "priceNote": "en app.consyrion.com · costes de IA cobrados por tu proveedor",
+          "priceNote": "en app.consyrium.com · costes de IA cobrados por tu proveedor",
           "p1": "1 miembro, 3 proyectos",
           "p2": "2 councils al mes",
           "p3": "Hasta 3 modelos de IA por council",
@@ -232,7 +232,7 @@
     }
   },
   "story": {
-    "title": "Cómo funciona CONSYRION AI – de tu pregunta a una decisión razonada",
+    "title": "Cómo funciona CONSYRIUM AI – de tu pregunta a una decisión razonada",
     "chaptersLabel": "Capítulos",
     "illustration": "Ilustración – no son datos reales",
     "example": "Escenario de ejemplo – ilustración, no son datos reales.",
@@ -248,14 +248,14 @@
     },
     "chapters": {
       "top": {
-        "kicker": "CONSYRION AI",
+        "kicker": "CONSYRIUM AI",
         "title": "Debatir. Decidir. Entregar.",
         "text": "Claude, OpenAI, Gemini, Grok, DeepSeek, Kimi y otros modelos de IA piensan de forma independiente, se cuestionan entre sí y llegan a un veredicto documentado y con pruebas. Tú apruebas – y llevas la decisión adonde trabajas: como informe, a tus herramientas o, con un repositorio de GitHub conectado, como pull request revisado."
       },
       "prepare": {
         "kicker": "Antes del Council",
         "title": "Tu pregunta se convierte en encargo",
-        "text": "Crea un proyecto y describe la decisión. Elige los modelos y hasta doce perspectivas. Conectas tus propias claves y fijas un presupuesto de tokens – CONSYRION AI no vende créditos de IA.",
+        "text": "Crea un proyecto y describe la decisión. Elige los modelos y hasta doce perspectivas. Conectas tus propias claves y fijas un presupuesto de tokens – CONSYRIUM AI no vende créditos de IA.",
         "example": "Pregunta: «¿Qué arquitectura de base de datos debe usar nuestro producto SaaS?» – tres modelos, doce perspectivas, un presupuesto con tus propias claves.",
         "points": [
           "Proyecto, pregunta y contexto",
@@ -385,6 +385,23 @@
       "proposal": "Propuesta {label}",
       "approvableYes": "{n, plural, one {# propuesta se puede aprobar} other {# propuestas se pueden aprobar}}",
       "approvableNo": "Ninguna propuesta se puede aprobar",
+      "whoActs": "Qué significa: CONSYRIUM solo libera lo que cada evaluador confirmó para cada requisito; es una regla de la aplicación, nadie tiene que «verificar» nada más aquí. Te toca a ti: añade las pruebas que faltan al encargo o cambia los requisitos e inicia un nuevo council.",
+      "idea": {
+        "title": {
+          "favorite": "Idea revisada: favorita con puntos abiertos",
+          "several": "Idea revisada: varias propuestas se sostienen",
+          "none": "Idea revisada: así no se sostiene"
+        },
+        "lead": {
+          "favorite": "Ningún evaluador descartó esta propuesta y tiene la mejor puntuación global. La idea se sostiene, pero algunos puntos aún no están demostrados.",
+          "several": "Ningún evaluador descartó estas propuestas y sus puntuaciones están igualadas: {list}. La idea se sostiene; qué variante encaja mejor lo decides tú.",
+          "none": "Cada propuesta incumple al menos uno de tus requisitos obligatorios. Tal como está descrita, la idea no funciona: cambia la idea o los requisitos."
+        },
+        "clarify": "Aclarar antes del siguiente paso (aún sin demostrar):",
+        "excluded": "Descartadas:",
+        "excludedItem": "{label}: no cumple {list}",
+        "note": "Esto es una revisión de la idea, no una aprobación. No se construye nada hasta que los puntos abiertos estén demostrados y un council con el propósito «Aprobar una decisión» los confirme."
+      },
       "yourDecision": "Tu decisión: {action}",
       "nothingBuilt": "No se construye nada antes de que decidas. Son juicios razonados de los modelos, no una verificación de hechos.",
       "nextStep": "Siguiente paso",
@@ -395,7 +412,10 @@
         "request_changes": "pedir cambios en el encargo",
         "reject": "rechazar",
         "request_more_debate": "pedir más debate",
-        "mark_favorite": "marcar la candidata de arquitectura como favorita (sin aprobación)"
+        "mark_favorite": "marcar la candidata de arquitectura como favorita (sin aprobación)",
+        "approve_prototype": "aprobar un build de prototipo/medición (sin aprobación regular)",
+        "approve_after_measurement": "aprobar tras la medición",
+        "record_measurement": "registrar el resultado medido"
       },
       "outcome": {
         "recommended": "Solución recomendada",
@@ -448,7 +468,11 @@
       "requirements": {
         "title": "Requisitos obligatorios",
         "intro": "Cada requisito frente a cada propuesta, según los evaluadores independientes. Haz clic en una celda para ver la justificación de cada evaluador.",
-        "requirement": "Requisito"
+        "requirement": "Requisito",
+        "legend": "Leyenda",
+        "search": "Buscar requisitos",
+        "onlyProblems": "Solo problemas",
+        "shown": "{n} de {of} mostrados"
       },
       "req": {
         "PASS": "cumplido",
@@ -459,7 +483,8 @@
         "noAnswer": "sin respuesta",
         "noEvaluation": "Sin evaluación",
         "count": "{n} de {of} confirman",
-        "MEASURE": "plan de medición confirmado – medición pendiente"
+        "MEASURE": "plan de medición confirmado – medición pendiente",
+        "disputedCount": "{pass} confirman, {fail} no cumplido"
       },
       "cell": {
         "aria": "Justificaciones de los evaluadores para este requisito",
@@ -482,10 +507,9 @@
       },
       "allBlocked": "Ninguna de las {n} propuestas es aprobable – las puntuaciones muestran calidad, no un ganador.",
       "decided": {
-        "chosen": "Decidido: propuesta {label}",
-        "approved": "Decidido: recomendación aprobada",
-        "rejected": "Decidido: rechazado",
-        "aiVerdict": "Veredicto de la IA: {verdict}"
+        "mark_favorite": "marcada como favorita (sin aprobación)",
+        "approve_prototype": "build de prototipo/medición aprobado",
+        "approve_after_measurement": "aprobada tras la medición"
       },
       "unmetByAll": "Ninguna propuesta cumple {list}. {n, plural, one {Puede que este requisito no sea alcanzable} other {Puede que estos requisitos se contradigan}}: cambia el encargo e inicia un nuevo consejo.",
       "openByAll": "No confirmado en ninguna propuesta: {list}. Añade al encargo lo que se sabe al respecto o pide propuestas que {n, plural, one {demuestren este requisito} other {demuestren estos requisitos}} de forma explícita."
@@ -563,7 +587,8 @@
         "method": "Prueba: {text}",
         "success": "Confirmado si: {text}",
         "noSuccess": "Criterio de éxito: no indicado."
-      }
+      },
+      "introFavorite": "Todavía no se puede aprobar nada. Para tu favorita, la propuesta {label}: qué falta y qué compruebas antes de decidir."
     }
   },
   "scene": {
@@ -733,7 +758,7 @@
       "independent_critical_thinker": "¿Qué pasan por alto los demás – hay un camino más simple o más seguro?"
     },
     "titleAlternative": "Alternativa: perspectivas recomendadas para este proyecto",
-    "introAlternative": "El skill «{name}» está activo: sus {n} perspectivas están seleccionadas abajo. Esta sugerencia basada en tu encargo y tus requisitos es una alternativa.",
+    "introAlternative": "El skill «{name}» está activo: sus perspectivas se preseleccionaron abajo. Esta sugerencia a partir de tu brief y tus requisitos es una alternativa.",
     "replace": "Sustituir por {n} perspectivas",
     "add": "Añadir {n} que faltan",
     "effect": "Aplicar sustituye tu selección actual ({current} activas) por estas {n} perspectivas.",
@@ -758,7 +783,12 @@
     "examples": {
       "open": "¿Qué pasos están abiertos en mi espacio de trabajo?",
       "waiting": "¿Qué decisiones esperan mi aprobación?",
-      "summary": "Resume esta decisión para un cliente en cinco frases."
+      "summary": "Resume esta decisión para un cliente en cinco frases.",
+      "against": "¿Qué habla en contra de la recomendación y qué objeciones siguen abiertas?",
+      "next": "¿Cuál es el siguiente paso de esta decisión y qué tengo que hacer?",
+      "projectGaps": "¿Qué falta o no está claro en el encargo de este proyecto?",
+      "projectReady": "¿Está este proyecto listo para un council? ¿Qué requisitos siguen sin confirmar?",
+      "projectRisks": "¿Qué riesgos debería revisar el council en este proyecto?"
     },
     "thinking": "El asistente lo está consultando…",
     "placeholder": "Haz una pregunta … (Enter envía, Mayús+Enter nueva línea)",
@@ -805,6 +835,7 @@
         "text": "Texto"
       },
       "run": "Ejecutar",
+      "runCreateProject": "Crear proyecto ahora",
       "copy": "Copiar texto",
       "openForm": "Abrir formulario del council",
       "edit": "Editar",
@@ -876,7 +907,7 @@
       "summaryTitle": "Resumen para el cliente",
       "summaryTitleProject": "Resumen para el cliente: {project}",
       "summarySubtitle": "Resumen de IA · {date}",
-      "summaryNote": "Redactado por un modelo de IA a partir de los datos de este espacio de trabajo de CONSYRION AI y revisado por el usuario antes de exportarlo. No es un veredicto del council.",
+      "summaryNote": "Redactado por un modelo de IA a partir de los datos de este espacio de trabajo de CONSYRIUM AI y revisado por el usuario antes de exportarlo. No es un veredicto del council.",
       "chatSubtitle": "Chat del asistente · exportado el {date}",
       "chatNote": "Las respuestas del asistente de IA proceden de los datos del espacio de trabajo mediante herramientas de solo lectura; las afirmaciones de los modelos no son una verificación de hechos.",
       "lostCharacters": "Algunos caracteres no se pueden mostrar en este PDF (aparecen como ?). El archivo Word contiene el texto completo."
@@ -923,8 +954,87 @@
     "checkSensitive": "medicina, derecho o seguridad: que lo revise siempre un profesional",
     "makeCouncil": "Convertirlo en un council",
     "makeCouncilPrompt": "Convierte este council chat en un council: redacta el proyecto (idea y objetivo a partir de mi pregunta), toma como requisitos los puntos en los que coinciden los modelos y cada desacuerdo abierto como requisito que debe comprobarse.",
-    "makeCouncilNote": "{model} responde una vez con tarjetas de acción (borrador de proyecto, requisitos). Nada empieza solo: confirmas los requisitos e inicias el council desde su formulario con la estimación de costes.",
+    "makeCouncilNote": "{model} responde una vez con una tarjeta de proyecto. Un clic en «Crear proyecto ahora» guarda el proyecto como borrador. Ningún council empieza solo: confirmas los requisitos y lo inicias desde su formulario con la estimación de costes.",
+    "cardMissing": "No hay ninguna tarjeta para esta respuesta: la propuesta del modelo estaba incompleta o no llegó. No se ha creado nada.",
+    "cardRetry": "Pedir la tarjeta de nuevo",
     "limitReserveNote": "Cada pregunta reserva primero sus tokens previstos (una corta unos {min}) y se rechaza si superara un límite; después solo cuentan los tokens reales.",
-    "limitTooSmall": "Este límite es menor que una pregunta (unos {min} tokens): no pasaría ninguna pregunta."
+    "limitTooSmall": "Este límite es menor que una pregunta (unos {min} tokens): no pasaría ninguna pregunta.",
+    "contextProject": "Sobre este proyecto",
+    "report": {
+      "open": "Informar de esta conversación",
+      "title": "Informar de esta conversación al equipo de CONSYRIUM",
+      "explanation": "¿Qué estuvo mal? (obligatorio)",
+      "previewLabel": "Se envía exactamente este extracto (últimos mensajes, abreviados, sin claves, datos de herramientas ni enlaces):",
+      "consent": "Acepto que este extracto y mi explicación se envíen al buzón de comentarios del equipo de CONSYRIUM.",
+      "send": "Enviar informe",
+      "sent": "Gracias: el informe está en el buzón de comentarios. Puedes seguirlo en «Comentarios y errores».",
+      "secondOpinion": "Segunda opinión",
+      "subject": "Conversación del asistente informada: {title}"
+    },
+    "interview": {
+      "start": "Preparar un proyecto conmigo",
+      "startNote": "Pregunto lo que necesita un council – pocas preguntas cada vez – y luego propongo un borrador de proyecto.",
+      "empty": "Describe tu idea o decisión en una o dos frases.",
+      "title": "Preparando el proyecto",
+      "progress": "{done} de {total} puntos aclarados",
+      "notYet": "empezando",
+      "end": "Terminar",
+      "open": "Pendiente",
+      "assumed": "Supuestos sin confirmar",
+      "keys": {
+        "decision": "decisión",
+        "options": "opciones",
+        "goal": "objetivo y medida de éxito",
+        "constraints": "límites estrictos",
+        "scope": "decisión o implementación",
+        "reversibility": "reversibilidad",
+        "preference": "tu preferencia"
+      }
+    },
+    "councilStart": {
+      "title": "Iniciar un council",
+      "project": "Proyecto",
+      "models": "Modelos (como en tu último council)",
+      "budget": "Presupuesto",
+      "upperBound": "límite superior {tokens}",
+      "typical": "normalmente {tokens}",
+      "shortened": "El límite superior supera el presupuesto: las fases pueden acortarse para respetarlo.",
+      "requirementsNotCurrent": "La lista de requisitos no está confirmada para el encargo actual: confírmala primero en la página del proyecto.",
+      "note": "Cuesta tokens en tus propias claves API. Nada empieza hasta que marques la casilla y pulses Iniciar.",
+      "consent": "Confirmo los costes: hasta {tokens} tokens en mis propias claves.",
+      "start": "Iniciar council",
+      "starting": "Iniciando …",
+      "adjust": "Ajustar en el formulario",
+      "dismiss": "Descartar",
+      "started": "El council ha empezado.",
+      "status": "Estado: {status} · fase: {phase} · {tokens} tokens usados",
+      "open": "Abrir el council «{name}»",
+      "dismissed": "Descartado: no se inició ningún council.",
+      "loading": "Cargando la estimación de costes …",
+      "failed": "No ha funcionado.",
+      "verdictReady": "El veredicto está listo: abre el council para leerlo junto con los siguientes pasos.",
+      "budgetTooSmall": "El presupuesto está por debajo del mínimo de {min} tokens para estos modelos: pide una tarjeta con más presupuesto o ajústalo en el formulario."
+    }
+  },
+  "interventions": {
+    "humanQuestion": "Pregunta de una persona",
+    "noEffect": "sin efecto en el veredicto ni en las comprobaciones",
+    "noAnswer": "sin respuesta ({reason})",
+    "questionPlaceholder": "Tu pregunta al council …",
+    "statementPlaceholder": "Opcional: ¿sobre qué deben pronunciarse?",
+    "preview": "Responden: {models} · unos {tokens} tokens",
+    "overCap": "Demasiado largo para una intervención: acorta la pregunta.",
+    "consent": "Confirmo los costes: unos {tokens} tokens en mis propias claves.",
+    "send": "Preguntar",
+    "asking": "Preguntando …",
+    "checkCosts": "Comprobar costes",
+    "failed": "No ha funcionado.",
+    "markedImportant": "Marcado como importante",
+    "mark": "Marcar como importante",
+    "unmark": "Quitar marca",
+    "requestStatement": "Pedir una postura",
+    "councilTitle": "Pregunta al council",
+    "councilNote": "Cada modelo responde una vez sobre su propia propuesta. Las respuestas son un anexo: no cambian ninguna puntuación, comprobación, voto ni el veredicto.",
+    "cruxCount": "Preguntas humanas: {questions} · marcados: {marks}"
   }
 }

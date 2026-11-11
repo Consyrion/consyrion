@@ -25,7 +25,7 @@ text (no keys or tokens, no e-mail addresses, no text that tries to change the c
 - Versions are immutable; identical content creates no version. Deactivating hides a profile from new councils; the
   versions stay readable for councils that used them.
 - Five **curated** profiles (`curated:<slug>`: security review, architecture fit, product value, cost control,
-  verification) are read-only. They are the CONSYRION team's own assessment: no persons, no quotes, no links.
+  verification) are read-only. They are the CONSYRIUM team's own assessment: no persons, no quotes, no links.
 - `snapshotRoleProfiles` freezes the chosen profiles (at most one per role) for a council: id, version, content hash
   and content (`council_session.role_profiles`, migration 0044).
 - Role profiles are part of the workspace data export (only what the exporting user may see).
@@ -74,3 +74,31 @@ gate, thresholds and the human approval. Three roles on one model stay one model
   never opened or fetched automatically.
 - Part 3: the choice in the council setup together with the prompt (see below).
 - Measurement with the golden set (with vs. without profile) runs live only with the owner's cost approval.
+
+## No imitated personalities (0d's skills test, 08.11.26)
+
+A role profile describes a perspective, never a real personality. `detectImpersonation` (`packages/core/src/impersonation.ts`)
+refuses text that tells a model to think, answer or act like a named person – "Denke wie Elon Musk", "You are Warren
+Buffett", "im Stil von …", "Pense comme …", "Piensa como …", "像…一样思考" – in every field of a profile (name, core
+question, lenses, scope limit, source titles and notes). Roles and generic phrases with an article ("wie ein Angreifer",
+"like a regulator", "du bist Sicherheitsexperte") are no names and pass. The same function grades skills yellow in the
+SkillHub publication scan.
+## Expert profiles in the SkillHub (owner decision 08.11.26)
+
+Role profiles are a publishable kind of their own in the SkillHub (`skill.kind = role_profile`, ADR 0368 addendum),
+one profile per role – not per model.
+
+- **Publish:** Settings → Role profiles → "Publish in SkillHub" on an own profile (`POST /api/role-profiles/:id/publish`).
+  The latest version goes through the same pipeline as skills: `saveHubDraft` → `submitSkillForPublication` (static scan,
+  red = quarantined) → model review (the BYOK exception of ADR 0368 applies to profiles with the same cap) → admin. Only
+  the author can publish; team members cannot publish someone else's profile. CC BY 4.0, versions, reports and hiding
+  work as for skills.
+- **Hub adapter** (`roleProfileHubAdapter`): validation as for private profiles plus no unknown fields; https-only
+  source links (yellow in the scan); every text field – name, core question, lenses, scope limit, source titles, links
+  and notes – goes to the scan and the model review; imitations of real people are refused (`detectImpersonation`).
+- **Public page:** plain text; every source status is shown as "stated by the author" ("verified" is not checked by
+  CONSYRIUM), links as text; a note says what a profile can and cannot do in a council.
+- **Adopt:** creates a private copy (`adoptPublicRoleProfile`) with `forked_from` (hub entry, version, content hash,
+  `@handle/slug` for the attribution). It never updates itself and is offered in the council setup for its role.
+- **Runtime unchanged:** a profile reaches only its role as untrusted `<role_profile>` data; it has no field that could
+  change the gate, votes, weights, review breadth or the approval.

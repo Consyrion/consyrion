@@ -1,5 +1,5 @@
-import { DomainError } from "@consyrion/core";
-import { addDocument, DOCUMENT_LIMITS, listDocuments } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { addDocument, DOCUMENT_LIMITS, listDocuments } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

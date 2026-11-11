@@ -160,3 +160,11 @@ describe("skill content (#363)", () => {
     expect(officialSkill("skl_123")).toBeNull();
   });
 });
+
+describe("import type errors (Gesamttest 3 #9)", () => {
+  it("says that name and summary must be texts", () => {
+    const r = validateSkillContent({ name: 123, summary: 5, category: "other" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toEqual(expect.arrayContaining(["name must be a text", "summary must be a text"]));
+  });
+});

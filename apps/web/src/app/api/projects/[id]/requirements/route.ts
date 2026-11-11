@@ -1,4 +1,4 @@
-import { confirmRequirementList, listRequirementLists, proposeRequirementList } from "@consyrion/db";
+import { confirmRequirementList, listRequirementLists, proposeRequirementList } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

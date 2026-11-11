@@ -1,5 +1,5 @@
 /**
- * Strings that look like provider API keys, GitHub tokens, Stripe webhook secrets or Consyrion API tokens (full cns_,
+ * Strings that look like provider API keys, GitHub tokens, Stripe webhook secrets or Consyrium API tokens (full cns_,
  * integration cni_, read-only cnr_). Shared by the web logger and the packages that log directly (#403), so a secret in
  * an error message never reaches a log line.
  */

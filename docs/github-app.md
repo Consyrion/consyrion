@@ -1,6 +1,6 @@
 # GitHub App setup (Milestone 5)
 
-Consyrion uses a **GitHub App** (not a personal token) so access is limited to repositories the user selects
+Consyrium uses a **GitHub App** (not a personal token) so access is limited to repositories the user selects
 and every token is short-lived and scoped to one repository.
 
 ## Create the app (once per deployment)
@@ -8,7 +8,7 @@ GitHub → Settings → Developer settings → GitHub Apps → *New GitHub App*:
 
 | Setting | Value |
 |---|---|
-| Homepage URL | `https://consyrion.com` |
+| Homepage URL | `https://consyrium.com` |
 | Callback URL | `<BETTER_AUTH_URL>/api/github/setup` |
 | Setup URL | `<BETTER_AUTH_URL>/api/github/setup` |
 | Request user authorization (OAuth) during installation | **on** (proves the user can access the installation) |
@@ -36,17 +36,17 @@ It exchanges the code (`POST /app-manifests/{code}/conversions`), writes the six
 and owner. Secrets go from GitHub to the server without being shown. The webhook secret is the one GitHub generates.
 
 ```json
-{ "name": "CONSYRION AI", "url": "https://consyrion.com",
-  "hook_attributes": { "url": "https://app.consyrion.com/api/github/webhook", "active": true },
-  "redirect_url": "https://app.consyrion.com/settings/integrations",
-  "callback_urls": ["https://app.consyrion.com/api/github/setup"], "setup_url": "https://app.consyrion.com/api/github/setup",
+{ "name": "CONSYRIUM AI", "url": "https://consyrium.com",
+  "hook_attributes": { "url": "https://app.consyrium.com/api/github/webhook", "active": true },
+  "redirect_url": "https://app.consyrium.com/settings/integrations",
+  "callback_urls": ["https://app.consyrium.com/api/github/setup"], "setup_url": "https://app.consyrium.com/api/github/setup",
   "request_oauth_on_install": true, "public": true,
   "default_permissions": { "contents": "write", "pull_requests": "write", "checks": "read", "metadata": "read" },
   "default_events": [] }
 ```
 
 Production app: `consyrion-ai` (https://github.com/apps/consyrion-ai), owned by the organisation
-`Consyrion` (transferred 30 Oct 2026; id, key and server values unchanged). Customers never create an app – they click *Connect GitHub*.
+`Consyrium` (transferred 30 Oct 2026; id, key and server values unchanged). Customers never create an app – they click *Connect GitHub*.
 
 ## Flow
 Redirects and links (setup, invites, billing) use the origin of `BETTER_AUTH_URL`, never the request URL – behind
@@ -72,9 +72,9 @@ Caddy that is the container address `0.0.0.0:3000` (bug seen on the first produc
    before anything is installed.
 4. The Execution Council imports a snapshot of the default branch (text files only; `node_modules`, build output,
    binaries, `.env`/key files and files containing credential-like values are skipped and listed).
-5. After a completed run, an owner/admin clicks **Create draft pull request**: new branch `consyrion/<run id>`,
+5. After a completed run, an owner/admin clicks **Create draft pull request**: new branch `consyrium/<run id>`,
    one commit with the changed files via the Git Data API, a **draft** PR with plan, test status and review findings.
-   The base branch is never written; Consyrion never merges.
+   The base branch is never written; Consyrium never merges.
 6. CI checks of the PR commit are shown in *Review & Tests*.
 
 Webhooks: `installation` `deleted`/`suspend` mark the connection unusable; `unsuspend` restores it. Deliveries
@@ -87,7 +87,7 @@ without a valid `X-Hub-Signature-256` are rejected.
 ## End-to-end check (26 Oct 2026, local)
 App installed on a private sandbox repository only → project created with the repository URL → council
 (Claude Haiku 5.5, gpt-5-mini, deepseek-flash) → human approval → Execution Council imported the default-branch
-snapshot (5 files), changed 2 files → draft PR #1 opened by the app on `consyrion/<run id>`, base untouched.
+snapshot (5 files), changed 2 files → draft PR #1 opened by the app on `consyrium/<run id>`, base untouched.
 Sandbox tests were `not_run` locally (no Docker) and the PR body says so; the PR branch passed `npm test` (7/7)
 when run by hand.
 

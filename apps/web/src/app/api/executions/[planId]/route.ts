@@ -1,4 +1,4 @@
-import { getExecutionView } from "@consyrion/build";
+import { getExecutionView } from "@consyrium/build";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

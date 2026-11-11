@@ -271,7 +271,7 @@ void main() {
   gl_FragColor = vec4(uColor * a, a);
 }`;
 
-// Plasma ball core (inspired by "plasma globe" visuals, written for Consyrion): glass sphere with flickering
+// Plasma ball core (inspired by "plasma globe" visuals, written for Consyrium): glass sphere with flickering
 // filaments from the centre to the glass; they bend towards the pointer, which also lights a contact spot.
 const CORE_FRAGMENT = /* glsl */ `
 uniform float uTime;
@@ -459,7 +459,7 @@ export function createStoryScene(
     ctx.drawImage(logoImage, 0, 0, 1024, 1024);
     ((logo.material as MeshBasicMaterial).map as Texture).needsUpdate = true;
   };
-  logoImage.src = "/brand/consyrion-mark.svg";
+  logoImage.src = "/brand/consyrium-mark.svg";
   const CORE_KEYS = fillForward<Key>(
     [{ p: [0, 0, 0], s: 1.2, o: 1 }, { p: [0, 0.2, -0.5], s: 0.95, o: 1 }, { p: [0, 0.1, -0.5], s: 0.85, o: 1 }, undefined, undefined, undefined, undefined, { p: [0, 0.2, -1.2], s: 0.8, o: 1 }, undefined, { p: [-3.4, 0.9, -1], s: 0.7, o: 1 }, undefined],
     CHAPTERS,
@@ -544,7 +544,9 @@ export function createStoryScene(
   const BUBBLE = fillForward<number>([0, 0, 1, 0], CHAPTERS, 0);
   const KEY_CHIP = fillForward<number>([0, 1, 0], CHAPTERS, 0);
   const ROLE_CHIP = fillForward<number>([1, 0, 1, 1, 0], CHAPTERS, 0);
-  const DECISION_CHIP = fillForward<number>([1, 1, 1, 1, 1, 1, 1, 0], CHAPTERS, 0);
+  // The core's caption steps aside whenever a card stands in front of the core (brief, proposal B, hybrid) – live check
+  // 10.11.26: it showed half-covered under those cards.
+  const DECISION_CHIP = fillForward<number>([1, 0, 1, 0, 1, 1, 0, 0], CHAPTERS, 0);
   const decisionChip = pill(L.decision, COLORS.cyan, 0.4);
   const SATELLITES = fillForward<number>([0, 0, 0, 0, 1, 0.9, 0], CHAPTERS, 0);
   const HIGHLIGHT = fillForward<number>([0, 0, 0, 0, 0, 1, 0], CHAPTERS, 0);
@@ -861,9 +863,16 @@ export function createStoryScene(
         dotMaterial.opacity = satellites * dim;
         dotMaterial.color.set(isFocus && highlight > 0.5 ? COLORS.amber : m.tint);
         sat.dot.visible = satellites > 0.01;
-        // Label pushed outward from the model so it never sits on the sphere.
+        // Label pushed outward from the model so it never sits on the sphere. Above the model stands its name: there the
+        // label slides beside its dot instead of rising into the name (live check 10.11.26: "DeepSeek" was covered).
         tmp.copy(sat.dot.position).sub(m.position).setZ(0).normalize();
-        place(sat.label, { p: [sat.dot.position.x + tmp.x * 0.45, sat.dot.position.y + tmp.y * 0.3 + 0.22, sat.dot.position.z + 0.3], s: isFocus ? 1 + highlight * 0.3 : 1, o: satellites * dim });
+        const top = Math.min(1, Math.max(0, (tmp.y - 0.25) / 0.5));
+        const beside = top * top * (3 - 2 * top);
+        place(sat.label, {
+          p: [sat.dot.position.x + tmp.x * 0.45 + 0.95 * beside, sat.dot.position.y + (tmp.y * 0.3 + 0.22) * (1 - beside) - 0.12 * beside, sat.dot.position.z + 0.3],
+          s: isFocus ? 1 + highlight * 0.3 : 1,
+          o: satellites * dim,
+        });
       });
     });
 

@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { DomainError, PLAN_KEYS, type PlanKey } from "@consyrion/core";
-import { getPlanCatalog, upsertStripeSubscription, type Database } from "@consyrion/db";
+import { DomainError, PLAN_KEYS, type PlanKey } from "@consyrium/core";
+import { getPlanCatalog, upsertStripeSubscription, type Database } from "@consyrium/db";
 
 /**
- * Stripe billing for the platform subscription only. Consyrion never charges for AI usage (BYOK,
+ * Stripe billing for the platform subscription only. Consyrium never charges for AI usage (BYOK,
  * issue #30). Without STRIPE_SECRET_KEY nothing here is reachable and nothing is charged.
  */
 export interface StripeConfig {

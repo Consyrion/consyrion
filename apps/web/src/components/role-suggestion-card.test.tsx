@@ -1,4 +1,4 @@
-import { suggestRoleProfiles, suggestRoles } from "@consyrion/core/browser";
+import { suggestRoleProfiles, suggestRoles } from "@consyrium/core/browser";
 import { NextIntlClientProvider } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";

@@ -6,7 +6,7 @@
 ## Data flow
 
 ```
-Obsidian (selected text) ──HTTPS, Bearer cni_…──▶ CONSYRION AI REST API ──your provider keys──▶ AI models
+Obsidian (selected text) ──HTTPS, Bearer cni_…──▶ CONSYRIUM AI REST API ──your provider keys──▶ AI models
           ◀── Markdown report (GET /api/sessions/:id/report) ──
 ```
 
@@ -30,7 +30,7 @@ No new endpoint was needed. The token cannot approve, build, merge or read keys 
 ## Rules kept
 
 - BYOK only; the cost preview comes before every start; the user confirms a shortened budget explicitly.
-- The requirement list is confirmed from the user's own lines only (same rule as `ask_consyrion`); instruction-like
+- The requirement list is confirmed from the user's own lines only (same rule as `ask_consyrium`); instruction-like
   lines are refused, never decided automatically.
 - Existing notes are never overwritten (`vault.create` + next free name); reports carry real run data only.
 - The token is stored in the vault's plugin data (plain text) – documented in the README with sync/backup advice.

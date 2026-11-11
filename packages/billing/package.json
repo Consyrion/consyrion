@@ -1,5 +1,5 @@
 {
-  "name": "@consyrion/billing",
+  "name": "@consyrium/billing",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@consyrion/core": "workspace:*",
-    "@consyrion/db": "workspace:*"
+    "@consyrium/core": "workspace:*",
+    "@consyrium/db": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0"

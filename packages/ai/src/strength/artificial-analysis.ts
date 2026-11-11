@@ -1,4 +1,4 @@
-import type { StrengthEntry } from "@consyrion/core";
+import type { StrengthEntry } from "@consyrium/core";
 import { timeoutSignal } from "../retry";
 
 export const ARTIFICIAL_ANALYSIS = { source: "Artificial Analysis Intelligence Index", sourceUrl: "https://artificialanalysis.ai/" } as const;

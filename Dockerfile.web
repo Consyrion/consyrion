@@ -3,7 +3,9 @@ FROM node:24-alpine AS build
 WORKDIR /app
 RUN corepack enable pnpm
 COPY . .
-RUN pnpm install --frozen-lockfile && pnpm --filter @consyrion/web build
+# The build traces public/ into the standalone bundle; it is copied into the image once below, so the traced copy is
+# dropped here (otherwise e.g. the 8 MB CJK font of Chinese PDFs, #268, would sit in two layers).
+RUN pnpm install --frozen-lockfile && pnpm --filter @consyrium/web build && rm -rf apps/web/.next/standalone/apps/web/public
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 COUNCIL_WORKER=external

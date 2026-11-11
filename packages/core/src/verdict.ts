@@ -454,7 +454,7 @@ export function describeConfidenceIssue(issue: ConfidenceIssue, label: (proposal
     case "insufficient_evaluators":
       return `Only ${issue.evaluators} of ${issue.expected} expected evaluators delivered usable scores – too few for a council decision; repeat the evaluation`;
     case "no_debate_contribution":
-      return `${issue.modelId} contributed no role review to the 12 Minds Council (every call failed); its perspectives are missing from the debate, but its vote still counts in the Final Verdict if it evaluated`;
+      return `${issue.modelId} contributed no role review to the 12 Minds Council (no successful call – its calls failed or the budget shortened the phase before its turn); its perspectives are missing from the debate, but its vote still counts in the Final Verdict if it evaluated`;
     case "undefended_proposal":
       return `Proposal ${label(issue.proposalId)} was not defended – ${issue.reason}: ${issue.count} objection${issue.count === 1 ? "" : "s"} against it stay${issue.count === 1 ? "s" : ""} unanswered, which is not the same as uncontested criticism`;
     case "phase_shortened":

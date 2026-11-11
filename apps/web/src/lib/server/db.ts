@@ -1,18 +1,18 @@
 import "server-only";
-import { createDatabase, type Database, type DatabaseHandle } from "@consyrion/db";
+import { createDatabase, type Database, type DatabaseHandle } from "@consyrium/db";
 import path from "node:path";
 
 type State = { handle: DatabaseHandle; ready: Promise<void> | null };
-const globalForDb = globalThis as unknown as { consyrionDb?: State };
+const globalForDb = globalThis as unknown as { consyriumDb?: State };
 
 /** Opened on first use, never at import, so builds and route analysis do not start a database. */
 function state(): State {
-  if (!globalForDb.consyrionDb) {
+  if (!globalForDb.consyriumDb) {
     const url = process.env.DATABASE_URL || path.resolve(process.cwd(), "../../.data/pglite");
     const handle = createDatabase(url, { migrationsFolder: path.resolve(process.cwd(), "../../packages/db/drizzle") });
-    globalForDb.consyrionDb = { handle, ready: null };
+    globalForDb.consyriumDb = { handle, ready: null };
   }
-  return globalForDb.consyrionDb;
+  return globalForDb.consyriumDb;
 }
 
 /**

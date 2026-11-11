@@ -6,7 +6,7 @@ import { proposalLabel, type View } from "./helpers";
 import type { NextSteps } from "./next-steps";
 
 /** "What next" checklist (#273): stored statements only, each section with its source; empty sections say so. */
-export function NextStepsCard({ view, steps, mode }: { view: View; steps: NextSteps; mode: "chosen" | "recommended" | "tie" | "blocked" }) {
+export function NextStepsCard({ view, steps, mode }: { view: View; steps: NextSteps; mode: "chosen" | "recommended" | "tie" | "favorite" | "blocked" }) {
   const t = useTranslations("verdict.nextSteps");
   const req = useTranslations("verdict.dashboard.req");
   const sev = useTranslations("verdict.cruxes.severity");
@@ -15,7 +15,15 @@ export function NextStepsCard({ view, steps, mode }: { view: View; steps: NextSt
     <Card>
       <h3 className="font-semibold">{t("title")}</h3>
       <p className="text-xs text-muted">
-        {mode === "chosen" ? t("introChosen", { label }) : mode === "recommended" ? t("introRecommended", { label }) : mode === "tie" ? t("introTie", { label }) : t("introLeading", { label })}
+        {mode === "chosen"
+          ? t("introChosen", { label })
+          : mode === "recommended"
+            ? t("introRecommended", { label })
+            : mode === "tie"
+              ? t("introTie", { label })
+              : mode === "favorite"
+                ? t("introFavorite", { label })
+                : t("introLeading", { label })}
       </p>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <Section title={t("verify.title")} source={t("verify.source")} empty={t("verify.empty")}>
@@ -35,8 +43,11 @@ export function NextStepsCard({ view, steps, mode }: { view: View; steps: NextSt
         <Section title={t("counter.title")} source={t("counter.source")} empty={t("counter.empty")}>
           {steps.counter ? (
             <li>
-              <span className="font-medium">{steps.counter.claim}</span> <span className="text-muted">({t("verify.raisedBy", { model: steps.counter.by })})</span>
-              <span className="block text-muted">{steps.counter.evidence ? t("counter.rightIf", { text: steps.counter.evidence }) : t("counter.noReason")}</span>
+              <span className="font-medium">{steps.counter.claim}</span>{" "}
+              <span className="text-muted">({t("verify.raisedBy", { model: steps.counter.by })})</span>
+              <span className="block text-muted">
+                {steps.counter.evidence ? t("counter.rightIf", { text: steps.counter.evidence }) : t("counter.noReason")}
+              </span>
             </li>
           ) : null}
         </Section>
@@ -80,7 +91,7 @@ export function NextStepsCard({ view, steps, mode }: { view: View; steps: NextSt
           {steps.revisitWhen.length ? <li>{t("revisit.pointer", { n: steps.revisitWhen.length })}</li> : null}
         </Section>
       </div>
-      {mode === "blocked" ? <p className="mt-3 text-xs text-warning">{t("notYet")}</p> : null}
+      {mode === "blocked" || mode === "favorite" ? <p className="mt-3 text-xs text-warning">{t("notYet")}</p> : null}
       <p className="mt-3 text-[11px] text-muted">{t("note")}</p>
     </Card>
   );

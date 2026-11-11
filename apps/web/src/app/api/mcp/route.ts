@@ -1,5 +1,5 @@
-import { DomainError, httpStatusFor } from "@consyrion/core";
-import { assertEntitlement, resolveActor, resolveApiToken } from "@consyrion/db";
+import { DomainError, httpStatusFor } from "@consyrium/core";
+import { assertEntitlement, resolveActor, resolveApiToken } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
 import { handleMcpMessage } from "@/lib/server/mcp";
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const message = error instanceof DomainError ? error.message : "Unexpected server error";
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32001, message } },
-      { status, headers: status === 401 ? { "WWW-Authenticate": 'Bearer realm="consyrion"' } : undefined },
+      { status, headers: status === 401 ? { "WWW-Authenticate": 'Bearer realm="consyrium"' } : undefined },
     );
   }
 }

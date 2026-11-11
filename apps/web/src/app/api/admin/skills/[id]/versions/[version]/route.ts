@@ -1,5 +1,5 @@
-import { DomainError } from "@consyrion/core";
-import { decideSkillVersion, getSkillReviewItem, type ModerationDecision } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { decideSkillVersion, getSkillReviewItem, type ModerationDecision } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdminContext } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";

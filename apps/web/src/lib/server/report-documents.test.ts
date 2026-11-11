@@ -235,17 +235,45 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
     expect(all).not.toContain("Offene Einwände");
   });
 
-  it("keeps a Chinese PDF English until a CJK font is embedded (#268)", async () => {
+  it("writes a Chinese PDF with the embedded Noto Sans SC subset; other languages stay small (#268)", async () => {
     const { pdfLocale } = await import("./report-documents");
-    expect(pdfLocale("zh")).toBe("en");
-    expect(pdfLocale("de")).toBe("de");
+    const { reportStatus } = await import("./report-status");
+    expect(pdfLocale("zh")).toBe("zh");
+    const view = {
+      session: { status: "awaiting_approval" },
+      decision: { outcome: "needs_verification", matrix: {} },
+      decisionStatus: { readable: true, approvable: false, gateVersion: 2, approvableProposalIds: [] },
+    };
+    const started = performance.now();
+    const zh = await reportPdf(
+      "# 最终决策报告\n\n这是一个很长的中文段落，用来检查自动换行是否正常工作，而且不会超出页面的边界。".repeat(3),
+      meta,
+      report as never,
+      {
+        locale: "zh",
+        status: reportStatus(view, "zh"),
+        level: "report",
+      },
+    );
+    const ms = performance.now() - started;
+    const de = await reportPdf(markdown, meta, report as never, { locale: "de", level: "report" });
+    const { extractText } = await import("unpdf");
+    const text = ((await extractText(new Uint8Array(zh), { mergePages: true })).text as string).replace(/\s+/g, "");
+    expect(text).toContain("决策摘要"); // "Decision summary"
+    expect(text).toContain("需要核实"); // status title from the zh UI messages
+    expect(text).toContain("最终决策报告");
+    expect(text).not.toContain("???");
+    // Subset only: far below the 8 MB font file; German PDFs embed no font at all.
+    expect(zh.length).toBeLessThan(600_000);
+    expect(de.length).toBeLessThan(60_000);
+    console.info(`#268 zh PDF: ${Math.round(zh.length / 1024)} KB in ${Math.round(ms)} ms (de: ${Math.round(de.length / 1024)} KB)`);
   });
 
   it("prints a favourite mark under the verdict and the measurements as self-declarations (#249 part 2, #268)", async () => {
     const { reportStatus } = await import("./report-status");
     const view = {
       session: { status: "awaiting_approval" },
-      proposals: [{ id: "pro_a", label: "A", revisions: [] }],
+      proposals: [{ id: "pro_a", label: "A", revisions: [{ version: 1, content: { title: "Edge" } }] }],
       requirementList: { items: [{ id: "req_lat", text: "Latenz unter 30 ms" }] },
       decision: {
         id: "dec_1",
@@ -302,6 +330,10 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
     expect(lines).toContain("req_lat Latenz unter 30 ms");
     expect(lines).toContain("Messung: Selbstauskunft von Kim Muster, Beleg: Messprotokoll 1");
     expect(status.measurements!.warn).toBe(true);
+    // The next steps are about the favourite (live check 08.11.26).
+    expect(status.nextSteps!.lines[0]).toBe(
+      "Noch kann kein Vorschlag freigegeben werden. Für deinen Favoriten, Vorschlag A: was fehlt und was du vor der Entscheidung prüfst.",
+    );
     const bytes = await reportPdf(markdown, meta, { ...report, approvableProposals: [], decisionFormat: { approvable: false } } as never, {
       locale: "de",
       status,
@@ -333,8 +365,24 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
         { participantId: "g", phase: "final_verdict", outcome: "error", calls: 1, inputTokens: 0, outputTokens: 0 },
       ],
       decision: { id: "dec_1", outcome: "needs_verification", matrix: { followUpRounds: [{ round: 2, kind: "targeted_review", items: 3, applied: true }] } },
+      participation: { valid: 1, total: 3, percent: 33, shortfalls: [{ participantId: "o2", phases: ["Final Verdict"], notCalled: ["Final Verdict"] }] },
       decisionStatus: { readable: true, approvable: false, gateVersion: 3, approvableProposalIds: [] },
       approvals: [{ action: "request_changes", comment: "kleiner", createdAt: "2026-11-08T11:00:00Z" }],
+      processQuality: {
+        participation: { valid: 3, total: 3, percent: 100, shortfalls: [] },
+        participationGroups: { valid: 2, total: 2 },
+        convergence: { measurable: false, reason: "no_revisions" },
+        objections: { total: 0, survived: 0, refuted: 0, resolved: 0, open: 0, effects: { revised: 0, blocking: 0, none: 0 } },
+        weight: {
+          measurable: true,
+          topGroupShare: 0.5,
+          topGroupParticipantIds: ["o1", "o2"],
+          groups: 2,
+          changedWinner: false,
+          weightedWinnerId: null,
+          unweightedWinnerId: null,
+        },
+      },
     };
     const status = reportStatus(view, "de");
     const bytes = await reportPdf(markdown, meta, report as never, { locale: "de", status, level: "report" });
@@ -346,9 +394,17 @@ describe("graphical decision summary on page 1 (stage 1 visualisations)", () => 
     expect(all).toContain("anthropic · claude-opus-5-5 (Instanz 2/2 – eine unabhängige Stimme)");
     expect(all).toContain("anthropic · claude-opus-5-5 (Instanz 1/2 – eine unabhängige Stimme) – Gesamt: 1000 Input- + 200 Output-Tokens");
     expect(all).toContain("Final Verdict: kein Beitrag, 1 fehlgeschlagen");
+    // #561: a phase the budget shortened before the model was asked is "not called", not "no contribution".
+    expect(all).toContain("Final Verdict: nicht aufgerufen (Phase vom Budget verkürzt)");
     expect(all).toContain("Runde 2 (gezielte Nachprüfung): 3 Prüfungen angefordert – abgeschlossen, Ergebnisse übernommen (nachgeholt)");
     expect(all).toContain("Entscheidungsverlauf");
     expect(all).toContain("2026-11-08 11:00 UTC · Änderungen angefordert – kleiner");
+    // #182: process quality in the card's own words, with its limits.
+    expect(all).toContain("Prozessqualität");
+    expect(all).toContain("Beteiligung: 3 von 3 Modellen haben in jeder Phase geliefert (2 von 2 unabhängigen Modellen");
+    expect(all).toContain("Annäherung der Vorschläge: nicht messbar – kein Vorschlag wurde überarbeitet");
+    expect(all).toContain("Gewicht der Stimmen: Die Gewichte haben den Sieger nicht verändert.");
+    expect(all).toContain("Gemessen an gemeinsamen Wörtern, nicht am Inhalt.");
     // The brief stays the summary alone.
     const brief = (
       await extractText(new Uint8Array(await reportPdf(markdown, meta, report as never, { locale: "de", status, level: "brief" })), { mergePages: true })

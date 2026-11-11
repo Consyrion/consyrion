@@ -1,4 +1,4 @@
-import { listMyFeedback, markFeedbackRepliesSeen } from "@consyrion/db";
+import { listMyFeedback, markFeedbackRepliesSeen } from "@consyrium/db";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { FeedbackForm } from "@/components/feedback";
 import { Badge, Card, PageHeader } from "@/components/ui/surface";

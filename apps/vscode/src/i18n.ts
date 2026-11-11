@@ -53,8 +53,8 @@ const DE: Dictionary = {
   "Open generated changes": "Erzeugte Änderungen öffnen",
   // Extension messages
   "Open decision": "Entscheidung öffnen",
-  "CONSYRION AI decision": "CONSYRION-AI-Entscheidung",
-  "Personal API token (CONSYRION AI → Settings → API tokens)": "Persönliches API-Token (CONSYRION AI → Einstellungen → API-Tokens)",
+  "CONSYRIUM AI decision": "CONSYRIUM-AI-Entscheidung",
+  "Personal API token (CONSYRIUM AI → Settings → API tokens)": "Persönliches API-Token (CONSYRIUM AI → Einstellungen → API-Tokens)",
   "This is an integration token; VS Code needs a full-access token (cns_…)":
     "Das ist ein Integrations-Token; VS Code braucht ein Token mit vollem Zugriff (cns_…)",
   "Tokens start with cns_": "Tokens beginnen mit cns_",

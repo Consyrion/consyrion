@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createCipheriv, randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { decryptSecret, encryptSecret, envelopeKeyVersion, keyringFromEnv, maskSecret, type Keyring } from "./crypto";
 import { DomainError } from "./errors";
@@ -16,6 +16,18 @@ describe("credential encryption", () => {
     const envelope = encryptSecret("sk-test-123456789", context, ring);
     expect(envelope).not.toContain("sk-test");
     expect(decryptSecret(envelope, context, ring)).toBe("sk-test-123456789");
+  });
+
+  it("keeps the stored context string: a key encrypted before the rename still decrypts", () => {
+    const raw = randomBytes(32);
+    const ring = keyring({ CREDENTIALS_MASTER_KEY_V1: raw.toString("base64") });
+    // Envelope built by hand exactly as before the rename (AAD "consyrion:credential:<org>:<credential>").
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", raw, iv);
+    cipher.setAAD(Buffer.from("consyrion:credential:org_a:cred_1", "utf8"));
+    const data = Buffer.concat([cipher.update("sk-stored-before-rename", "utf8"), cipher.final()]);
+    const envelope = ["v1", iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), data.toString("base64url")].join(".");
+    expect(decryptSecret(envelope, context, ring)).toBe("sk-stored-before-rename");
   });
 
   it("uses a fresh IV for every encryption", () => {

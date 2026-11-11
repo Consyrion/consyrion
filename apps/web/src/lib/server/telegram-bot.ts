@@ -1,6 +1,6 @@
 import "server-only";
-import { briefLanguage, createSession, reportLocale } from "@consyrion/council";
-import { DomainError, type Keyring } from "@consyrion/core";
+import { briefLanguage, createSession, reportLocale } from "@consyrium/council";
+import { DomainError, type Keyring } from "@consyrium/core";
 import {
   archiveProject,
   assertEntitlement,
@@ -15,14 +15,14 @@ import {
   setTelegramRequestSession,
   type ActorContext,
   type Database, recordClientCouncilStart
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { assistantTools } from "./assistant-tools";
 import { deliverDecision } from "./delivery";
 import { modelCatalog } from "./model-catalog";
 
 /**
  * Questions over the workspace's own Telegram bot (06.11.26): "/frage …" (or any text) → a summary with the models
- * of the last council and the budget → the user taps "Start" → ask_consyrion's flow (project, requirement list from the
+ * of the last council and the budget → the user taps "Start" → ask_consyrium's flow (project, requirement list from the
  * user's own "- " lines, council) → when the council is done, the verdict goes back to the chat (summary + PDF).
  * Only the private chat of the connection is listened to; nothing runs without the tap.
  */
@@ -41,7 +41,7 @@ export interface Inbound {
 
 const TEXT = {
   en: {
-    help: 'Ask CONSYRION AI for a decision:\n/frage Should we use PostgreSQL or SQLite?\n- must cost under 20 € per month\n- backups without downtime\n\nLines starting with "- " are your hard requirements. /offen shows what is waiting for you.',
+    help: 'Ask CONSYRIUM AI for a decision:\n/frage Should we use PostgreSQL or SQLite?\n- must cost under 20 € per month\n- backups without downtime\n\nLines starting with "- " are your hard requirements. /offen shows what is waiting for you.',
     summary: (q: string, reqs: string[], models: string[], budget = TELEGRAM_TOKEN_BUDGET) =>
       `Question: ${q}\nRequirements: ${reqs.length ? `\n- ${reqs.join("\n- ")}` : "none"}\nModels: ${models.join(", ")} (as in your last council)\nBudget: at most ${budget.toLocaleString("en-US")} tokens on your own keys; phases may be shortened to stay within it. A line "Budget: 150000" sets a lower ceiling.\n\nStart the council?`,
     start: "▶ Start",
@@ -56,7 +56,7 @@ const TEXT = {
       lines.length ? `Waiting for you (${lines.length} of ${total}):\n${lines.join("\n")}` : "Nothing is waiting for you.",
   },
   de: {
-    help: 'Frag CONSYRION AI nach einer Entscheidung:\n/frage Sollen wir PostgreSQL oder SQLite nehmen?\n- muss unter 20 € pro Monat kosten\n- Backups ohne Ausfallzeit\n\nZeilen mit "- " sind deine festen Anforderungen. /offen zeigt, was auf dich wartet.',
+    help: 'Frag CONSYRIUM AI nach einer Entscheidung:\n/frage Sollen wir PostgreSQL oder SQLite nehmen?\n- muss unter 20 € pro Monat kosten\n- Backups ohne Ausfallzeit\n\nZeilen mit "- " sind deine festen Anforderungen. /offen zeigt, was auf dich wartet.',
     summary: (q: string, reqs: string[], models: string[], budget = TELEGRAM_TOKEN_BUDGET) =>
       `Frage: ${q}\nAnforderungen: ${reqs.length ? `\n- ${reqs.join("\n- ")}` : "keine"}\nModelle: ${models.join(", ")} (wie in deinem letzten Council)\nBudget: höchstens ${budget.toLocaleString("de-DE")} Tokens auf deinen eigenen Keys; Phasen können gekürzt werden, um es einzuhalten. Eine Zeile „Budget: 150000“ setzt eine niedrigere Obergrenze.\n\nCouncil starten?`,
     start: "▶ Starten",

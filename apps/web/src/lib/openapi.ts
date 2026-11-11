@@ -13,10 +13,10 @@ const sessionId = id("sessionId", "Council session id (ses_…)");
 export const openApiDocument = {
   openapi: "3.1.0",
   info: {
-    title: "CONSYRION AI API",
+    title: "CONSYRIUM AI API",
     version: "1.0.0",
     description: [
-      "Run CONSYRION AI councils from other tools. Authenticate with `Authorization: Bearer cni_…` (integration token,",
+      "Run CONSYRIUM AI councils from other tools. Authenticate with `Authorization: Bearer cni_…` (integration token,",
       "created under Settings → API tokens). An integration token acts as you in one workspace and may create projects,",
       "attach documents, confirm requirements, start, read and cancel councils. It can never approve a verdict, start a",
       "build, open a pull request, manage keys, members or tokens, or delete a project – those stay with a human in the",

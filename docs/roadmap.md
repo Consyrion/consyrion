@@ -14,8 +14,18 @@
 draft PR run, and councils with Anthropic, DeepSeek, GLM and xAI Grok up to the verdict (`docs/testing.md`). Fixes from
 those runs and from external QA: #105–#107, #118, #120–#122, #30. An audit of the open issues against the code
 (26 Oct) found #1, #7, #20, #23, #27, #35 and #55 complete; the "Remaining" columns below list what is still open.
-Not started and needing a product decision: hosting (#100), API v1 (#101), Obsidian (#103), Stripe products
-(#29), trademark/launch (#48), benchmarks with real keys (#33).
+Then still open: hosting (#100), API v1 (#101), Obsidian (#103), Stripe products (#29), trademark/launch (#48),
+benchmarks with real keys (#33).
+
+**Status 8 Nov 2026:** open source (AGPL-3.0, self-hosted, BYOK) since 3 Nov; the engine is public in
+`packages/engine/src` (#188 superseded). Done since 26 Oct: hosting on Hetzner (#100, `docs/hetzner.md`, live at
+app.consyrium.com since 10 Nov, renamed CONSYRIUM AI in #595), API v1 (#101, `docs/api.md`), Obsidian plugin (#103), Stripe plans (#29, `docs/saas.md`),
+project archive and two-phase delete (#197, ADR 0197), plan usage ledger (#201), privacy data map, complete export and
+restore lock (#206, `docs/privacy-data-map.md`, ADR 0206), follow-up round (#228/#229), measured requirements (#226).
+Overall test #275 (ChatGPT + Claude) ran on 8 Nov: findings #477 (header vs. verdict card, fixed in #481/#508) and #478
+(qualified proposal under "needs verification", answered by gate 2 – favourite/prototype – in #502); the next overall
+test is planned in #479 (bypass, tenant isolation, limits). Still open: trademark/launch (#48), benchmarks with real keys
+(#33, #182).
 
 ## Milestone 1 – issue coverage
 | Issue | Covered | Remaining |
@@ -23,7 +33,7 @@ Not started and needing a product decision: hosting (#100), API v1 (#101), Obsid
 | #2 Monorepo scaffold | pnpm workspace, lint, typecheck, tests, env example, Docker Compose, CI, Prettier (#129) | – |
 | #3 PostgreSQL schema | Foundation tables + migration | M2+ entities (see data-model.md) |
 | #4 Auth, orgs, RBAC | Email/password + optional GitHub OAuth, personal workspace, roles | Invitations, org switcher UI, email verification |
-| #5 Provider adapters | Anthropic, OpenAI, Gemini and OpenAI-compatible adapters (DeepSeek, GLM, Kimi, Qwen, xAI), live model discovery with media-model filter, deadline vs. cancel classification | Streaming, model cache table usage, real-key run with Qwen |
+| #5 Provider adapters | Anthropic, OpenAI, Gemini and OpenAI-compatible adapters (DeepSeek, GLM, Kimi, Qwen, xAI), live model discovery with media-model filter, deadline vs. cancel classification, streaming (assistant, #309) | Model cache table usage, real-key run with Qwen |
 | #6 BYOK | Encrypted storage, check, delete, masked display | Re-encryption job, per-key usage limits |
 | #13 Design system | Tokens (dark/light), shell, form controls, states | Component docs, icons, remaining screens |
 | #36 Claude handoff docs | CLAUDE.md, architecture, security, testing, roadmap | – |

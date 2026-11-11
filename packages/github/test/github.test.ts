@@ -4,7 +4,7 @@ import { containsSecret, contextDocument, createAppJwt, createDraftPullRequest, 
 import { createHmac } from "node:crypto";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048, privateKeyEncoding: { type: "pkcs8", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } });
-const config = { appId: "123", privateKey, slug: "consyrion-test", clientId: "cid", clientSecret: "csecret", webhookSecret: "whsec" };
+const config = { appId: "123", privateKey, slug: "consyrium-test", clientId: "cid", clientSecret: "csecret", webhookSecret: "whsec" };
 
 /** TEST DOUBLE for GitHub's REST API: routes requests to handlers and records them. */
 function fakeGitHub(routes: Record<string, (body: unknown) => unknown>) {
@@ -226,15 +226,15 @@ describe("draft pull request", () => {
     const pr = await createDraftPullRequest(new GitHubClient("t", gh.fetchImpl), { fullName: "acme/app", defaultBranch: "main", private: true }, {
       baseBranch: "main",
       baseSha: "base",
-      branch: "consyrion/pln_1",
-      title: "Consyrion: implement decision",
+      branch: "consyrium/pln_1",
+      title: "Consyrium: implement decision",
       body: "body",
       changes: [{ path: "src/a.ts", content: "x" }, { path: "old.ts", content: null }],
     });
     expect(pr).toEqual({ number: 5, url: "https://github.com/acme/app/pull/5", commitSha: "newcommit" });
     const refCall = gh.calls.find((c) => c.path === "/repos/acme/app/git/refs")!;
-    expect(refCall.body).toEqual({ ref: "refs/heads/consyrion/pln_1", sha: "newcommit" });
-    expect(gh.calls.find((c) => c.path === "/repos/acme/app/pulls")!.body).toMatchObject({ draft: true, base: "main", head: "consyrion/pln_1" });
+    expect(refCall.body).toEqual({ ref: "refs/heads/consyrium/pln_1", sha: "newcommit" });
+    expect(gh.calls.find((c) => c.path === "/repos/acme/app/pulls")!.body).toMatchObject({ draft: true, base: "main", head: "consyrium/pln_1" });
     expect(gh.calls.some((c) => c.method === "PATCH" || c.path.includes("/merge"))).toBe(false);
     expect((gh.calls.find((c) => c.path === "/repos/acme/app/git/trees")!.body as { tree: Array<{ sha?: null }> }).tree[1]).toMatchObject({ path: "old.ts", sha: null });
     await expect(

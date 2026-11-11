@@ -1,5 +1,5 @@
-import { DomainError, NOT_IMPLEMENTABLE_MESSAGE } from "@consyrion/core";
-import { schema, type Database } from "@consyrion/db";
+import { DomainError, NOT_IMPLEMENTABLE_MESSAGE } from "@consyrium/core";
+import { schema, type Database } from "@consyrium/db";
 import { eq } from "drizzle-orm";
 
 /**

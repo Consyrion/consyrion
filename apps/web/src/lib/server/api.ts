@@ -1,4 +1,4 @@
-import { DomainError, httpStatusFor } from "@consyrion/core";
+import { DomainError, httpStatusFor } from "@consyrium/core";
 import { NextResponse } from "next/server";
 import { logger } from "./logger";
 import { publicOrigin } from "./origin";

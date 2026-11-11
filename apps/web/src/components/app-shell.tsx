@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
 import { authClient } from "@/lib/auth-client";
-import { ConsyrionMark } from "./brand/consyrion-logo";
+import { ConsyriumMark } from "./brand/consyrium-logo";
 import { ElectricLogo } from "./brand/electric-logo";
 import { AmbientBackground } from "./fx/ambient-background";
 import { Icon, type IconName } from "./ui/icons";
@@ -56,7 +56,7 @@ function ThemeToggle() {
     const next = isDark ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     try {
-      localStorage.setItem("consyrion-theme", next);
+      localStorage.setItem("consyrium-theme", next);
     } catch {
       /* storage may be unavailable; the toggle still works for this page view */
     }
@@ -120,8 +120,8 @@ export function AppShell({
       </a>
       <header className="sticky top-0 z-20 flex items-center justify-between bg-bg/80 px-4 py-3 backdrop-blur-xl md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2.5" aria-label={t("homeLabel")}>
-          <ConsyrionMark size={34} title="" className="drop-shadow-[0_0_10px_rgb(34_211_238/0.5)]" />
-          <span className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-[0.08em]">CONSYRION AI</span>
+          <ConsyriumMark size={34} title="" className="drop-shadow-[0_0_10px_rgb(34_211_238/0.5)]" />
+          <span className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-[0.08em]">CONSYRIUM AI</span>
         </Link>
         <button
           type="button"
@@ -145,7 +145,7 @@ export function AppShell({
         />
         <Link href="/dashboard" className="relative hidden flex-col items-center gap-3 pb-9 md:flex" aria-label={t("homeLabel")}>
           <ElectricLogo size={68} mode="intro" title="" />
-          <span className="font-[family-name:var(--font-display)] text-base font-medium tracking-[0.28em]">CONSYRION AI</span>
+          <span className="font-[family-name:var(--font-display)] text-base font-medium tracking-[0.28em]">CONSYRIUM AI</span>
         </Link>
         <nav aria-label={t("mainNav")} className="relative flex flex-col gap-1.5">
           {navItems.map((item) =>
@@ -239,7 +239,7 @@ export function AppShell({
             ) : null}
           </Link>
           {/* AGPL-3.0 §13: users of the hosted app get a link to its source code. */}
-          <a href="https://github.com/Consyrion/consyrion" target="_blank" rel="noreferrer" className="block px-1 text-xs text-muted hover:text-text">
+          <a href="https://github.com/Consyrion/consyrium" target="_blank" rel="noreferrer" className="block px-1 text-xs text-muted hover:text-text">
             {t("source")}
           </a>
         </div>

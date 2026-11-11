@@ -1,6 +1,6 @@
-import type { RetryOptions } from "@consyrion/ai";
-import { COUNCIL_PHASES, DomainError, type CouncilPhase } from "@consyrion/core";
-import { recordAudit, schema, type Database } from "@consyrion/db";
+import type { RetryOptions } from "@consyrium/ai";
+import { COUNCIL_PHASES, DomainError, type CouncilPhase } from "@consyrium/core";
+import { recordAudit, schema, type Database } from "@consyrium/db";
 import { and, eq, sql } from "drizzle-orm";
 import { CancelledError, type AdapterResolver } from "./call";
 import { assertCanEvaluateSession, sessionGateVersions } from "./decision-format";

@@ -1,4 +1,4 @@
-import { listExecutions, startExecution } from "@consyrion/build";
+import { listExecutions, startExecution } from "@consyrium/build";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

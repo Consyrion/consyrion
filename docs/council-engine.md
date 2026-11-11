@@ -1,6 +1,6 @@
 # Council engine (Milestone 2)
 
-Package `packages/council`. Runs the seven Consyrion phases as persistent workflow stages.
+Package `packages/council`. Runs the seven Consyrium phases as persistent workflow stages.
 
 A council starts only on a requirement list the user confirmed for the current brief version and documents (#190,
 `docs/requirements-intake.md`). The session is bound to that list version for its whole run; the list is part of
@@ -15,7 +15,7 @@ the frozen brief every phase sees, and verdict, approval and execution check tha
 | 3   | 12 Minds Council     | Configurable perspectives (1–12) are spread over the models. Each role reviews all proposals in one call: concrete critiques with category, severity, evidence – or "no substantiated objection" – plus a current preference. Rebuttal threads in modes with rebuttals. Bounded rounds.                                                                                                                                                                                                                                                                                                                                                                                                        | `debate_message` (critique/rebuttal/preference/role_failed) |
 | 4   | Minority Review      | Favourite = majority **per model** (several roles of one model count once). Critiques above the mode threshold, and every medium+ critique of the favourite from a dissenting role, become objections. The author answers; independent models (never author or raiser) decide refuted/resolved/accepted/unresolved. Disagreeing or missing reviewers → unresolved. Unresolved/accepted critical security objections **block**.                                                                                                                                                                                                                                                                 | `minority_objection`, `minority_review`                     |
 | 5   | Consensus Round      | Authors revise or keep their position, citing objection ids. Revisions are new immutable versions. Consensus mode may create a hybrid, which gets its own security review. Unresolved objections always become outstanding risks. "No consensus" is valid.                                                                                                                                                                                                                                                                                                                                                                                                                                     | `proposal_revision` v2+, `consensus_result`                 |
-| 6   | Final Verdict        | Every model scores all proposals **except its own** (0–10 per criterion, rationale) and ranks them. Deterministic aggregation (`@consyrion/core` `aggregateVerdict`): self-scores ignored, gates first (security minimum, blocking objections, minimum total, missing scores), close totals = tie, majority vote (Borda) reported separately. **Confidence:** the verdict is marked _low_ when a proposal was scored by fewer evaluators than expected (all participants except its author) or the majority vote favours another proposal; models whose evaluation failed are listed with the reason (`failedEvaluators`). The UI and report show this as a warning – the human still decides. | `evaluation_score`, `vote`, `final_decision`                |
+| 6   | Final Verdict        | Every model scores all proposals **except its own** (0–10 per criterion, rationale) and ranks them. Deterministic aggregation (`@consyrium/core` `aggregateVerdict`): self-scores ignored, gates first (security minimum, blocking objections, minimum total, missing scores), close totals = tie, majority vote (Borda) reported separately. **Confidence:** the verdict is marked _low_ when a proposal was scored by fewer evaluators than expected (all participants except its author) or the majority vote favours another proposal; models whose evaluation failed are listed with the reason (`failedEvaluators`). The UI and report show this as a warning – the human still decides. | `evaluation_score`, `vote`, `final_decision`                |
 | 7   | Execution Council    | Not started automatically. Requires a human approval (Milestone 4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | –                                                           |
 
 Human actions after the verdict (`POST /api/sessions/:id/approval`, owners/admins only): approve,
@@ -143,7 +143,7 @@ phase waiting 50+ minutes for Gemini 3.5 Flash while the token counter stood sti
 ## Running
 
 - Development (PGlite): the web server starts an inline worker (`src/instrumentation.ts`).
-- PostgreSQL: run `pnpm --filter @consyrion/worker start` (one or more instances), web with `COUNCIL_WORKER=external`.
+- PostgreSQL: run `pnpm --filter @consyrium/worker start` (one or more instances), web with `COUNCIL_WORKER=external`.
 - Jobs are durable (`job` table, `SKIP LOCKED`, lock heartbeat); a crashed run resumes from the last
   completed stage and skips model calls whose results are already stored.
 
@@ -181,7 +181,7 @@ what the model reads:
 
 - system prompt = base rules + the session rules → identical for every call of a council;
 - the user message starts with the `<brief>` block (identical within a council), returned as `cachePrefix`;
-- the phase and role instructions follow right after the brief as "Instructions for this step (from Consyrion, not
+- the phase and role instructions follow right after the brief as "Instructions for this step (from Consyrium, not
   from the brief)" – after the untrusted data, which is also the safer order.
 
 The Anthropic adapter sets `cache_control` after `cachePrefix`; prefixes below the provider's minimum cacheable length
@@ -278,7 +278,7 @@ some models quoted the attacked statement in `claim`, and the report printed "ac
 as if the council had confirmed the (wrong) statement. Report (section "Objections (Minority Review)", JSON field
 `objections` – formerly `minorityOpinions`, now with `evidence`), Final Verdict, Minority Review screen and VS Code
 render each entry as "Objection by <model> against Proposal X: … Reasoning: … – objection accepted (decision
-reason)" via `describeObjection` / `objectionStatusText` in `@consyrion/core`. Stored runs from before keep working:
+reason)" via `describeObjection` / `objectionStatusText` in `@consyrium/core`. Stored runs from before keep working:
 nothing is migrated; the reasoning shown next to the old `claim` makes clear it was the subject of an objection.
 Disagreements between the models remain in the Consensus Round section.
 
@@ -287,7 +287,7 @@ whitespace ignored); the same conflict in different words stays, since telling t
 
 **PDF and Word (#164):** `?format=pdf` and `?format=docx` (buttons "Download PDF" / "Download Word" on the Final
 Verdict) render the same Markdown report (`apps/web/src/lib/server/report-documents.ts`), so every format has the
-same content and no new model output. PDF: A4, light and print-friendly, CONSYRION AI header with session id and
+same content and no new model output. PDF: A4, light and print-friendly, CONSYRIUM AI header with session id and
 date, page numbers; standard fonts (Windows-1252 – umlauts, €, dashes and quotes work; a few symbols such as Σ, ≥,
 → become readable ASCII). Word: real headings, lists and tables, editable. Libraries `pdf-lib` and `docx` (both
 MIT). Example with demo text: `docs/design/previews/report-example-demo.pdf`.
@@ -665,7 +665,7 @@ The Final Verdict names the main reason before the details:
 ## Final Verdict size check (#228) and split evaluator (#246)
 
 Every evaluator checks the proposals of all other models against every confirmed requirement. Before the start
-(preview and `createSession`) CONSYRION counts (models − 1) × requirements check items at 1,250 tokens each (highest
+(preview and `createSession`) CONSYRIUM counts (models − 1) × requirements check items at 1,250 tokens each (highest
 measured value, 30.10.26) against the call limit of 32,000 output tokens (`finalVerdictFit`, `packages/core`):
 
 - fits into one answer (3 models: up to 12 requirements; 4: up to 8; 5: up to 6; 6: up to 5) → **one call**, unchanged;
@@ -687,6 +687,57 @@ Cost: each extra call sends the brief and the proposals again. The cost estimate
 the minimum budget (`minimumCouncilBudget`) and the Final Verdict reserve (`verdictReserve`) count every call, and the
 hard token budget applies as always. Test: `packages/council/test/s1-gate.test.ts` (#246 – same answers give the same
 gate, also when a model ignores the scope).
+
+### Council form: what blocks the start is marked at its field (#587, 11.11.2026)
+
+User report 09.11.26: six models, default budget 400,000, at least 1,005,120 tokens needed – the note stood far below
+the field and the budget field itself was not marked.
+
+- A budget below the minimum marks the **budget field red** and says at the field "Needs at least X tokens – set to Y".
+- Above the start button a red box lists what is still open ("2 things left before you can start"), with a link to the
+  field for the budget and the model choice; under the disabled button stands the first reason ("Start blocked: …").
+- **Set budget to X tokens** (at the field and in the box) sets the budget to the preview's upper bound, rounded up to
+  10,000 and never above the maximum (`suggestedBudget`, `apps/web/src/lib/budget-suggestion.ts`). No model call; the
+  form then shows "Budget adjusted: 400,000 → X" and the value stays editable. When even the maximum is below the
+  minimum, the form says to choose fewer models or roles instead.
+- A budget that covers the minimum but not the upper bound keeps its confirmation checkbox and also offers the button.
+- Not yet: the same button in the quick start (#586) and on the assistant's start card (#559).
+- Typical consumption as a range (#598): "Typically about 142,000–240,000 tokens" – median to upper quartile of the
+  tokens per call of the workspace's last calls × the calls of this configuration (`typicalRange`), capped by the upper
+  bound. The single median was too low (announced 142,000, used 194,870 and 231,740 on 10.11.26). A budget below the
+  upper value of the range gets a warning that debate phases will likely be shortened. The assistant's start card and
+  the Obsidian plugin still show the lower value only.
+
+## Purpose of a council: idea check or approval (#597, 11.11.2026)
+
+Two test councils on 11.11.26 ended with "Needs verification – not approvable" although all three models chose the
+expected option: nobody can prove before a contract exists that a provider signs a data-processing agreement. User
+feedback: "Verification needed – by whom? Not approved – does the user do that?" and "many are at the very start and
+only want to know whether the idea holds up".
+
+- The council form asks **What is this council for?** – "Check an idea" (preselected, except for repository projects
+  and projects with a linked repository: those are there to be built and start as "Approve a decision") or "Approve a decision".
+  The choice is stored as `policy.purpose` (`idea_check` | `approval`); councils started without it (older ones, MCP,
+  the assistant's start card, Obsidian, VS Code) are approval councils.
+- **The purpose changes only how the result is presented.** Phases, prompts, cost, the requirement gate, the stored
+  outcome, approval and build are identical. An idea check never makes an unconfirmed requirement count as confirmed
+  and never makes anything approvable.
+- An idea-check council whose verdict leaves nothing approvable is read from the stored matrix (`ideaCheck`,
+  `apps/web/src/components/session/idea-check.ts`):
+  - **favourite with open points** – the best-scored proposal that no evaluator ruled out (no FAIL, not incomplete);
+  - **several proposals hold up** – more than one within the tie margin of 0.25;
+  - **does not hold up as described** – every proposal fails at least one requirement.
+  The hero lists "Clarify before the next step" (the favourite's requirements that are not confirmed, or whose check
+  only confirmed a measurement plan) and "Ruled out" (proposals with the requirements they fail), and says that this is
+  an idea check, not an approval. The session header shows "Idea checked" instead of "No approvable proposal".
+- No reading is given when the matrix cannot carry one (no gate result, proposals not compared on equal terms, missing
+  evaluators): then the normal verdict says what has to happen first.
+- In an approval council a verdict without anything approvable now says who acts: the lock is a rule of the app, and
+  the user adds the missing evidence to the brief or changes the requirements and starts a new council.
+- Readers outside the verdict screen keep the strict wording on purpose: MCP `get_decision` (an agent must not build
+  from an idea check), the decision list and the VS Code tree.
+- Not yet: the idea-check reading in the PDF/Markdown report and in delivery messages (they show the strict wording);
+  one merged gate result per option when several proposals choose the same option (#597 point 4).
 
 ## Independence groups (engine contract 6, owner decision 08.11.2026)
 
@@ -806,6 +857,26 @@ version 3 only; councils of version 2 get none of it.
   value fulfils it.
 - **Not built yet:** a second person confirming a measurement (four-eyes principle, optional per workspace) – #496.
 
+## Process quality (#182, deterministic part)
+
+`processQuality()` (`packages/council/src/process-quality.ts`) describes how a council worked, computed on read from
+stored data – no model call, no migration, no benchmark (the single-shot comparison of #182 stays separate and needs a
+cost approval). The session view returns figures and status keys only; web card (tab Evaluation, below the requirement
+table) and PDF word them. It describes the process, it is no proof that a verdict is right.
+
+| Figure | Definition | Limit shown to the user |
+| --- | --- | --- |
+| Participation | `validParticipation` per participant, plus per independence group (`matrix.evaluatorGroups`, #522): a group counts when one instance delivered in every phase | – |
+| Convergence | mean pairwise word overlap (Jaccard of normalised words from title, summary, architecture, components) of the latest revisions minus that of the first versions; level strong ≥ 0.15, moderate ≥ 0.05, else little; drift per proposal | measured by shared words, not by meaning; not measurable with fewer than two proposals or without revisions |
+| Effect of objections | survived = accepted or unresolved; per survivor: blocking, followed by a later revision of its proposal (or moot), or no visible effect | assigned by time and target, not proven as the cause; zero objections are no quality sign |
+| Weight of the votes | share of the vote held by the strongest independence group (one voice per group); "weights decided the winner" when the stored verdict carries `weighting_changed_winner` (computed by `aggregateVerdict`) | only warns when the winner changes – no warning for a mere majority share (two-model fatigue of #170) |
+
+Workspace overview (`/decisions/quality`, link "Process quality" on the decisions list, `workspaceProcessQuality`): the
+same figures for the last 50 councils of the workspace that have a verdict, plus a summary (full participation,
+convergence levels, standing objections and those without visible effect, councils where the weights decided the
+winner). Readers of the workspace see it; figures only – no proposal or brief text, no other workspace, nothing
+platform-wide.
+
 ## Verdict at a glance (stage 1 result visualisations, 05.11.26)
 
 The Final Verdict tab opens with a dashboard (`apps/web/src/components/session/verdict-dashboard.tsx`) and the PDF
@@ -877,8 +948,12 @@ nothing recomputed. The Final Verdict offers the three as buttons.
 
 **Chinese report (#268, 08.11.26):** the report speaks all five interface languages. `reportLocale("zh")` gives
 Chinese fixed wording (`ZH` in `report-i18n.ts`, plus the engine sentences in `report-engine-text.ts`) for Markdown,
-Word, the delivery message and Confluence; model text stays as written. The PDF stays English for zh (`pdfLocale`) until
-a CJK font is embedded – the standard PDF fonts have no CJK glyphs.
+Word, the delivery message, Confluence and the PDF; model text stays as written. The PDF embeds **Noto Sans SC** (SIL OFL
+1.1, `apps/web/public/fonts`, see `THIRD_PARTY_NOTICES.md`) through `@pdf-lib/fontkit` – loaded only for zh and
+embedded as a subset of the characters used (a test report: ~80 KB instead of the 8 MB font file; other languages keep
+the standard fonts, ~6 KB). Lines of Chinese text without spaces are cut to fit the page. Image size: the web build drops the traced copy of `public/`
+(it is copied into the image once), and the worker image leaves `apps/web/public` out
+(`Dockerfile.worker.dockerignore`); `packages/build/src/sandbox.ts` no longer makes Turbopack trace the whole project.
 
 **One status for screen and PDF (#268 PR 1, 08.11.26):** `verdictStatus(view)`
 (`apps/web/src/components/session/verdict-status.ts`) is the only derivation of the verdict title (`outcomeKey`), the
@@ -920,6 +995,8 @@ tokens per model (the Council Room's `participationMatrix`: calls, contributions
 instances of one model marked as one independent voice), follow-up check rounds as stored with the verdict
 (`followUpRounds`: requested checks, done and taken over or not finished) and the human decisions (the verdict
 screen's history, in its words). The brief stays the summary alone.
+Process quality (#182) follows in the same section with the Evaluation card's own wording and limits
+(`processQualityLines`, `apps/web/src/components/session/process-quality-lines.ts`, shared by the card and the PDF).
 
 ## Stage-2 charts (05.11.26)
 
@@ -1044,7 +1121,7 @@ unlocks a build.
   - Language check: `reportLanguageIssues(text, locale)` lists engine English and raw values in a non-English report.
     Delivery (Telegram, e-mail, Confluence) logs a warning when it finds any; it does not block a verdict. Test:
     `packages/council/test/report-language.test.ts` (the Telegram run "E-Mail oder Messenger-Gruppe?", de/fr/es).
-  - Stored exclusion reasons ("Not taken over") appear in the report language too; the ask_consyrion / Telegram
+  - Stored exclusion reasons ("Not taken over") appear in the report language too; the ask_consyrium / Telegram
     context sentence is a known reason (`CLIENT_CONTEXT_EXCLUSION_REASON`, live test of #410, 08.11.26).
 
 ## Every model gets a perspective (#136)
@@ -1099,7 +1176,7 @@ marked "kein Beitrag", so a silent model is visible instead of being counted as 
 one model remain one vote.
 
 Several instances of one model (different keys, user decision 08.11.26) are marked per row as "Instance 2/3 – one
-independent voice" (`independenceKey` from `@consyrion/core`), matching the counting in verdict, majority and gate (#522).
+independent voice" (`independenceKey` from `@consyrium/core`), matching the counting in verdict, majority and gate (#522).
 
 ## Same model through several keys (user decision 08.11.26)
 
@@ -1123,4 +1200,24 @@ the former red block ("Claude Opus: 3 instances (different keys) count as 1 inde
 groups, the report names every instance ("anthropic/claude-opus-5-5 (instance 2 of 3 – one independent voice)") and
 the audit appendix numbers them ("#2/3"). Tests: `packages/council/test/s1-gate.test.ts` (2× m1 + m2 is a limited
 review, never approvable; 2× m1 + m2 + m3 can still qualify), `engine.test.ts` (second key allowed, same key refused).
+
+## After the favourite (Gesamttest 08.11.26)
+
+- `verdictStatus.initialAction` moves on after the human mark: architecture candidate → "mark_favorite"; favourite
+  marked → "approve_prototype"; prototype build approved → "record_measurement" (the dashboard links to the measurement
+  panel), or "approve_after_measurement" once a met measurement allows it. "Your decision" uses the past tense
+  (`verdict.dashboard.decided.*`). The PDF's "What you need to do now" follows the same marks (`report.humanMark`).
+- Next steps list a measurement check as open ("Measurement plan confirmed – measurement open") until a recorded
+  measurement of this verdict meets it; one measured miss stays decisive.
+- Project page: "Latest decision" shows the verdict title of the session screen (`verdictStatus.outcomeKey`) and the
+  #477 split "awaiting your review · no approvable proposal".
+
+## Decision dashboard: one requirement status (#266, 09.11.26)
+
+`requirementCellKey` (`apps/web/src/components/session/requirement-status.ts`) is the only derivation of a requirement ×
+proposal status for the heatmap cell, its detail panel and the requirement table of the Evaluation tab: PASS, FAIL,
+DISPUTED, UNKNOWN, and PLAN / MEASURE for a confirmed build or measurement plan (never "met"). DISPUTED is set apart
+from UNKNOWN by its own symbol (≠), a dashed red frame and its own count ("1 confirm, 1 not met"); a legend under the
+heatmap names every state. The Evaluation tab shows words with symbols instead of the raw codes PASS/FAIL ("Confirmed
+by: …", "Not met according to: …").
 

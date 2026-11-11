@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 /**
  * #206: what a deletion removes – and what it cannot. Shown next to the delete button of a project and of a workspace,
  * so nobody is promised "everything is gone": backups keep the data for their retention period, and copies outside
- * CONSYRION AI (GitHub, sent reports, exports) are out of reach. Matches docs/privacy-data-map.md.
+ * CONSYRIUM AI (GitHub, sent reports, exports) are out of reach. Matches docs/privacy-data-map.md.
  */
 export function DeletionNotice({ scope }: { scope: "project" | "workspace" }) {
   const t = useTranslations("deletion");

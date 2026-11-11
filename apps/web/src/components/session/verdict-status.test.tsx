@@ -33,6 +33,15 @@ const render = (v: View) =>
   );
 
 describe("Final Verdict with outcomes the gate does not approve (#181, stage 1)", () => {
+  it("#548: in an archived project no decision form is offered – a hint to restore it instead", () => {
+    const v = view("recommended", { approvable: true, canApproveRecommendation: true }) as unknown as { project: Record<string, unknown> };
+    v.project = { ...v.project, status: "archived" };
+    const html = render(v as unknown as View);
+    expect(html).toContain('data-testid="archived-decision"');
+    expect(html).toContain("This project is archived – restore it first on the project page");
+    expect(html).not.toContain("Record decision");
+  });
+
   it("#249 part 2: favourite/prototype mark, self-declared measurements and the new actions – shown, never an approval", () => {
     const matrix = {
       proposals: [],
@@ -101,8 +110,10 @@ describe("Final Verdict with outcomes the gate does not approve (#181, stage 1)"
     expect(html).toContain("Prototyp-/Mess-Build freigegeben – keine fertige Lösung und keine reguläre Freigabe");
     expect(html).toContain("Abnahme durch Messung");
     expect(html).toContain("Messung: Selbstauskunft von Owner, Beleg: Log 10.11.");
-    // The designed select renders only the chosen option: #511 preselects "mark as favourite" – still no approval.
-    expect(html).toContain("Als Favorit markieren (keine Freigabe, kein Build)");
+    // Gesamttest 08.11.26: once a prototype build is approved, the next step is recording the measurement – the head
+    // no longer offers "mark as favourite" again, and the form does not preselect an approval.
+    expect(html).not.toContain("Als Favorit markieren (keine Freigabe, kein Build)");
+    expect(html).toContain("Messergebnis eintragen");
   });
 
   it("#249 part 2: an architecture candidate is named as such, with the measurement plan marked and no approval", () => {
@@ -146,7 +157,15 @@ describe("Final Verdict with outcomes the gate does not approve (#181, stage 1)"
     const de = renderToStaticMarkup(
       <NextIntlClientProvider locale="de" messages={messagesFor("de")}>
         <VerdictScreen
-          view={view("needs_verification", { gateVersion: 3, approvable: false, reason: "Architecture candidate – performance proof open: R1 can only be confirmed by measuring the running implementation." }, matrix)}
+          view={view(
+            "needs_verification",
+            {
+              gateVersion: 3,
+              approvable: false,
+              reason: "Architecture candidate – performance proof open: R1 can only be confirmed by measuring the running implementation.",
+            },
+            matrix,
+          )}
           canApprove
           onChange={async () => {}}
         />

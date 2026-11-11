@@ -1,6 +1,6 @@
-import { DomainError } from "@consyrion/core";
-import { saveGitHubInstallation } from "@consyrion/db";
-import { verifyState, verifyUserInstallation } from "@consyrion/github";
+import { DomainError } from "@consyrium/core";
+import { saveGitHubInstallation } from "@consyrium/db";
+import { verifyState, verifyUserInstallation } from "@consyrium/github";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

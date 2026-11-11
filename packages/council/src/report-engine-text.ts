@@ -1,4 +1,4 @@
-import type { ConfidenceIssue } from "@consyrion/core";
+import type { ConfidenceIssue } from "@consyrium/core";
 import type { ReportLocale } from "./report-i18n";
 
 /**
@@ -102,25 +102,25 @@ const ISSUE: Record<Lang, Record<string, string>> = {
       "{count} evaluador repitió el título de otra propuesta para la propuesta {label}; se descartó su puntuación|{count} evaluadores repitieron el título de otra propuesta para la propuesta {label}; se descartaron sus puntuaciones",
   },
   zh: {
-    missing_evaluators: "提案 {label} 由 {expected} 位预期评估者中的 {evaluators} 位评分",
-    vote_disagrees: "多数投票支持提案 {label},而不是加权得分最高的提案",
-    participant_failed: "{model} 已退出 council({reason});它的提案、异议和评分缺失",
+    missing_evaluators: "方案 {label} 由 {expected} 位预期评估者中的 {evaluators} 位评分",
+    vote_disagrees: "多数投票支持方案 {label},而不是加权得分最高的方案",
+    participant_failed: "{model} 已退出 council({reason});它的方案、异议和评分缺失",
     unreviewed_objections: "{count} 条异议无法由任何独立审查者审查,仍然未决|{count} 条异议无法由任何独立审查者审查,仍然未决",
-    single_evaluator: "提案 {label} 只由一位独立评估者评分(只有两个活跃模型)",
-    requirements_disputed: "{total} 位独立评估者中有 {failed} 位认为提案 {label} 未满足某项硬性需求",
+    single_evaluator: "方案 {label} 只由一位独立评估者评分(只有两个活跃模型)",
+    requirements_disputed: "{total} 位独立评估者中有 {failed} 位认为方案 {label} 未满足某项硬性需求",
     insufficient_evaluators: "{expected} 位预期评估者中只有 {evaluators} 位给出了可用评分 – 不足以做出 council 决定;请重复评估",
     no_debate_contribution:
       "{model} 没有为 12 Minds Council 提供任何角色审查(所有调用都失败);辩论中缺少它的视角,但如果它进行了评估,它在 Final Verdict 中的投票仍然计入",
     undefended_proposal:
-      "提案 {label} 未得到辩护 – {reason}:针对它的 {count} 条异议仍未回答,这不等于无人反驳的批评|提案 {label} 未得到辩护 – {reason}:针对它的 {count} 条异议仍未回答,这不等于无人反驳的批评",
+      "方案 {label} 未得到辩护 – {reason}:针对它的 {count} 条异议仍未回答,这不等于无人反驳的批评|方案 {label} 未得到辩护 – {reason}:针对它的 {count} 条异议仍未回答,这不等于无人反驳的批评",
     phase_shortened: "{phase} 被缩短,以保证 Final Verdict 的 token 预算;裁决基于当时已有的版本",
-    weighting_changed_winner_both: "投票权重起了决定作用:如果权重相同,council 会推荐提案 {unweighted},加权后推荐提案 {weighted}",
-    weighting_changed_winner_unweighted: "投票权重起了决定作用:如果权重相同,council 会推荐提案 {unweighted}",
-    weighting_changed_winner_tie: "投票权重起了决定作用:如果权重相同,council 会以平局结束(加权后:提案 {weighted})",
-    weighting_changed_winner_none: "投票权重起了决定作用:如果权重相同,council 不会推荐任何提案(加权后:提案 {weighted})",
-    conflict_of_interest: "提案 {blocked} 得分更高,但仅被提案 {label} 作者的需求检查所阻止 – 这是对自己有利的判断,因此没有自动推荐",
+    weighting_changed_winner_both: "投票权重起了决定作用:如果权重相同,council 会推荐方案 {unweighted},加权后推荐方案 {weighted}",
+    weighting_changed_winner_unweighted: "投票权重起了决定作用:如果权重相同,council 会推荐方案 {unweighted}",
+    weighting_changed_winner_tie: "投票权重起了决定作用:如果权重相同,council 会以平局结束(加权后:方案 {weighted})",
+    weighting_changed_winner_none: "投票权重起了决定作用:如果权重相同,council 不会推荐任何方案(加权后:方案 {weighted})",
+    conflict_of_interest: "方案 {blocked} 得分更高,但仅被方案 {label} 作者的需求检查所阻止 – 这是对自己有利的判断,因此没有自动推荐",
     evaluation_rejected:
-      "{count} 位评估者在提案 {label} 中复述了另一个提案的标题;其对该提案的评分已被作废|{count} 位评估者在提案 {label} 中复述了另一个提案的标题;其对该提案的评分已被作废",
+      "{count} 位评估者在方案 {label} 中复述了另一个方案的标题;其对该方案的评分已被作废|{count} 位评估者在方案 {label} 中复述了另一个方案的标题;其对该方案的评分已被作废",
   },
 };
 

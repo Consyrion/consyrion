@@ -12,7 +12,7 @@
     },
     "workspace": "工作区",
     "skip": "跳到内容",
-    "homeLabel": "CONSYRION AI 控制台",
+    "homeLabel": "CONSYRIUM AI 控制台",
     "menu": "菜单",
     "mainNav": "主导航",
     "quickNav": "快速导航",
@@ -67,7 +67,7 @@
     "providers": {
       "title": "提供商状态",
       "verified": "已验证 {n} 个",
-      "none": "尚未连接密钥。CONSYRION AI 不出售 AI 额度——你使用自己的密钥。",
+      "none": "尚未连接密钥。CONSYRIUM AI 不出售 AI 额度——你使用自己的密钥。",
       "checked": "{when}已检查",
       "useCheck": "请在 AI 提供商页面点击“检查”",
       "state": {
@@ -175,7 +175,8 @@
     },
     "showArchived": "显示归档项目的 {n} 个会话",
     "hideArchived": "隐藏归档项目的会话",
-    "archivedBadge": "已归档"
+    "archivedBadge": "已归档",
+    "qualityLink": "过程质量"
   },
   "projects": {
     "metaTitle": "项目",
@@ -273,7 +274,8 @@
       "working": "保存中…",
       "error": "无法保存更改。",
       "banner": "此项目已归档——只读。在本页底部恢复后即可继续工作。",
-      "listTitle": "归档（{n}）"
+      "listTitle": "归档（{n}）",
+      "startBlocked": "项目已归档——请先恢复"
     },
     "deleteCounts": "此项目：{sessions, plural, other {# 个委员会会话}}（{running} 个正在运行或排队），{documents, plural, other {# 个文档}}。"
   },
@@ -358,7 +360,7 @@
     "saveError": "无法保存",
     "linked": "已关联：<strong>{repo}</strong>",
     "none": "未关联代码仓库。Execution Council 将从空白工作区开始。",
-    "notLinked": "需求说明提到了 {url}，但它尚未关联：CONSYRION AI GitHub App 可能没有访问权限。在 GitHub 打开 Settings → Applications → CONSYRION AI 应用 → Configure，添加该仓库，然后点击“加载代码仓库”并在这里关联。没有关联就无法创建 pull request。",
+    "notLinked": "需求说明提到了 {url}，但它尚未关联：CONSYRIUM AI GitHub App 可能没有访问权限。在 GitHub 打开 Settings → Applications → CONSYRIUM AI 应用 → Configure，添加该仓库，然后点击“加载代码仓库”并在这里关联。没有关联就无法创建 pull request。",
     "notConfigured": "此服务器未配置 GitHub。",
     "notInPlan": "你的套餐不包含 GitHub。<link>查看账单与用量</link>。",
     "connectFirst": "请先在<link>集成</link>中连接 GitHub。",
@@ -463,7 +465,7 @@
     "conflict": "{first} 与 {second} 可能相互矛盾：最迟 {deleteDays} 天后删除，但至少保留 {retainDays} 天。没有方案能同时满足两者——请在启动委员会之前修改其中一项。",
     "reasonMissingError": "至少有一条未采纳的陈述缺少理由（至少 3 个字符）。请补充后再次确认。",
     "buildCheck": "构建检查",
-    "buildCheckHint": "只有实现才能证明这一点（测试、CI）。委员会检查提案是否给出具体的验证计划；由构建来证明。",
+    "buildCheckHint": "只有实现才能证明这一点（测试、CI）。委员会检查方案是否给出具体的验证计划；由构建来证明。",
     "split": {
       "proposal": "包含 {n} 个可独立检查的部分：",
       "proposalNote": "每个部分保留原有措辞、数字和否定，并指向原文。只有在你选择后才会拆分。",
@@ -542,7 +544,10 @@
       "roles": "请至少启用一个 12 Minds Council 角色。",
       "weights": "请修正标出的 Final Verdict 权重（每项 0–100）。",
       "total": "权重之和必须为 100（当前为 {total}）。",
-      "budgetTooSmall": "预算对该团队来说太小：至少需要 {tokens} 个 token，才能让每个模型写出一个提案，并且 Final Verdict 仍能运行。"
+      "budgetTooSmall": "预算对该团队来说太小：至少需要 {tokens} 个 token，才能让每个模型写出一个方案，并且 Final Verdict 仍能运行。",
+      "open": "{n, plural, other {开始前还有 # 项未完成：}}",
+      "toField": "前往该字段",
+      "blocked": "无法开始：{reason}"
     },
     "models": {
       "title": "1. 选择 AI 模型",
@@ -569,8 +574,16 @@
         "suggestion": "项目建议",
         "own": "自行选择"
       },
-      "vsModels": "{models, plural, other {# 个模型}} · {perspectives, plural, other {# 个视角}} · 每个提案最多由 {foreign, plural, other {# 个其他模型}}审查(前提是它们都持续回答)。视角不是投票:同一模型上的多个角色仍是一个模型。",
+      "vsModels": "{models, plural, other {# 个模型}} · {perspectives, plural, other {# 个视角}} · 每个方案最多由 {foreign, plural, other {# 个其他模型}}审查(前提是它们都持续回答)。视角不是投票:同一模型上的多个角色仍是一个模型。",
       "instances": "{model}:{n} 个实例(不同的密钥)只算作 1 个独立声音 – 适用于多数投票、至少两名独立审查者的要求以及交叉检查。一个实例绝不会审查同一模型的另一个实例。"
+    },
+    "purpose": {
+      "title": "这个 council 的目的是什么？",
+      "idea": "检查想法",
+      "ideaHint": "你刚起步，想知道这个想法是否站得住脚。结果：一个首选方案、被排除的方案，以及下一步之前需要澄清的事项清单。",
+      "approval": "批准决定",
+      "approvalHint": "你打算之后进行构建。结果：只有每位评估者都确认了每项要求才会批准。",
+      "note": "两者的流程、成本和检查同样严格——只是结果的呈现方式不同。"
     },
     "settings": {
       "title": "4. 会话设置",
@@ -582,7 +595,11 @@
       "budget": "Token 预算（硬性上限）",
       "budgetHint": "{min}–{max} 个 Token。在即将超出预算时停止调用。提供商按你自己的密钥计费。",
       "rules": "会话规则（可选）",
-      "rulesHint": "例如“重点关注运营成本”或“必须在欧盟运行”。"
+      "rulesHint": "例如“重点关注运营成本”或“必须在欧盟运行”。",
+      "budgetNeeds": "至少需要 {needed} 个令牌——当前设置为 {set}。",
+      "budgetAdjust": "将预算调整为 {tokens} 个令牌",
+      "budgetFewer": "即使最高预算也不足以支持此团队——请减少模型或角色。",
+      "budgetAdjusted": "预算已调整：{from} → {to} 个令牌。你仍可修改该数值。"
     },
     "summary": {
       "title": "开始之前",
@@ -598,7 +615,9 @@
       "contextTooSmall": "上下文窗口过小",
       "contextDoesNotFit": "{model}：简报、文档和所有方案约需 {input} 个 token，其上下文窗口只有 {window}。它的调用会被拒绝而不是被截断——请选择窗口更大的模型或缩小仓库上下文。",
       "overBudget": "上限超出了你 {budget} 个 Token 的预算。我接受为了给 Final Verdict 保留足够预算而缩短辩论阶段：如果预算不足，将跳过 Minority Review 和 Consensus Round，方案也不会修订——裁决将评判最初版本，并标记为已缩短。",
-      "checkWeights": "开始前请检查投票权重："
+      "checkWeights": "开始前请检查投票权重：",
+      "typicalRange": "通常约 {low}–{high} 个 Token（根据你最近 {calls} 次调用）。",
+      "belowTypical": "你的预算 {budget} 个 Token 低于此类 council 通常所需（最多约 {high}）。辩论阶段很可能被缩短，裁决会被标记为已缩短。"
     },
     "starting": "正在开始…",
     "start": "开始 Council 会话",
@@ -617,15 +636,17 @@
     },
     "catalog": {
       "metaTitle": "SkillHub——决策技能",
-      "metaDescription": "用于 CONSYRION AI Council 的已审核社区技能：视角、需求模块、权重和规则。",
+      "metaDescription": "用于 CONSYRIUM AI Council 的已审核社区技能：视角、需求模块、权重和规则。",
       "title": "SkillHub",
-      "intro": "社区共享的决策包。这里的每个技能都经过自动检查并由管理员批准。技能只会预填 Council——你仍需确认需求并照常批准。",
+      "intro": "用于 CONSYRIUM AI Council 的决策包。社区技能在发布前会经过自动检查并由管理员批准；官方技能（@consyrium）由 CONSYRIUM AI 提供。技能只会预填 Council——你仍需确认需求并照常批准。",
       "search": "搜索技能",
       "category": "类别",
       "allCategories": "所有类别",
       "searchButton": "搜索",
       "empty": "暂无公开技能。",
-      "noResults": "没有符合搜索条件的技能。"
+      "noResults": "没有符合搜索条件的技能。",
+      "type": "类型",
+      "allTypes": "所有类型"
     },
     "detail": {
       "reviewed": "已审核",
@@ -639,9 +660,9 @@
       "licenseText": "由 @{handle} 以 {license} 发布。使用时会创建一份注明原作的你自己的副本。",
       "uses": "{n, plural, =0 {尚未被采用} other {已被 # 个工作区采用}}"
     },
-    "disclaimer": "社区技能——不构成法律、医疗或财务建议，CONSYRION AI 不作任何保证。技能永远不会改变需求关卡、审核或人工批准。",
+    "disclaimer": "社区技能——不构成法律、医疗或财务建议，CONSYRIUM AI 不作任何保证。技能永远不会改变需求关卡、审核或人工批准。",
     "actions": {
-      "adopt": "在 CONSYRION 中使用",
+      "adopt": "在 CONSYRIUM 中使用",
       "adoptHint": "在你的工作区中创建一份私有副本（需要登录）。",
       "adopted": "已添加到你的技能。",
       "mySkills": "打开我的技能",
@@ -667,10 +688,29 @@
       "errors": {
         "already_reported": "你已经举报过此技能。",
         "reason_missing": "请选择原因。"
-      }
+      },
+      "alreadyAdopted": "已在你的技能中——未创建第二份副本。",
+      "adoptProfile": "采用为我的专业档案",
+      "adoptedProfile": "已采用——私有副本现在位于你的专业档案中，可在委员会设置中为其角色选择。",
+      "adoptProfileHint": "创建带来源信息的私有副本（CC BY 4.0，注明作者）。它不会自动更新。",
+      "myProfiles": "我的专业档案"
     },
     "footer": {
       "license": "社区技能由作者以 CC BY 4.0 发布（以 @标识 署名）。不构成法律、财务或医疗建议。"
-    }
+    },
+    "kinds": {
+      "skill": "技能",
+      "role_profile": "专家档案"
+    },
+    "profile": {
+      "coreQuestion": "核心问题",
+      "lenses": "审查视角",
+      "notSuitableFor": "不适用于",
+      "sources": "来源",
+      "sourcesHint": "由作者提供——未经 CONSYRIUM AI 核实。链接以文本显示。",
+      "statedByAuthor": "{status}——作者声明",
+      "notice": "由其他用户撰写，经审核后按 CC BY 4.0 发布。它只细化其角色关注的内容，不能更改需求、投票、权重或批准。不得模仿真实人物。"
+    },
+    "disclaimerOfficial": "CONSYRIUM AI 官方技能——不构成法律、医疗或财务建议。技能永远不会改变需求关卡、审核或人工批准。"
   }
 }

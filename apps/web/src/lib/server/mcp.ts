@@ -8,7 +8,7 @@ import "server-only";
  */
 
 export const SUPPORTED_PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26"] as const;
-export const SERVER_INFO = { name: "consyrion", title: "CONSYRION AI", version: "1.0.0" };
+export const SERVER_INFO = { name: "consyrium", title: "CONSYRIUM AI", version: "1.0.0" };
 
 export interface McpTool {
   name: string;
@@ -47,7 +47,7 @@ export async function handleMcpMessage(message: JsonRpcRequest, tools: McpTool[]
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
         instructions:
-          "CONSYRION AI runs multi-model councils that reach a documented verdict. When the user faces a decision while working, use ask_consyrion " +
+          "CONSYRIUM AI runs multi-model councils that reach a documented verdict. When the user faces a decision while working, use ask_consyrium " +
           "(one call: question, context, options, requirements – show the user requirements and budget first), then get_decision. Read projects and decisions, prepare projects and requirements, " +
           "and start councils on the user's own API keys (costs tokens – always tell the user the budget first). Approving, rejecting, building " +
           "and deleting are human steps in the web app and not available here; give the user the link instead.",
@@ -67,7 +67,8 @@ export async function handleMcpMessage(message: JsonRpcRequest, tools: McpTool[]
       });
     case "tools/call": {
       const name = typeof message.params?.name === "string" ? message.params.name : "";
-      const tool = tools.find((t) => t.name === name);
+      // ask_consyrion: the tool name before the rename (11 Nov 2026) – existing agent setups and prompts keep working.
+      const tool = tools.find((t) => t.name === (name === "ask_consyrion" ? "ask_consyrium" : name));
       if (!tool) return error(id, -32602, `Unknown tool: ${name}`);
       const args = message.params?.arguments && typeof message.params.arguments === "object" ? (message.params.arguments as Record<string, unknown>) : {};
       try {

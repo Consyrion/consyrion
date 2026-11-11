@@ -58,30 +58,33 @@ importers:
 
   apps/web:
     dependencies:
-      '@consyrion/ai':
+      '@consyrium/ai':
         specifier: workspace:*
         version: link:../../packages/ai
-      '@consyrion/billing':
+      '@consyrium/billing':
         specifier: workspace:*
         version: link:../../packages/billing
-      '@consyrion/build':
+      '@consyrium/build':
         specifier: workspace:*
         version: link:../../packages/build
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@consyrion/council':
+      '@consyrium/council':
         specifier: workspace:*
         version: link:../../packages/council
-      '@consyrion/db':
+      '@consyrium/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@consyrion/engine':
+      '@consyrium/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@consyrion/github':
+      '@consyrium/github':
         specifier: workspace:*
         version: link:../../packages/github
+      '@pdf-lib/fontkit':
+        specifier: 1.1.1
+        version: 1.1.1
       better-auth:
         specifier: ^1.7.12
         version: 1.7.12(@opentelemetry/api@1.10.0)(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@electric-sql/pglite@0.5.11)(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.1))(next@16.4.3(@opentelemetry/api@1.10.0)(@playwright/test@1.64.0)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
@@ -152,16 +155,16 @@ importers:
 
   apps/worker:
     dependencies:
-      '@consyrion/build':
+      '@consyrium/build':
         specifier: workspace:*
         version: link:../../packages/build
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@consyrion/council':
+      '@consyrium/council':
         specifier: workspace:*
         version: link:../../packages/council
-      '@consyrion/db':
+      '@consyrium/db':
         specifier: workspace:*
         version: link:../../packages/db
     devDependencies:
@@ -177,7 +180,7 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^1.3.0
         version: 1.3.0(zod@4.6.7)
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
       '@google/genai':
@@ -193,10 +196,10 @@ importers:
 
   packages/billing:
     dependencies:
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
-      '@consyrion/db':
+      '@consyrium/db':
         specifier: workspace:*
         version: link:../db
     devDependencies:
@@ -206,19 +209,19 @@ importers:
 
   packages/build:
     dependencies:
-      '@consyrion/ai':
+      '@consyrium/ai':
         specifier: workspace:*
         version: link:../ai
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
-      '@consyrion/council':
+      '@consyrium/council':
         specifier: workspace:*
         version: link:../council
-      '@consyrion/db':
+      '@consyrium/db':
         specifier: workspace:*
         version: link:../db
-      '@consyrion/github':
+      '@consyrium/github':
         specifier: workspace:*
         version: link:../github
       diff:
@@ -246,16 +249,16 @@ importers:
 
   packages/council:
     dependencies:
-      '@consyrion/ai':
+      '@consyrium/ai':
         specifier: workspace:*
         version: link:../ai
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
-      '@consyrion/db':
+      '@consyrium/db':
         specifier: workspace:*
         version: link:../db
-      '@consyrion/engine':
+      '@consyrium/engine':
         specifier: workspace:*
         version: link:../engine
       drizzle-orm:
@@ -274,7 +277,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
       '@electric-sql/pglite':
@@ -311,7 +314,7 @@ importers:
 
   packages/engine:
     dependencies:
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -321,7 +324,7 @@ importers:
 
   packages/github:
     dependencies:
-      '@consyrion/core':
+      '@consyrium/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -1337,6 +1340,9 @@ packages:
   '@parcel/watcher@2.6.0':
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
+
+  '@pdf-lib/fontkit@1.1.1':
+    resolution: {integrity: sha512-KjMd7grNapIWS/Dm0gvfHEilSyAmeLvrEGVcqLGi0VYebuqqzTbgF29efCx7tvx+IEbG3zQciRSWl3GkUSvjZg==}
 
   '@pdf-lib/standard-fonts@1.0.0':
     resolution: {integrity: sha512-hU30BK9IUN/su0Mn9VdlVKsWBS6GyhVfqjwl1FjZN4TxP6cCw0jP2w7V3Hf5uX7M0AZJ16vey9yE0ny7Sa59ZA==}
@@ -4157,6 +4163,10 @@ snapshots:
       '@parcel/watcher-linux-x64-musl': 2.6.0
       '@parcel/watcher-win32-arm64': 2.6.0
       '@parcel/watcher-win32-x64': 2.6.0
+
+  '@pdf-lib/fontkit@1.1.1':
+    dependencies:
+      pako: 1.0.11
 
   '@pdf-lib/standard-fonts@1.0.0':
     dependencies:

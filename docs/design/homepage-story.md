@@ -1,6 +1,6 @@
 # Homepage – scroll story (issue #85)
 
-The public homepage explains the whole Consyrion process as one continuous 3D scene that changes with the
+The public homepage explains the whole Consyrium process as one continuous 3D scene that changes with the
 scroll position. The text of every chapter is semantic HTML outside the canvas; the scene is decorative
 (`aria-hidden`) and labelled "Illustration – not live data". Nothing on the page starts an AI call, a build or a
 GitHub action.
@@ -29,7 +29,7 @@ GitHub action.
 
 | #   | Chapter (anchor)                               | Scene                                                                                            | Text (summary)                                                                                     | Transition to next                                             |
 | --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 0   | Intro (`#top`)                                 | Original C mark in a glass core, three lit model spheres orbiting slowly, stars                  | Debate. Decide. Deliver. – what Consyrion does; CTAs                                               | Spheres leave the orbit and take their places; a brief appears |
+| 0   | Intro (`#top`)                                 | Original C mark in a glass core, three lit model spheres orbiting slowly, stars                  | Debate. Decide. Deliver. – what Consyrium does; CTAs                                               | Spheres leave the orbit and take their places; a brief appears |
 | 1   | Preparation (`#prepare`)                       | Brief card in front of the core; a "your key" chip under every model; budget bar                 | Project, question, models, perspectives, own provider keys, hard budget; no AI credits             | Brief copies fly to the models                                 |
 | 2   | Independent Thinking (`#independent-thinking`) | Each model inside a sealed bubble with its own hidden proposal                                   | Same brief, independent work, sealed until all are in                                              | Bubbles open                                                   |
 | 3   | Open Council (`#open-council`)                 | Proposals A, B, C side by side in front; question pulses between the models                      | Reveal at once, equal footing, compare alternatives                                                | Proposals return to their models                               |
@@ -87,3 +87,14 @@ tools, or – with a connected GitHub repository – a reviewed pull request). T
 `components/landing/delivery-targets.ts` with their status (Available / With a connected repository / Planned).
 The pull-request pipeline stays as "Optional: from verdict to pull request"; Phase 7 is labelled "optional, with
 GitHub". Update a target's status in the PR that ships it.
+
+## Polish of 11 Nov 2026 (live check of the renamed site)
+
+- The core's caption ("Decision") steps aside in the chapters where a card stands in front of the core (brief, proposal B,
+  hybrid) – it showed half-covered before.
+- 12 Minds: a role label above its model slides beside its dot instead of rising into the model's name.
+- The page ribbons (`RibbonField`, `calmBelow="overview"`) ease down to about a third once the reading sections below the
+  scroll story are on screen, so strands no longer run through card text.
+- Dashboard activity network: the layout follows the number of models (`slotsFor`): alternately left and right, evenly
+  spread, texts on the outer side; two slow orbits around the decision and twinkling stars (off with reduced motion).
+  Demo fixtures for three and six models are in the gallery at `/design`.

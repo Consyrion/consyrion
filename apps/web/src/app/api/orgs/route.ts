@@ -1,4 +1,4 @@
-import { listOrganizationsForUser } from "@consyrion/db";
+import { listOrganizationsForUser } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

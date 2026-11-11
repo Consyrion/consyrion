@@ -1,7 +1,7 @@
 import "server-only";
-import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
-import { createSession, getSessionView, previewSession, type SessionInput } from "@consyrion/council";
-import { DECISION_MODES, DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError, timeoutSignal } from "@consyrium/ai";
+import { createSession, getSessionView, previewSession, type SessionInput } from "@consyrium/council";
+import { DECISION_MODES, DomainError } from "@consyrium/core";
 import {
   archiveProject,
   assertClientDailyTokenBudget,
@@ -17,7 +17,7 @@ import {
   type ActorContext,
   type ApiTokenScope,
   type Database,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { assistantTools } from "./assistant-tools";
 import { decisionBrief } from "./decision-brief";
 import { getKeyring } from "./keyring";
@@ -82,7 +82,7 @@ function sessionInput(args: Record<string, unknown>, extra: Partial<SessionInput
 }
 
 /**
- * Tools of the CONSYRION MCP server. Each runs with the token owner's actor and the same repository functions as the
+ * Tools of the CONSYRIUM MCP server. Each runs with the token owner's actor and the same repository functions as the
  * app – the token sees exactly its workspace. Read-only tokens get only the read tools. Never offered: approve/reject,
  * build, delete, keys, billing, settings, members, confirming requirements – those stay human steps in the app.
  */
@@ -211,7 +211,7 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
   tools.push({
     name: "list_skills",
     title: "List decision skills",
-    description: "Skills (decision templates) this workspace can use: official ones and the team's or your own. Pass an id as `skill` to ask_consyrion.",
+    description: "Skills (decision templates) this workspace can use: official ones and the team's or your own. Pass an id as `skill` to ask_consyrium.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     write: false,
     run: async () => ({
@@ -226,8 +226,8 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
   };
   tools.push(
     {
-      name: "ask_consyrion",
-      title: "Ask CONSYRION for a decision (costs tokens)",
+      name: "ask_consyrium",
+      title: "Ask CONSYRIUM for a decision (costs tokens)",
       description:
         "One call for a decision while working: several models think independently, challenge each other and reach a documented verdict. " +
         "Give the question, the context (what you are building, constraints), optional options to compare and the hard requirements. " +
@@ -270,7 +270,7 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
             },
           },
           skill: str(
-            "Optional skill id from list_skills (or official:<slug>): pre-fills mode, perspectives, weights and session rules and is pinned in the verdict. Its requirement blocks are only suggestions – put the ones the user confirms into requirements",
+            "Optional skill id from list_skills (or official:<slug>): pre-fills mode, perspectives, weights and – for your own skills – session rules, and is pinned in the verdict. Its requirement blocks are only suggestions – put the ones the user confirms into requirements",
           ),
         },
         required: ["question", "context", "tokenBudget"],
@@ -292,7 +292,9 @@ export function mcpTools(db: Database, actor: ActorContext, scope: ApiTokenScope
           ? {
               ...(skill.content.roles?.length ? { roles: skill.content.roles } : {}),
               ...(skill.content.weights ? { weights: skill.content.weights } : {}),
-              ...(skill.content.sessionRules ? { customRules: skill.content.sessionRules } : {}),
+              // Gesamttest 3: over MCP nobody can tick "I checked the rules", so rules of a skill someone else wrote are not
+              // taken over automatically; own skills keep their rules.
+              ...(skill.content.sessionRules && skill.editable && !skill.forkedFrom ? { customRules: skill.content.sessionRules } : {}),
               skill: { id: skill.ref.skillId, version: skill.ref.version },
             }
           : {};

@@ -41,13 +41,13 @@
       },
       "integrations": {
         "title": "Integraciones",
-        "description": "Usa CONSYRION AI desde tus herramientas – Claude Code, Cursor, VS Code, Telegram –, envía decisiones por correo o a Confluence y conecta GitHub para pull requests en borrador.",
+        "description": "Usa CONSYRIUM AI desde tus herramientas – Claude Code, Cursor, VS Code, Telegram –, envía decisiones por correo o a Confluence y conecta GitHub para pull requests en borrador.",
         "connected": "GitHub conectado.",
-        "githubText": "Mínimo privilegio: tú eliges los repositorios en GitHub. CONSYRION AI lee código, solo escribe en ramas nuevas y abre pull requests en borrador. Nunca fusiona.",
+        "githubText": "Mínimo privilegio: tú eliges los repositorios en GitHub. CONSYRIUM AI lee código, solo escribe en ramas nuevas y abre pull requests en borrador. Nunca fusiona.",
         "addInstallation": "Añadir otra instalación",
         "connectGithub": "Conectar GitHub",
         "notConfiguredAdmin": "La GitHub App aún no está configurada en este servidor. Créala y define las variables GITHUB_APP_* (docs/github-app.md).",
-        "notConfigured": "GitHub aún no está disponible en esta instalación de CONSYRION AI. Los councils funcionan igualmente sin repositorio; el operador puede activar GitHub.",
+        "notConfigured": "GitHub aún no está disponible en esta instalación de CONSYRIUM AI. Los councils funcionan igualmente sin repositorio; el operador puede activar GitHub.",
         "notInPlan": "GitHub no está incluido en tu plan actual ({plan}). Está disponible a partir del plan Pro – <link>consulta Facturación y uso</link>.",
         "ownersOnly": "Solo los propietarios pueden conectar GitHub.",
         "allRepositories": "todos los repositorios",
@@ -62,7 +62,7 @@
       "title": "Facturación y uso",
       "selfHostedDescription": "Esta es una instalación autoalojada: sin planes, sin límites, sin tarifas de plataforma.",
       "selfHostedText": "Tus proveedores facturan el uso de IA directamente a tus propias claves de API (BYOK). Gestiona las claves en Ajustes → Proveedores de IA.",
-      "description": "CONSYRION AI solo cobra por la plataforma. Tus proveedores facturan el uso de IA a tus propias claves de API (BYOK).",
+      "description": "CONSYRIUM AI solo cobra por la plataforma. Tus proveedores facturan el uso de IA a tus propias claves de API (BYOK).",
       "checkoutSuccess": "Gracias. El plan cambia en cuanto Stripe confirme el pago.",
       "unlimited": "ilimitado",
       "notIncluded": "no incluido",
@@ -83,12 +83,12 @@
       "planSummaryGithub": "Hasta {models} modelos por sesión · GitHub incluido",
       "planSummaryNoGithub": "Hasta {models} modelos por sesión · GitHub no incluido",
       "plans": "Planes",
-      "noCheckout": "El pago en línea aún no está activado; CONSYRION AI asigna los planes bajo petición.",
+      "noCheckout": "El pago en línea aún no está activado; CONSYRIUM AI asigna los planes bajo petición.",
       "planLimits": "{members, plural, one {# miembro} other {# miembros}} · {projects} proyectos · {sessions} councils/mes · hasta {models} modelos · {build, select, yes {construir en GitHub sí} other {construir en GitHub no}} · {mcp, select, yes {MCP y Telegram sí} other {MCP y Telegram no}}",
       "current": "actual",
       "choose": "Elegir {name}",
       "usageTitle": "Uso de IA este mes (tus cuentas de proveedor)",
-      "usageText": "Tokens observados en las ejecuciones de CONSYRION AI. Los costes son aproximados y solo se muestran donde introdujiste un precio; la factura de tu proveedor es la que vale.",
+      "usageText": "Tokens observados en las ejecuciones de CONSYRIUM AI. Los costes son aproximados y solo se muestran donde introdujiste un precio; la factura de tu proveedor es la que vale.",
       "noCalls": "Ninguna llamada a modelos este mes.",
       "colModel": "Modelo",
       "colCalls": "Llamadas",
@@ -124,7 +124,7 @@
       "saving": "Guardando…",
       "saveKey": "Guardar clave",
       "emptyTitle": "Ningún proveedor de IA conectado",
-      "emptyText": "Añade al menos una clave para que CONSYRION AI pueda descubrir qué modelos puede usar tu organización.",
+      "emptyText": "Añade al menos una clave para que CONSYRIUM AI pueda descubrir qué modelos puede usar tu organización.",
       "verified": "Verificada",
       "notChecked": "Sin comprobar",
       "check": "Comprobar",
@@ -156,7 +156,7 @@
       "never": "nunca",
       "revoke": "Revocar",
       "mcp": {
-        "title": "Servidor MCP – usa CONSYRION desde Claude, Cursor o VS Code",
+        "title": "Servidor MCP – usa CONSYRIUM desde Claude, Cursor o VS Code",
         "intro": "Conecta un cliente de IA compatible con MCP a tu espacio de trabajo. Puede leer decisiones, preparar proyectos y requisitos e iniciar councils con tus propias claves. Aprobar, builds y borrar siguen en la app.",
         "address": "Dirección:",
         "claudeCode": "Claude Code (crea un token arriba e insértalo):",
@@ -293,7 +293,7 @@
       "colPlan": "Plan",
       "stripeTitle": "Stripe y precio Pro",
       "catalogTitle": "Catálogo de planes",
-      "catalogText": "Los límites se aplican en el servidor. Un límite de 1.000.000 o más significa ilimitado. El precio Pro y su precio de Stripe se fijan arriba. CONSYRION AI nunca factura tokens de IA.",
+      "catalogText": "Los límites se aplican en el servidor. Un límite de 1.000.000 o más significa ilimitado. El precio Pro y su precio de Stripe se fijan arriba. CONSYRIUM AI nunca factura tokens de IA.",
       "demo": {
         "title": "Proyecto demo",
         "description": "Cada espacio recibe una sola vez una copia de solo lectura del consejo elegido aquí, en su idioma (si no, inglés y luego alemán). Solo se pueden elegir consejos terminados de tu propio espacio. Cada cliente nuevo ve el texto completo del consejo (propuestas, debate, veredicto): elige un consejo sin contenido confidencial. El conocimiento de los skills y los documentos no se copian.",
@@ -348,7 +348,11 @@
           "weights": "Ponderaciones",
           "rules": "Reglas de sesión",
           "knowledge": "Conocimiento",
-          "owner": "Autor"
+          "owner": "Autor",
+          "coreQuestion": "Pregunta central",
+          "lenses": "Enfoques de revisión",
+          "notSuitableFor": "No apto para",
+          "sources": "Fuentes"
         },
         "scanFindings": "Escaneo estático",
         "aiFindings": "Revisión de IA",
@@ -415,13 +419,17 @@
         },
         "rescan": "Volver a comprobar con las reglas actuales",
         "official": {
-          "title": "Skills oficiales (@consyrion)",
-          "text": "Incluidos con CONSYRION AI y mostrados en el catálogo público. Deben pasar el escaneo en verde; ocúltalos aquí sin despliegue.",
+          "title": "Skills oficiales (@consyrium)",
+          "text": "Incluidos con CONSYRIUM AI y mostrados en el catálogo público. Deben pasar el escaneo en verde; ocúltalos aquí sin despliegue.",
           "loading": "Cargando…",
           "error": "Algo salió mal.",
           "hidden": "oculto",
           "hide": "Ocultar",
           "show": "Mostrar"
+        },
+        "kind": {
+          "skill": "Skill",
+          "role_profile": "Perfil experto"
         }
       }
     },
@@ -429,7 +437,7 @@
       "categories": {
         "aiClients": {
           "title": "Clientes de IA",
-          "description": "Consulta a CONSYRION AI en medio de tu trabajo – a través del servidor MCP."
+          "description": "Consulta a CONSYRIUM AI en medio de tu trabajo – a través del servidor MCP."
         },
         "apps": {
           "title": "Apps",
@@ -448,55 +456,55 @@
       "detailTitle": "Conectar {name}",
       "whatTitle": "Qué puedes hacer",
       "setupTitle": "Configurar",
-      "proOnly": "Alojado en app.consyrion.com: incluido desde el plan Pro; autoalojado: siempre activo. <link>Ver precios</link>",
+      "proOnly": "Alojado en app.consyrium.com: incluido desde el plan Pro; autoalojado: siempre activo. <link>Ver precios</link>",
       "safety": "Aprobar, construir y borrar siempre se quedan en la app. Un token actúa con tu rol en este espacio; los councils se ejecutan con tus propias claves de IA y consumen tokens allí.",
       "items": {
         "claude-code": {
           "name": "Claude Code",
           "by": "Terminal · MCP",
-          "summary": "Consulta a CONSYRION AI directamente en la terminal cuando surge una decisión al programar.",
-          "what": "Claude Code llama a ask_consyrion, inicia un council con tus claves y obtiene el resultado con get_decision, incluido un brief de implementación – sin salir de la terminal.",
+          "summary": "Consulta a CONSYRIUM AI directamente en la terminal cuando surge una decisión al programar.",
+          "what": "Claude Code llama a ask_consyrium, inicia un council con tus claves y obtiene el resultado con get_decision, incluido un brief de implementación – sin salir de la terminal.",
           "steps": {
             "token": "Crea un token en <link>Ajustes → Tokens de API</link> («Solo councils» basta) y ponlo en el comando de abajo en lugar del marcador.",
             "add": "Añade el servidor en la terminal:",
-            "check": "En Claude Code, ejecuta <code>/mcp</code> y comprueba que «consyrion» está conectado.",
-            "ask": "Pregunta sin más: «Pregunta a CONSYRION si usamos PostgreSQL o SQLite.» Claude te muestra antes los requisitos y el presupuesto."
+            "check": "En Claude Code, ejecuta <code>/mcp</code> y comprueba que «consyrium» está conectado.",
+            "ask": "Pregunta sin más: «Pregunta a CONSYRIUM si usamos PostgreSQL o SQLite.» Claude te muestra antes los requisitos y el presupuesto."
           }
         },
         "cursor": {
           "name": "Cursor",
           "by": "Editor · MCP",
-          "summary": "CONSYRION AI como herramienta del agente de Cursor – decisiones sin cambiar de app.",
+          "summary": "CONSYRIUM AI como herramienta del agente de Cursor – decisiones sin cambiar de app.",
           "what": "El agente de Cursor puede preparar proyectos, iniciar councils y usar el resultado como brief de implementación en tu proyecto.",
           "steps": {
             "token": "Crea un token en <link>Ajustes → Tokens de API</link> y ponlo abajo en lugar del marcador.",
             "open": "En Cursor, abre Ajustes → MCP → «Add new MCP server», o directamente el archivo <code>~/.cursor/mcp.json</code>.",
             "paste": "Pega esta configuración y guarda:",
-            "ask": "«consyrion» aparece con sus herramientas en el chat del agente. Prueba: «Deja que CONSYRION decida: ¿cola o cron?»"
+            "ask": "«consyrium» aparece con sus herramientas en el chat del agente. Prueba: «Deja que CONSYRIUM decida: ¿cola o cron?»"
           }
         },
         "vscode": {
           "name": "VS Code",
           "by": "Editor · MCP (Copilot Chat)",
-          "summary": "Usa CONSYRION AI en el modo agente de Copilot Chat.",
-          "what": "En modo agente, Copilot Chat puede llamar a las herramientas de CONSYRION: leer decisiones, iniciar councils e implementar el resultado en tu proyecto.",
+          "summary": "Usa CONSYRIUM AI en el modo agente de Copilot Chat.",
+          "what": "En modo agente, Copilot Chat puede llamar a las herramientas de CONSYRIUM: leer decisiones, iniciar councils e implementar el resultado en tu proyecto.",
           "steps": {
             "token": "Crea un token en <link>Ajustes → Tokens de API</link> y ponlo abajo en lugar del marcador.",
             "paste": "Crea el archivo <code>.vscode/mcp.json</code> en tu proyecto:",
-            "start": "Haz clic en «Start» encima de «consyrion» en el archivo (o paleta de comandos → «MCP: List Servers»).",
-            "ask": "Cambia Copilot Chat al modo agente; «consyrion» aparece entre las herramientas."
+            "start": "Haz clic en «Start» encima de «consyrium» en el archivo (o paleta de comandos → «MCP: List Servers»).",
+            "ask": "Cambia Copilot Chat al modo agente; «consyrium» aparece entre las herramientas."
           }
         },
         "claude-desktop": {
           "name": "Claude Desktop",
           "by": "App de escritorio · MCP",
-          "summary": "CONSYRION AI en la app de Claude para Mac o Windows.",
+          "summary": "CONSYRIUM AI en la app de Claude para Mac o Windows.",
           "what": "Claude Desktop se conecta a tu espacio a través del pequeño puente mcp-remote (necesita Node.js) y puede usar las mismas herramientas que Claude Code.",
           "steps": {
             "token": "Crea un token en <link>Ajustes → Tokens de API</link> y ponlo abajo en lugar del marcador.",
             "open": "En Claude Desktop, abre Ajustes → Desarrollador → «Editar configuración».",
             "paste": "Añade el servidor a <code>claude_desktop_config.json</code>:",
-            "restart": "Reinicia Claude Desktop; «consyrion» aparece entre las herramientas."
+            "restart": "Reinicia Claude Desktop; «consyrium» aparece entre las herramientas."
           }
         },
         "telegram": {
@@ -505,7 +513,7 @@
           "summary": "Pregunta con /frage y recibe el veredicto con su PDF en el chat.",
           "what": "Tu propio bot de Telegram recibe preguntas, muestra requisitos y presupuesto, inicia el council solo cuando pulsas «Start» y devuelve el resultado.",
           "steps": {
-            "bot": "Crea con @BotFather un bot solo para CONSYRION AI:",
+            "bot": "Crea con @BotFather un bot solo para CONSYRIUM AI:",
             "chat": "Envía un mensaje al bot y obtén tu ID de chat (p. ej. con @userinfobot).",
             "connect": "Introduce el token del bot y el ID de chat privado en <link>Conexión de Telegram</link> más abajo.",
             "allow": "Haz clic en «Permitir preguntas por Telegram» – el bot te saluda.",
@@ -539,7 +547,7 @@
         }
       },
       "publicTitle": "Integraciones",
-      "publicDescription": "Con qué puedes conectar CONSYRION AI: Claude Code, Cursor, VS Code, Claude Desktop, Telegram, GitHub, correo y Confluence – con los pasos de configuración.",
+      "publicDescription": "Con qué puedes conectar CONSYRIUM AI: Claude Code, Cursor, VS Code, Claude Desktop, Telegram, GitHub, correo y Confluence – con los pasos de configuración.",
       "signIn": "Iniciar sesión",
       "dashboard": "Abrir el panel"
     }
@@ -657,7 +665,7 @@
     "readiness": "Preparación",
     "latestRun": "Última ejecución de pruebas: <badge></badge>",
     "none": "ninguna",
-    "notRunHint": "no ejecutadas por CONSYRION AI (sin sandbox en este servidor); la pull request en borrador ejecuta las GitHub Actions de tu repositorio.",
+    "notRunHint": "no ejecutadas por CONSYRIUM AI (sin sandbox en este servidor); la pull request en borrador ejecuta las GitHub Actions de tu repositorio.",
     "blocksPr": "Bloquea la pull request: {reason}",
     "reviewsLine": "Revisiones: {total} ({approve} aprobar, {changes} pedir cambios)",
     "prLine": "Pull request: <link>borrador #{n}</link>. La fusión siempre la hace una persona en GitHub.",
@@ -677,7 +685,7 @@
     "noChecks": "Aún no se han informado checks de CI para la pull request.",
     "ciChecks": "Checks de CI:",
     "readinessText": {
-      "notRunGithub": "CONSYRION AI no ejecutó las pruebas (no hay sandbox en este servidor): las GitHub Actions de la pull request borrador muestran el resultado (comprobaciones de CI abajo).",
+      "notRunGithub": "CONSYRIUM AI no ejecutó las pruebas (no hay sandbox en este servidor): las GitHub Actions de la pull request borrador muestran el resultado (comprobaciones de CI abajo).",
       "noRun": "No existe ninguna ejecución de pruebas en sandbox para este cambio.",
       "installTimeout": "La instalación de dependencias superó el tiempo límite en la última ejecución en sandbox.",
       "installFailed": "La instalación de dependencias falló en la última ejecución en sandbox.",
@@ -743,15 +751,16 @@
     },
     "prototypeBadge": "Build de prototipo / medición",
     "prototypeNotice": "Este es un build de prototipo / medición – no una solución terminada. Sirve para medir los requisitos que el Council no pudo confirmar; registra los resultados medidos en el Final Verdict. No es una aprobación regular.",
-    "prototypeStartTitle": "Iniciar el build de prototipo / medición"
+    "prototypeStartTitle": "Iniciar el build de prototipo / medición",
+    "archivedText": "Este proyecto está archivado. Restáuralo en la página del proyecto para iniciar o continuar un build."
   },
   "auth": {
     "failed": "Error de autenticación",
     "socialFailed": "Error al iniciar sesión",
     "signUpTitle": "Crea tu cuenta",
     "signInTitle": "Bienvenido de nuevo",
-    "signUpText": "Inicia tu espacio de trabajo de CONSYRION AI – con tus propias claves de IA.",
-    "signInText": "Inicia sesión en tu espacio de trabajo de CONSYRION AI.",
+    "signUpText": "Inicia tu espacio de trabajo de CONSYRIUM AI – con tus propias claves de IA.",
+    "signInText": "Inicia sesión en tu espacio de trabajo de CONSYRIUM AI.",
     "name": "Nombre",
     "email": "E-mail",
     "password": "Contraseña",
@@ -763,7 +772,7 @@
     "continueWith": "Continuar con",
     "acceptTerms": "Al crear una cuenta aceptas las <terms>condiciones generales (AGB)</terms> y la <privacy>política de privacidad</privacy>.",
     "haveAccount": "¿Ya tienes una cuenta?",
-    "newHere": "¿Nuevo en CONSYRION AI?",
+    "newHere": "¿Nuevo en CONSYRIUM AI?",
     "createAnAccount": "Crear una cuenta",
     "verifyCheckInbox": "Casi listo: hemos enviado un enlace de confirmación a {email}. Ábrelo para activar tu cuenta.",
     "verifyNotVerified": "Primero confirma tu dirección de correo. Acabamos de enviar un nuevo enlace a {email}.",
@@ -772,7 +781,7 @@
     "verifyFailedTitle": "Enlace no válido o caducado",
     "verifyFailedText": "Este enlace de confirmación ya no funciona. Inicia sesión con tu correo y contraseña y te enviaremos uno nuevo.",
     "forgotPassword": "¿Olvidaste tu contraseña?",
-    "oauthNotLinked": "Ya existe una cuenta de CONSYRION AI con contraseña para esta dirección de correo. Inicia sesión con correo y contraseña y conecta luego Google o GitHub en Ajustes → Cuenta. ¿Olvidaste la contraseña? Restablécela.",
+    "oauthNotLinked": "Ya existe una cuenta de CONSYRIUM AI con contraseña para esta dirección de correo. Inicia sesión con correo y contraseña y conecta luego Google o GitHub en Ajustes → Cuenta. ¿Olvidaste la contraseña? Restablécela.",
     "resetTitle": "Restablecer contraseña",
     "resetRequestText": "Introduce tu correo y te enviaremos un enlace para crear una contraseña nueva.",
     "resetSend": "Enviar enlace",
@@ -787,9 +796,9 @@
     "resetConfirm": "Repite la contraseña nueva",
     "resetSave": "Guardar contraseña",
     "shell": {
-      "home": "Inicio de CONSYRION AI",
+      "home": "Inicio de CONSYRIUM AI",
       "tagline": "Debatir. Decidir. Entregar.",
-      "about": "Acerca de CONSYRION AI",
+      "about": "Acerca de CONSYRIUM AI",
       "headline1": "Muchas perspectivas.",
       "headline2": "Una decisión clara.",
       "features": {
@@ -810,7 +819,7 @@
     "methods": {
       "credential": "E-mail y contraseña",
       "errorLoad": "No se pudieron cargar los métodos de inicio de sesión",
-      "alreadyLinked": "Este inicio de sesión ya pertenece a otra cuenta de CONSYRION AI. Elimina primero esa cuenta y luego conéctalo aquí.",
+      "alreadyLinked": "Este inicio de sesión ya pertenece a otra cuenta de CONSYRIUM AI. Elimina primero esa cuenta y luego conéctalo aquí.",
       "connectFailedCode": "La conexión falló ({code}).",
       "connectFailed": "La conexión falló",
       "errorRemove": "No se pudo quitar este método",
@@ -822,7 +831,7 @@
       "redirecting": "Redirigiendo…",
       "connect": "Conectar {provider}",
       "remove": "Quitar",
-      "footer": "El último método de inicio de sesión que queda no se puede quitar. Se rechaza conectar un inicio de sesión que ya pertenece a otra cuenta de CONSYRION AI."
+      "footer": "El último método de inicio de sesión que queda no se puede quitar. Se rechaza conectar un inicio de sesión que ya pertenece a otra cuenta de CONSYRIUM AI."
     },
     "invite": {
       "metaTitle": "Invitación",
@@ -839,7 +848,7 @@
     "imported": "Skill importado: por ahora es privado.",
     "ignoredTitle": "No se ha incorporado: {fields}.",
     "ignoredText": "Estos campos no forman parte del formato de skill y no se han guardado. Todo lo demás se ha guardado.",
-    "newerSchema": "Este skill se creó con una versión más reciente de CONSYRION AI (formato de skill {version}). Actualiza CONSYRION AI para importarlo.",
+    "newerSchema": "Este skill se creó con una versión más reciente de CONSYRIUM AI (formato de skill {version}). Actualiza CONSYRIUM AI para importarlo.",
     "shared": "Compartido con tu equipo.",
     "unshared": "El skill vuelve a ser privado.",
     "archived": "Skill archivado. Los councils que lo usaron conservan su versión.",
@@ -872,7 +881,7 @@
     "modeDefault": "valores por defecto del modo",
     "safetyNote": "Un skill nunca confirma requisitos, nunca omite la revisión independiente y nunca aprueba nada.",
     "officialTitle": "Skills oficiales",
-    "officialText": "Incluidos en CONSYRION AI, solo lectura. Duplica uno para adaptarlo como skill propio.",
+    "officialText": "Incluidos en CONSYRIUM AI, solo lectura. Duplica uno para adaptarlo como skill propio.",
     "visibility": {
       "private": "privado",
       "team": "equipo",
@@ -916,13 +925,17 @@
         "own": "Tus skills",
         "team": "Skills del equipo",
         "official": "Skills oficiales"
-      }
+      },
+      "copyOf": "copia de {name}",
+      "unavailable": "El skill del enlace no está disponible (archivado o no visible para ti): la configuración no se ha rellenado."
     },
     "setup": {
       "prefilled": "Rellenado a partir del skill «{name}» (v{version}). Puedes cambiarlo todo.",
       "blocksOpen": "{n, plural, one {# bloque} other {# bloques}} del skill «{name}» aún sin decidir: solo es un aviso, el inicio no está bloqueado.",
       "blocksOpenLink": "Ver bloques",
-      "modelsRecommended": "El skill recomienda {n} modelos: elígelos tú (tus claves). {selected} de {n} elegidos."
+      "modelsRecommended": "El skill recomienda {n} modelos: elígelos tú (tus claves). {selected} de {n} elegidos.",
+      "rulesFromSkill": "Estas reglas de sesión proceden del skill «{name}». Los modelos las tratan como tus propias reglas: revísalas antes de empezar.",
+      "rulesConfirm": "He revisado las reglas de sesión tomadas de este skill."
     },
     "intake": {
       "label": "Bloques de requisitos de {name}",
@@ -986,7 +999,8 @@
         "link": "enlace",
         "markup": "enlace HTML o Markdown",
         "code": "comandos o scripts",
-        "bias": "ponderación extrema"
+        "bias": "ponderación extrema",
+        "impersonation": "suplantación de una persona real"
       },
       "close": "Cerrar",
       "loading": "Cargando…",
@@ -1008,7 +1022,7 @@
       "changelog": "Qué contiene o cambia esta versión",
       "changelogHint": "Obligatorio: aparece en la página pública.",
       "license": "Publico este skill bajo {license} y tengo derecho a hacerlo.",
-      "reviewNote": "El texto se comprueba automáticamente, también por un servicio de IA externo operado por CONSYRION AI. No incluyas datos personales, claves ni información confidencial.",
+      "reviewNote": "El texto se comprueba automáticamente, también por un servicio de IA externo operado por CONSYRIUM AI. No incluyas datos personales, claves ni información confidencial.",
       "submit": "Enviar a revisión",
       "errors": {
         "handle_format": "3–32 minúsculas, cifras o guiones simples.",
@@ -1022,9 +1036,15 @@
         "slug_format": "3–60 minúsculas, cifras o guiones simples.",
         "slug_reserved": "Esta dirección está reservada.",
         "slug_taken": "Ya usas esta dirección para otro skill.",
-        "not_public": "Este skill no es público."
-      }
-    }
+        "not_public": "Este skill no es público.",
+        "display_name_reserved": "Este nombre está reservado: sugeriría una identidad oficial o de terceros.",
+        "display_name_length": "2–60 caracteres.",
+        "display_name_content": "Este nombre no es posible (enlaces, datos de contacto, instrucciones o caracteres ocultos)."
+      },
+      "displayName": "Nombre público (opcional)",
+      "displayNameHint": "Aparece junto a tu @identificador en cada skill público, p. ej. tu nombre o tu empresa. No se permiten nombres que sugieran CONSYRIUM, proveedores o un rol oficial."
+    },
+    "weightsSum": "Suma: {sum} % (debe ser 100 %)"
   },
   "roleProfiles": {
     "title": "Perfiles de experto",
@@ -1070,7 +1090,7 @@
     "addSource": "Añadir fuente",
     "save": "Guardar",
     "curated": "Perfiles seleccionados",
-    "curatedHint": "Incluidos en CONSYRION AI, solo lectura. Valoración propia del equipo, sin personas ni enlaces.",
+    "curatedHint": "Incluidos en CONSYRIUM AI, solo lectura. Valoración propia del equipo, sin personas ni enlaces.",
     "checkedAt": "comprobado el {date}",
     "visibility": {
       "private": "privado",
@@ -1085,7 +1105,9 @@
     },
     "pickerTitle": "Perfiles de experto (opcional)",
     "pickerNote": "Un perfil precisa en qué se fija este rol. No añade ningún modelo, voto ni evaluador.",
-    "pickerNone": "Sin perfil"
+    "pickerNone": "Sin perfil",
+    "publish": "Publicar en SkillHub",
+    "adoptedFrom": "adoptado de {name}"
   },
   "deletion": {
     "title": "Qué elimina el borrado – y qué no puede eliminar",
@@ -1095,7 +1117,7 @@
     "auditWorkspace": "Queda una entrada: que este espacio se borró, por quién y cuándo – sin ningún contenido.",
     "feedback": "Tus informes de feedback pertenecen a tu cuenta y se mantienen hasta que los borres a ellos o a tu cuenta.",
     "backups": "Las copias de seguridad de la base de datos (en el servidor y en un almacenamiento de copias en Alemania) siguen conteniendo los datos hasta que se borran automáticamente a los 30 días.",
-    "external": "Fuera de CONSYRION AI – no podemos borrarlo: pull requests y ramas en GitHub (ciérralos o bórralos en el repositorio), informes enviados por e-mail, Telegram o Confluence (se quedan con los destinatarios) y todo lo que hayas exportado o descargado.",
+    "external": "Fuera de CONSYRIUM AI – no podemos borrarlo: pull requests y ramas en GitHub (ciérralos o bórralos en el repositorio), informes enviados por e-mail, Telegram o Confluence (se quedan con los destinatarios) y todo lo que hayas exportado o descargado.",
     "privacy": "Más en la política de privacidad",
     "running": "Las llamadas a modelos que ya están en curso aún pueden ser facturadas por el proveedor (tu propia clave)."
   }

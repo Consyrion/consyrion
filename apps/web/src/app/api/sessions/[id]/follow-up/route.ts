@@ -1,4 +1,4 @@
-import { previewFollowUp, startFollowUp } from "@consyrion/council";
+import { previewFollowUp, startFollowUp } from "@consyrium/council";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

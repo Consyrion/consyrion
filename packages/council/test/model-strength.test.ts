@@ -1,7 +1,7 @@
-import { createDatabase, type DatabaseHandle } from "@consyrion/db";
-import { strengthSuggestion } from "@consyrion/core";
+import { createDatabase, type DatabaseHandle } from "@consyrium/db";
+import { strengthSuggestion } from "@consyrium/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fetchArtificialAnalysis } from "@consyrion/ai";
+import { fetchArtificialAnalysis } from "@consyrium/ai";
 import { latestStrengthCatalog, modelStrengthStatus, syncModelStrength, type StrengthSource } from "../src";
 
 let handle: DatabaseHandle;

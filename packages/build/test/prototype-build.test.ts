@@ -3,8 +3,8 @@
  * It starts while the verdict still waits for a decision, is stored as kind "prototype", and is never a regular build.
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
-import { createSession, getSessionView, recordMeasurement, runSession, submitApproval, type SessionInput } from "@consyrion/council";
+import { keyringFromEnv } from "@consyrium/core";
+import { createSession, getSessionView, recordMeasurement, runSession, submitApproval, type SessionInput } from "@consyrium/council";
 import {
   createCredential,
   createDatabase,
@@ -15,7 +15,7 @@ import {
   setSubscriptionPlan,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { listExecutions, startExecution } from "../src";

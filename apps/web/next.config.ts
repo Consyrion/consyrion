@@ -32,14 +32,14 @@ const securityHeaders = [
 
 const config: NextConfig = {
   transpilePackages: [
-    "@consyrion/core",
-    "@consyrion/db",
-    "@consyrion/ai",
-    "@consyrion/council",
-    "@consyrion/engine",
-    "@consyrion/build",
-    "@consyrion/github",
-    "@consyrion/billing",
+    "@consyrium/core",
+    "@consyrium/db",
+    "@consyrium/ai",
+    "@consyrium/council",
+    "@consyrium/engine",
+    "@consyrium/build",
+    "@consyrium/github",
+    "@consyrium/billing",
   ],
   serverExternalPackages: ["@electric-sql/pglite", "pg", "unpdf"],
   poweredByHeader: false,
@@ -51,6 +51,13 @@ const config: NextConfig = {
   // Versioned API (#101): /api/v1/... is the stable contract for integrations and serves the same handlers as /api/...
   async rewrites() {
     return [{ source: "/api/v1/:path*", destination: "/api/:path*" }];
+  },
+  // SkillHub handles before the rename to CONSYRIUM AI (11 Nov 2026): published links keep working.
+  async redirects() {
+    return [
+      { source: "/skills/@consyrion/:slug", destination: "/skills/@consyrium/:slug", permanent: true },
+      { source: "/skills/@consyrion-team/:slug", destination: "/skills/@consyrium-team/:slug", permanent: true },
+    ];
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDatabase, ensurePersonalOrganization, schema } from "@consyrion/db";
+import { createDatabase, ensurePersonalOrganization, schema } from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { reconcileTokens } from "../src/engine";
 

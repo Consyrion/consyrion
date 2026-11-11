@@ -1,4 +1,4 @@
-import { rotateCredential } from "@consyrion/db";
+import { rotateCredential } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

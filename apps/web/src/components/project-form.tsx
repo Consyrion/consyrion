@@ -10,7 +10,7 @@ import { Alert } from "./ui/surface";
 
 type Source = "idea" | "repository" | "example";
 
-const DRAFT_KEY = "consyrion-project-draft";
+const DRAFT_KEY = "consyrium-project-draft";
 const IDEA_MAX = 20_000;
 
 /** Example brief; its texts come from `projectForm.example` in the interface language. */

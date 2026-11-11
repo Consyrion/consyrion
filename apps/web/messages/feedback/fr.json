@@ -3,7 +3,7 @@
     "metaTitle": "Retours",
     "nav": "Retours et bugs",
     "title": "Retours",
-    "description": "Signalez un bug, proposez une fonctionnalité ou posez une question. L’équipe CONSYRION AI lit chaque message et répond ici.",
+    "description": "Signalez un bug, proposez une fonctionnalité ou posez une question. L’équipe CONSYRIUM AI lit chaque message et répond ici.",
     "newTitle": "Nouveau message",
     "visitorTitle": "Contact et retours",
     "visitorDescription": "Signalez un bug, proposez une fonctionnalité ou posez une question – sans compte. Nous répondons par e-mail.",
@@ -34,7 +34,7 @@
     "screenshotNone": "Aucune image sélectionnée",
     "screenshotRemove": "Retirer",
     "attached": "Joints automatiquement : page {page}, langue de l’interface, navigateur et version de l’application.",
-    "privacy": "Nous enregistrons votre message, votre adresse e-mail et ces informations pour vous répondre et améliorer CONSYRION AI.",
+    "privacy": "Nous enregistrons votre message, votre adresse e-mail et ces informations pour vous répondre et améliorer CONSYRIUM AI.",
     "privacyLink": "Politique de confidentialité",
     "send": "Envoyer",
     "sending": "Envoi…",
@@ -53,7 +53,7 @@
     "mine": {
       "title": "Mes signalements",
       "empty": "Vous n’avez encore envoyé aucun signalement.",
-      "reply": "Réponse de l’équipe CONSYRION AI",
+      "reply": "Réponse de l’équipe CONSYRIUM AI",
       "deleteNote": "Vous souhaitez supprimer un signalement ? Écrivez-nous – nous le supprimons avec toutes les réponses.",
       "new": "nouveau"
     },

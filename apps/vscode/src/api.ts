@@ -1,7 +1,7 @@
-/** Minimal client for the Consyrion REST API (personal API token, one workspace). No vscode imports. */
+/** Minimal client for the Consyrium REST API (personal API token, one workspace). No vscode imports. */
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
-export class ConsyrionApiError extends Error {
+export class ConsyriumApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
@@ -29,15 +29,15 @@ export interface SessionSummary {
 export type ApprovalAction = "approve" | "reject" | "request_more_debate" | "request_changes" | "select_alternative";
 
 /**
- * The app runs on app.consyrion.com; consyrion.com only redirects there, and a redirect to another host drops the
+ * The app runs on app.consyrium.com; consyrium.com and the former consyrion.com addresses only redirect there, and a redirect to another host drops the
  * Authorization header – so the old default and the bare domain are mapped to the app (QA 07.11.26).
  */
 export function normalizeServerUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, "");
-  return /^https?:\/\/(www\.)?consyrion\.com$/i.test(trimmed) ? "https://app.consyrion.com" : trimmed;
+  return /^https?:\/\/((www\.)?consyri(um|on)\.com|app\.consyrion\.com)$/i.test(trimmed) ? "https://app.consyrium.com" : trimmed;
 }
 
-export class ConsyrionApi {
+export class ConsyriumApi {
   constructor(
     baseUrl: string,
     private readonly token: string,
@@ -60,14 +60,14 @@ export class ConsyrionApi {
     });
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-      throw new ConsyrionApiError(response.status, body.error?.message ?? `Request failed (${response.status})`);
+      throw new ConsyriumApiError(response.status, body.error?.message ?? `Request failed (${response.status})`);
     }
     if (raw || response.status === 204) return (raw ? await response.text() : undefined) as T;
     // A web page instead of JSON: the server URL points to the website (e.g. a redirecting domain), not the API.
     if ((response.headers.get("content-type") ?? "").includes("text/html"))
-      throw new ConsyrionApiError(
+      throw new ConsyriumApiError(
         response.status,
-        `${this.baseUrl} answered with a web page, not the CONSYRION AI API – check the setting consyrion.serverUrl (e.g. https://app.consyrion.com).`,
+        `${this.baseUrl} answered with a web page, not the CONSYRIUM AI API – check the setting consyrium.serverUrl (e.g. https://app.consyrium.com).`,
       );
     return (await response.json()) as T;
   }

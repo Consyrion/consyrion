@@ -44,7 +44,17 @@ export interface WorkflowPolicy {
   callTimeoutMs: number;
   /** Optional session rules written by the user (e.g. "focus on cost"); appended to every system prompt. */
   customRules: string;
+  /**
+   * What the user wants from this council (#597). "idea_check": an early idea without contracts or measurements – the
+   * verdict screen reads the result as a recommendation with open points to clarify. "approval" (also when absent):
+   * a decision to approve and build. It changes only how the result is presented: phases, prompts, the requirement
+   * gate, approval and build are the same for both.
+   */
+  purpose?: CouncilPurpose;
 }
+
+export const COUNCIL_PURPOSES = ["idea_check", "approval"] as const;
+export type CouncilPurpose = (typeof COUNCIL_PURPOSES)[number];
 
 const SEVERITY_ORDER: Record<Severity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
@@ -130,6 +140,7 @@ export interface PolicyOverrides {
   tokenBudget?: number;
   maxOutputTokens?: number;
   customRules?: string;
+  purpose?: CouncilPurpose;
 }
 
 /**
@@ -148,8 +159,11 @@ export function buildPolicy(mode: DecisionMode, overrides: PolicyOverrides = {})
     tokenBudget: overrides.tokenBudget ?? DEFAULT_TOKEN_BUDGET,
     maxOutputTokens: overrides.maxOutputTokens ?? base.maxOutputTokens,
     customRules: (overrides.customRules ?? "").trim(),
+    // Only stored when chosen: councils started without it keep the policy shape they always had.
+    ...(overrides.purpose ? { purpose: overrides.purpose } : {}),
   };
   const errors: string[] = [];
+  if (overrides.purpose && !(COUNCIL_PURPOSES as readonly string[]).includes(overrides.purpose)) errors.push("Unknown council purpose");
   if (policy.roles.length < 1 || policy.roles.length > 12) errors.push("Between 1 and 12 roles are required");
   if (new Set(policy.roles).size !== policy.roles.length) errors.push("Roles must be unique");
   if (policy.roles.some((role) => !(COUNCIL_ROLES as readonly string[]).includes(role))) errors.push("Unknown role");
@@ -349,7 +363,11 @@ export function minimumCouncilBudget(policy: WorkflowPolicy, briefChars: number,
   const calls = finalVerdictCallItems(Math.max(0, n - 1), requirements);
   const verdict = list.reduce(
     (sum, p) =>
-      sum + calls.reduce((s, items, index) => s + verdictInput + outputTokensFor(p, policy.maxOutputTokens, index === 0 ? "evaluation" : "evaluation_checks", items), 0),
+      sum +
+      calls.reduce(
+        (s, items, index) => s + verdictInput + outputTokensFor(p, policy.maxOutputTokens, index === 0 ? "evaluation" : "evaluation_checks", items),
+        0,
+      ),
     0,
   );
   return Math.ceil(thinking + verdict);

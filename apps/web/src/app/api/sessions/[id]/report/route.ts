@@ -1,10 +1,10 @@
-import { buildDecisionReport, getSessionView, reportLocale, reportToMarkdown, reportTranslator } from "@consyrion/council";
+import { buildDecisionReport, getSessionView, reportLocale, reportToMarkdown, reportTranslator } from "@consyrium/council";
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
-import { isLocale, LOCALE_COOKIE, localeFromAcceptLanguage } from "@/i18n/locales";
+import { isLocale, localeCookie, localeFromAcceptLanguage } from "@/i18n/locales";
 import { buildAudit } from "@/lib/server/report-audit";
 import { PDF_LEVELS, pdfLocale, type PdfLevel, reportDocx, reportPdf } from "@/lib/server/report-documents";
 import { reportStatus } from "@/lib/server/report-status";
@@ -17,7 +17,7 @@ export const GET = handle(async (request: Request, { params }: { params: Promise
   const report = buildDecisionReport(view);
   const url = new URL(request.url);
   // Fixed report wording in the interface language (#322): ?lang= first, then the same rule as the UI (cookie, browser).
-  const chosen = url.searchParams.get("lang") ?? (await cookies()).get(LOCALE_COOKIE)?.value;
+  const chosen = url.searchParams.get("lang") ?? localeCookie(await cookies());
   const locale = reportLocale(isLocale(chosen) ? chosen : localeFromAcceptLanguage((await headers()).get("accept-language")));
   const format = url.searchParams.get("format");
   // PDF level (#268): brief | report (default) | full – same snapshot, more or less detail.
@@ -46,14 +46,14 @@ export const GET = handle(async (request: Request, { params }: { params: Promise
     return new NextResponse(Buffer.from(body), {
       headers: {
         "Content-Type": type,
-        "Content-Disposition": `attachment; filename="consyrion-decision-${id}${format === "pdf" && level !== "report" ? `-${level}` : ""}.${format}"`,
+        "Content-Disposition": `attachment; filename="consyrium-decision-${id}${format === "pdf" && level !== "report" ? `-${level}` : ""}.${format}"`,
       },
     });
   }
   if (format === "json") {
-    return NextResponse.json(report, { headers: { "Content-Disposition": `attachment; filename="consyrion-decision-${id}.json"` } });
+    return NextResponse.json(report, { headers: { "Content-Disposition": `attachment; filename="consyrium-decision-${id}.json"` } });
   }
   return new NextResponse(reportToMarkdown(report, locale), {
-    headers: { "Content-Type": "text/markdown; charset=utf-8", "Content-Disposition": `attachment; filename="consyrion-decision-${id}.md"` },
+    headers: { "Content-Type": "text/markdown; charset=utf-8", "Content-Disposition": `attachment; filename="consyrium-decision-${id}.md"` },
   });
 });

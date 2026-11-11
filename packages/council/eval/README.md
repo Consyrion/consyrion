@@ -14,8 +14,8 @@ have, for example:
 | `failed-model` | one broken provider stopping the whole council |
 
 ```
-pnpm --filter @consyrion/council eval     # Markdown report, exit code 1 on any failure
-pnpm --filter @consyrion/council test     # includes eval/eval.test.ts (CI regression)
+pnpm --filter @consyrium/council eval     # Markdown report, exit code 1 on any failure
+pnpm --filter @consyrium/council test     # includes eval/eval.test.ts (CI regression)
 ```
 
 Add a case by appending to `GOLDEN_CASES` in `eval/cases.ts`. Every check must be able to fail: a wrong
@@ -29,4 +29,4 @@ expectation produces `✗ … (got …)` in the report.
 
 ## Reference set for real councils (#182)
 `reference-cases.ts`, `reference-score.ts` and `reference-cli.ts` score exported Decision Reports of real councils
-against gold labels (`pnpm --filter @consyrion/council reference <dir>`). See `docs/reference-set.md`.
+against gold labels (`pnpm --filter @consyrium/council reference <dir>`). See `docs/reference-set.md`.

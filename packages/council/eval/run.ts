@@ -1,11 +1,11 @@
 /**
  * Runs the golden cases against the real engine (in-memory database, deterministic test models) and
  * returns one result per case. Used by eval/eval.test.ts (CI regression) and `pnpm --filter
- * @consyrion/council eval` (prints a Markdown report).
+ * @consyrium/council eval` (prints a Markdown report).
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
-import { createCredential, createDatabase, createProject, ensurePersonalOrganization, resolveActor, schema, setSubscriptionPlan } from "@consyrion/db";
+import { keyringFromEnv } from "@consyrium/core";
+import { createCredential, createDatabase, createProject, ensurePersonalOrganization, resolveActor, schema, setSubscriptionPlan } from "@consyrium/db";
 import { createSession, getSessionView, runSession } from "../src";
 import { confirmProposedRequirements } from "../test/confirm-requirements";
 import { ScriptedAdapter } from "../test/scripted-adapter";
@@ -84,7 +84,7 @@ export async function runGoldenCases(cases = GOLDEN_CASES) {
 
 export function toMarkdown(results: CaseResult[]) {
   const lines = [
-    "# Consyrion golden cases",
+    "# Consyrium golden cases",
     "",
     `${results.filter((r) => r.passed).length} / ${results.length} passed`,
     "",

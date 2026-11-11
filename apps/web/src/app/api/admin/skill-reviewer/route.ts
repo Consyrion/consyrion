@@ -1,4 +1,4 @@
-import { getSkillReviewerConfig, setSkillReviewerConfig, skillReviewTokensThisMonth } from "@consyrion/db";
+import { getSkillReviewerConfig, setSkillReviewerConfig, skillReviewTokensThisMonth } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";

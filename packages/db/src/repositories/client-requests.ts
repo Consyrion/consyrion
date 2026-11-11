@@ -1,4 +1,4 @@
-import { assertCan, CLIENT_CONTEXT_EXCLUSION_REASON, DomainError } from "@consyrion/core";
+import { assertCan, CLIENT_CONTEXT_EXCLUSION_REASON, DomainError } from "@consyrium/core";
 import { and, asc, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { auditEvent, councilParticipant, councilSession } from "../schema";
@@ -9,8 +9,8 @@ import { archiveProject, createProject } from "./projects";
 import { confirmRequirementList, proposeRequirementList } from "./requirements";
 
 /**
- * Decision requests from external clients (MCP `ask_consyrion`, 06.11.26): someone working in Claude, Cursor … asks
- * CONSYRION for a decision in one call. The requirements come from the user in that client, and the client asks the
+ * Decision requests from external clients (MCP `ask_consyrium`, 06.11.26): someone working in Claude, Cursor … asks
+ * CONSYRIUM for a decision in one call. The requirements come from the user in that client, and the client asks the
  * user before the call – that approval is the human confirmation of the requirement list. Everything else uses the
  * normal repositories (plan limits, permissions, audit).
  */

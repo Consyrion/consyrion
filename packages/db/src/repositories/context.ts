@@ -1,4 +1,4 @@
-import { DomainError, isOrgRole, type OrgRole } from "@consyrion/core";
+import { DomainError, isOrgRole, type OrgRole } from "@consyrium/core";
 import { and, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { membership } from "../schema";

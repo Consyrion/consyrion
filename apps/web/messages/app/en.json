@@ -12,7 +12,7 @@
     },
     "workspace": "Workspace",
     "skip": "Skip to content",
-    "homeLabel": "CONSYRION AI dashboard",
+    "homeLabel": "CONSYRIUM AI dashboard",
     "menu": "Menu",
     "mainNav": "Main",
     "quickNav": "Quick navigation",
@@ -67,7 +67,7 @@
     "providers": {
       "title": "Provider status",
       "verified": "{n} verified",
-      "none": "No key connected yet. CONSYRION AI sells no AI credits – you use your own keys.",
+      "none": "No key connected yet. CONSYRIUM AI sells no AI credits – you use your own keys.",
       "checked": "checked {when}",
       "useCheck": "use Check on AI providers",
       "state": {
@@ -175,7 +175,8 @@
     },
     "showArchived": "Show {n} sessions of archived projects",
     "hideArchived": "Hide sessions of archived projects",
-    "archivedBadge": "archived"
+    "archivedBadge": "archived",
+    "qualityLink": "Process quality"
   },
   "projects": {
     "metaTitle": "Projects",
@@ -273,7 +274,8 @@
       "working": "Saving …",
       "error": "The change could not be saved.",
       "banner": "This project is archived – read-only. Restore it at the bottom of this page to continue working on it.",
-      "listTitle": "Archive ({n})"
+      "listTitle": "Archive ({n})",
+      "startBlocked": "Project is archived – restore it first"
     },
     "deleteCounts": "This project: {sessions, plural, one {# council session} other {# council sessions}} ({running} running or queued), {documents, plural, one {# document} other {# documents}}."
   },
@@ -358,7 +360,7 @@
     "saveError": "Could not save",
     "linked": "Linked: <strong>{repo}</strong>",
     "none": "No repository linked. The Execution Council will start from an empty workspace.",
-    "notLinked": "The brief names {url}, but it is not linked: the CONSYRION AI GitHub App probably has no access to it. On GitHub open Settings → Applications → the CONSYRION AI app → Configure, add the repository, then click “Load repositories” and link it here. Without a link no pull request can be created.",
+    "notLinked": "The brief names {url}, but it is not linked: the CONSYRIUM AI GitHub App probably has no access to it. On GitHub open Settings → Applications → the CONSYRIUM AI app → Configure, add the repository, then click “Load repositories” and link it here. Without a link no pull request can be created.",
     "notConfigured": "GitHub is not configured on this server.",
     "notInPlan": "GitHub is not included in your plan. <link>See Billing & usage</link>.",
     "connectFirst": "Connect GitHub under <link>Integrations</link> first.",
@@ -542,7 +544,10 @@
       "roles": "Activate at least one 12 Minds Council role.",
       "weights": "Fix the highlighted Final Verdict weights (each 0–100).",
       "total": "Weights must add up to 100 (currently {total}).",
-      "budgetTooSmall": "The budget is too small for this team: at least {tokens} tokens are needed so every model can write a proposal and the Final Verdict can still run."
+      "budgetTooSmall": "The budget is too small for this team: at least {tokens} tokens are needed so every model can write a proposal and the Final Verdict can still run.",
+      "open": "{n, plural, one {1 thing left before you can start:} other {# things left before you can start:}}",
+      "toField": "Go to field",
+      "blocked": "Start blocked: {reason}"
     },
     "models": {
       "title": "1. Select AI models",
@@ -572,6 +577,14 @@
       "vsModels": "{models, plural, one {# model} other {# models}} · {perspectives, plural, one {# perspective} other {# perspectives}} · each proposal is checked by up to {foreign, plural, one {# other model} other {# other models}} (if all of them keep answering). Perspectives are not votes: several roles on one model stay one model.",
       "instances": "{model}: {n} instances (different keys) count as 1 independent voice – for majorities, the minimum of two independent reviewers and cross-checks. An instance never reviews another instance of its model."
     },
+    "purpose": {
+      "title": "What is this council for?",
+      "idea": "Check an idea",
+      "ideaHint": "You are at the start and want to know whether the idea holds up. Result: a favourite, the variants ruled out and a list of what to clarify before the next step.",
+      "approval": "Approve a decision",
+      "approvalHint": "You want to have it built afterwards. Result: approval only when every evaluator confirmed every requirement.",
+      "note": "Process, cost and checks are equally strict for both – only the way the result is presented differs."
+    },
     "settings": {
       "title": "4. Session settings",
       "debate": "Debate rounds",
@@ -582,7 +595,11 @@
       "budget": "Token budget (hard limit)",
       "budgetHint": "{min}–{max} tokens. Calls stop when the budget would be exceeded. Providers bill your own keys.",
       "rules": "Session rules (optional)",
-      "rulesHint": "E.g. “Focus on operating cost” or “Must run in the EU”."
+      "rulesHint": "E.g. “Focus on operating cost” or “Must run in the EU”.",
+      "budgetNeeds": "Needs at least {needed} tokens – set to {set}.",
+      "budgetAdjust": "Set budget to {tokens} tokens",
+      "budgetFewer": "Even the highest budget is not enough for this team – choose fewer models or roles.",
+      "budgetAdjusted": "Budget adjusted: {from} → {to} tokens. You can still change the value."
     },
     "summary": {
       "title": "Before you start",
@@ -598,7 +615,9 @@
       "contextTooSmall": "Context window too small",
       "contextDoesNotFit": "{model}: the brief, documents and all proposals need about {input} tokens, its context window has {window}. Its calls would be refused rather than cut off – choose a model with a larger window or a smaller repository context.",
       "overBudget": "The upper bound exceeds your budget of {budget} tokens. I accept that debate phases may be shortened to keep enough budget for the Final Verdict: if the budget runs short, Minority Review and Consensus Round are dropped and the proposals are not revised – the verdict then judges the first versions and is marked as shortened.",
-      "checkWeights": "Check the vote weights before you start:"
+      "checkWeights": "Check the vote weights before you start:",
+      "typicalRange": "Typically about {low}–{high} tokens (from your last {calls} calls).",
+      "belowTypical": "Your budget of {budget} tokens is below what such a council typically needs (up to about {high}). Debate phases will then likely be shortened and the verdict marked as shortened."
     },
     "starting": "Starting…",
     "start": "Start council session",
@@ -617,15 +636,17 @@
     },
     "catalog": {
       "metaTitle": "SkillHub – decision skills",
-      "metaDescription": "Reviewed community skills for CONSYRION AI councils: perspectives, requirement building blocks, weights and rules.",
+      "metaDescription": "Reviewed community skills for CONSYRIUM AI councils: perspectives, requirement building blocks, weights and rules.",
       "title": "SkillHub",
-      "intro": "Decision packages shared by the community. Every skill here was checked automatically and approved by an admin. A skill only pre-fills a council – you confirm the requirements and approve as usual.",
+      "intro": "Decision packages for CONSYRIUM AI councils. Community skills are checked automatically and approved by an admin before they are published; official skills (@consyrium) come from CONSYRIUM AI. A skill only pre-fills a council – you confirm the requirements and approve as usual.",
       "search": "Search skills",
       "category": "Category",
       "allCategories": "All categories",
       "searchButton": "Search",
       "empty": "No public skills yet.",
-      "noResults": "No skills match your search."
+      "noResults": "No skills match your search.",
+      "type": "Type",
+      "allTypes": "All types"
     },
     "detail": {
       "reviewed": "reviewed",
@@ -639,9 +660,9 @@
       "licenseText": "Published under {license} by @{handle}. Using it creates your own copy that names the original.",
       "uses": "{n, plural, =0 {not adopted yet} one {adopted by # workspace} other {adopted by # workspaces}}"
     },
-    "disclaimer": "Community skill – not legal, medical or financial advice and no guarantee by CONSYRION AI. A skill never changes the requirement gate, the reviews or the human approval.",
+    "disclaimer": "Community skill – not legal, medical or financial advice and no guarantee by CONSYRIUM AI. A skill never changes the requirement gate, the reviews or the human approval.",
     "actions": {
-      "adopt": "Use in CONSYRION",
+      "adopt": "Use in CONSYRIUM",
       "adoptHint": "Creates your own private copy in your workspace (sign-in required).",
       "adopted": "Added to your skills.",
       "mySkills": "Open my skills",
@@ -667,10 +688,29 @@
       "errors": {
         "already_reported": "You already reported this skill.",
         "reason_missing": "Choose a reason."
-      }
+      },
+      "alreadyAdopted": "Already in your skills – no second copy created.",
+      "adoptProfile": "Adopt as my role profile",
+      "adoptedProfile": "Adopted – a private copy is now in your role profiles and can be chosen for its role in the council setup.",
+      "adoptProfileHint": "Creates a private copy with its origin (CC BY 4.0, author named). It does not update itself.",
+      "myProfiles": "My role profiles"
     },
     "footer": {
       "license": "Community skills are published under CC BY 4.0 by their authors (shown as @handle). No legal, financial or medical advice."
-    }
+    },
+    "kinds": {
+      "skill": "Skill",
+      "role_profile": "Expert profile"
+    },
+    "profile": {
+      "coreQuestion": "Core question",
+      "lenses": "Review lenses",
+      "notSuitableFor": "Not suitable for",
+      "sources": "Sources",
+      "sourcesHint": "Named by the author – not checked by CONSYRIUM AI. Links are shown as text.",
+      "statedByAuthor": "{status} – stated by the author",
+      "notice": "Written by another user and published under CC BY 4.0 after review. It only sharpens what its role looks at; it cannot change requirements, votes, weights or the approval. It may not imitate real people."
+    },
+    "disclaimerOfficial": "Official skill by CONSYRIUM AI – not legal, medical or financial advice. A skill never changes the requirement gate, the reviews or the human approval."
   }
 }

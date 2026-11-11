@@ -1,5 +1,5 @@
-import { exportSkillFiles } from "@consyrion/core";
-import { getSkillForUse, listSkillVersions } from "@consyrion/db";
+import { exportSkillFiles } from "@consyrium/core";
+import { getSkillForUse, listSkillVersions } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

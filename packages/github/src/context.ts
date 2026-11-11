@@ -2,7 +2,7 @@ import type { GitHubClient } from "./client";
 import { containsSecret, isReadablePath, type RepoInfo } from "./repository";
 
 /**
- * Repository context for Decision councils: the user picks files of the linked repository, CONSYRION reads exactly
+ * Repository context for Decision councils: the user picks files of the linked repository, CONSYRIUM reads exactly
  * those at one commit, and they reach the models as one frozen context document. No model chooses what is read.
  */
 export const CONTEXT_LIMITS = { maxFileBytes: 100_000, maxTotalBytes: 180_000, suggestedBytes: 60_000, maxFiles: 60, maxTreeEntries: 400 } as const;

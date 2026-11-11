@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { DEFAULT_PLAN_CATALOG, keyringFromEnv } from "@consyrion/core";
+import { DEFAULT_PLAN_CATALOG, keyringFromEnv } from "@consyrium/core";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDatabase, type DatabaseHandle } from "../client";

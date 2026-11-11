@@ -1,6 +1,6 @@
 "use client";
 
-import { CRITERIA, type Criterion } from "@consyrion/core/browser";
+import { CRITERIA, type Criterion } from "@consyrium/core/browser";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Card } from "../ui/surface";
@@ -241,7 +241,8 @@ function TokensPerModel({ view }: { view: View }) {
     .map((p) => {
       // Council phases only (ChatGPT test 06.11.26): build calls of the Execution Council are counted in its own tab, so
       // this sum matches "tokens used" in the header (except reservations of calls that failed before answering).
-      const mine = (view.usage ?? []).filter((u) => u.participantId === p.id && u.phase !== "execution_council");
+      // #15/#41: answers to a human after the verdict (kind "intervention") are no debate contribution either.
+      const mine = (view.usage ?? []).filter((u) => u.participantId === p.id && u.phase !== "execution_council" && u.kind !== "intervention");
       return {
         ...p,
         input: mine.reduce((sum, u) => sum + u.inputTokens, 0),

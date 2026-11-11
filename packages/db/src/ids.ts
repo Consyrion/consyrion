@@ -56,7 +56,9 @@ export type IdPrefix =
   | "fbr"
   | "asp"
   | "asu"
-  | "ack";
+  | "ack"
+  | "hiv"
+  | "hia";
 
 export function newId(prefix: IdPrefix): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;

@@ -1,6 +1,6 @@
 import "server-only";
-import { stripeConfig } from "@consyrion/billing";
-import type { Keyring } from "@consyrion/core";
+import { stripeConfig } from "@consyrium/billing";
+import type { Keyring } from "@consyrium/core";
 import { getDb } from "./db";
 import { hasPlaceholders } from "@/lib/legal";
 import { getKeyring } from "./keyring";

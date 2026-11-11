@@ -1,6 +1,6 @@
 "use client";
 
-import { SKILL_PUBLICATION_LICENSE, slugFromName, type SkillReviewStatus } from "@consyrion/core/browser";
+import { SKILL_PUBLICATION_LICENSE, slugFromName, type SkillReviewStatus } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -21,6 +21,7 @@ export interface SkillHubSummary {
 
 interface PublisherStatus {
   handle: string | null;
+  displayName: string | null;
   problems: Array<"plan" | "email_unverified" | "account_too_new" | "suspended">;
   eligibleFrom: string | null;
 }
@@ -42,10 +43,22 @@ export function HubStatusBadge({ hub }: { hub: SkillHubSummary | null | undefine
   return <Badge tone={tone}>{t(`status.${hub.latestStatus}`)}</Badge>;
 }
 
-export function PublishPanel({ skill, onClose, onDone }: { skill: { id: string; name: string }; onClose: () => void; onDone: () => void }) {
+export function PublishPanel({
+  skill,
+  onClose,
+  onDone,
+  submitUrl,
+}: {
+  skill: { id: string; name: string };
+  onClose: () => void;
+  onDone: () => void;
+  /** Expert profiles submit through their own route (owner decision 08.11.26); skills use the default. */
+  submitUrl?: string;
+}) {
   const t = useTranslations("skills.hub");
   const [status, setStatus] = useState<PublisherStatus | null>(null);
   const [handle, setHandle] = useState("");
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [slug, setSlug] = useState(slugFromName(skill.name));
   const [listed, setListed] = useState(true);
   const [changelog, setChangelog] = useState("");
@@ -56,7 +69,10 @@ export function PublishPanel({ skill, onClose, onDone }: { skill: { id: string; 
 
   useEffect(() => {
     fetchJson<PublisherStatus>("/api/skills/publisher")
-      .then(setStatus)
+      .then((st) => {
+        setStatus(st);
+        setDisplayName(st.displayName ?? "");
+      })
       .catch(() => setError(t("error")));
   }, [t]);
 
@@ -79,11 +95,20 @@ export function PublishPanel({ skill, onClose, onDone }: { skill: { id: string; 
   }
 
   const claim = () =>
-    act(async () => setStatus(await fetchJson<PublisherStatus>("/api/skills/publisher", { method: "POST", body: JSON.stringify({ handle }) })));
+    act(async () =>
+      setStatus(
+        await fetchJson<PublisherStatus>("/api/skills/publisher", {
+          method: "POST",
+          body: JSON.stringify({ handle, ...(displayName?.trim() ? { displayName } : {}) }),
+        }),
+      ),
+    );
 
   const submit = () =>
     act(async () => {
-      const res = await fetchJson<SubmitResult>(`/api/skills/${encodeURIComponent(skill.id)}/submit`, {
+      if (displayName !== null && displayName.trim() !== (status?.displayName ?? ""))
+        setStatus(await fetchJson<PublisherStatus>("/api/skills/publisher", { method: "POST", body: JSON.stringify({ displayName }) }));
+      const res = await fetchJson<SubmitResult>(submitUrl ?? `/api/skills/${encodeURIComponent(skill.id)}/submit`, {
         method: "POST",
         body: JSON.stringify({ slug, listed, changelog, license: license ? SKILL_PUBLICATION_LICENSE.id : undefined }),
       });
@@ -139,6 +164,13 @@ export function PublishPanel({ skill, onClose, onDone }: { skill: { id: string; 
       ) : !status.handle ? (
         <div className="mt-3 space-y-2">
           <TextField label={t("handle")} hint={t("handleHint")} value={handle} maxLength={32} onChange={(e) => setHandle(e.target.value.toLowerCase())} />
+          <TextField
+            label={t("displayName")}
+            hint={t("displayNameHint")}
+            value={displayName ?? ""}
+            maxLength={60}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
           <span className="flex gap-2">
             <Button disabled={busy || handle.length < 3} onClick={() => void claim()}>
               {t("claim")}
@@ -156,6 +188,13 @@ export function PublishPanel({ skill, onClose, onDone }: { skill: { id: string; 
             value={slug}
             maxLength={60}
             onChange={(e) => setSlug(e.target.value.toLowerCase())}
+          />
+          <TextField
+            label={t("displayName")}
+            hint={t("displayNameHint")}
+            value={displayName ?? ""}
+            maxLength={60}
+            onChange={(e) => setDisplayName(e.target.value)}
           />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={listed} onChange={(e) => setListed(e.target.checked)} />

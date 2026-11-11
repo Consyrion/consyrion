@@ -1,4 +1,4 @@
-import { assertCan, decryptSecret, DomainError, encryptSecret, maskSecret, type Keyring } from "@consyrion/core";
+import { assertCan, decryptSecret, DomainError, encryptSecret, maskSecret, type Keyring } from "@consyrium/core";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";

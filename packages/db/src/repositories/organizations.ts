@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";

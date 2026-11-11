@@ -9,7 +9,7 @@ import {
   validateEntitlements,
   type Entitlements,
   type PlanKey,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import { and, asc, count, eq, gte, isNull, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import {

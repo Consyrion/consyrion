@@ -1,5 +1,5 @@
-import { DomainError, maskSecret, type Entitlements, type Keyring } from "@consyrion/core";
-import { getPlanCatalog, getPlatformSecret, getPlatformSetting, setPlatformSetting, updatePlanDefinition, type Database } from "@consyrion/db";
+import { DomainError, maskSecret, type Entitlements, type Keyring } from "@consyrium/core";
+import { getPlanCatalog, getPlatformSecret, getPlatformSetting, setPlatformSetting, updatePlanDefinition, type Database } from "@consyrium/db";
 import { StripeClient, stripeConfigFromEnv, type FetchLike, type StripeConfig } from "./index";
 
 /**
@@ -96,7 +96,7 @@ export async function setupStripe(db: Database, keyring: Keyring, adminUserId: s
   let { productId, webhookId, portalConfigurationId } = sameAccount ? existing!.value : ({} as Partial<StripeSettingValue>);
   let webhookSecret = sameAccount ? stored!.webhookSecret : "";
   if (!productId) {
-    productId = (await client.request<{ id: string }>("POST", "/v1/products", { name: "CONSYRION AI Pro", tax_code: TAX_CODE, "metadata[consyrion]": PLAN })).id;
+    productId = (await client.request<{ id: string }>("POST", "/v1/products", { name: "CONSYRIUM AI Pro", tax_code: TAX_CODE, "metadata[consyrium]": PLAN })).id;
   } else {
     // Products created before the tax code was set (Managed Payments refuses checkout without one).
     await client.request("POST", `/v1/products/${productId}`, { tax_code: TAX_CODE });
@@ -104,7 +104,7 @@ export async function setupStripe(db: Database, keyring: Keyring, adminUserId: s
   if (!webhookId || !webhookSecret) {
     const hook = await client.request<{ id: string; secret: string }>("POST", "/v1/webhook_endpoints", {
       url: input.webhookUrl,
-      description: "CONSYRION AI subscriptions",
+      description: "CONSYRIUM AI subscriptions",
       ...Object.fromEntries(WEBHOOK_EVENTS.map((e, i) => [`enabled_events[${i}]`, e])),
     });
     webhookId = hook.id;
@@ -132,7 +132,7 @@ export async function setupStripe(db: Database, keyring: Keyring, adminUserId: s
         currency: "eur",
         "recurring[interval]": "month",
         tax_behavior: "inclusive",
-        "metadata[consyrion]": PLAN,
+        "metadata[consyrium]": PLAN,
       })
     ).id;
     if (previous) await client.request("POST", `/v1/prices/${previous}`, { active: "false" });

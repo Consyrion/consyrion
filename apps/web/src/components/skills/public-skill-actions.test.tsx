@@ -13,7 +13,7 @@ describe("public skill actions (#368 PR 6)", () => {
         </NextIntlClientProvider>,
       );
       expect(html).not.toContain("skillHub.actions");
-      expect(html).toContain("CONSYRION");
+      expect(html).toContain("CONSYRIUM");
     }
   });
 });

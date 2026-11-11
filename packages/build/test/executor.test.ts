@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv, MAX_TASK_ATTEMPTS } from "@consyrion/core";
-import { createSession, runSession, submitApproval } from "@consyrion/council";
+import { keyringFromEnv, MAX_TASK_ATTEMPTS } from "@consyrium/core";
+import { createSession, runSession, submitApproval } from "@consyrium/council";
 import {
   createCredential,
   createDatabase,
@@ -12,7 +12,7 @@ import {
   type DatabaseHandle,
   setSubscriptionPlan,
   updateBrief,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {

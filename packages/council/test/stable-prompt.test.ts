@@ -27,7 +27,7 @@ describe("stable prompt prefix for provider caching (#244)", () => {
     const out = stablePrompt(systemPrompt("twelve_minds_council", roleInstruction("security_expert", policy)), `${brief}\n\nProposals:\n...`);
     expect(out.system).not.toContain("Current phase");
     const afterBrief = out.prompt.slice(out.cachePrefix!.length);
-    expect(afterBrief).toMatch(/^\n\nInstructions for this step \(from Consyrion, not from the brief\):\nCurrent phase: 12 Minds Council\./);
+    expect(afterBrief).toMatch(/^\n\nInstructions for this step \(from Consyrium, not from the brief\):\nCurrent phase: 12 Minds Council\./);
     expect(afterBrief).toContain("security expert");
     expect(afterBrief).toContain("Adversarial Review");
     expect(afterBrief.endsWith("Proposals:\n...")).toBe(true);

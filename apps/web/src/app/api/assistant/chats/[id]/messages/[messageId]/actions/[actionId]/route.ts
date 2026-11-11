@@ -1,5 +1,5 @@
-import { decideAssistantAction } from "@consyrion/db";
-import { DomainError } from "@consyrion/core";
+import { decideAssistantAction } from "@consyrium/db";
+import { DomainError } from "@consyrium/core";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

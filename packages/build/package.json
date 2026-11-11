@@ -1,5 +1,5 @@
 {
-  "name": "@consyrion/build",
+  "name": "@consyrium/build",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,13 +12,13 @@
     "seed:demo-execution": "tsx test/seed-execution.ts"
   },
   "dependencies": {
-    "@consyrion/ai": "workspace:*",
-    "@consyrion/core": "workspace:*",
-    "@consyrion/council": "workspace:*",
-    "@consyrion/db": "workspace:*",
+    "@consyrium/ai": "workspace:*",
+    "@consyrium/core": "workspace:*",
+    "@consyrium/council": "workspace:*",
+    "@consyrium/db": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "zod": "^4.6.7",
-    "@consyrion/github": "workspace:*",
+    "@consyrium/github": "workspace:*",
     "diff": "^9.0.0"
   },
   "devDependencies": {

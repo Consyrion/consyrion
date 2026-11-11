@@ -12,7 +12,7 @@
     },
     "workspace": "Espace de travail",
     "skip": "Aller au contenu",
-    "homeLabel": "Tableau de bord CONSYRION AI",
+    "homeLabel": "Tableau de bord CONSYRIUM AI",
     "menu": "Menu",
     "mainNav": "Navigation principale",
     "quickNav": "Navigation rapide",
@@ -67,7 +67,7 @@
     "providers": {
       "title": "État des fournisseurs",
       "verified": "{n} vérifiées",
-      "none": "Aucune clé connectée. CONSYRION AI ne vend pas de crédits IA – vous utilisez vos propres clés.",
+      "none": "Aucune clé connectée. CONSYRIUM AI ne vend pas de crédits IA – vous utilisez vos propres clés.",
       "checked": "vérifiée {when}",
       "useCheck": "utilisez « Vérifier » dans Fournisseurs IA",
       "state": {
@@ -175,7 +175,8 @@
     },
     "showArchived": "Afficher {n} sessions de projets archivés",
     "hideArchived": "Masquer les sessions des projets archivés",
-    "archivedBadge": "archivé"
+    "archivedBadge": "archivé",
+    "qualityLink": "Qualité du processus"
   },
   "projects": {
     "metaTitle": "Projets",
@@ -273,7 +274,8 @@
       "working": "Enregistrement …",
       "error": "La modification n’a pas pu être enregistrée.",
       "banner": "Ce projet est archivé – lecture seule. Restaurez-le en bas de cette page pour continuer à y travailler.",
-      "listTitle": "Archives ({n})"
+      "listTitle": "Archives ({n})",
+      "startBlocked": "Le projet est archivé – restaurez-le d’abord"
     },
     "deleteCounts": "Ce projet : {sessions, plural, one {# session de Council} other {# sessions de Council}} ({running} en cours ou en attente), {documents, plural, one {# document} other {# documents}}."
   },
@@ -358,7 +360,7 @@
     "saveError": "Impossible d’enregistrer",
     "linked": "Lié : <strong>{repo}</strong>",
     "none": "Aucun dépôt lié. L’Execution Council partira d’un espace de travail vide.",
-    "notLinked": "Le cahier des charges cite {url}, mais il n’est pas lié : l’app GitHub CONSYRION AI n’y a probablement pas accès. Sur GitHub, ouvrez Settings → Applications → l’app CONSYRION AI → Configure, ajoutez le dépôt, puis cliquez sur « Charger les dépôts » et liez-le ici. Sans lien, aucune pull request ne peut être créée.",
+    "notLinked": "Le cahier des charges cite {url}, mais il n’est pas lié : l’app GitHub CONSYRIUM AI n’y a probablement pas accès. Sur GitHub, ouvrez Settings → Applications → l’app CONSYRIUM AI → Configure, ajoutez le dépôt, puis cliquez sur « Charger les dépôts » et liez-le ici. Sans lien, aucune pull request ne peut être créée.",
     "notConfigured": "GitHub n’est pas configuré sur ce serveur.",
     "notInPlan": "GitHub n’est pas inclus dans votre offre. <link>Voir Facturation et utilisation</link>.",
     "connectFirst": "Connectez d’abord GitHub sous <link>Intégrations</link>.",
@@ -542,7 +544,10 @@
       "roles": "Activez au moins un rôle du 12 Minds Council.",
       "weights": "Corrigez les poids du Final Verdict signalés (chacun 0–100).",
       "total": "La somme des poids doit être 100 (actuellement {total}).",
-      "budgetTooSmall": "Le budget est trop petit pour cette équipe : il faut au moins {tokens} tokens pour que chaque modèle rédige une proposition et que le Final Verdict puisse encore s’exécuter."
+      "budgetTooSmall": "Le budget est trop petit pour cette équipe : il faut au moins {tokens} tokens pour que chaque modèle rédige une proposition et que le Final Verdict puisse encore s’exécuter.",
+      "open": "{n, plural, one {Encore 1 point avant de pouvoir lancer :} other {Encore # points avant de pouvoir lancer :}}",
+      "toField": "Aller au champ",
+      "blocked": "Lancement bloqué : {reason}"
     },
     "models": {
       "title": "1. Sélectionner les modèles IA",
@@ -572,6 +577,14 @@
       "vsModels": "{models, plural, one {# modèle} other {# modèles}} · {perspectives, plural, one {# perspective} other {# perspectives}} · chaque proposition est vérifiée par jusqu'à {foreign, plural, one {# autre modèle} other {# autres modèles}} (s'ils continuent tous à répondre). Les perspectives ne sont pas des voix : plusieurs rôles sur un modèle restent un seul modèle.",
       "instances": "{model} : {n} instances (clés différentes) comptent comme 1 voix indépendante – pour les majorités, le minimum de deux relecteurs indépendants et les contre-vérifications. Une instance ne relit jamais une autre instance du même modèle."
     },
+    "purpose": {
+      "title": "À quoi sert ce council ?",
+      "idea": "Vérifier une idée",
+      "ideaHint": "Tu es au début et tu veux savoir si l'idée tient la route. Résultat : une favorite, les variantes écartées et une liste de ce qu'il faut clarifier avant l'étape suivante.",
+      "approval": "Approuver une décision",
+      "approvalHint": "Tu veux ensuite faire construire. Résultat : approbation seulement si chaque évaluateur a confirmé chaque exigence.",
+      "note": "Le déroulement, le coût et les contrôles sont aussi stricts dans les deux cas – seule la présentation du résultat change."
+    },
     "settings": {
       "title": "4. Paramètres de session",
       "debate": "Tours de débat",
@@ -582,7 +595,11 @@
       "budget": "Budget de tokens (limite stricte)",
       "budgetHint": "{min}–{max} tokens. Les appels s’arrêtent avant que le budget ne soit dépassé. Les fournisseurs facturent vos propres clés.",
       "rules": "Règles de session (facultatif)",
-      "rulesHint": "P. ex. « Priorité au coût d’exploitation » ou « Doit tourner dans l’UE »."
+      "rulesHint": "P. ex. « Priorité au coût d’exploitation » ou « Doit tourner dans l’UE ».",
+      "budgetNeeds": "Il faut au moins {needed} jetons – réglé sur {set}.",
+      "budgetAdjust": "Régler le budget sur {tokens} jetons",
+      "budgetFewer": "Même le budget maximal ne suffit pas pour cette équipe – choisis moins de modèles ou de rôles.",
+      "budgetAdjusted": "Budget ajusté : {from} → {to} jetons. Tu peux encore modifier la valeur."
     },
     "summary": {
       "title": "Avant de démarrer",
@@ -598,7 +615,9 @@
       "contextTooSmall": "Fenêtre de contexte trop petite",
       "contextDoesNotFit": "{model} : le brief, les documents et toutes les propositions demandent environ {input} tokens, sa fenêtre de contexte en a {window}. Ses appels seraient refusés plutôt que tronqués – choisis un modèle avec une fenêtre plus grande ou un contexte de dépôt plus petit.",
       "overBudget": "La limite supérieure dépasse votre budget de {budget} tokens. J’accepte que les phases de débat puissent être raccourcies pour garder assez de budget pour le Final Verdict : si le budget devient insuffisant, Minority Review et Consensus Round sont supprimées et les propositions ne sont pas révisées – le verdict juge alors les premières versions et est marqué comme raccourci.",
-      "checkWeights": "Vérifiez les poids des votes avant de démarrer :"
+      "checkWeights": "Vérifiez les poids des votes avant de démarrer :",
+      "typicalRange": "En général environ {low}–{high} tokens (d'après vos {calls} derniers appels).",
+      "belowTypical": "Votre budget de {budget} tokens est inférieur à ce qu'un tel council utilise en général (jusqu'à environ {high}). Des phases de débat seront alors probablement raccourcies et le verdict marqué comme raccourci."
     },
     "starting": "Démarrage…",
     "start": "Lancer la session du Council",
@@ -617,15 +636,17 @@
     },
     "catalog": {
       "metaTitle": "SkillHub – skills de décision",
-      "metaDescription": "Skills communautaires vérifiés pour les councils CONSYRION AI : perspectives, blocs d'exigences, pondérations et règles.",
+      "metaDescription": "Skills communautaires vérifiés pour les councils CONSYRIUM AI : perspectives, blocs d'exigences, pondérations et règles.",
       "title": "SkillHub",
-      "intro": "Packs de décision partagés par la communauté. Chaque skill ici a été vérifié automatiquement et approuvé par un admin. Un skill ne fait que préremplir un council – vous confirmez les exigences et approuvez comme d'habitude.",
+      "intro": "Packs de décision pour les councils CONSYRIUM AI. Les skills communautaires sont vérifiés automatiquement et approuvés par un admin avant publication ; les skills officiels (@consyrium) proviennent de CONSYRIUM AI. Un skill ne fait que préremplir un council – vous confirmez les exigences et approuvez comme d'habitude.",
       "search": "Rechercher des skills",
       "category": "Catégorie",
       "allCategories": "Toutes les catégories",
       "searchButton": "Rechercher",
       "empty": "Aucun skill public pour l'instant.",
-      "noResults": "Aucun skill ne correspond à votre recherche."
+      "noResults": "Aucun skill ne correspond à votre recherche.",
+      "type": "Type",
+      "allTypes": "Tous les types"
     },
     "detail": {
       "reviewed": "vérifié",
@@ -639,9 +660,9 @@
       "licenseText": "Publié sous {license} par @{handle}. L'utiliser crée votre propre copie qui cite l'original.",
       "uses": "{n, plural, =0 {pas encore adopté} one {adopté par # espace} other {adopté par # espaces}}"
     },
-    "disclaimer": "Skill communautaire – pas un conseil juridique, médical ou financier ni une garantie de CONSYRION AI. Un skill ne modifie jamais le contrôle des exigences, les examens ou l'approbation humaine.",
+    "disclaimer": "Skill communautaire – pas un conseil juridique, médical ou financier ni une garantie de CONSYRIUM AI. Un skill ne modifie jamais le contrôle des exigences, les examens ou l'approbation humaine.",
     "actions": {
-      "adopt": "Utiliser dans CONSYRION",
+      "adopt": "Utiliser dans CONSYRIUM",
       "adoptHint": "Crée votre propre copie privée dans votre espace (connexion requise).",
       "adopted": "Ajouté à vos skills.",
       "mySkills": "Ouvrir mes skills",
@@ -667,10 +688,29 @@
       "errors": {
         "already_reported": "Vous avez déjà signalé ce skill.",
         "reason_missing": "Choisissez un motif."
-      }
+      },
+      "alreadyAdopted": "Déjà dans vos skills – aucune deuxième copie créée.",
+      "adoptProfile": "Adopter comme mon profil",
+      "adoptedProfile": "Adopté – une copie privée se trouve maintenant dans vos profils et peut être choisie pour son rôle dans la configuration du Council.",
+      "adoptProfileHint": "Crée une copie privée avec son origine (CC BY 4.0, auteur cité). Elle ne se met pas à jour toute seule.",
+      "myProfiles": "Mes profils"
     },
     "footer": {
       "license": "Les skills communautaires sont publiés sous CC BY 4.0 par leurs auteurs (indiqués par @identifiant). Aucun conseil juridique, financier ou médical."
-    }
+    },
+    "kinds": {
+      "skill": "Skill",
+      "role_profile": "Profil d'expert"
+    },
+    "profile": {
+      "coreQuestion": "Question centrale",
+      "lenses": "Angles d'examen",
+      "notSuitableFor": "Ne convient pas pour",
+      "sources": "Sources",
+      "sourcesHint": "Indiquées par l'auteur – non vérifiées par CONSYRIUM AI. Les liens sont affichés en texte.",
+      "statedByAuthor": "{status} – indiqué par l’auteur",
+      "notice": "Rédigé par une autre personne et publié sous CC BY 4.0 après vérification. Il précise seulement ce que son rôle examine ; il ne peut modifier ni exigences, ni votes, ni poids, ni l’approbation. Il ne doit pas imiter de personnes réelles."
+    },
+    "disclaimerOfficial": "Skill officiel de CONSYRIUM AI – pas un conseil juridique, médical ou financier. Un skill ne modifie jamais le contrôle des exigences, les examens ou l'approbation humaine."
   }
 }

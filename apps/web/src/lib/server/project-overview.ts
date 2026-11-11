@@ -1,7 +1,9 @@
 import "server-only";
-import { getExecutionView, listExecutions } from "@consyrion/build";
-import { getSessionView } from "@consyrion/council";
-import type { ActorContext, Database } from "@consyrion/db";
+import type { View } from "@/components/session/helpers";
+import { verdictStatus } from "@/components/session/verdict-status";
+import { getExecutionView, listExecutions } from "@consyrium/build";
+import { getSessionView } from "@consyrium/council";
+import type { ActorContext, Database } from "@consyrium/db";
 import type { ActivityNode } from "@/components/dashboard/activity-network-data";
 import { mergeActivityNodes, sessionActivityNodes } from "@/lib/activity-nodes";
 
@@ -26,7 +28,11 @@ export interface ProjectOverview {
   /** Status and verdict of the session the graphic shows (not for "all"). */
   shown: { id: string; status: string; outcome: string | null } | null;
   /** The newest session that reached a verdict. */
-  lastDecision: { sessionId: string; status: string; outcome: string; createdAt: Date } | null;
+  /**
+   * The newest decided council. `outcome` is the verdict title key of the session screen (verdictStatus.outcomeKey,
+   * #268: one status everywhere); `awaitingReview` = the #477 split "awaiting your review · no approvable proposal".
+   */
+  lastDecision: { sessionId: string; status: string; outcome: string; awaitingReview: boolean; createdAt: Date } | null;
   build: { sessionId: string; status: string; pullRequestUrl: string | null } | null;
   tokens: { council: number; build: number; total: number };
 }
@@ -56,7 +62,16 @@ export async function loadProjectOverview(db: Database, actor: ActorContext, ses
   const decidedView = decided ? await view(decided.id) : null;
   const lastDecision =
     decided && decidedView?.decision
-      ? { sessionId: decided.id, status: decided.status, outcome: decidedView.decision.outcome, createdAt: decided.createdAt }
+      ? (() => {
+          const verdict = verdictStatus(JSON.parse(JSON.stringify(decidedView)) as View);
+          return {
+            sessionId: decided.id,
+            status: decided.status,
+            outcome: verdict.outcomeKey ?? decidedView.decision.outcome,
+            awaitingReview: verdict.nothingApprovable,
+            createdAt: decided.createdAt,
+          };
+        })()
       : null;
 
   // Builds run only for approved decisions; the newest run per session counts, at most the recent sessions.

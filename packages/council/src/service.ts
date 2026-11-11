@@ -6,6 +6,7 @@ import {
   assertTransition,
   buildPolicy,
   COUNCIL_PHASES,
+  COUNCIL_PURPOSES,
   COUNCIL_ROLES,
   DECISION_MODES,
   contextFits,
@@ -26,8 +27,8 @@ import {
   suggestRoles,
   type CouncilRole,
   type WorkflowPolicy,
-} from "@consyrion/core";
-import { isCouncilCapableModel } from "@consyrion/ai";
+} from "@consyrium/core";
+import { isCouncilCapableModel } from "@consyrium/ai";
 import {
   assertCurrentRequirementList,
   assertEntitlement,
@@ -47,12 +48,14 @@ import {
   assertNotDemoSession,
   assertSessionProjectWritable,
   recordDeletion,
-} from "@consyrion/db";
+  listInterventions,
+} from "@consyrium/db";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { PROMPT_VERSION } from "./prompts";
 import { latestStrengthCatalog } from "./model-strength";
 import { validParticipation } from "./participation";
+import { processQuality } from "./process-quality";
 import { enqueue } from "./queue";
 import {
   assertCanEvaluateSession,
@@ -97,6 +100,8 @@ export const sessionInput = z.object({
   weights: weightsInput.optional(),
   tokenBudget: z.number().int().optional(),
   customRules: z.string().max(2_000).optional(),
+  /** #597: what the user wants from the council – presentation of the result only, never the gate. */
+  purpose: z.enum(COUNCIL_PURPOSES).optional(),
   /** Optional explicit role → participant (index into `participants`) mapping; default is round-robin. */
   roleAssignments: z.array(z.object({ role: z.enum(COUNCIL_ROLES), participantIndex: z.number().int().min(0) })).optional(),
   /** Required when the preview's upper bound exceeds the budget: the user accepted that phases may be shortened (#148). */
@@ -105,6 +110,11 @@ export const sessionInput = z.object({
   extraRoles: z.boolean().optional(),
   /** Skill the setup was filled from (#363): pinned with version and content hash in the session. */
   skill: z.object({ id: z.string().min(1).max(200), version: z.number().int().min(1).optional() }).optional(),
+  /**
+   * Gesamttest 3: session rules taken over unchanged from a skill someone else wrote (official, adopted from the hub, a
+   * team colleague's) need an explicit "I checked them" before the start; recorded in the audit log.
+   */
+  skillRulesConfirmed: z.boolean().optional(),
   /** Role profiles for active roles (#270): at most one per role, frozen with version and hash in the session. */
   roleProfiles: z.array(z.string().min(1).max(200)).max(12).optional(),
 });
@@ -236,8 +246,21 @@ const TYPICAL_SAMPLE = 500;
 const TYPICAL_MIN_SAMPLE = 20;
 
 /**
- * Upper bound and, where this workspace has enough history, the typical consumption (#148): the median tokens per
- * successful call of its latest councils × the calls of this configuration. Measured, never invented.
+ * The typical consumption as a range (#598): the median and the upper quartile of the tokens per call × the calls of this
+ * configuration, never above the upper bound. A single median was too low – a few long calls (Final Verdict) carry a
+ * council: two test councils on 10.11.26 were announced with 142,000 tokens and used 194,870 and 231,740.
+ */
+export function typicalRange(tokensPerCall: number[], calls: number, upperBound: number): { tokens: number; high: number; basedOnCalls: number } {
+  const sorted = [...tokensPerCall].sort((a, b) => a - b);
+  const at = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] ?? 0;
+  const tokens = Math.min(upperBound, at(0.5) * calls);
+  return { tokens, high: Math.max(tokens, Math.min(upperBound, at(0.75) * calls)), basedOnCalls: sorted.length };
+}
+
+/**
+ * Upper bound and, where this workspace has enough history, the typical consumption (#148, as a range since #598):
+ * median to upper quartile of the tokens per successful call of its latest councils × the calls of this configuration.
+ * Measured, never invented.
  */
 async function costPreview(
   db: Database,
@@ -270,12 +293,14 @@ async function costPreview(
     .where(and(eq(schema.usageRecord.organizationId, ctx.organizationId), eq(schema.usageRecord.outcome, "ok")))
     .orderBy(desc(schema.usageRecord.createdAt))
     .limit(TYPICAL_SAMPLE);
-  let typical: { tokens: number; basedOnCalls: number } | null = null;
-  if (recent.length >= TYPICAL_MIN_SAMPLE) {
-    const sorted = recent.map((r) => Number(r.tokens)).sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)]!;
-    typical = { tokens: Math.min(estimate.upperBound, median * estimate.calls), basedOnCalls: recent.length };
-  }
+  const typical =
+    recent.length >= TYPICAL_MIN_SAMPLE
+      ? typicalRange(
+          recent.map((r) => Number(r.tokens)),
+          estimate.calls,
+          estimate.upperBound,
+        )
+      : null;
   return {
     documents: documents.length,
     estimate: { ...estimate, typical },
@@ -446,6 +471,11 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
   // #363 part 3: the skill is resolved now (archived skills are refused for new councils) and frozen in the session.
   const skill = data.skill ? await getSkillForUse(db, ctx, data.skill.id, data.skill.version) : null;
   const skillSnapshot = skill ? { ...skill.ref, ...(skill.content.knowledge ? { knowledge: skill.content.knowledge } : {}) } : null;
+  const skillRules = skill?.content.sessionRules?.trim() ?? "";
+  const rulesFromSkill = Boolean(skillRules && data.customRules?.includes(skillRules));
+  const foreignSkill = Boolean(skill && (!skill.editable || skill.forkedFrom));
+  if (rulesFromSkill && foreignSkill && data.skillRulesConfirmed !== true)
+    throw new DomainError("VALIDATION", "Confirm that you checked the session rules taken over from the skill.", { reason: "skill_rules_unconfirmed" });
   // #270: chosen role profiles are resolved now (deactivated ones are refused) and frozen; each must belong to an active
   // role. A profile only sharpens that role's prompt – participants, votes and the gate stay exactly as configured.
   const roleProfiles = data.roleProfiles?.length ? await snapshotRoleProfiles(db, ctx, data.roleProfiles) : null;
@@ -562,7 +592,19 @@ export async function createSession(db: Database, ctx: ActorContext, projectId: 
       action: "council.started",
       targetType: "council_session",
       targetId: sessionId,
-      metadata: { mode: data.mode, participants: data.participants.length, requirementListVersion: requirements.list.version },
+      metadata: {
+        mode: data.mode,
+        participants: data.participants.length,
+        requirementListVersion: requirements.list.version,
+        ...(skill
+          ? {
+              skill: { id: skill.ref.skillId, version: skill.ref.version, contentHash: skill.ref.contentHash },
+              skillRulesTakenOver: rulesFromSkill,
+              skillForeign: foreignSkill,
+              skillRulesConfirmed: rulesFromSkill ? data.skillRulesConfirmed === true : null,
+            }
+          : {}),
+      },
     });
   });
   await enqueue(db, COUNCIL_JOB, { sessionId }, `${COUNCIL_JOB}:${sessionId}:0`, ctx.organizationId);
@@ -679,6 +721,8 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
         .select({
           participantId: schema.usageRecord.participantId,
           phase: schema.usageRecord.phase,
+          // #15/#41: "intervention" rows (answers to a human after the verdict) are real cost but no phase contribution.
+          kind: schema.usageRecord.kind,
           outcome: schema.usageRecord.outcome,
           calls: sql<number>`count(*)::int`,
           inputTokens: sql<number>`coalesce(sum(${schema.usageRecord.inputTokens}), 0)::int`,
@@ -687,12 +731,19 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
         })
         .from(schema.usageRecord)
         .where(eq(schema.usageRecord.sessionId, sessionId))
-        .groupBy(schema.usageRecord.participantId, schema.usageRecord.phase, schema.usageRecord.outcome),
+        .groupBy(schema.usageRecord.participantId, schema.usageRecord.phase, schema.usageRecord.kind, schema.usageRecord.outcome),
       db.select().from(schema.minorityReview).where(eq(schema.minorityReview.sessionId, sessionId)),
       db.select().from(schema.consensusResult).where(eq(schema.consensusResult.sessionId, sessionId)),
       db.select().from(schema.projectBrief).where(eq(schema.projectBrief.id, session.briefId)),
       db
-        .select({ id: schema.project.id, name: schema.project.name, deliveryDefault: schema.project.deliveryDefault, isDemo: schema.project.isDemo })
+        // #548: the project state lets the client say "archived" instead of offering actions the server refuses.
+        .select({
+          id: schema.project.id,
+          name: schema.project.name,
+          deliveryDefault: schema.project.deliveryDefault,
+          isDemo: schema.project.isDemo,
+          status: schema.project.status,
+        })
         .from(schema.project)
         .where(eq(schema.project.id, session.projectId)),
     ]);
@@ -843,10 +894,20 @@ export async function getSessionView(db: Database, ctx: ActorContext, sessionId:
     humanMark: decision ? humanMarkOf(approvals, decision.id) : null,
     previousDecisions: decisions.filter((d) => d.supersededAt),
     approvals,
+    // #15/#41: questions of a human after the verdict with the models' answers – an appendix, never part of the verdict.
+    interventions: await listInterventions(db, ctx, sessionId),
     usage,
     callFailures,
     // Valid participation rate (#182), derived from the usage rows above.
     participation: validParticipation(participants, usage),
+    // #182: process quality from stored data only – figures and status keys, worded by the clients.
+    processQuality: processQuality({
+      participation: validParticipation(participants, usage),
+      participantIds: participants.map((p) => p.id),
+      proposals: revealed.map((p) => ({ id: p.id, revisions: revisions.filter((r) => r.proposalId === p.id) })),
+      objections: withMootness(objections, revisions),
+      decision: decision ? { matrix: decision.matrix, recommendedProposalId: decision.recommendedProposalId } : null,
+    }),
     minorityReview: minority[0] ?? null,
     consensus: consensus[0] ?? null,
     queue: session.status === "queued" ? await queuePosition(db, sessionId) : null,
@@ -1295,4 +1356,446 @@ export async function deleteSession(db: Database, ctx: ActorContext, sessionId: 
   });
   // #206: after the delete and outside the transaction – a restored backup must not bring the session back.
   await recordDeletion(db, { kind: "session", id: sessionId, organizationId: ctx.organizationId, deletedAt: new Date() });
+}
+
+/** #182 PR 2: at most this many recent councils with a verdict are summarised on the workspace overview. */
+export const PROCESS_QUALITY_OVERVIEW_LIMIT = 50;
+
+/**
+ * #182 – process quality of the workspace's recent councils (figures only, no content), for /decisions/quality: the
+ * same per-council figures as the session view, plus a summary. Only councils of this workspace with a current verdict;
+ * projects being deleted are left out. Computed on read from stored data – no model call.
+ */
+export async function workspaceProcessQuality(db: Database, ctx: ActorContext) {
+  assertCan(ctx.role, "project:read");
+  const sessions = await db
+    .select({ id: schema.councilSession.id, projectName: schema.project.name, mode: schema.councilSession.mode, createdAt: schema.councilSession.createdAt })
+    .from(schema.councilSession)
+    .innerJoin(schema.project, eq(schema.project.id, schema.councilSession.projectId))
+    .innerJoin(schema.finalDecision, and(eq(schema.finalDecision.sessionId, schema.councilSession.id), isNull(schema.finalDecision.supersededAt)))
+    .where(and(eq(schema.councilSession.organizationId, ctx.organizationId), ne(schema.project.status, "deleting")))
+    .orderBy(desc(schema.councilSession.createdAt))
+    .limit(PROCESS_QUALITY_OVERVIEW_LIMIT);
+  const ids = sessions.map((s) => s.id);
+  if (!ids.length) return { councils: [], summary: null };
+  const [participants, usage, proposals, revisions, objections, decisions] = await Promise.all([
+    db
+      .select({ id: schema.councilParticipant.id, sessionId: schema.councilParticipant.sessionId, status: schema.councilParticipant.status })
+      .from(schema.councilParticipant)
+      .where(inArray(schema.councilParticipant.sessionId, ids)),
+    db
+      .select({
+        sessionId: schema.usageRecord.sessionId,
+        participantId: schema.usageRecord.participantId,
+        phase: schema.usageRecord.phase,
+        outcome: schema.usageRecord.outcome,
+        calls: sql<number>`count(*)::int`,
+      })
+      .from(schema.usageRecord)
+      .where(inArray(schema.usageRecord.sessionId, ids))
+      .groupBy(schema.usageRecord.sessionId, schema.usageRecord.participantId, schema.usageRecord.phase, schema.usageRecord.outcome),
+    db
+      .select({ id: schema.proposal.id, sessionId: schema.proposal.sessionId, revealedAt: schema.proposal.revealedAt })
+      .from(schema.proposal)
+      .where(inArray(schema.proposal.sessionId, ids)),
+    db
+      .select({
+        proposalId: schema.proposalRevision.proposalId,
+        version: schema.proposalRevision.version,
+        content: schema.proposalRevision.content,
+        createdAt: schema.proposalRevision.createdAt,
+      })
+      .from(schema.proposalRevision)
+      .innerJoin(schema.proposal, eq(schema.proposal.id, schema.proposalRevision.proposalId))
+      .where(inArray(schema.proposal.sessionId, ids)),
+    db.select().from(schema.minorityObjection).where(inArray(schema.minorityObjection.sessionId, ids)),
+    db
+      .select({
+        sessionId: schema.finalDecision.sessionId,
+        matrix: schema.finalDecision.matrix,
+        recommendedProposalId: schema.finalDecision.recommendedProposalId,
+      })
+      .from(schema.finalDecision)
+      .where(and(inArray(schema.finalDecision.sessionId, ids), isNull(schema.finalDecision.supersededAt))),
+  ]);
+  const councils = sessions.map((s) => {
+    const own = participants.filter((p) => p.sessionId === s.id);
+    const ownProposals = proposals.filter((p) => p.sessionId === s.id && p.revealedAt);
+    const ownRevisions = revisions.filter((r) => ownProposals.some((p) => p.id === r.proposalId));
+    const decision = decisions.find((d) => d.sessionId === s.id) ?? null;
+    return {
+      sessionId: s.id,
+      projectName: s.projectName,
+      mode: s.mode,
+      createdAt: s.createdAt,
+      quality: processQuality({
+        participation: validParticipation(
+          own,
+          usage.filter((u) => u.sessionId === s.id),
+        ),
+        participantIds: own.map((p) => p.id),
+        proposals: ownProposals.map((p) => ({ id: p.id, revisions: ownRevisions.filter((r) => r.proposalId === p.id) })),
+        objections: withMootness(
+          objections.filter((o) => o.sessionId === s.id),
+          ownRevisions,
+        ),
+        decision,
+      }),
+    };
+  });
+  const q = councils.map((c) => c.quality);
+  const objectionTotal = q.reduce((a, x) => a + x.objections.total, 0);
+  return {
+    councils,
+    summary: {
+      councils: councils.length,
+      fullParticipation: q.filter((x) => x.participation && x.participation.total > 0 && x.participation.valid === x.participation.total).length,
+      convergence: {
+        strong: q.filter((x) => x.convergence.measurable && x.convergence.level === "strong").length,
+        moderate: q.filter((x) => x.convergence.measurable && x.convergence.level === "moderate").length,
+        little: q.filter((x) => x.convergence.measurable && x.convergence.level === "little").length,
+        notMeasurable: q.filter((x) => !x.convergence.measurable).length,
+      },
+      objections: {
+        total: objectionTotal,
+        survived: q.reduce((a, x) => a + x.objections.survived, 0),
+        withoutEffect: q.reduce((a, x) => a + x.objections.effects.none, 0),
+      },
+      weightChangedWinner: q.filter((x) => x.weight.measurable && x.weight.changedWinner).length,
+    },
+  };
+}
+
+/** #12: events of the last seconds are held back – a write that started earlier may still commit (see sessionTimeline). */
+export const TIMELINE_SETTLE_MS = 5_000;
+const TIMELINE_LIVE = new Set(["queued", "running", "cancel_requested"]);
+
+export type TimelineEventKind = "message" | "call" | "stage" | "revision" | "score" | "vote" | "objection" | "verdict" | "approval" | "build";
+export interface TimelineEvent {
+  /** Stable per event: `<source>:<row id>[:start|:end]` – clients deduplicate by it. */
+  id: string;
+  cursor: string;
+  at: string;
+  kind: TimelineEventKind;
+  phase: string | null;
+  participantId: string | null;
+  data: Record<string, unknown>;
+}
+
+const encodeCursor = (at: Date, id: string) => Buffer.from(`${at.toISOString()}|${id}`).toString("base64url");
+function decodeCursor(cursor: string | null | undefined): { at: number; id: string } | null {
+  if (!cursor) return null;
+  const raw = Buffer.from(cursor, "base64url").toString();
+  const sep = raw.indexOf("|");
+  const at = Date.parse(raw.slice(0, sep));
+  if (sep < 0 || Number.isNaN(at)) throw new DomainError("VALIDATION", "Invalid cursor");
+  return { at, id: raw.slice(sep + 1) };
+}
+
+/**
+ * #12 – the run as an ordered event list for live views, replay and polling clients (VS Code, MCP): contributions,
+ * model calls with tokens, phase starts/ends, objections, the verdict, human decisions and builds. No text, prompt or
+ * proposal content – ids, kinds and figures only. Workspace-scoped through the session check.
+ *
+ * Cursor: (timestamp, event id), strictly increasing – resuming with `after` gives every later event exactly once.
+ * Timestamp cursors over several tables can lose a row whose transaction started earlier but commits after a read; so
+ * events younger than TIMELINE_SETTLE_MS are held back until they are settled. `complete` is true once the run is in
+ * a final state and nothing newer than the returned events exists.
+ */
+export async function sessionTimeline(
+  db: Database,
+  ctx: ActorContext,
+  sessionId: string,
+  options: { after?: string | null; limit?: number; now?: Date } = {},
+): Promise<{ events: TimelineEvent[]; nextCursor: string | null; complete: boolean }> {
+  assertCan(ctx.role, "project:read");
+  const session = await loadSession(db, ctx, sessionId);
+  const after = decodeCursor(options.after);
+  const limit = Math.min(Math.max(1, options.limit ?? 200), 500);
+  const horizon = (options.now ?? new Date()).getTime() - TIMELINE_SETTLE_MS;
+  const [messages, calls, stages, objections, decisions, approvals, plans, revisions, scores, votes] = await Promise.all([
+    db
+      .select({
+        id: schema.debateMessage.id,
+        at: schema.debateMessage.createdAt,
+        phase: schema.debateMessage.phase,
+        participantId: schema.debateMessage.participantId,
+        kind: schema.debateMessage.kind,
+        round: schema.debateMessage.round,
+        role: schema.debateMessage.role,
+        targetProposalId: schema.debateMessage.targetProposalId,
+        parentId: schema.debateMessage.parentId,
+        category: schema.debateMessage.category,
+        severity: schema.debateMessage.severity,
+      })
+      .from(schema.debateMessage)
+      .where(eq(schema.debateMessage.sessionId, sessionId)),
+    db
+      .select({
+        id: schema.usageRecord.id,
+        at: schema.usageRecord.createdAt,
+        phase: schema.usageRecord.phase,
+        participantId: schema.usageRecord.participantId,
+        outcome: schema.usageRecord.outcome,
+        inputTokens: schema.usageRecord.inputTokens,
+        outputTokens: schema.usageRecord.outputTokens,
+        cachedInputTokens: schema.usageRecord.cachedInputTokens,
+      })
+      .from(schema.usageRecord)
+      .where(eq(schema.usageRecord.sessionId, sessionId)),
+    db.select().from(schema.workflowStage).where(eq(schema.workflowStage.sessionId, sessionId)),
+    db
+      .select({
+        id: schema.minorityObjection.id,
+        at: schema.minorityObjection.createdAt,
+        status: schema.minorityObjection.status,
+        severity: schema.minorityObjection.severity,
+        proposalId: schema.minorityObjection.proposalId,
+        participantId: schema.minorityObjection.raisedByParticipantId,
+      })
+      .from(schema.minorityObjection)
+      .where(eq(schema.minorityObjection.sessionId, sessionId)),
+    db
+      .select({
+        id: schema.finalDecision.id,
+        at: schema.finalDecision.createdAt,
+        outcome: schema.finalDecision.outcome,
+        gateVersion: schema.finalDecision.gateVersion,
+      })
+      .from(schema.finalDecision)
+      .where(eq(schema.finalDecision.sessionId, sessionId)),
+    db
+      .select({
+        id: schema.humanApproval.id,
+        at: schema.humanApproval.createdAt,
+        action: schema.humanApproval.action,
+        proposalId: schema.humanApproval.selectedProposalId,
+      })
+      .from(schema.humanApproval)
+      .where(eq(schema.humanApproval.sessionId, sessionId)),
+    db
+      .select({ id: schema.developmentPlan.id, at: schema.developmentPlan.createdAt, status: schema.developmentPlan.status, kind: schema.developmentPlan.kind })
+      .from(schema.developmentPlan)
+      .where(eq(schema.developmentPlan.sessionId, sessionId)),
+    db
+      .select({
+        id: schema.proposalRevision.id,
+        at: schema.proposalRevision.createdAt,
+        proposalId: schema.proposalRevision.proposalId,
+        version: schema.proposalRevision.version,
+        phase: schema.proposalRevision.phase,
+      })
+      .from(schema.proposalRevision)
+      .innerJoin(schema.proposal, eq(schema.proposal.id, schema.proposalRevision.proposalId))
+      .where(eq(schema.proposal.sessionId, sessionId)),
+    // Scores grouped per evaluator and revision (one event per evaluation, not per criterion).
+    db
+      .select({
+        evaluatorParticipantId: schema.evaluationScore.evaluatorParticipantId,
+        revisionId: schema.evaluationScore.revisionId,
+        at: sql<Date>`max(${schema.evaluationScore.createdAt})`,
+        criteria: sql<number>`count(*)::int`,
+      })
+      .from(schema.evaluationScore)
+      .where(eq(schema.evaluationScore.sessionId, sessionId))
+      .groupBy(schema.evaluationScore.evaluatorParticipantId, schema.evaluationScore.revisionId),
+    db
+      .select({ id: schema.vote.id, at: schema.vote.createdAt, evaluatorParticipantId: schema.vote.evaluatorParticipantId, ranking: schema.vote.ranking })
+      .from(schema.vote)
+      .where(eq(schema.vote.sessionId, sessionId)),
+  ]);
+  type Raw = Omit<TimelineEvent, "cursor" | "at"> & { atDate: Date };
+  const raw: Raw[] = [
+    ...messages.map(
+      (m): Raw => ({
+        id: `message:${m.id}`,
+        atDate: m.at,
+        kind: "message",
+        phase: m.phase,
+        participantId: m.participantId,
+        // For the replay's network lines (31): who answered what, at which round – never the text.
+        data: {
+          messageKind: m.kind,
+          round: m.round,
+          ...(m.role ? { role: m.role } : {}),
+          ...(m.targetProposalId ? { targetProposalId: m.targetProposalId } : {}),
+          ...(m.parentId ? { parentId: m.parentId } : {}),
+          ...(m.category ? { category: m.category } : {}),
+          ...(m.severity ? { severity: m.severity } : {}),
+        },
+      }),
+    ),
+    ...revisions.map(
+      (r): Raw => ({
+        id: `revision:${r.id}`,
+        atDate: r.at,
+        kind: "revision",
+        phase: r.phase,
+        participantId: null,
+        data: { proposalId: r.proposalId, version: r.version },
+      }),
+    ),
+    ...scores.map(
+      (s): Raw => ({
+        id: `score:${s.evaluatorParticipantId}:${s.revisionId}`,
+        atDate: new Date(s.at),
+        kind: "score",
+        phase: "final_verdict",
+        participantId: s.evaluatorParticipantId,
+        data: { revisionId: s.revisionId, criteria: s.criteria },
+      }),
+    ),
+    ...votes.map(
+      (v): Raw => ({
+        id: `vote:${v.id}`,
+        atDate: v.at,
+        kind: "vote",
+        phase: "final_verdict",
+        participantId: v.evaluatorParticipantId,
+        data: { ranking: v.ranking },
+      }),
+    ),
+    ...calls.map(
+      (c): Raw => ({
+        id: `call:${c.id}`,
+        atDate: c.at,
+        kind: "call",
+        phase: c.phase,
+        participantId: c.participantId,
+        data: { outcome: c.outcome, inputTokens: c.inputTokens, outputTokens: c.outputTokens, cachedInputTokens: c.cachedInputTokens },
+      }),
+    ),
+    ...stages.flatMap((s): Raw[] => [
+      ...(s.startedAt
+        ? [
+            {
+              id: `stage:${s.id}:start`,
+              atDate: s.startedAt,
+              kind: "stage" as const,
+              phase: s.phase,
+              participantId: null,
+              data: { event: "started", status: "running" },
+            },
+          ]
+        : []),
+      ...(s.completedAt
+        ? [
+            {
+              id: `stage:${s.id}:end`,
+              atDate: s.completedAt,
+              kind: "stage" as const,
+              phase: s.phase,
+              participantId: null,
+              data: { event: "completed", status: s.status },
+            },
+          ]
+        : []),
+    ]),
+    ...objections.map(
+      (o): Raw => ({
+        id: `objection:${o.id}`,
+        atDate: o.at,
+        kind: "objection",
+        phase: "minority_review",
+        participantId: o.participantId,
+        data: { status: o.status, severity: o.severity, proposalId: o.proposalId },
+      }),
+    ),
+    ...decisions.map(
+      (d): Raw => ({
+        id: `verdict:${d.id}`,
+        atDate: d.at,
+        kind: "verdict",
+        phase: "final_verdict",
+        participantId: null,
+        data: { outcome: d.outcome, gateVersion: d.gateVersion },
+      }),
+    ),
+    ...approvals.map(
+      (a): Raw => ({
+        id: `approval:${a.id}`,
+        atDate: a.at,
+        kind: "approval",
+        phase: null,
+        participantId: null,
+        data: { action: a.action, ...(a.proposalId ? { proposalId: a.proposalId } : {}) },
+      }),
+    ),
+    ...plans.map(
+      (p): Raw => ({
+        id: `build:${p.id}`,
+        atDate: p.at,
+        kind: "build",
+        phase: "execution_council",
+        participantId: null,
+        data: { status: p.status, buildKind: p.kind },
+      }),
+    ),
+  ];
+  const ordered = raw.sort((a, b) => a.atDate.getTime() - b.atDate.getTime() || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const newer = ordered.filter((e) => !after || e.atDate.getTime() > after.at || (e.atDate.getTime() === after.at && e.id > after.id));
+  const settled = newer.filter((e) => e.atDate.getTime() <= horizon);
+  const page = settled.slice(0, limit);
+  const events = page.map(({ atDate, ...e }) => ({ ...e, at: atDate.toISOString(), cursor: encodeCursor(atDate, e.id) }));
+  const last = events.at(-1);
+  return {
+    events,
+    nextCursor: last?.cursor ?? options.after ?? null,
+    complete: !TIMELINE_LIVE.has(session.status) && newer.length === page.length,
+  };
+}
+
+/** #12: running totals of a session for live clients – figures only, small enough to send on every change. */
+export interface SessionUsageSnapshot {
+  status: string;
+  /** The phase the run is in now (null before the first phase starts). */
+  phase: string | null;
+  calls: number;
+  failedCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+  /** The session counter: recorded usage plus reservations of calls still running (#173). */
+  tokensUsed: number;
+  tokenBudget: number;
+  /** tokensUsed / tokenBudget, 0..1 (rounded to three places). */
+  share: number;
+  /** Calls without a council phase (e.g. later questions to the models, #15/#41) – counted apart, not in the phases. */
+  phaseless: { calls: number; tokens: number };
+}
+
+export function sessionUsageSnapshot(view: Pick<SessionView, "session" | "usage">): SessionUsageSnapshot {
+  let calls = 0;
+  let failedCalls = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let cachedInputTokens = 0;
+  const phaseless = { calls: 0, tokens: 0 };
+  for (const u of view.usage) {
+    const n = Number(u.calls);
+    const tokens = Number(u.inputTokens) + Number(u.outputTokens);
+    calls += n;
+    if (u.outcome !== "ok") failedCalls += n;
+    inputTokens += Number(u.inputTokens);
+    outputTokens += Number(u.outputTokens);
+    cachedInputTokens += Number(u.cachedInputTokens ?? 0);
+    if (!u.phase) {
+      phaseless.calls += n;
+      phaseless.tokens += tokens;
+    }
+  }
+  const { tokensUsed, tokenBudget } = view.session;
+  return {
+    status: view.session.status,
+    phase: view.session.currentPhase ?? null,
+    calls,
+    failedCalls,
+    inputTokens,
+    outputTokens,
+    cachedInputTokens,
+    tokensUsed,
+    tokenBudget,
+    share: tokenBudget > 0 ? Math.round((tokensUsed / tokenBudget) * 1000) / 1000 : 0,
+    phaseless,
+  };
 }

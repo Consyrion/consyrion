@@ -1,7 +1,7 @@
 "use client";
 
-import type { ExecutionView } from "@consyrion/build";
-import { MAX_TASK_ATTEMPTS, MIN_OVERRIDE_REASON } from "@consyrion/core/browser";
+import type { ExecutionView } from "@consyrium/build";
+import { MAX_TASK_ATTEMPTS, MIN_OVERRIDE_REASON } from "@consyrium/core/browser";
 import { useFormatter, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
@@ -108,6 +108,10 @@ export function ExecutionScreen({ view, canApprove }: { view: View; canApprove: 
 
   // #249 part 2 (variant B): a session still waiting for a decision builds only its approved prototype/measurement build.
   const prototypeOnly = view.session.status === "awaiting_approval" && view.humanMark?.kind === "prototype_build";
+  // #548: nothing is built in an archived project – the server refuses it, so the screen says why.
+  if ((view.project as { status?: string }).status === "archived") {
+    return <EmptyState title={t("lockedTitle")} description={t("archivedText")} />;
+  }
   if (view.session.status !== "approved" && !prototypeOnly) {
     return <EmptyState title={t("lockedTitle")} description={t("lockedText")} />;
   }
@@ -546,7 +550,7 @@ export function ExecutionScreen({ view, canApprove }: { view: View; canApprove: 
 function useReadinessText() {
   const t = useTranslations("executionScreen.readinessText");
   return (text: string): string => {
-    if (text.startsWith("Tests were not executed by CONSYRION AI")) return t("notRunGithub");
+    if (text.startsWith("Tests were not executed by CONSYRIUM AI")) return t("notRunGithub");
     // Pattern, not the literal sentence: the readiness wording is a bundle marker (scripts/check-client-bundle.mjs).
     if (/^No sandbox test run exists for this/.test(text)) return t("noRun");
     let m = /^Installing dependencies (timed out|failed) in the latest sandbox run\.$/.exec(text);

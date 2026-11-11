@@ -11,6 +11,7 @@
       "rejected": "Rejected",
       "changes_requested": "Changes requested",
       "awaitingReview": "Awaiting your review",
+      "ideaChecked": "Idea checked",
       "noApprovableProposal": "No approvable proposal"
     },
     "cancelError": "Could not cancel",
@@ -49,7 +50,8 @@
       "failed": "failed",
       "blocked": "blocked",
       "cancelled": "cancelled",
-      "skipped": "skipped"
+      "skipped": "skipped",
+      "shortened": "shortened"
     },
     "execText": {
       "notStarted": "not started",
@@ -150,7 +152,9 @@
     "gateEnded": "The council ended without a verdict – nothing can be approved or built from it.",
     "gateDebate": "Debate in progress; final approval follows the verdict.",
     "reviewVerdict": "Review verdict",
-    "viewVerdict": "View verdict"
+    "viewVerdict": "View verdict",
+    "archived": "Project archived.",
+    "gateArchived": "Nothing can be approved, marked or built here – restore the project on its page to continue."
   },
   "phaseScreens": {
     "none": "none",
@@ -456,7 +460,8 @@
       "onlyOwners": "Only owners and admins can approve decisions.",
       "markFavorite": "Mark as favourite (no approval, no build)",
       "approvePrototype": "Approve a prototype / measurement build (not a finished solution)",
-      "approveAfterMeasurement": "Approve after measurement"
+      "approveAfterMeasurement": "Approve after measurement",
+      "archived": "This project is archived – restore it first on the project page to decide, mark, measure or build."
     },
     "reasons": {
       "needsVerification": "Needs verification – the council could not confirm that a proposal meets every requirement. It cannot be approved or built.",
@@ -494,7 +499,7 @@
     },
     "followUp": {
       "title": "Follow-up check (optional, costs tokens)",
-      "intro": "The same AI evaluators look again – only at the listed checks, on the frozen proposals. A FAIL is never asked again or replaced. It runs only after you confirm an extra budget.",
+      "intro": "The same AI evaluators look again – only at the listed checks, on the frozen proposals. A “not met” is never asked again or replaced. It runs only after you confirm an extra budget.",
       "completion": {
         "button": "Complete {n} missing checks (≈ {tokens} tokens)",
         "explain": "The evaluators that left checks out are asked for exactly those. The verdict is recomputed afterwards."
@@ -517,7 +522,7 @@
   },
   "requirementGate": {
     "title": "Confirmed requirements per proposal",
-    "intro": "A requirement counts as met only if every expected evaluator confirmed every part of it with a reason. PASS and FAIL are stored model judgements with reasons, not an independent fact check.",
+    "intro": "A requirement counts as met only if every expected evaluator confirmed every part of it with a reason. “Confirmed” and “not met” are stored model judgements with reasons, not an independent fact check.",
     "proposal": "Proposal {label}",
     "feasibility": {
       "qualified": "meets all confirmed requirements",
@@ -547,7 +552,8 @@
         "across": "for {k} of {n} evaluators the range reaches across the limit",
         "noEstimate": "{k} of {n} evaluators gave no usable estimate",
         "noAnswer": "{k} of {n} evaluators returned no usable answer"
-      }
+      },
+      "summary": "Estimated by {n, plural, one {# model} other {# models}}: {low}–{high}{unit} (median {median}) · limit {relation} {limit}{unit}. Met only if every range keeps the limit."
     },
     "relation": {
       "below": "below",
@@ -555,8 +561,8 @@
       "above": "above",
       "atLeast": "at least"
     },
-    "pass": "PASS: {names}.",
-    "fail": "FAIL: {names}.",
+    "pass": "Confirmed by: {names}.",
+    "fail": "Not met according to: {names}.",
     "unknown": "Not conclusive: {names}.",
     "open": "No answer: {names}.",
     "conflicts": "Contradictory (counted as FAIL): {names}.",
@@ -602,7 +608,7 @@
       "single_evaluator": "Proposal {label} was scored by a single independent evaluator (only two active models)",
       "requirements_disputed": "{failed} of {total} independent evaluators found that Proposal {label} misses a hard requirement",
       "insufficient_evaluators": "Only {evaluators} of {expected} expected evaluators delivered usable scores – too few for a council decision; repeat the evaluation",
-      "no_debate_contribution": "{model} contributed no role review to the 12 Minds Council (every call failed); its perspectives are missing from the debate, but its vote still counts in the Final Verdict if it evaluated",
+      "no_debate_contribution": "{model} contributed no role review to the 12 Minds Council (no successful call – its calls failed or the budget shortened the phase before its turn); its perspectives are missing from the debate, but its vote still counts in the Final Verdict if it evaluated",
       "undefended_proposal": "Proposal {label} was not defended – {reason}: {count, plural, one {# objection against it stays} other {# objections against it stay}} unanswered, which is not the same as uncontested criticism",
       "phase_shortened": "{phase} was shortened to keep the token budget for the Final Verdict; the verdict is based on the revisions available at that point",
       "weighting_changed_winner_both": "The vote weights decided the outcome: with equal weights the council would recommend Proposal {unweighted}, weighted it recommends Proposal {weighted}",
@@ -753,7 +759,62 @@
     "exportPdf": "Full report (PDF)",
     "exportMarkdown": "Report (Markdown)",
     "stopFirst": "This council is still running – stop it first (and cancel an active build), then delete the session.",
-    "external": "Already sent reports, draft pull requests on GitHub and backups (until their retention ends) are not deleted by CONSYRION. The month's council count is not reset.",
+    "external": "Already sent reports, draft pull requests on GitHub and backups (until their retention ends) are not deleted by CONSYRIUM. The month's council count is not reset.",
     "button": "Delete session"
+  },
+  "processQuality": {
+    "title": "Process quality",
+    "intro": "How this council worked, computed from its stored data. It describes the process – it does not prove that the verdict is right.",
+    "notMeasurable": "not measurable for this council",
+    "participation": {
+      "title": "Participation",
+      "value": "{valid} of {total} models delivered in every phase ({groupsValid} of {groups} independent models – instances of one model count once)."
+    },
+    "convergence": {
+      "title": "Convergence of the proposals",
+      "strong": "Strong: the proposals moved clearly towards each other (shared wording {initial} → {latest}). Check whether real alternatives were lost.",
+      "moderate": "Moderate: the proposals moved somewhat towards each other (shared wording {initial} → {latest}).",
+      "little": "Little: the proposals stayed distinct (shared wording {initial} → {latest}).",
+      "fewer_than_two_proposals": "not measurable – fewer than two proposals",
+      "no_revisions": "not measurable – no proposal was revised",
+      "limit": "Measured by shared words, not by meaning."
+    },
+    "objections": {
+      "title": "Effect of objections",
+      "none": "No objections were raised – this is not a sign of quality on its own.",
+      "value": "{total} objections: {survived} still standing at the end, {refuted} refuted. Of the standing ones: {revised} followed by a revision, {blocking} blocking, {noEffect} without visible effect.",
+      "limit": "Assigned by time and target proposal, not proven as the cause."
+    },
+    "weight": {
+      "title": "Weight of the votes",
+      "changed": "The vote weights decided the winner: weighted Proposal {weighted}, with equal votes Proposal {unweighted}. The strongest independent model holds {share} of the vote.",
+      "unchanged": "The weights did not change the winner. The strongest independent model holds {share} of the vote ({groups} independent models).",
+      "noWinner": "not applicable – there is no approvable winner"
+    },
+    "footer": "Computed from stored data only; no model call, no benchmark against a single model."
+  },
+  "processQualityOverview": {
+    "title": "Process quality",
+    "description": "How the recent councils of this workspace worked – figures from stored data, no content. It describes the process, it does not prove that verdicts are right.",
+    "back": "Back to decisions",
+    "emptyTitle": "No verdict yet",
+    "emptyText": "Process quality is shown once a council has reached a verdict.",
+    "summaryTitle": "Last {n, plural, one {# council} other {# councils}}",
+    "summary": {
+      "participation": "{full} of {n} councils with every model delivering in every phase.",
+      "convergence": "Convergence of the proposals: {strong} strong, {moderate} moderate, {little} little, {none} not measurable.",
+      "objections": "{total} objections, {survived} still standing at the end, {noEffect} of those without visible effect.",
+      "weight": "In {n} of {total} councils the vote weights decided the winner."
+    },
+    "col": {
+      "council": "Council"
+    },
+    "level": {
+      "strong": "strong",
+      "moderate": "moderate",
+      "little": "little"
+    },
+    "weightDecided": "weights decided",
+    "legend": "Participation counts independent models (instances of one model once); objections: standing/total; weight: share of the strongest independent model, or \"weights decided\" when they changed the winner."
   }
 }

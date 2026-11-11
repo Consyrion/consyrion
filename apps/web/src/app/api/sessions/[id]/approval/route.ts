@@ -1,4 +1,4 @@
-import { submitApproval } from "@consyrion/council";
+import { submitApproval } from "@consyrium/council";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

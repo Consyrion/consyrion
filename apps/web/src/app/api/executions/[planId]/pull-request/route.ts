@@ -1,4 +1,4 @@
-import { createPullRequestForPlan } from "@consyrion/build";
+import { createPullRequestForPlan } from "@consyrium/build";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

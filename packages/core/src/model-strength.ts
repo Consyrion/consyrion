@@ -169,7 +169,7 @@ interface Candidate {
 }
 
 /**
- * The entry among several variants of one model that fits how CONSYRION calls it (#170). The provider adapters send
+ * The entry among several variants of one model that fits how CONSYRIUM calls it (#170). The provider adapters send
  * no reasoning effort, so a model runs with its provider's default. An explicit variant in the id ("-non-reasoning",
  * "-reasoning", "-chat") needs that variant or the plain entry. Otherwise: the plain entry, then "non-reasoning",
  * then "medium", then the weakest variant – never "Xhigh"/"Max" just because it scores higher.

@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { MarkShapes } from "../brand/consyrion-logo";
+import { MarkShapes } from "../brand/consyrium-logo";
 import { buttonClasses } from "../ui/button";
 import { Icon, type IconName } from "../ui/icons";
 

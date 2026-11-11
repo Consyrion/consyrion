@@ -1,4 +1,4 @@
-import { assertCan, DomainError } from "@consyrion/core";
+import { assertCan, DomainError } from "@consyrium/core";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../client";
@@ -69,6 +69,12 @@ export const ACTION_SCHEMAS = {
       .nullish(),
     text: text(6_000),
   }),
+  /**
+   * #215 stage 2: start a council from the chat. Never run by the generic action route: the council start route shows the
+   * cost preview, needs the "costs confirmed" checkbox, checks everything again at the click and starts once.
+   * Models: the ones of the workspace's last council (as for MCP/Telegram); the budget the user sees and confirms.
+   */
+  start_council: z.object({ projectId, tokenBudget: z.number().int().min(10_000).max(1_000_000).optional() }),
   /** A message for Slack, Teams or e-mail, to copy – never sent by the assistant. */
   prepare_delivery: z.object({ channel: z.enum(["slack", "teams", "email"]), subject: z.string().trim().max(200).default(""), text: text(6_000) }),
 } as const;
@@ -85,6 +91,28 @@ function parseParams(type: AssistantActionType, params: unknown) {
   const parsed = schema.safeParse(params);
   if (!parsed.success) throw new DomainError("VALIDATION", "Invalid action parameters", z.flattenError(parsed.error));
   return parsed.data as Record<string, unknown>;
+}
+
+const PROJECT_TYPES = ["idea", "architecture", "repository", "business", "technology_choice"];
+
+/**
+ * Small slips of a model must not cost the user the card (#583: the answer said "card prepared", no card was there):
+ * an overlong name or goal is cut to the limit and an unknown project type becomes "idea". The user sees and can edit
+ * every value on the card before anything is saved; values the user edits are still validated strictly.
+ */
+function tidyProposal(type: AssistantActionType, params: unknown): unknown {
+  if ((type !== "create_project_draft" && type !== "draft_brief") || !params || typeof params !== "object" || Array.isArray(params)) return params;
+  const p = { ...(params as Record<string, unknown>) };
+  const cut = (key: string, max: number) => {
+    if (typeof p[key] === "string" && (p[key] as string).trim().length > max) p[key] = (p[key] as string).trim().slice(0, max);
+  };
+  cut("name", 120);
+  cut("goal", 5_000);
+  cut("idea", 20_000);
+  if (p.goal === null) delete p.goal;
+  if (p.requirements === null) delete p.requirements;
+  if (type === "create_project_draft" && p.type !== undefined && !PROJECT_TYPES.includes(p.type as string)) p.type = "idea";
+  return p;
 }
 
 /**
@@ -105,7 +133,7 @@ export function acceptActionProposals(raw: Array<{ type: unknown; params: unknow
     }
     if (actions.length >= MAX_ACTIONS_PER_ANSWER) continue;
     try {
-      const params = parseParams(item.type, item.params);
+      const params = parseParams(item.type, tidyProposal(item.type, item.params));
       const summary = typeof item.summary === "string" && item.summary.trim() ? item.summary.trim().slice(0, 300) : type;
       actions.push({ id: newId("aca"), type: item.type, summary, params, status: "proposed" });
     } catch {
@@ -149,6 +177,9 @@ export async function decideAssistantAction(db: Database, ctx: ActorContext, inp
     if (action.status !== "proposed")
       throw new DomainError("CONFLICT", action.status === "executed" ? "This action was already carried out" : "This action was dismissed");
     if (!isAllowedType(action.type)) throw new DomainError("FORBIDDEN", "The assistant cannot do this – only you can, in the app");
+    // A council start costs money: only through its own route with preview and cost confirmation (#215 stage 2).
+    if (action.type === "start_council" && input.decision === "execute")
+      throw new DomainError("CONFLICT", "Check the costs and confirm them in the card to start the council");
 
     let next: AssistantActionRecord;
     if (input.decision === "dismiss") {
@@ -242,5 +273,89 @@ async function runAction(db: Database, ctx: ActorContext, type: AssistantActionT
     case "prepare_delivery":
       // A text draft: the user copies it; nothing is sent or stored elsewhere.
       return null;
+    case "start_council":
+      // Never here – see decideAssistantAction and the council start route.
+      throw new DomainError("CONFLICT", "A council is started from its card with a cost confirmation");
   }
+}
+
+/** One proposed or decided card of the user's own chat (#215 stage 2), for the council start route. */
+export async function getAssistantAction(db: Database, ctx: ActorContext, ids: { chatId: string; messageId: string; actionId: string }) {
+  assertCan(ctx.role, "decision:run");
+  const [row] = await db
+    .select({ actions: assistantMessage.actions })
+    .from(assistantMessage)
+    .innerJoin(assistantChat, eq(assistantChat.id, assistantMessage.chatId))
+    .where(
+      and(
+        eq(assistantMessage.id, ids.messageId),
+        eq(assistantMessage.chatId, ids.chatId),
+        eq(assistantChat.organizationId, ctx.organizationId),
+        eq(assistantChat.userId, ctx.userId),
+      ),
+    )
+    .limit(1);
+  const action = row?.actions?.find((a) => a.id === ids.actionId);
+  if (!action) throw new DomainError("NOT_FOUND", "Action not found");
+  return { ...action, params: action.status === "proposed" ? parseParams(action.type as AssistantActionType, action.params) : action.params };
+}
+
+/**
+ * Marks a council-start card as carried out after the council was created (#215 stage 2) and records "suggested by the
+ * AI assistant, costs confirmed by the user". A second click finds it executed and gets the same session back.
+ */
+export async function completeCouncilStartAction(
+  db: Database,
+  ctx: ActorContext,
+  ids: { chatId: string; messageId: string; actionId: string },
+  result: { sessionId: string; label: string; tokenBudget: number },
+): Promise<AssistantActionRecord> {
+  assertCan(ctx.role, "decision:run");
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ id: assistantMessage.id, actions: assistantMessage.actions })
+      .from(assistantMessage)
+      .innerJoin(assistantChat, eq(assistantChat.id, assistantMessage.chatId))
+      .where(
+        and(
+          eq(assistantMessage.id, ids.messageId),
+          eq(assistantMessage.chatId, ids.chatId),
+          eq(assistantChat.organizationId, ctx.organizationId),
+          eq(assistantChat.userId, ctx.userId),
+        ),
+      )
+      .for("update")
+      .limit(1);
+    const actions = row?.actions ?? [];
+    const action = actions.find((a) => a.id === ids.actionId);
+    if (!row || !action || action.type !== "start_council") throw new DomainError("NOT_FOUND", "Action not found");
+    if (action.status === "executed") return action;
+    if (action.status !== "proposed") throw new DomainError("CONFLICT", "This action was dismissed");
+    const next: AssistantActionRecord = {
+      ...action,
+      status: "executed",
+      decidedAt: new Date().toISOString(),
+      result: { label: result.label, href: `/sessions/${result.sessionId}` },
+    };
+    await tx
+      .update(assistantMessage)
+      .set({ actions: actions.map((a) => (a.id === action.id ? next : a)) })
+      .where(eq(assistantMessage.id, row.id));
+    await recordAudit(tx, {
+      organizationId: ctx.organizationId,
+      actorUserId: ctx.userId,
+      action: "assistant.council_started",
+      targetType: "assistant_chat",
+      targetId: ids.chatId,
+      metadata: {
+        actionId: action.id,
+        messageId: row.id,
+        sessionId: result.sessionId,
+        budget: result.tokenBudget,
+        proposedBy: "ai_assistant",
+        confirmedBy: ctx.userId,
+      },
+    });
+    return next;
+  });
 }

@@ -1,5 +1,5 @@
-import { can } from "@consyrion/core";
-import { getEntitlements, listDeliveryConnections, listGitHubIntegrations } from "@consyrion/db";
+import { can } from "@consyrium/core";
+import { getEntitlements, listDeliveryConnections, listGitHubIntegrations } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { ConnectGrid } from "@/components/connect/connect-grid";
 import { DeliveryConnections } from "@/components/delivery";

@@ -3,7 +3,7 @@
     "metaTitle": "Feedback",
     "nav": "Feedback & Fehler",
     "title": "Feedback",
-    "description": "Melde einen Fehler, wünsche dir ein Feature oder stelle eine Frage. Das Team von CONSYRION AI liest jede Nachricht und antwortet hier.",
+    "description": "Melde einen Fehler, wünsche dir ein Feature oder stelle eine Frage. Das Team von CONSYRIUM AI liest jede Nachricht und antwortet hier.",
     "newTitle": "Neue Nachricht",
     "visitorTitle": "Kontakt & Feedback",
     "visitorDescription": "Melde einen Fehler, wünsche dir ein Feature oder stelle eine Frage – ohne Konto. Wir antworten per E-Mail.",
@@ -34,7 +34,7 @@
     "screenshotNone": "Kein Bild ausgewählt",
     "screenshotRemove": "Entfernen",
     "attached": "Automatisch angehängt: Seite {page}, Sprache der Oberfläche, Browser und App-Version.",
-    "privacy": "Wir speichern deine Nachricht, deine E-Mail-Adresse und diese Angaben, um dir zu antworten und CONSYRION AI zu verbessern.",
+    "privacy": "Wir speichern deine Nachricht, deine E-Mail-Adresse und diese Angaben, um dir zu antworten und CONSYRIUM AI zu verbessern.",
     "privacyLink": "Datenschutzerklärung",
     "send": "Senden",
     "sending": "Wird gesendet…",
@@ -53,7 +53,7 @@
     "mine": {
       "title": "Meine Meldungen",
       "empty": "Du hast noch keine Meldungen gesendet.",
-      "reply": "Antwort des Teams von CONSYRION AI",
+      "reply": "Antwort des Teams von CONSYRIUM AI",
       "deleteNote": "Soll eine Meldung gelöscht werden? Schreib uns – wir löschen sie samt allen Antworten.",
       "new": "neu"
     },

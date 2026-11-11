@@ -13,7 +13,7 @@ const render = (scope: "project" | "workspace", locale: "en" | "de" = "en") =>
 
 // #206: a deletion never promises "everything is gone" – backups and external copies are named.
 describe("DeletionNotice", () => {
-  it("names backups, the audit entry and what stays outside CONSYRION AI for a project", () => {
+  it("names backups, the audit entry and what stays outside CONSYRIUM AI for a project", () => {
     const html = render("project");
     expect(html).toContain("30 days");
     expect(html).toContain("GitHub");

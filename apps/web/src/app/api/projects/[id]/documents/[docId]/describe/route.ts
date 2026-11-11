@@ -1,7 +1,7 @@
-import { createAdapter, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
-import { describeImage } from "@consyrion/council";
-import { decryptCredentialForUse, getImageForDescription, setImageDescription } from "@consyrion/db";
+import { createAdapter, ProviderError } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
+import { describeImage } from "@consyrium/council";
+import { decryptCredentialForUse, getImageForDescription, setImageDescription } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

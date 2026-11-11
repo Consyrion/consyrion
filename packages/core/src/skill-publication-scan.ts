@@ -1,4 +1,9 @@
-import { INSTRUCTION_PATTERNS, SECRET_PATTERNS, SKILL_EMAIL_PATTERN, type SkillContent } from "./skills";
+import { detectImpersonation } from "./impersonation";
+import { ALL_INSTRUCTION_PATTERNS, findInstruction } from "./instruction-patterns";
+import { SECRET_PATTERNS, SKILL_EMAIL_PATTERN, type SkillContent } from "./skills";
+import { hasMixedScriptWord, normalizeForScan, STYLED_LATIN, SUSPICIOUS_INVISIBLE } from "./text-normalize";
+
+export { normalizeForScan } from "./text-normalize";
 
 /**
  * SkillHub publication check, static part (#423, ADR docs/adr/0368-skillhub.md). Runs on every version a user submits
@@ -14,11 +19,21 @@ import { INSTRUCTION_PATTERNS, SECRET_PATTERNS, SKILL_EMAIL_PATTERN, type SkillC
  * A later semantic (model) check may only make the light stricter; it can never turn red into yellow or green.
  */
 
-/** 2: extreme verdict weights (bias signal, ChatGPT review 08.11.2026). */
-export const PUBLICATION_SCAN_RULES_VERSION = 2;
+/** 2: extreme verdict weights (bias signal). 3: multilingual steering patterns. 4: impersonation (yellow) – Gesamttest 3. */
+export const PUBLICATION_SCAN_RULES_VERSION = 4;
 
 export type SkillReviewLight = "green" | "yellow" | "red";
-export type PublicationFindingKind = "secret" | "personal_data" | "instruction" | "encoded_content" | "obfuscation" | "link" | "markup" | "code" | "bias";
+export type PublicationFindingKind =
+  | "secret"
+  | "personal_data"
+  | "instruction"
+  | "encoded_content"
+  | "obfuscation"
+  | "link"
+  | "markup"
+  | "code"
+  | "bias"
+  | "impersonation";
 
 export interface PublicationFinding {
   kind: PublicationFindingKind;
@@ -34,116 +49,6 @@ export interface PublicationScanResult {
   light: SkillReviewLight;
   findings: PublicationFinding[];
   rulesVersion: number;
-}
-
-// --- Normalization -------------------------------------------------------------------------------------------------
-
-/** Characters that render as nothing (zero-width, bidi controls, soft hyphen, variation selectors, tag characters). */
-const INVISIBLE =
-  // eslint-disable-next-line no-misleading-character-class -- the class lists invisible/combining code points on purpose
-  /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\u{E0000}-\u{E007F}]/gu;
-/** Zero-width joiner is part of normal emoji sequences – stripped for scanning, but no obfuscation signal on its own. */
-const SUSPICIOUS_INVISIBLE =
-  // eslint-disable-next-line no-misleading-character-class -- the class lists invisible/combining code points on purpose
-  /[\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B\u200C\u200E\u200F\u202A-\u202E\u2060-\u206F\u3164\uFEFF\uFFA0\u{E0000}-\u{E007F}]/u;
-/** Latin letters in fullwidth or mathematical styles – NFKC folds them, their presence is a signal. */
-const STYLED_LATIN = /[\uFF21-\uFF3A\uFF41-\uFF5A\u{1D400}-\u{1D7FF}]/u;
-
-/** Cyrillic and Greek letters that look like Latin ones. */
-const HOMOGLYPHS: Readonly<Record<string, string>> = {
-  а: "a",
-  в: "b",
-  е: "e",
-  ё: "e",
-  к: "k",
-  м: "m",
-  н: "h",
-  о: "o",
-  р: "p",
-  с: "c",
-  т: "t",
-  у: "y",
-  х: "x",
-  і: "i",
-  ї: "i",
-  ј: "j",
-  ѕ: "s",
-  ԁ: "d",
-  ӏ: "l",
-  ԛ: "q",
-  ԝ: "w",
-  А: "A",
-  В: "B",
-  Е: "E",
-  К: "K",
-  М: "M",
-  Н: "H",
-  О: "O",
-  Р: "P",
-  С: "C",
-  Т: "T",
-  У: "Y",
-  Х: "X",
-  І: "I",
-  Ј: "J",
-  Ѕ: "S",
-  α: "a",
-  ο: "o",
-  ρ: "p",
-  ν: "v",
-  ι: "i",
-  κ: "k",
-  τ: "t",
-  υ: "u",
-  χ: "x",
-  ε: "e",
-  Α: "A",
-  Β: "B",
-  Ε: "E",
-  Η: "H",
-  Ι: "I",
-  Κ: "K",
-  Μ: "M",
-  Ν: "N",
-  Ο: "O",
-  Ρ: "P",
-  Τ: "T",
-  Υ: "Y",
-  Χ: "X",
-  Ζ: "Z",
-};
-const HOMOGLYPH_CHARS = new RegExp(`[${Object.keys(HOMOGLYPHS).join("")}]`, "gu");
-/** A word that mixes Latin with Cyrillic/Greek letters – normal text in either script never does. */
-/** A word that mixes Latin with Cyrillic/Greek letters – normal text in either script never does. Checked per word (linear). */
-const hasMixedScriptWord = (text: string) => text.split(/[^\p{L}]+/u).some((w) => /[A-Za-z]/.test(w) && /[\u0370-\u03FF\u0400-\u04FF]/.test(w));
-
-/** NFKC, invisible characters removed, look-alike letters mapped to Latin, whitespace collapsed. */
-export function normalizeForScan(text: string): string {
-  return text
-    .normalize("NFKC")
-    .replace(INVISIBLE, "")
-    .replace(HOMOGLYPH_CHARS, (c) => HOMOGLYPHS[c] ?? c)
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const LEET: Readonly<Record<string, string>> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", $: "s", "|": "i", "!": "i" };
-
-/** Leetspeak base forms, only inside tokens that mix letters and leet characters – plain numbers stay as they are. */
-function unleet(text: string): string {
-  return text.replace(/\S+/g, (token) => (/[a-z]/i.test(token) && /[013457@$|!]/.test(token) ? token.replace(/[013457@$|!]/g, (c) => LEET[c] ?? c) : token));
-}
-
-/** "i g n o r e" / "i.g.n.o.r.e" / "i-g-n-o-r-e" → "ignore". */
-function despace(text: string): string {
-  return text.replace(/(?<![\p{L}])(?:\p{L}[\s.\-_*·]){3,}\p{L}(?![\p{L}])/gu, (run) => run.replace(/[\s.\-_*·]/g, ""));
-}
-
-function rot13(text: string): string {
-  return text.replace(/[a-z]/gi, (c) => {
-    const base = c <= "Z" ? 65 : 97;
-    return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
-  });
 }
 
 // --- Encoded blocks ------------------------------------------------------------------------------------------------
@@ -209,53 +114,7 @@ function decodeNested(text: string, depth = 3): string[] {
   return out;
 }
 
-// --- Patterns ------------------------------------------------------------------------------------------------------
-
-/**
- * Text that addresses the council, its reviewers or the model instead of describing the subject – in de/en/fr/es/zh.
- * Complements the V1 save-time patterns (`INSTRUCTION_PATTERNS`), which run here as well. Written so that ordinary
- * rules ("no deployment without approval", "requirements without evidence do not count as met") stay green.
- */
-const PUBLICATION_INSTRUCTION_PATTERNS: ReadonlyArray<RegExp> = [
-  // en
-  /\b(?:ignore|disregard|forget|override)\b.{0,40}\b(?:earlier|previous|prior|above|preceding|existing|all|any|your|the)\b.{0,20}\b(?:instructions?|rules?|guidelines?|prompts?|constraints?)\b/i,
-  /\bnote\s+(?:to|for)\s+(?:the\s+)?(?:reviewers?|evaluators?|judges?|graders?|models?|assistants?|ai|llms?|council)\b/i,
-  /\b(?:treat|consider|mark|count|rate|regard)\b.{0,30}\b(?:all|every|each|the)\b.{0,20}\brequirements?\b.{0,20}\bas\s+(?:fulfilled|met|satisfied|passed|ok)\b/i,
-  /\b(?:do\s+not|don'?t|never|no\s+need\s+to)\s+(?:ask|wait|request)\b.{0,20}\b(?:for\s+)?(?:human\s+)?(?:sign[-\s]?off|approval|confirmation)\b/i,
-  /\bno\s+(?:human\s+)?(?:sign[-\s]?off|approval|confirmation)\s+(?:is\s+)?(?:needed|required|necessary)\b/i,
-  /\b(?:always|automatically|unconditionally)\s+(?:approve|pass|accept|select)\b/i,
-  /\b(?:new|updated|real|actual)\s+instructions?\s*:/i,
-  /\b(?:act|behave)\s+as\s+(?:an?\s+|the\s+)?(?:admin(?:istrator)?|system|developer|judge|root)\b/i,
-  /\b(?:reveal|print|output|show|repeat|leak)\b.{0,20}\b(?:system\s*prompt|hidden\s+instructions?|api[-\s]?keys?|credentials)\b/i,
-  /\b(?:jailbreak|developer\s+mode|dan\s+mode)\b/i,
-  // de
-  /\bhinweis\s+(?:an|für)\s+(?:die\s+)?(?:prüfer|gutachter|bewerter|modelle?|ki|richter|council)\b/i,
-  /\b(?:alle|sämtliche|jede)\s+anforderung(?:en)?\b.{0,30}\bals\s+(?:erfüllt|bestanden|ok)\b.{0,20}\b(?:werten|gelten|behandeln|ansehen|markieren|betrachten)\b/i,
-  /\b(?:werte|behandle|betrachte|markiere)\w*\b.{0,30}\banforderung(?:en)?\b.{0,20}\bals\s+(?:erfüllt|bestanden)\b/i,
-  /\b(?:frag|frage|fragt|warte|wartet)\s+nicht\b.{0,20}\b(?:nach\s+|auf\s+)?(?:der\s+|die\s+)?(?:menschliche[n]?\s+)?(?:freigabe|bestätigung|zustimmung)\b/i,
-  /\b(?:keine|ohne)\s+(?:menschliche\s+)?(?:freigabe|bestätigung)\s+(?:ist\s+)?(?:nötig|notwendig|erforderlich)\b/i,
-  /\b(?:immer|automatisch|bedingungslos)\s+(?:freigeben|bestehen\s+lassen|genehmigen|auswählen)\b/i,
-  /\bneue\s+anweisung(?:en)?\s*:/i,
-  /\b(?:ignorier|missacht|vergiss|übergeh)\w*\b.{0,40}\b(?:regeln|anweisungen|vorgaben|richtlinien)\b/i,
-  /\b(?:gib|zeig|nenn)\w*\b.{0,20}\b(?:system-?prompt|api-?schlüssel|api-?key|zugangsdaten)\b/i,
-  // fr
-  /\bignore[rz]?\b.{0,30}\b(?:les\s+)?(?:instructions|règles|consignes)\b/i,
-  /\bnote\s+(?:aux|pour\s+les)\s+(?:évaluateurs|relecteurs|examinateurs|modèles|juges)\b/i,
-  /\b(?:considère|considérez|considérer|traite[rz]?)\b.{0,30}\bexigences\b.{0,20}\bcomme\s+(?:remplies|satisfaites|validées)\b/i,
-  /\bne\s+(?:demande|demandez|demandons)\s+pas\b.{0,20}\b(?:d['’])?(?:approbation|validation|accord)\b/i,
-  // es
-  /\bignora(?:r|d)?\b.{0,30}\b(?:las\s+)?(?:instrucciones|reglas|normas)\b/i,
-  /\bnota\s+(?:para|a)\s+(?:los\s+)?(?:revisores|evaluadores|modelos|jueces)\b/i,
-  /\b(?:trata|considera|tratar|considerar|marca)\b.{0,30}\brequisitos\b.{0,20}\bcomo\s+(?:cumplidos|satisfechos|aprobados)\b/i,
-  /\bno\s+(?:pidas|solicites|pidan|esperes)\b.{0,20}\b(?:la\s+)?(?:aprobación|validación|confirmación)\b/i,
-  // zh
-  /(?:忽略|无视|忽视|不要理会).{0,8}(?:指令|规则|指示|提示词)/u,
-  /(?:所有|全部)要求.{0,6}(?:视为|当作|算作|标记为).{0,4}(?:满足|通过|符合)/u,
-  /(?:视为|当作|标记为)(?:已)?(?:满足|通过)/u,
-  /(?:无需|不需要|不要请求|不要要求)(?:人工)?(?:审批|批准|确认|签字|签核)/u,
-  /(?:致|给)(?:审核|评审|审查)(?:者|员|人员)/u,
-  /系统提示/u,
-];
+// --- Other patterns -----------------------------------------------------------------------------------------------
 
 const PHONE = /(?:\+|\b00)\d{1,3}[\s/-]?\(?\d{1,4}\)?(?:[\s/-]?\d{2,4}){2,4}\b/;
 const IBAN = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){3,7}(?:\s?[A-Z0-9]{1,3})?\b/;
@@ -291,7 +150,7 @@ function firstMatch(patterns: ReadonlyArray<RegExp>, text: string): RegExpExecAr
   return null;
 }
 
-const ALL_INSTRUCTIONS = [...INSTRUCTION_PATTERNS, ...PUBLICATION_INSTRUCTION_PATTERNS];
+const ALL_INSTRUCTIONS = ALL_INSTRUCTION_PATTERNS;
 
 function scanField(field: string, raw: string, findings: PublicationFinding[]): void {
   if (!raw.trim()) return;
@@ -303,29 +162,28 @@ function scanField(field: string, raw: string, findings: PublicationFinding[]): 
   if (SUSPICIOUS_INVISIBLE.test(raw) || STYLED_LATIN.test(raw) || hasMixedScriptWord(raw.normalize("NFKC")))
     add({ kind: "obfuscation", severity: "yellow", message: "Contains invisible, styled or look-alike characters that hide what the text says." });
 
-  // Instructions: plain, leetspeak, spaced letters, ROT13 – any hit is red.
-  const variants: Array<[string, boolean]> = [
-    [text, false],
-    [unleet(text), true],
-    [despace(text), true],
-    [despace(unleet(text)), true],
-  ];
-  for (const [variant, disguised] of variants) {
-    const m = firstMatch(ALL_INSTRUCTIONS, variant);
-    if (m) {
-      add({
-        kind: "instruction",
-        severity: "red",
-        message: disguised
-          ? "Contains a disguised instruction to the council, its reviewers or the models (e.g. leetspeak or spaced letters)."
-          : "Contains an instruction to the council, its reviewers or the models (e.g. ignore rules, treat requirements as met, skip the approval).",
-        excerpt: excerptAt(variant, m.index),
-      });
-      break;
-    }
-  }
-  if (firstMatch(ALL_INSTRUCTIONS, rot13(text)))
-    add({ kind: "encoded_content", severity: "red", message: "Contains an instruction to the council hidden with ROT13." });
+  // Instructions and steering: plain, leetspeak, spaced letters, ROT13 – any hit is red.
+  const instruction = findInstruction(raw);
+  if (instruction?.rot13) add({ kind: "encoded_content", severity: "red", message: "Contains an instruction to the council hidden with ROT13." });
+  else if (instruction)
+    add({
+      kind: "instruction",
+      severity: "red",
+      message: instruction.disguised
+        ? "Contains a disguised instruction to the council, its reviewers or the models (e.g. leetspeak or spaced letters)."
+        : "Contains an instruction to the council, its reviewers or the models (e.g. ignore rules, treat requirements as met, skip the approval).",
+      excerpt: excerptAt(instruction.variant, instruction.index),
+    });
+
+  // Impersonation of a real person ("think like <name>", "du bist <name>") – yellow: in a skill it can be a legitimate quote.
+  const persona = detectImpersonation(raw);
+  if (persona)
+    add({
+      kind: "impersonation",
+      severity: "yellow",
+      message: "Asks the models to act as a real person – check it is not impersonation.",
+      excerpt: persona.slice(0, 80),
+    });
 
   if (SECRET_PATTERNS.some((p) => p.test(text)))
     add({ kind: "secret", severity: "red", message: "Contains something that looks like a key, token or password." });
@@ -359,16 +217,17 @@ function scanField(field: string, raw: string, findings: PublicationFinding[]): 
 }
 
 /** The static publication check for one skill version (and its changelog). */
-export function scanSkillForPublication(content: SkillContent, extra: { changelog?: string | null } = {}): PublicationScanResult {
+/**
+ * Generic publication scan over text fields (#368 hub kinds): every SkillHub type passes its fields through the same
+ * rules. `weights` adds the bias signal for skills (extreme verdict weights are yellow, never red).
+ */
+export function scanPublicationFields(
+  fields: ReadonlyArray<{ field: string; text: string }>,
+  options: { weights?: Readonly<Partial<Record<string, number>>> | object | null } = {},
+): PublicationScanResult {
   const findings: PublicationFinding[] = [];
-  scanField("name", content.name, findings);
-  scanField("summary", content.summary, findings);
-  (content.requirementBlocks ?? []).forEach((block, i) => scanField(`requirementBlocks[${i}]`, block, findings));
-  scanField("sessionRules", content.sessionRules ?? "", findings);
-  scanField("knowledge", content.knowledge ?? "", findings);
-  scanField("changelog", extra.changelog ?? "", findings);
-  // A skill can bias decisions without any injection wording: extreme weights get a human look (yellow, never red).
-  const extreme = Object.entries(content.weights ?? {}).filter(([, v]) => v > 60 || v === 0);
+  for (const f of fields) scanField(f.field, f.text, findings);
+  const extreme = Object.entries((options.weights ?? {}) as Record<string, number>).filter(([, v]) => v > 60 || v === 0);
   if (extreme.length)
     findings.push({
       kind: "bias",
@@ -379,4 +238,19 @@ export function scanSkillForPublication(content: SkillContent, extra: { changelo
   const red = findings.filter((f) => f.severity === "red");
   const ordered = [...red, ...findings.filter((f) => f.severity === "yellow")];
   return { light: red.length ? "red" : findings.length ? "yellow" : "green", findings: ordered, rulesVersion: PUBLICATION_SCAN_RULES_VERSION };
+}
+
+/** The static publication check for one skill version (and its changelog). */
+export function scanSkillForPublication(content: SkillContent, extra: { changelog?: string | null } = {}): PublicationScanResult {
+  return scanPublicationFields(
+    [
+      { field: "name", text: content.name },
+      { field: "summary", text: content.summary },
+      ...(content.requirementBlocks ?? []).map((text, i) => ({ field: `requirementBlocks[${i}]`, text })),
+      { field: "sessionRules", text: content.sessionRules ?? "" },
+      { field: "knowledge", text: content.knowledge ?? "" },
+      { field: "changelog", text: extra.changelog ?? "" },
+    ],
+    { weights: content.weights ?? null },
+  );
 }

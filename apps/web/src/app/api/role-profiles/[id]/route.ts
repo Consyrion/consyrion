@@ -1,4 +1,4 @@
-import { archiveRoleProfile, getRoleProfile, saveRoleProfileVersion, setRoleProfileVisibility } from "@consyrion/db";
+import { archiveRoleProfile, getRoleProfile, saveRoleProfileVersion, setRoleProfileVisibility } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

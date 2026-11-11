@@ -9,8 +9,9 @@ import {
   type DecisionReport,
   type ReportLocale,
   type ReportT,
-} from "@consyrion/council";
-import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrion/core/browser";
+} from "@consyrium/council";
+import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrium/core/browser";
+import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
 import type { DecisionAudit } from "./report-audit";
 import type { ReportStatus } from "./report-status";
@@ -77,7 +78,13 @@ const REPLACEMENTS: Record<string, string> = {
   "·": "·",
 };
 const WIN_ANSI_EXTRA = new Set("€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ");
-export function pdfSafe(text: string): string {
+export function pdfSafe(text: string, font?: PDFFont): string {
+  // An embedded font (#268: Noto Sans SC for Chinese) keeps every character it has a glyph for.
+  const custom = (font as unknown as { embedder?: { font?: { hasGlyphForCodePoint?: (cp: number) => boolean } } } | undefined)?.embedder?.font;
+  if (custom?.hasGlyphForCodePoint)
+    return [...text.normalize("NFC")]
+      .map((ch) => (ch === "\t" ? " " : custom.hasGlyphForCodePoint!(ch.codePointAt(0)!) ? ch : (REPLACEMENTS[ch] ?? "?")))
+      .join("");
   return [...text.normalize("NFC")]
     .map((ch) => {
       if (REPLACEMENTS[ch] !== undefined) return REPLACEMENTS[ch];
@@ -167,9 +174,9 @@ function drawSummary(
     page = pdf.addPage([PAGE.width, PAGE.height]);
     y = PAGE.height - PAGE.margin;
   };
-  const text = (t: string, x: number, yy: number, size = 9, font = regular, color = INK) => page.drawText(pdfSafe(t), { x, y: yy, size, font, color });
+  const text = (t: string, x: number, yy: number, size = 9, font = regular, color = INK) => page.drawText(pdfSafe(t, font), { x, y: yy, size, font, color });
   const fit = (t: string, max: number, size: number, font = regular) => {
-    let out = pdfSafe(t);
+    let out = pdfSafe(t, font);
     while (out.length > 3 && font.widthOfTextAtSize(out, size) > max) out = `${out.slice(0, -2)}…`.replace("……", "…");
     return out;
   };
@@ -179,7 +186,7 @@ function drawSummary(
     text(t, left, y, 12, bold, BRAND);
     y -= 14;
   };
-  text("CONSYRION AI", left, y - 9, 9, bold, BRAND);
+  text("CONSYRIUM AI", left, y - 9, 9, bold, BRAND);
   text(t("Session {id} · {date}", { id: meta.sessionId, date: meta.createdAt.toISOString().slice(0, 10) }), left + 90, y - 9, 8, regular, MUTED);
   y -= 34;
   text(t("Decision summary"), left, y, 20, bold, INK);
@@ -211,7 +218,23 @@ function drawSummary(
   const wrap = (value: string, max: number, size: number, font = regular) => {
     const out: string[] = [];
     let line = "";
-    for (const word of pdfSafe(value).split(/\s+/)) {
+    // Words longer than the line (Chinese has no spaces) are cut into pieces that fit.
+    const words = pdfSafe(value, font)
+      .split(/\s+/)
+      .flatMap((w) => {
+        if (font.widthOfTextAtSize(w, size) <= max) return [w];
+        const pieces: string[] = [];
+        let piece = "";
+        for (const ch of w) {
+          if (piece && font.widthOfTextAtSize(piece + ch, size) > max) {
+            pieces.push(piece);
+            piece = "";
+          }
+          piece += ch;
+        }
+        return piece ? [...pieces, piece] : pieces;
+      });
+    for (const word of words) {
       const next = line ? `${line} ${word}` : word;
       if (font.widthOfTextAtSize(next, size) > max) {
         if (line) out.push(line);
@@ -284,7 +307,7 @@ function drawSummary(
       ensure(30);
       const name = `${t("Proposal {label}", { label: p.label ?? "?" })}${p.kind === "hybrid" ? t(" (hybrid)") : ""}`;
       text(name, left, y - 9, 9, bold);
-      const nameW = bold.widthOfTextAtSize(pdfSafe(name), 9) + 8;
+      const nameW = bold.widthOfTextAtSize(pdfSafe(name, bold), 9) + 8;
       text(fit(`${p.title ?? ""}${p.author ? ` (${p.author})` : ""}`, width - nameW, 9), left + nameW, y - 9, 9);
       if (p.summary) text(fit(p.summary, width, 8), left, y - 21, 8, regular, MUTED);
       y -= p.summary ? 30 : 17;
@@ -485,7 +508,26 @@ function drawSummary(
  * The PDF's language: the report language, except Chinese – the standard PDF fonts have no CJK glyphs, so a Chinese
  * PDF stays English until a CJK font is embedded (#268). Markdown, JSON and Word are Chinese already.
  */
-export const pdfLocale = (locale: ReportLocale): ReportLocale => (locale === "zh" ? "en" : locale);
+export const pdfLocale = (locale: ReportLocale): ReportLocale => locale;
+
+let cjkBytes: Promise<Uint8Array> | null = null;
+/** Noto Sans SC from public/fonts (dev: apps/web is the cwd; standalone image: /app with apps/web/public), read once. */
+async function cjkFont(pdf: PDFDocument): Promise<PDFFont> {
+  const { readFile } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  cjkBytes ??= (async () => {
+    for (const dir of [join(process.cwd(), "public"), join(process.cwd(), "apps/web/public")]) {
+      try {
+        return new Uint8Array(await readFile(join(dir, "fonts", "NotoSansSC-Regular.otf")));
+      } catch {
+        // try the next location
+      }
+    }
+    throw new Error("The CJK font for Chinese PDFs is missing (public/fonts/NotoSansSC-Regular.otf).");
+  })();
+  pdf.registerFontkit(fontkit);
+  return pdf.embedFont(await cjkBytes, { subset: true });
+}
 
 export type PdfLevel = "brief" | "report" | "full";
 export const PDF_LEVELS: readonly PdfLevel[] = ["brief", "report", "full"];
@@ -510,11 +552,14 @@ export async function reportPdf(
     }),
     note: t("AI assessment – not independent factual verification"),
   };
-  pdf.setTitle(pdfSafe(meta.title));
-  pdf.setProducer("CONSYRION AI");
-  pdf.setCreator("CONSYRION AI");
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  pdf.setTitle(options.locale === "zh" ? meta.title : pdfSafe(meta.title));
+  pdf.setProducer("CONSYRIUM AI");
+  pdf.setCreator("CONSYRIUM AI");
+  // #268: Chinese needs an embedded CJK font (Noto Sans SC, SIL OFL, public/fonts) – loaded only for zh, embedded as a
+  // subset of the characters used; every other language keeps the small standard fonts.
+  const cjk = options.locale === "zh" ? await cjkFont(pdf) : null;
+  const regular = cjk ?? (await pdf.embedFont(StandardFonts.Helvetica));
+  const bold = cjk ?? (await pdf.embedFont(StandardFonts.HelveticaBold));
   const width = PAGE.width - 2 * PAGE.margin;
   const summary = Boolean(report?.evaluationMatrix);
   if (summary) drawSummary(pdf, report!, { regular, bold }, meta, level === "brief", t, options.locale ?? "en", options.status);
@@ -530,7 +575,7 @@ export async function reportPdf(
   };
   const wrap = (text: string, font: PDFFont, size: number, max: number) => {
     const lines: string[] = [];
-    for (const raw of pdfSafe(text).split("\n")) {
+    for (const raw of pdfSafe(text, font).split("\n")) {
       let line = "";
       for (const word of raw.split(/\s+/)) {
         const next = line ? `${line} ${word}` : word;
@@ -566,7 +611,7 @@ export async function reportPdf(
     y -= opts.gap ?? 4;
   };
 
-  write("CONSYRION AI", { font: bold, size: 9, color: BRAND, gap: 2 });
+  write("CONSYRIUM AI", { font: bold, size: 9, color: BRAND, gap: 2 });
   write(t("Session {id} · {date}", { id: meta.sessionId, date: meta.createdAt.toISOString().slice(0, 10) }), { size: 8, color: MUTED, gap: 10 });
 
   // #268 part 4: the course of the council before the full text – timeline, participation and tokens, follow-up
@@ -653,7 +698,7 @@ export async function reportPdf(
       // #268 part 3: a table continued on a new page repeats its header.
       if (page !== before && !isHeader) row(usageHeader, bold, true);
       cells.forEach((cell, i) => {
-        const text = pdfSafe(cell);
+        const text = pdfSafe(cell, font);
         let shown = text;
         while (i < 2 && shown.length > 3 && font.widthOfTextAtSize(shown, 8.5) > textCols[i + 1]! - textCols[i]! - 6) shown = `${shown.slice(0, -2)}…`;
         const x = i < 2 ? PAGE.margin + textCols[i]! : PAGE.margin + numberEdges[i - 2]! - font.widthOfTextAtSize(shown, 8.5);
@@ -681,7 +726,7 @@ async function finish(pdf: PDFDocument, regular: PDFFont, master?: { id: string;
   const pages = pdf.getPages();
   const width = PAGE.width - 2 * PAGE.margin;
   const fitTo = (value: string, max: number) => {
-    let out = pdfSafe(value);
+    let out = pdfSafe(value, regular);
     while (out.length > 3 && regular.widthOfTextAtSize(out, 7) > max) out = `${out.slice(0, -2)}…`.replace("……", "…");
     return out;
   };
@@ -705,7 +750,7 @@ export async function reportDocx(
 ): Promise<Uint8Array> {
   const t = reportTranslator(locale);
   const children: Array<Paragraph | Table> = [
-    new Paragraph({ children: [new TextRun({ text: "CONSYRION AI", bold: true, color: "0369A1", size: 18 })] }),
+    new Paragraph({ children: [new TextRun({ text: "CONSYRIUM AI", bold: true, color: "0369A1", size: 18 })] }),
     new Paragraph({
       children: [
         new TextRun({ text: t("Session {id} · {date}", { id: meta.sessionId, date: meta.createdAt.toISOString().slice(0, 10) }), color: "5A6680", size: 16 }),
@@ -741,6 +786,6 @@ export async function reportDocx(
       );
     }
   }
-  const doc = new Document({ creator: "CONSYRION AI", title: meta.title, sections: [{ children }] });
+  const doc = new Document({ creator: "CONSYRIUM AI", title: meta.title, sections: [{ children }] });
   return new Uint8Array(await Packer.toBuffer(doc));
 }

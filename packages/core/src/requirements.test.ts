@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { candidateKey, classifySuspicion, extractRequirements, looksLikeInjection, segmentRequirementText } from "./engine";
+import { candidateKey, classifySuspicion, extractRequirements, looksLikeInjection, segmentRequirementText, stripContextSections } from "./engine";
 import { buildConfirmedRequirements, checkBelongsToRequirement, type RequirementCandidate } from "./requirements";
 
 /** The brief of the project "QA-Live 27.10 A – Praxis-SaaS" (#181/#190), written as free text. */
@@ -44,6 +44,13 @@ describe("requirement intake: splitting (#190)", () => {
       "Nie ohne Zustimmung.",
     ]);
     expect(segmentRequirementText("Abschluss bis zum 4. Monat nach Start.")).toEqual(["Abschluss bis zum 4. Monat nach Start."]);
+    // A list heading in the same line as its first item is not part of the requirement (test council 11.11.26).
+    expect(
+      segmentRequirementText("Welche Option? Harte Anforderungen: Die Kosten dürfen höchstens 30 € im Monat betragen. Die Lösung muss in 4 Wochen laufen."),
+    ).toEqual(["Welche Option?", "Die Kosten dürfen höchstens 30 € im Monat betragen.", "Die Lösung muss in 4 Wochen laufen."]);
+    expect(segmentRequirementText("Hard requirements: The service must run in the EU.")).toEqual(["The service must run in the EU."]);
+    // Not a heading: a colon inside a normal sentence stays.
+    expect(segmentRequirementText("Die Anforderungen der Kunden: sie ändern sich oft.")).toEqual(["Die Anforderungen der Kunden: sie ändern sich oft."]);
   });
 
   it("treats list items and lines as statements and joins wrapped lines", () => {
@@ -185,7 +192,7 @@ describe("requirement intake: confirmation (#190)", () => {
 
   it("never proposes the question or the lettered options of an idea as requirements (live case 06.11.26)", () => {
     const idea =
-      "Ist unsere Strategie richtig, CONSYRION AI als Open Source kostenlos anzubieten und Geld nur mit der gehosteten Version zu verdienen? " +
+      "Ist unsere Strategie richtig, CONSYRIUM AI als Open Source kostenlos anzubieten und Geld nur mit der gehosteten Version zu verdienen? " +
       "Welche Teile sollen offen und kostenlos sein, welche nur bezahlt?\n\nDie Engine liegt in einem privaten Repo und darf nicht offen sein.\n\nOptionen:\n" +
       "A) So lassen: offener Kern, private Engine.\nB) Mehr schließen: MCP und Telegram nur noch bezahlt.\nC) Alles öffnen, Einnahmen nur über Hosting.\n" +
       "D) Kein Open Source mehr: Repo privat.\nOption E: nur noch Support verkaufen\nAußerdem: Ist 4,99 € als Pro-Preis richtig?";
@@ -202,5 +209,41 @@ describe("requirement intake: confirmation (#190)", () => {
     ]);
     // In the requirements field the user's own wording stays, even as a question or a lettered line.
     expect(extractRequirements({ idea: "", goal: "", requirements: "A) nur in der EU hosten\nGeht das offline?", documents: [] }).candidates).toHaveLength(2);
+  });
+});
+
+describe("context sections of the assistant's draft (#215 stage 3)", () => {
+  const idea = [
+    "Welche Datenbank nehmen wir für das interne Tool?",
+    "## Optionen [context]",
+    "- A: SQLite",
+    "- B: PostgreSQL",
+    "## Annahmen (unbestätigt) [context]",
+    "- Die Betriebskosten dürfen 50 Euro im Monat nicht überschreiten.",
+    "## Tendenz des Nutzers – bitte kritisch prüfen [context]",
+    "Ich tendiere zu B, weil es skaliert.",
+    "## Rahmen",
+    "Die Daten müssen in Deutschland gespeichert werden.",
+  ].join("\n");
+
+  it("never proposes options, assumptions or the user's leaning as hard requirements; other sections stay", () => {
+    const { candidates } = extractRequirements({ idea, goal: "", requirements: "- Muss bis Ende März live sein.", documents: [] });
+    const all = candidates.map((c) => c.text).join(" | ");
+    expect(all).not.toMatch(/50 Euro|tendiere|SQLite|PostgreSQL/);
+    expect(all).toContain("Die Daten müssen in Deutschland gespeichert werden.");
+    expect(all).toContain("Muss bis Ende März live sein.");
+  });
+
+  it("removes a [context] section only up to the next heading, in any field and any language", () => {
+    expect(stripContextSections("a\n## Assumptions [context]\nb\n## Limits\nc")).toBe("a\n## Limits\nc");
+    expect(stripContextSections("### Hypothèses [CONTEXT]\nx")).toBe("");
+    expect(stripContextSections("no sections here [context] inline")).toBe("no sections here [context] inline");
+    const { candidates } = extractRequirements({
+      idea: "",
+      goal: "",
+      requirements: "- Muss DSGVO-konform sein.\n## Annahmen [context]\n- Muss unter 50 Euro kosten.",
+      documents: [],
+    });
+    expect(candidates.map((c) => c.text)).toEqual(["Muss DSGVO-konform sein."]);
   });
 });

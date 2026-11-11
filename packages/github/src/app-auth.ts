@@ -1,5 +1,5 @@
 import { createHmac, createSign, timingSafeEqual } from "node:crypto";
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 
 export interface GitHubAppConfig {
   appId: string;

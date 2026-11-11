@@ -1,6 +1,7 @@
 "use client";
 
-import { COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrion/core/browser";
+import { COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrium/core/browser";
+import { interventionCounts } from "./human-questions";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { useEngineText } from "./engine-text";
@@ -39,6 +40,7 @@ export function CruxesCard({ view, recommendedId }: { view: View; recommendedId:
     <Card>
       <h3 className="font-semibold">{t("title")}</h3>
       <p className="text-xs text-muted">{t("intro")}</p>
+      <HumanCount view={view} />
       {everything.length ? (
         <div role="group" aria-label={t("filterAria")} className="mt-3 flex flex-wrap gap-1.5 text-xs">
           {filters.map((f) => (
@@ -187,4 +189,12 @@ function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
       ) : null}
     </li>
   );
+}
+
+/** #15/#41 (read-only): how many human questions and marks exist – shown, never counted in the ranking. */
+function HumanCount({ view }: { view: View }) {
+  const t = useTranslations("interventions");
+  const { questions, marks } = interventionCounts(view);
+  if (!questions && !marks) return null;
+  return <p className="mt-1 text-xs text-primary">{t("cruxCount", { questions, marks })}</p>;
 }

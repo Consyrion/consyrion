@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { usePageVisible, usePrefersReducedMotion } from "@/lib/motion";
 import { STAGE_COLORS } from "../fx/ribbon-field";
-import { MarkShapes } from "./consyrion-logo";
+import { MarkShapes } from "./consyrium-logo";
 import { RING_PATH } from "./geometry";
 import type { Spheres3D, SphereState } from "./orbital-spheres-3d";
 
@@ -89,7 +89,7 @@ function surface(r: number) {
 }
 
 /**
- * Sign-in brand illustration (#84): the original CONSYRION AI mark as the sun in a glowing core, three plastic
+ * Sign-in brand illustration (#84): the original CONSYRIUM AI mark as the sun in a glowing core, three plastic
  * spheres in cyan, mint and violet on a slow tilted orbit around it – passing behind the core on the far side and
  * in front of it on the near side, larger when near – linked to the core by energy spokes. Purely decorative:
  * aria-hidden, no status meaning, not a running council.
@@ -99,7 +99,7 @@ function surface(r: number) {
  * fallback. Motion runs on requestAnimationFrame (no React state per frame), pauses when the tab or the element
  * is hidden and via the Pause button, and is a still frame for reduced motion.
  */
-export function ConsyrionOrbitalLogo({ className = "" }: { className?: string }) {
+export function ConsyriumOrbitalLogo({ className = "" }: { className?: string }) {
   const uid = useId().replace(/:/g, "");
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
@@ -225,7 +225,7 @@ export function ConsyrionOrbitalLogo({ className = "" }: { className?: string })
         <g clipPath={`url(#${uid}-clip)`}>
           <g
             className="planet-surface"
-            style={animate && !webgl ? ({ "--travel-x": `${-2 * PLANET_R}px`, animation: `consyrion-spin-surface ${planet.spin}s linear infinite` } as CSSProperties) : undefined}
+            style={animate && !webgl ? ({ "--travel-x": `${-2 * PLANET_R}px`, animation: `consyrium-spin-surface ${planet.spin}s linear infinite` } as CSSProperties) : undefined}
           >
             {bands.map((d, k) => (
               <path key={k} d={d} fill={k % 2 ? "#020617" : planet.tint} fillOpacity={k % 2 ? 0.28 : 0.3} />
@@ -324,7 +324,7 @@ export function ConsyrionOrbitalLogo({ className = "" }: { className?: string })
                 strokeWidth={2.2}
                 strokeLinecap="round"
                 strokeDasharray="6 70"
-                style={{ "--travel": "-76px", animation: `consyrion-flow ${2.2 + index * 0.4}s linear infinite` } as CSSProperties}
+                style={{ "--travel": "-76px", animation: `consyrium-flow ${2.2 + index * 0.4}s linear infinite` } as CSSProperties}
               />
             ) : null}
           </g>
@@ -346,7 +346,7 @@ export function ConsyrionOrbitalLogo({ className = "" }: { className?: string })
                 strokeLinecap="round"
                 strokeDasharray="6 40"
                 opacity={0.75}
-                style={{ "--travel": "-92px", animation: "consyrion-flow 4.5s linear infinite" } as CSSProperties}
+                style={{ "--travel": "-92px", animation: "consyrium-flow 4.5s linear infinite" } as CSSProperties}
               />
             ) : null}
           </g>

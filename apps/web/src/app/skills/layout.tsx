@@ -9,7 +9,7 @@ export default async function SkillHubLayout({ children }: { children: React.Rea
       <header className="border-b border-glass-line">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 text-sm md:px-8">
           <Link href="/" className="font-semibold tracking-wide">
-            CONSYRION AI
+            CONSYRIUM AI
           </Link>
           <nav className="flex gap-4 text-muted">
             <Link href="/skills" className="hover:text-text">

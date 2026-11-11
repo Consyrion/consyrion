@@ -1,9 +1,9 @@
 import "server-only";
-import { approximateCost, listPriceHints, type ActorContext, type Database } from "@consyrion/db";
+import { approximateCost, listPriceHints, type ActorContext, type Database } from "@consyrium/db";
 
 /**
  * Approximate cost of each assistant answer (#281), from the prices the workspace entered for its models
- * (Settings → Billing & usage; BYOK – CONSYRION never bills tokens). Transparency only: null when no price is set for
+ * (Settings → Billing & usage; BYOK – CONSYRIUM never bills tokens). Transparency only: null when no price is set for
  * that model, so nothing is invented. Messages store the model as "provider/modelId".
  */
 export interface AssistantCost {

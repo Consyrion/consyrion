@@ -11,6 +11,7 @@
       "rejected": "已拒绝",
       "changes_requested": "已请求修改",
       "awaitingReview": "等待你的审阅",
+      "ideaChecked": "想法已检查",
       "noApprovableProposal": "没有可批准的方案"
     },
     "cancelError": "无法取消",
@@ -49,7 +50,8 @@
       "failed": "失败",
       "blocked": "受阻",
       "cancelled": "已取消",
-      "skipped": "已跳过"
+      "skipped": "已跳过",
+      "shortened": "已缩短"
     },
     "execText": {
       "notStarted": "未开始",
@@ -150,7 +152,9 @@
     "gateEnded": "Council 在没有裁决的情况下结束——无法据此批准或构建任何内容。",
     "gateDebate": "辩论进行中；最终批准在裁决之后进行。",
     "reviewVerdict": "审阅裁决",
-    "viewVerdict": "查看裁决"
+    "viewVerdict": "查看裁决",
+    "archived": "项目已归档。",
+    "gateArchived": "此处无法批准、标记或构建——请在项目页面恢复项目后继续。"
   },
   "phaseScreens": {
     "none": "无",
@@ -351,9 +355,9 @@
       "securityLow": "安全评分 {score} 低于最低值 {min}",
       "blocking": "{count, plural, other {仍有 # 个阻断性异议未解决}}",
       "totalLow": "总分 {score} 低于最低值 {min}",
-      "notInGate": "不合格：要求检查中没有此提案",
+      "notInGate": "不合格：要求检查中没有此方案",
       "notQualified": "不合格：{cause}",
-      "declaredUnsolvable": "不可实施：提案本身表示无法同时满足所有硬性要求",
+      "declaredUnsolvable": "不可实施：方案本身表示无法同时满足所有硬性要求",
       "hardUnmet": "不可实施：{n} 位独立评审中有 {k} 位认为某项硬性要求未满足"
     },
     "formulaText": {
@@ -456,7 +460,8 @@
       "onlyOwners": "只有所有者和管理员可以批准决定。",
       "markFavorite": "标记为首选（不批准、不构建）",
       "approvePrototype": "批准原型/测量构建（不是完成的解决方案）",
-      "approveAfterMeasurement": "测量后批准"
+      "approveAfterMeasurement": "测量后批准",
+      "archived": "此项目已归档——请先在项目页面恢复，才能决定、标记、测量或构建。"
     },
     "reasons": {
       "needsVerification": "需要核实——委员会无法确认有方案满足全部要求。该方案不能被批准或构建。",
@@ -494,7 +499,7 @@
     },
     "followUp": {
       "title": "补充检查（可选，会消耗 token）",
-      "intro": "同样的 AI 评审再看一次——只看列出的检查，针对已冻结的方案。FAIL 永远不会被重新询问或替换。只有在你确认追加预算后才会运行。",
+      "intro": "同样的 AI 评审再看一次——只看列出的检查，针对已冻结的方案。“未满足”永远不会被重新询问或替换。只有在你确认追加预算后才会运行。",
       "completion": {
         "button": "补全 {n} 项缺失的检查（≈ {tokens} token）",
         "explain": "只向遗漏检查的评审询问这些检查，之后重新计算结论。"
@@ -517,7 +522,7 @@
   },
   "requirementGate": {
     "title": "每个方案的已确认要求",
-    "intro": "只有当每个预期的评估者都带理由确认了要求的每个部分时，该要求才算满足。PASS 和 FAIL 是已保存的、带理由的模型判断，不是独立的事实核查。",
+    "intro": "只有当每个预期的评估者都带理由确认了要求的每个部分时，该要求才算满足。“已确认”和“未满足”是已保存的、带理由的模型判断，不是独立的事实核查。",
     "proposal": "方案 {label}",
     "feasibility": {
       "qualified": "满足所有已确认的要求",
@@ -547,7 +552,8 @@
         "across": "{n} 位评估者中有 {k} 位的范围跨越限值",
         "noEstimate": "{n} 位评估者中有 {k} 位没有给出可用估计",
         "noAnswer": "{n} 位评估者中有 {k} 位没有给出有效回答"
-      }
+      },
+      "summary": "由 {n, plural, other {# 个模型}}估算：{low}–{high}{unit}（中位数 {median}）· 限值 {relation} {limit}{unit}。只有每个范围都符合限值才算满足。"
     },
     "relation": {
       "below": "低于",
@@ -555,8 +561,8 @@
       "above": "高于",
       "atLeast": "不低于"
     },
-    "pass": "PASS：{names}。",
-    "fail": "FAIL：{names}。",
+    "pass": "确认者:{names}。",
+    "fail": "认为未满足:{names}。",
     "unknown": "无定论：{names}。",
     "open": "无回答：{names}。",
     "conflicts": "自相矛盾（计为 FAIL）：{names}。",
@@ -572,13 +578,13 @@
       "disputed": "{id} 有争议：{n} 位评估者中 {pass} 位确认，{fail} 位认为未满足。",
       "notConfirmed": "{id} 未确认：{n} 位评估者中有 {k} 位无法确认。",
       "noAnswer": "{id} 未确认：{n} 位评估者中有 {k} 位没有给出有效回答。",
-      "authorDeclines": "作者表示此提案并未满足所有要求（单凭这一点不具决定性）。",
+      "authorDeclines": "作者表示此方案并未满足所有要求（单凭这一点不具决定性）。",
       "architectureCandidate": "架构候选——性能证明待定：{ids} 只能通过测量运行中的实现来确认；评审确认的是测量计划，而不是该要求。"
     },
     "buildPending": "已有验证计划——实现后验证",
-    "buildPendingHint": "提案说明了如何验证（测试、CI）。目前尚未验证：在变更被视为成功之前，构建必须证明这一点。",
+    "buildPendingHint": "方案说明了如何验证（测试、CI）。目前尚未验证：在变更被视为成功之前，构建必须证明这一点。",
     "measurementPending": "已有测量计划——实现后测量",
-    "measurementPendingHint": "提案说明了如何测量（方法、目标值、测量设置）。目前尚未满足：只有对运行中的实现进行测量才能确认。该要求保持不变。"
+    "measurementPendingHint": "方案说明了如何测量（方法、目标值、测量设置）。目前尚未满足：只有对运行中的实现进行测量才能确认。该要求保持不变。"
   },
   "engineText": {
     "noJudgeFailed": "没有可用的独立审查者 – 每位合格评审均出现 {reason}",
@@ -602,7 +608,7 @@
       "single_evaluator": "方案 {label} 仅由一位独立评估者评分（只有两个活跃模型）",
       "requirements_disputed": "{total} 位独立评估者中有 {failed} 位认为方案 {label} 未满足一项硬性要求",
       "insufficient_evaluators": "{expected} 位预期评估者中只有 {evaluators} 位给出可用评分 – 不足以作出 council 决策；请重新评估",
-      "no_debate_contribution": "{model} 未向 12 Minds Council 提供任何角色审查（所有调用均失败）；辩论中缺少其视角，但若其参与评估，其投票仍计入 Final Verdict",
+      "no_debate_contribution": "{model} 未在 12 Minds Council 中提供角色评审（没有成功的调用——其调用失败，或预算在轮到它之前缩短了该阶段）；其视角在辩论中缺失，但若它进行了评估，其投票在 Final Verdict 中仍然计入",
       "undefended_proposal": "方案 {label} 未得到辩护 – {reason}：{count, plural, one {# 条针对它的异议} other {# 条针对它的异议}}仍未回应，这不等于无人反驳的批评",
       "phase_shortened": "为给 Final Verdict 保留 token 预算，{phase} 被缩短；裁决基于当时已有的修订版本",
       "weighting_changed_winner_both": "投票权重决定了结果：若权重相同，council 会推荐方案 {unweighted}；加权后推荐方案 {weighted}",
@@ -753,7 +759,62 @@
     "exportPdf": "完整报告（PDF）",
     "exportMarkdown": "报告（Markdown）",
     "stopFirst": "此委员会仍在运行——请先停止它（并取消正在进行的构建），然后再删除会话。",
-    "external": "CONSYRION 不会删除已发送的报告、GitHub 上的草稿拉取请求以及备份（直到其保留期结束）。本月的委员会次数不会重置。",
+    "external": "CONSYRIUM 不会删除已发送的报告、GitHub 上的草稿拉取请求以及备份（直到其保留期结束）。本月的委员会次数不会重置。",
     "button": "删除会话"
+  },
+  "processQuality": {
+    "title": "过程质量",
+    "intro": "根据已存储的数据计算此委员会的工作方式。它描述过程，并不证明结论正确。",
+    "notMeasurable": "此委员会无法测量",
+    "participation": {
+      "title": "参与情况",
+      "value": "{total} 个模型中有 {valid} 个在每个阶段都有交付（{groups} 个独立模型中有 {groupsValid} 个——同一模型的多个实例只算一次）。"
+    },
+    "convergence": {
+      "title": "方案的趋同",
+      "strong": "强：方案明显趋同（共同用词 {initial} → {latest}）。请检查是否失去了真正的替代方案。",
+      "moderate": "中等：方案有所趋同（共同用词 {initial} → {latest}）。",
+      "little": "弱：方案保持差异（共同用词 {initial} → {latest}）。",
+      "fewer_than_two_proposals": "无法测量——方案少于两个",
+      "no_revisions": "无法测量——没有方案被修订",
+      "limit": "按共同词语衡量，而非内容。"
+    },
+    "objections": {
+      "title": "异议的影响",
+      "none": "没有提出异议——这本身并不代表质量。",
+      "value": "{total} 条异议：最终仍成立 {survived} 条，被驳回 {refuted} 条。仍成立的异议中：{revised} 条之后有修订，{blocking} 条为阻断，{noEffect} 条无可见影响。",
+      "limit": "按时间和目标方案归属，并未证明是原因。"
+    },
+    "weight": {
+      "title": "投票权重",
+      "changed": "投票权重决定了胜出者：加权为方案 {weighted}，等权为方案 {unweighted}。最强的独立模型占 {share} 的投票。",
+      "unchanged": "权重没有改变胜出者。最强的独立模型占 {share} 的投票（{groups} 个独立模型）。",
+      "noWinner": "不适用——没有可批准的胜出者"
+    },
+    "footer": "仅根据已存储的数据计算；不调用模型，也不与单一模型比较。"
+  },
+  "processQualityOverview": {
+    "title": "过程质量",
+    "description": "本工作区最近的委员会如何工作——来自已存储数据的数字，不含内容。它描述过程，并不证明结论正确。",
+    "back": "返回决策",
+    "emptyTitle": "尚无结论",
+    "emptyText": "委员会得出结论后才会显示过程质量。",
+    "summaryTitle": "最近 {n, plural, other {# 个委员会}}",
+    "summary": {
+      "participation": "{n} 个委员会中有 {full} 个，每个模型在每个阶段都有交付。",
+      "convergence": "方案趋同：强 {strong}，中等 {moderate}，弱 {little}，无法测量 {none}。",
+      "objections": "共 {total} 条异议，最终仍成立 {survived} 条，其中 {noEffect} 条无可见影响。",
+      "weight": "{total} 个委员会中有 {n} 个由投票权重决定了胜出者。"
+    },
+    "col": {
+      "council": "委员会"
+    },
+    "level": {
+      "strong": "强",
+      "moderate": "中等",
+      "little": "弱"
+    },
+    "weightDecided": "权重决定",
+    "legend": "参与情况按独立模型计数（同一模型的实例只算一次）；异议：仍成立/总数；权重：最强独立模型的占比，若改变了胜出者则显示“权重决定”。"
   }
 }

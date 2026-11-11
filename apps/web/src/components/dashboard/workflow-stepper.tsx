@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrion/core/browser";
+import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrium/core/browser";
 
 export type StepState = "pending" | "running" | "completed" | "failed" | "skipped";
 

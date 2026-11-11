@@ -3,11 +3,11 @@ import { getKeyring } from "./keyring";
 import { logger } from "./logger";
 import { telegramNotifierTick } from "./telegram-bot";
 
-const globalForNotifier = globalThis as unknown as { consyrionTelegramNotifier?: ReturnType<typeof setInterval> };
+const globalForNotifier = globalThis as unknown as { consyriumTelegramNotifier?: ReturnType<typeof setInterval> };
 
 /** Every 30 s: verdicts of councils started over Telegram go back to their chat (one web process runs it). */
 export function startTelegramNotifier() {
-  if (globalForNotifier.consyrionTelegramNotifier || process.env.TELEGRAM_NOTIFIER === "off") return;
+  if (globalForNotifier.consyriumTelegramNotifier || process.env.TELEGRAM_NOTIFIER === "off") return;
   let keyring;
   try {
     keyring = getKeyring();
@@ -16,7 +16,7 @@ export function startTelegramNotifier() {
   }
   const appUrl = (process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
   let running = false;
-  globalForNotifier.consyrionTelegramNotifier = setInterval(() => {
+  globalForNotifier.consyriumTelegramNotifier = setInterval(() => {
     if (running) return;
     running = true;
     void getDb()

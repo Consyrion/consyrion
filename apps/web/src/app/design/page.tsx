@@ -1,5 +1,6 @@
-import { ConsyrionMark, ConsyrionWordmark } from "@/components/brand/consyrion-logo";
+import { ConsyriumMark, ConsyriumWordmark } from "@/components/brand/consyrium-logo";
 import { ElectricLogo } from "@/components/brand/electric-logo";
+import { ActivityNetwork } from "@/components/dashboard/activity-network";
 import { CouncilNetwork } from "@/components/dashboard/council-network";
 import { LiveMetricCard } from "@/components/dashboard/live-metric-card";
 import { stepStatesFor, WorkflowStepper } from "@/components/dashboard/workflow-stepper";
@@ -35,7 +36,7 @@ export default function DesignGalleryPage() {
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-10 md:px-8">
         <header>
           <p className="text-xs font-semibold tracking-widest text-primary">DESIGN SYSTEM</p>
-          <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold">CONSYRION AI component gallery</h1>
+          <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold">CONSYRIUM AI component gallery</h1>
           <p className="mt-2 max-w-2xl text-muted">
             Glass surfaces, neon accents and motion states. All numbers below are demo fixtures. Toggle “reduce motion” in your OS to see the static variants.
           </p>
@@ -47,21 +48,21 @@ export default function DesignGalleryPage() {
           </h2>
           <div className="grid gap-4 md:grid-cols-4">
             <GlassPanel className="grid place-items-center gap-2 p-6">
-              <ConsyrionMark size={72} />
+              <ConsyriumMark size={72} />
               <p className="text-xs text-muted">Static mark (fallback)</p>
             </GlassPanel>
             <GlassPanel className="grid place-items-center gap-2 p-6">
-              <ElectricLogo size={72} mode="ambient" title="CONSYRION AI – ambient" />
+              <ElectricLogo size={72} mode="ambient" title="CONSYRIUM AI – ambient" />
               <p className="text-xs text-muted">Electric · ambient loop</p>
             </GlassPanel>
             <GlassPanel className="grid place-items-center gap-2 p-6">
-              <ElectricLogo size={72} mode="hover" title="CONSYRION AI – hover" />
+              <ElectricLogo size={72} mode="hover" title="CONSYRIUM AI – hover" />
               <p className="text-xs text-muted">Electric · hover / focus</p>
             </GlassPanel>
             <GlassPanel className="grid place-items-center gap-3 p-6">
               <span className="flex items-center gap-2">
-                <ConsyrionMark size={32} title="" />
-                <ConsyrionWordmark className="text-sm" />
+                <ConsyriumMark size={32} title="" />
+                <ConsyriumWordmark className="text-sm" />
               </span>
               <p className="text-xs text-muted">Mark + wordmark</p>
             </GlassPanel>
@@ -202,6 +203,38 @@ export default function DesignGalleryPage() {
               <CouncilNetwork
                 caption="Demo fixture: idle council – nothing pulses."
                 nodes={["Architect", "Security", "Cost"].map((l) => ({ id: l, label: l, sublabel: l, state: "idle" as const }))}
+              />
+            </GlassPanel>
+          </div>
+        </section>
+
+        <section aria-labelledby="g-activity" className="space-y-4">
+          <h2 id="g-activity" className="font-semibold">
+            Dashboard activity network
+          </h2>
+          <p className="text-sm text-muted">Demo fixtures – the layout follows the number of models; texts stand on the outer side of each node.</p>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <GlassPanel className="p-5">
+              <ActivityNetwork
+                centerTitle="DECISION"
+                centerSubtitle="Demo: running"
+                nodes={[
+                  { id: "a", provider: "anthropic", model: "demo-model-a", state: "working" },
+                  { id: "b", provider: "openai", model: "demo-model-b", state: "done" },
+                  { id: "c", provider: "deepseek", model: "demo-model-c", state: "failed" },
+                ]}
+              />
+            </GlassPanel>
+            <GlassPanel className="p-5">
+              <ActivityNetwork
+                centerTitle="DECISION"
+                centerSubtitle="Demo: awaiting approval"
+                nodes={["glm", "openai", "anthropic", "kimi", "google", "deepseek"].map((provider, i) => ({
+                  id: provider,
+                  provider,
+                  model: `demo-model-${String.fromCharCode(97 + i)}-long-name`,
+                  state: "done" as const,
+                }))}
               />
             </GlassPanel>
           </div>

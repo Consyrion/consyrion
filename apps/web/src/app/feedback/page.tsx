@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ConsyrionWordmark } from "@/components/brand/consyrion-logo";
+import { ConsyriumWordmark } from "@/components/brand/consyrium-logo";
 import { FeedbackForm } from "@/components/feedback";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Card } from "@/components/ui/surface";
@@ -22,8 +22,8 @@ export default async function PublicFeedbackPage({ searchParams }: { searchParam
     <div className="min-h-screen bg-bg text-text">
       <header className="border-b border-glass-line">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 text-sm md:px-8">
-          <Link href="/" aria-label="CONSYRION AI">
-            <ConsyrionWordmark className="text-xs" />
+          <Link href="/" aria-label="CONSYRIUM AI">
+            <ConsyriumWordmark className="text-xs" />
           </Link>
           <LanguageSwitcher />
         </div>

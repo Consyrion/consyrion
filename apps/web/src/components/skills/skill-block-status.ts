@@ -37,7 +37,7 @@ export function countStatuses(statuses: SkillBlockStatus[]) {
   };
 }
 
-const EVENT = "consyrion:skill-blocks-dismissed";
+const EVENT = "consyrium:skill-blocks-dismissed";
 
 function read(key: string): Set<string> {
   try {

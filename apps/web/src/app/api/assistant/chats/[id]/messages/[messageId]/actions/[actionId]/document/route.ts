@@ -1,6 +1,6 @@
-import { listSessions } from "@consyrion/council";
-import { DomainError } from "@consyrion/core";
-import { getAssistantChat } from "@consyrion/db";
+import { listSessions } from "@consyrium/council";
+import { DomainError } from "@consyrium/core";
+import { getAssistantChat } from "@consyrium/db";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";
@@ -40,7 +40,7 @@ export const GET = handle(async (request: Request, { params }: Params) => {
   return new Response(Buffer.from(bytes), {
     headers: {
       "Content-Type": TYPES[formatKey],
-      "Content-Disposition": `attachment; filename="${documentFileName("consyrion-summary", project ?? "customer", formatKey)}"`,
+      "Content-Disposition": `attachment; filename="${documentFileName("consyrium-summary", project ?? "customer", formatKey)}"`,
       "Cache-Control": "no-store",
     },
   });

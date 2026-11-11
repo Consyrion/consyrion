@@ -3,10 +3,12 @@
 import { useFormatter, useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { MIN_QUESTION_TOKENS } from "@/lib/assistant-estimate";
 import { checkSummary, isSensitiveTopic, sameModelId, type CheckVerdict } from "@/lib/council-check";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
+import { followSessionStatus } from "@/lib/session-status-stream";
+import { Markdown } from "@/components/ui/markdown";
 import { Select } from "@/components/ui/select";
 
 /**
@@ -82,12 +84,12 @@ interface Credential {
 }
 
 /** Event other components send to open the panel (#279), see `openAssistant` in assistant-open.ts. */
-export const OPEN_ASSISTANT_EVENT = "consyrion:open-assistant";
+export const OPEN_ASSISTANT_EVENT = "consyrium:open-assistant";
 
-const STORE_OPEN = "consyrion-assistant-open";
-const STORE_TAB = "consyrion-assistant-tab";
-const STORE_MODEL = "consyrion-assistant-model";
-const STORE_CHAT_MODE = "consyrion-assistant-chat-mode";
+const STORE_OPEN = "consyrium-assistant-open";
+const STORE_TAB = "consyrium-assistant-tab";
+const STORE_MODEL = "consyrium-assistant-model";
+const STORE_CHAT_MODE = "consyrium-assistant-chat-mode";
 /** Expert perspectives for one model (#241 stage 1b) – same list as PERSPECTIVES on the server. */
 const PERSPECTIVE_KEYS = ["security", "cost", "product", "architecture", "operations", "legal"] as const;
 
@@ -128,6 +130,11 @@ export function AssistantPanel() {
   const [limits, setLimits] = useState({ daily: "", monthly: "" });
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<string | null>(null);
+  // #215 stage 1: "prepare a project with me" – the answers ask for what a council needs and carry a checklist.
+  const [interview, setInterview] = useState(false);
+  // #486 part 3: report the conversation – explanation, the server's exact excerpt as preview, explicit consent.
+  const [report, setReport] = useState<{ excerpt: string | null; explanation: string; consent: boolean; busy: boolean } | null>(null);
+  const [reportNote, setReportNote] = useState<string | null>(null);
   // #241 stage 2: cross-checks of council-chat answers; the preview (models + tokens) is shown before anything is paid.
   const [checks, setChecks] = useState<Check[]>([]);
   const [checking, setChecking] = useState<string | null>(null);
@@ -152,12 +159,20 @@ export function AssistantPanel() {
   const tabButtonRef = useRef<HTMLButtonElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Page context: on a decision page the question is about that decision (visible, removable).
+  // Page context: on a decision or project page the question is about it (visible, removable). #486: the quick
+  // questions follow the page as well.
   const sessionId = pathname?.match(/^\/sessions\/(ses_[\w]+)/)?.[1] ?? null;
+  const projectId = sessionId ? null : (pathname?.match(/^\/projects\/(prj_[\w]+)/)?.[1] ?? null);
+  const pageContext = sessionId ? { kind: "session", id: sessionId } : projectId ? { kind: "project", id: projectId } : null;
+  const quickQuestions = sessionId
+    ? (["summary", "against", "next"] as const)
+    : projectId
+      ? (["projectGaps", "projectReady", "projectRisks"] as const)
+      : (["open", "waiting", "summary"] as const);
   const [useContext, setUseContext] = useState(true);
   useEffect(() => {
     setUseContext(true);
-  }, [sessionId]);
+  }, [sessionId, projectId]);
 
   const setOpen = useCallback((value: boolean) => {
     setOpenState(value);
@@ -319,7 +334,7 @@ export function AssistantPanel() {
             content,
             participants,
             perspective: chatMode === "single" && perspective ? perspective : undefined,
-            context: sessionId && useContext ? { kind: "session", id: sessionId } : undefined,
+            context: pageContext && useContext ? pageContext : undefined,
           }),
         },
       );
@@ -384,6 +399,35 @@ export function AssistantPanel() {
     }
   }
 
+  async function openReport() {
+    if (!chatId) return;
+    setReportNote(null);
+    setReport({ excerpt: null, explanation: "", consent: false, busy: true });
+    try {
+      const r = await fetchJson<{ excerpt: string }>(`/api/assistant/chats/${chatId}/report`, { method: "POST", body: JSON.stringify({ preview: true }) });
+      setReport({ excerpt: r.excerpt, explanation: "", consent: false, busy: false });
+    } catch (err) {
+      setReport(null);
+      setReportNote(err instanceof ApiRequestError ? err.message : t("error"));
+    }
+  }
+
+  async function sendReport() {
+    if (!chatId || !report) return;
+    setReport({ ...report, busy: true });
+    try {
+      await fetchJson(`/api/assistant/chats/${chatId}/report`, {
+        method: "POST",
+        body: JSON.stringify({ explanation: report.explanation, consent: report.consent }),
+      });
+      setReport(null);
+      setReportNote(t("report.sent"));
+    } catch (err) {
+      setReport({ ...report, busy: false });
+      setReportNote(err instanceof ApiRequestError ? err.message : t("error"));
+    }
+  }
+
   const loadChats = useCallback(() => {
     fetchJson<{ chats: ChatSummary[] }>("/api/assistant/chats")
       .then((r) => setChats(r.chats))
@@ -404,6 +448,9 @@ export function AssistantPanel() {
     setMessages(r.messages);
     setChecks(r.checks ?? []);
     setCheckPreview(null);
+    setInterview(Boolean(interviewOf(r.messages)));
+    setReport(null);
+    setReportNote(null);
     setSummaryUntil(r.chat.summaryUntil);
     setSummaryNote(null);
     setTab("chat");
@@ -420,6 +467,9 @@ export function AssistantPanel() {
     setMessages([]);
     setChecks([]);
     setCheckPreview(null);
+    setInterview(false);
+    setReport(null);
+    setReportNote(null);
     setSummaryUntil(null);
     setSummaryNote(null);
     setError(null);
@@ -456,7 +506,15 @@ export function AssistantPanel() {
     try {
       const r = await streamAnswer(
         `/api/assistant/chats/${chatId ?? "new"}/messages`,
-        { content, credentialId, modelId, context: sessionId && useContext ? { kind: "session", id: sessionId } : undefined },
+        {
+          content,
+          credentialId,
+          modelId,
+          context: pageContext && useContext ? pageContext : undefined,
+          interview: interview && !override ? true : undefined,
+          // #583: "Make it a council" asks for a project card – the server marks the answer when none came.
+          expectCard: override ? true : undefined,
+        },
         controller.signal,
         (event) => {
           if (event.type === "delta") setStreamText((text) => text + event.text);
@@ -588,11 +646,27 @@ export function AssistantPanel() {
                   {summaryNote}
                 </p>
               ) : null}
+              {interview ? <InterviewBanner items={interviewOf(messages)} onEnd={() => setInterview(false)} /> : null}
               {messages.length === 0 ? (
                 <div className="space-y-2 text-sm text-muted">
-                  <p>{t("empty")}</p>
+                  {!interview && chatMode === "single" ? (
+                    <button
+                      type="button"
+                      tabIndex={open ? 0 : -1}
+                      className="w-full rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-left text-xs text-text hover:border-primary"
+                      onClick={() => {
+                        setInterview(true);
+                        inputRef.current?.focus();
+                      }}
+                      data-testid="start-interview"
+                    >
+                      <span className="block font-medium text-primary">{t("interview.start")}</span>
+                      <span className="text-muted">{t("interview.startNote")}</span>
+                    </button>
+                  ) : null}
+                  <p>{interview ? t("interview.empty") : t("empty")}</p>
                   <ul className="space-y-1.5">
-                    {(["open", "waiting", "summary"] as const).map((key) => (
+                    {quickQuestions.map((key) => (
                       <li key={key}>
                         <button
                           type="button"
@@ -636,6 +710,12 @@ export function AssistantPanel() {
                         all.map((x) => (x.id === m.id ? { ...x, actions: (x.actions ?? []).map((a) => (a.id === updated.id ? updated : a)) } : x)),
                       )
                     }
+                    retryCard={
+                      // #583: only under the latest answer, with the question that asked for the card.
+                      m.id === messages[messages.length - 1]?.id && !busy && (councilModels[0] || model)
+                        ? () => void send({ content: questionBefore(messages, m.id), model: councilModels[0] || model })
+                        : null
+                    }
                   />
                 ))
               )}
@@ -664,6 +744,60 @@ export function AssistantPanel() {
                   <p className="mt-1 text-muted">{t("makeCouncilNote", { model: modelLabel(councilModels[0]!) })}</p>
                 </div>
               ) : null}
+              {chatId && messages.length > 0 && !busy ? (
+                <div className="text-[11px] text-muted" data-testid="report-conversation">
+                  {report ? (
+                    <div className="space-y-2 rounded-xl border border-line bg-surface-2/60 p-3">
+                      <p className="font-medium text-text">{t("report.title")}</p>
+                      <label className="block">
+                        <span>{t("report.explanation")}</span>
+                        <textarea
+                          value={report.explanation}
+                          maxLength={800}
+                          rows={3}
+                          onChange={(e) => setReport({ ...report, explanation: e.target.value })}
+                          className="mt-1 w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-xs text-text focus:border-primary focus:outline-none"
+                        />
+                      </label>
+                      <p>{t("report.previewLabel")}</p>
+                      <pre className="max-h-48 overflow-auto rounded-lg border border-line bg-surface p-2 text-[11px] break-words whitespace-pre-wrap text-text">
+                        {report.excerpt ?? t("thinking")}
+                      </pre>
+                      <label className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={report.consent}
+                          onChange={(e) => setReport({ ...report, consent: e.target.checked })}
+                          className="mt-0.5"
+                        />
+                        <span>{t("report.consent")}</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-primary px-2 py-0.5 text-primary hover:bg-primary/10 disabled:opacity-50"
+                          disabled={report.busy || !report.consent || report.explanation.trim().length < 3 || !report.excerpt}
+                          onClick={() => void sendReport()}
+                        >
+                          {t("report.send")}
+                        </button>
+                        <button type="button" className="rounded-full border border-line px-2 py-0.5 hover:text-text" onClick={() => setReport(null)}>
+                          {t("crossCheckCancel")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" className="underline hover:text-text" onClick={() => void openReport()}>
+                      {t("report.open")}
+                    </button>
+                  )}
+                  {reportNote ? (
+                    <p className="mt-1" role="status">
+                      {reportNote}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <div ref={endRef} />
             </div>
             <div className="border-t border-line p-3">
@@ -676,9 +810,11 @@ export function AssistantPanel() {
                   </Link>
                 </p>
               ) : null}
-              {sessionId && useContext ? (
+              {pageContext && useContext ? (
                 <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted">
-                  <span className="rounded-full border border-primary/40 px-2 py-0.5 text-primary">{t("contextSession")}</span>
+                  <span className="rounded-full border border-primary/40 px-2 py-0.5 text-primary">
+                    {t(pageContext.kind === "session" ? "contextSession" : "contextProject")}
+                  </span>
                   <button type="button" className="underline" onClick={() => setUseContext(false)} tabIndex={open ? 0 : -1}>
                     {t("removeContext")}
                   </button>
@@ -1035,11 +1171,63 @@ async function streamAnswer(
   throw new ApiRequestError("The answer was interrupted.", 502);
 }
 
+/** The interview checklist of the latest answer that has one (#215 stage 1). */
+type InterviewItem = { key: string; status: "answered" | "assumed" | "open"; note: string };
+function interviewOf(messages: Message[]): InterviewItem[] | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const marker = messages[i]!.tools?.find((x) => x.name === "_interview") as { args?: { items?: InterviewItem[] } } | undefined;
+    if (marker?.args?.items) return marker.args.items;
+  }
+  return null;
+}
+
+/** Progress of "prepare a project with me": answered of the required points, open questions, unconfirmed assumptions. */
+function InterviewBanner({ items, onEnd }: { items: InterviewItem[] | null; onEnd: () => void }) {
+  const t = useTranslations("assistant");
+  const required = (items ?? []).filter((i) => i.key !== "preference");
+  const answered = required.filter((i) => i.status === "answered").length;
+  const open = (items ?? []).filter((i) => i.status === "open" && i.key !== "preference");
+  const assumed = (items ?? []).filter((i) => i.status === "assumed");
+  return (
+    <div className="mb-2 space-y-1 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-[11px]" data-testid="interview-banner">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-primary">
+          {t("interview.title")} · {items ? t("interview.progress", { done: answered, total: 6 }) : t("interview.notYet")}
+        </span>
+        <button type="button" className="underline hover:text-text" onClick={onEnd}>
+          {t("interview.end")}
+        </button>
+      </div>
+      {(items ?? []).find((i) => i.key === "options" && i.status !== "open" && i.note) ? (
+        <p>
+          {t("interview.keys.options")}: {(items ?? []).find((i) => i.key === "options")!.note}
+        </p>
+      ) : null}
+      {open.length ? (
+        <p className="text-muted">
+          {t("interview.open")}: {open.map((i) => t(`interview.keys.${i.key}`)).join(", ")}
+        </p>
+      ) : null}
+      {assumed.length ? (
+        <p className="text-warning">
+          {t("interview.assumed")}: {assumed.map((i) => `${t(`interview.keys.${i.key}`)}${i.note ? ` (${i.note})` : ""}`).join("; ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /** The expert perspective of a single-perspective answer (#241 stage 1b), from its marker. */
 function perspectiveOf(m: Message): (typeof PERSPECTIVE_KEYS)[number] | null {
   const marker = m.tools?.find((x) => x.name === "_perspective") as { name: string; args?: { role?: string } } | undefined;
   const role = marker?.args?.role;
   return (PERSPECTIVE_KEYS as readonly string[]).includes(role ?? "") ? (role as (typeof PERSPECTIVE_KEYS)[number]) : null;
+}
+
+/** #583: the server's marker for an answer without the card it announced or was asked for. */
+function cardMissingOf(m: Message): { retry: boolean } | null {
+  const marker = m.tools?.find((x) => x.name === "_card_missing") as { name: string; args?: { retry?: unknown } } | undefined;
+  return marker ? { retry: marker.args?.retry === true } : null;
 }
 
 /** The user's question before an answer (for the medicine/law/security guard rail of the cross-check). */
@@ -1058,10 +1246,13 @@ function Bubble({
   checks = [],
   sensitive = false,
   crossCheck,
+  retryCard,
 }: {
   message: Message;
   chatId: string | null;
   onAction: (a: Action) => void;
+  /** #583: asks once more for the card an answer announced or should have brought (latest answer only). */
+  retryCard?: (() => void) | null;
   /** Second opinion button (#281) – only under answers when a reviewer model is set. */
   review?: { busy: boolean; disabled: boolean; run: () => void } | null;
   /** Cross-checks of this answer (#241 stage 2) and whether its topic is never "verified" (medicine, law, security). */
@@ -1096,6 +1287,16 @@ function Bubble({
           {m.actions.map((a) => (
             <ActionCard key={a.id} action={a} chatId={chatId} messageId={m.id} onChange={onAction} />
           ))}
+        </div>
+      ) : null}
+      {cardMissingOf(m) && !m.actions?.length ? (
+        <div role="status" className="mt-2 rounded-xl border border-warning/50 bg-warning/10 p-2.5 text-xs text-text">
+          <p>{t("cardMissing")}</p>
+          {cardMissingOf(m)!.retry && retryCard ? (
+            <button type="button" onClick={retryCard} className="mt-1.5 rounded-lg bg-primary px-2.5 py-1 font-medium text-bg">
+              {t("cardRetry")}
+            </button>
+          ) : null}
         </div>
       ) : null}
       {m.links?.length ? (
@@ -1192,7 +1393,173 @@ const byFieldOrder = ([a]: [string, unknown], [b]: [string, unknown]) =>
  * One suggested action (#283) as a card: Run / Edit / Dismiss. Running goes through the server, which checks the
  * allowlist and the user's permissions again; text drafts are copied to the clipboard and never sent.
  */
-function ActionCard({ action, chatId, messageId, onChange }: { action: Action; chatId: string; messageId: string; onChange: (a: Action) => void }) {
+function ActionCard(props: { action: Action; chatId: string; messageId: string; onChange: (a: Action) => void }) {
+  // #215 stage 2: a council start has its own card – cost preview, "costs confirmed", one start, then the status.
+  if (props.action.type === "start_council") return <CouncilStartCard {...props} />;
+  return <GenericActionCard {...props} />;
+}
+
+type CouncilPreview = {
+  project: { id: string; name: string };
+  models: string[];
+  tokenBudget: number;
+  upperBound: number;
+  minimumBudget: number;
+  typical: number | null;
+  shortened: boolean;
+  planLimit: string | null;
+  finalVerdict: string | null;
+  requirements: { current: boolean; version?: number; message?: string };
+  startable: boolean;
+};
+
+function CouncilStartCard({ action, chatId, messageId, onChange }: { action: Action; chatId: string; messageId: string; onChange: (a: Action) => void }) {
+  const t = useTranslations("assistant.councilStart");
+  const format = useFormatter();
+  const [preview, setPreview] = useState<{ data: CouncilPreview; hash: string } | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ status: string; phase: string | null; tokens: number } | null>(null);
+  const base = `/api/assistant/chats/${chatId}/messages/${messageId}/actions/${action.id}`;
+  const sessionId = action.result?.href?.match(/^\/sessions\/(ses_[\w]+)/)?.[1] ?? null;
+
+  const loadPreview = useCallback(async () => {
+    setError(null);
+    try {
+      const r = await fetchJson<{ preview: CouncilPreview; previewHash: string }>(`${base}/council`, {
+        method: "POST",
+        body: JSON.stringify({ preview: true }),
+      });
+      setPreview({ data: r.preview, hash: r.previewHash });
+      setConsent(false);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("failed"));
+    }
+  }, [base, t]);
+
+  useEffect(() => {
+    if (action.status === "proposed") void loadPreview();
+  }, [action.status, loadPreview]);
+
+  // After the start: the session's live status – #12's server-sent `usage` event, polling as fallback.
+  useEffect(() => {
+    if (!sessionId) return;
+    return followSessionStatus(sessionId, setStatus, {
+      createSource: typeof EventSource === "undefined" ? null : (url) => new EventSource(url) as never,
+      load: async () => {
+        const r = await fetchJson<{ session: { status: string; currentPhase: string | null; tokensUsed: number } }>(`/api/sessions/${sessionId}`);
+        return { status: r.session.status, phase: r.session.currentPhase, tokens: r.session.tokensUsed };
+      },
+    });
+  }, [sessionId]);
+
+  async function start() {
+    if (!preview) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await fetchJson<{ action: Action }>(`${base}/council`, {
+        method: "POST",
+        body: JSON.stringify({ confirmCosts: consent, previewHash: preview.hash }),
+      });
+      onChange(r.action);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("failed"));
+      // Something changed (409) or a limit hit: show the current preview again before another try.
+      void loadPreview();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function dismiss() {
+    setBusy(true);
+    try {
+      const r = await fetchJson<{ action: Action }>(base, { method: "POST", body: JSON.stringify({ decision: "dismiss" }) });
+      onChange(r.action);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t("failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const n = (v: number) => format.number(v);
+  return (
+    <div className="space-y-1.5 rounded-xl border border-primary/35 bg-surface/70 p-2.5 text-xs" data-testid="council-start-card">
+      <p className="font-medium text-text">{t("title")}</p>
+      {action.status === "executed" && sessionId ? (
+        <>
+          <p className="text-success">{t("started")}</p>
+          {status ? <p className="text-muted">{t("status", { status: status.status, phase: status.phase ?? "–", tokens: n(status.tokens) })}</p> : null}
+          {/* #215 stage 3: once the verdict is there, the card leads to it and to the next steps (#273/#266). */}
+          {status && ["awaiting_approval", "approved", "completed", "rejected"].includes(status.status) ? (
+            <p className="text-text">{t("verdictReady")}</p>
+          ) : null}
+          <Link href={action.result!.href} className="text-primary underline">
+            {t("open", { name: action.result!.label })}
+          </Link>
+        </>
+      ) : action.status === "dismissed" ? (
+        <p className="text-muted">{t("dismissed")}</p>
+      ) : preview ? (
+        <>
+          <p>
+            <span className="text-muted">{t("project")}:</span> {preview.data.project.name}
+          </p>
+          <p>
+            <span className="text-muted">{t("models")}:</span> {preview.data.models.join(", ")}
+          </p>
+          <p>
+            <span className="text-muted">{t("budget")}:</span> {n(preview.data.tokenBudget)} · {t("upperBound", { tokens: n(preview.data.upperBound) })}
+            {preview.data.typical ? ` · ${t("typical", { tokens: n(preview.data.typical) })}` : ""}
+          </p>
+          {preview.data.tokenBudget < preview.data.minimumBudget ? (
+            // Live test 08.11.26: below the minimum the card was only disabled – say why and what is needed.
+            <p className="text-warning">{t("budgetTooSmall", { min: n(preview.data.minimumBudget) })}</p>
+          ) : preview.data.shortened ? (
+            <p className="text-warning">{t("shortened")}</p>
+          ) : null}
+          {!preview.data.requirements.current ? <p className="text-warning">{t("requirementsNotCurrent")}</p> : null}
+          {preview.data.planLimit ? <p className="text-warning">{preview.data.planLimit}</p> : null}
+          {preview.data.finalVerdict ? <p className="text-warning">{preview.data.finalVerdict}</p> : null}
+          <p className="text-muted">{t("note")}</p>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" checked={consent} disabled={!preview.data.startable} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+            <span>{t("consent", { tokens: n(preview.data.tokenBudget) })}</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-full bg-primary px-2.5 py-0.5 font-medium text-primary-text disabled:opacity-50"
+              disabled={busy || !consent || !preview.data.startable}
+              onClick={() => void start()}
+            >
+              {busy ? t("starting") : t("start")}
+            </button>
+            <Link href={`/projects/${preview.data.project.id}/council/new`} className="rounded-full border border-line px-2.5 py-0.5 hover:border-primary">
+              {t("adjust")}
+            </Link>
+            <button
+              type="button"
+              className="rounded-full border border-line px-2.5 py-0.5 text-muted hover:text-text"
+              disabled={busy}
+              onClick={() => void dismiss()}
+            >
+              {t("dismiss")}
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-muted">{t("loading")}</p>
+      )}
+      {error ? <p className="text-danger">{error}</p> : null}
+    </div>
+  );
+}
+
+function GenericActionCard({ action, chatId, messageId, onChange }: { action: Action; chatId: string; messageId: string; onChange: (a: Action) => void }) {
   const t = useTranslations("assistant.actions");
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -1303,9 +1670,9 @@ function ActionCard({ action, chatId, messageId, onChange }: { action: Action; c
             type="button"
             disabled={busy}
             onClick={() => void decide("execute")}
-            className="rounded-lg bg-primary px-2.5 py-1 font-medium text-bg disabled:opacity-40"
+            className={`rounded-lg bg-primary font-medium text-bg disabled:opacity-40 ${action.type === "create_project_draft" ? "px-3.5 py-1.5 text-sm" : "px-2.5 py-1"}`}
           >
-            {t(isText ? "copy" : action.type === "prepare_council" ? "openForm" : "run")}
+            {t(isText ? "copy" : action.type === "prepare_council" ? "openForm" : action.type === "create_project_draft" ? "runCreateProject" : "run")}
           </button>
           {action.type !== "prepare_council" ? (
             <button
@@ -1377,74 +1744,6 @@ function ActionCard({ action, chatId, messageId, onChange }: { action: Action; c
       )}
     </div>
   );
-}
-
-/** Small Markdown subset (paragraphs, bullets, **bold**, `code`, links) – only app-internal links become links. */
-function Markdown({ text }: { text: string }) {
-  // "# …" to "###### …" headings (live test 08.11.26: "### Summary" showed raw) become a bold line of their own.
-  const blocks = text
-    .replace(/^#{1,6}\s+(.+?)\s*#*$/gm, "\n\n**$1**\n\n")
-    .trim()
-    .split(/\n{2,}/);
-  return (
-    <div className="space-y-2">
-      {blocks.map((block, i) => {
-        const lines = block.split("\n");
-        const isItem = (l: string) => /^\s*([-*•]|\d+\.)\s+/.test(l);
-        const first = lines.findIndex(isItem);
-        // "Intro sentence + list" in one block: the intro as a paragraph, the items as a list.
-        if (first >= 0 && lines.slice(first).every(isItem)) {
-          return (
-            <div key={i} className="space-y-1">
-              {first > 0 ? <p className="whitespace-pre-wrap">{inline(lines.slice(0, first).join("\n"))}</p> : null}
-              <ul className="list-disc space-y-0.5 pl-4">
-                {lines.slice(first).map((l, j) => (
-                  <li key={j}>{inline(l.replace(/^\s*([-*•]|\d+\.)\s+/, ""))}</li>
-                ))}
-              </ul>
-            </div>
-          );
-        }
-        return (
-          <p key={i} className="whitespace-pre-wrap">
-            {inline(block)}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
-function inline(text: string): ReactNode {
-  const parts: ReactNode[] = [];
-  // Link labels may contain one level of brackets, e.g. project names like "[Benchmark] Todo" (#275).
-  const re = /\[((?:[^[\]\n]|\[[^[\]\n]*\])+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|`([^`]+)`/g;
-  let last = 0;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    if (match.index > last) parts.push(text.slice(last, match.index));
-    if (match[1] && match[2]) {
-      const href = match[2];
-      parts.push(
-        /^\/(sessions|projects|dashboard|decisions|settings)(\/[\w-]*)*\/?$/.test(href) ? (
-          <Link key={match.index} href={href} className="text-primary underline">
-            {match[1]}
-          </Link>
-        ) : (
-          <Fragment key={match.index}>{match[1]}</Fragment>
-        ),
-      );
-    } else if (match[3]) parts.push(<strong key={match.index}>{match[3]}</strong>);
-    else if (match[4])
-      parts.push(
-        <code key={match.index} className="rounded bg-surface px-1 text-xs">
-          {match[4]}
-        </code>,
-      );
-    last = re.lastIndex;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
 }
 
 function SparkIcon() {

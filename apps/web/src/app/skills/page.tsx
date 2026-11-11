@@ -1,5 +1,5 @@
-import { SKILL_CATEGORIES } from "@consyrion/core";
-import { listPublicSkills } from "@consyrion/db";
+import { SKILL_CATEGORIES } from "@consyrium/core";
+import { listPublicSkills } from "@consyrium/db";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Select } from "@/components/ui/select";
@@ -14,11 +14,12 @@ export async function generateMetadata() {
 }
 
 /** Public SkillHub catalog (#368 PR 6): reviewed community skills, no login needed. */
-export default async function SkillCatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string }> }) {
-  const { q, category } = await searchParams;
+export default async function SkillCatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string; kind?: string }> }) {
+  const { q, category, kind } = await searchParams;
   const t = await getTranslations("skillHub");
   const tCategory = await getTranslations("skills.category");
-  const skills = await listPublicSkills(await getDb(), { q, category });
+  const tRoles = await getTranslations("roleSuggestion.names");
+  const skills = await listPublicSkills(await getDb(), { q, category, kind });
   return (
     <>
       <h1 className="text-2xl font-semibold">{t("catalog.title")}</h1>
@@ -46,12 +47,20 @@ export default async function SkillCatalogPage({ searchParams }: { searchParams:
             </option>
           ))}
         </Select>
+        <label className="sr-only" htmlFor="skillhub-kind">
+          {t("catalog.type")}
+        </label>
+        <Select id="skillhub-kind" name="kind" defaultValue={kind ?? ""}>
+          <option value="">{t("catalog.allTypes")}</option>
+          <option value="skill">{t("kinds.skill")}</option>
+          <option value="role_profile">{t("kinds.role_profile")}</option>
+        </Select>
         <button type="submit" className="rounded-lg border border-line px-4 py-2 text-sm">
           {t("catalog.searchButton")}
         </button>
       </form>
       {skills.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">{q || category ? t("catalog.noResults") : t("catalog.empty")}</p>
+        <p className="mt-8 text-sm text-muted">{q || category || kind ? t("catalog.noResults") : t("catalog.empty")}</p>
       ) : (
         <ul className="mt-6 grid gap-3 md:grid-cols-2">
           {skills.map((s) => (
@@ -60,7 +69,8 @@ export default async function SkillCatalogPage({ searchParams }: { searchParams:
                 {s.name}
               </Link>
               <p className="mt-1 text-xs text-muted">
-                @{s.handle} · {tCategory(s.category)} · v{s.version}
+                {t(`kinds.${s.kind}`)} · {s.publisherName ? `${s.publisherName} (@${s.handle})` : `@${s.handle}`} ·{" "}
+                {s.kind === "skill" ? tCategory(s.category) : tRoles.has(s.category) ? tRoles(s.category) : s.category} · v{s.version}
               </p>
               <p className="mt-2 text-sm">{s.summary}</p>
             </li>

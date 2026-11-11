@@ -6,7 +6,7 @@
 
 ## 1. Question
 
-Can CONSYRION offer a cheaper council for reversible decisions **without** a weaker gate than the full council
+Can CONSYRIUM offer a cheaper council for reversible decisions **without** a weaker gate than the full council
 (confirmed requirements, at least two independent foreign evaluators per proposal (#249), security and minority
 rules, human approval)?
 

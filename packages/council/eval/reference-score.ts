@@ -107,7 +107,7 @@ const pct = (n: number, of: number) => (of > 0 ? `${Math.round((100 * n) / of)} 
 
 export function summaryToMarkdown(summaries: ConfigSummary[]): string {
   const lines = [
-    "# Consyrion reference set (#182)",
+    "# Consyrium reference set (#182)",
     "",
     "| Configuration | Runs (reviewed) | Correct verdicts | False approvals | Unnecessary blocks | Failed runs | Tokens per correct verdict |",
     "|---|---|---|---|---|---|---|",

@@ -1,4 +1,4 @@
-import { getAssistantChat } from "@consyrion/db";
+import { getAssistantChat } from "@consyrium/db";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";
@@ -50,7 +50,7 @@ export const GET = handle(async (request: Request, { params }: Params) => {
     return new Response(Buffer.from(bytes), {
       headers: {
         "Content-Type": kind === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${documentFileName("consyrion-chat", chat.title, kind)}"`,
+        "Content-Disposition": `attachment; filename="${documentFileName("consyrium-chat", chat.title, kind)}"`,
         "Cache-Control": "no-store",
       },
     });

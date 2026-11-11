@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+**/dist
+.data
+.git
+**/.env*
+!**/.env.example
+docs/screenshots
+
+# Worker image (BuildKit reads this file for Dockerfile.worker): the web app's static files, e.g. the 8 MB CJK font
+# of Chinese PDFs (#268), are not needed by the worker.
+apps/web/public

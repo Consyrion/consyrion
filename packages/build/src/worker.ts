@@ -1,7 +1,7 @@
-import { credentialAdapterResolver, type JobHandler } from "@consyrion/council";
-import type { Keyring } from "@consyrion/core";
-import type { Database } from "@consyrion/db";
-import { githubAppConfigFromEnv } from "@consyrion/github";
+import { credentialAdapterResolver, type JobHandler } from "@consyrium/council";
+import type { Keyring } from "@consyrium/core";
+import type { Database } from "@consyrium/db";
+import { githubAppConfigFromEnv } from "@consyrium/github";
 import { runExecution } from "./executor";
 import { githubRepositoryAccess } from "./github";
 import { detectSandbox } from "./sandbox";

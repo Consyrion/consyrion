@@ -150,21 +150,21 @@ describe.skipIf(!dockerAvailable)("docker sandbox (integration, runs where Docke
 
 describe("pull request title", () => {
   it("uses a short first sentence, else the first task, and never cuts a word", () => {
-    expect(pullRequestTitle("Add remove(id). Then write tests.")).toBe("CONSYRION AI: Add remove(id)");
+    expect(pullRequestTitle("Add remove(id). Then write tests.")).toBe("CONSYRIUM AI: Add remove(id)");
     // GitHub build test 08.11.26: a long summary sentence gives way to the first task's title.
     expect(
       pullRequestTitle(
         "Implement Option A in src/todos.js: add search(query) that validates input, trims and lowercases the query.",
         "Add search(query) to the todo store",
       ),
-    ).toBe("CONSYRION AI: Add search(query) to the todo store");
+    ).toBe("CONSYRIUM AI: Add search(query) to the todo store");
     const long = pullRequestTitle(
       "Implement an additive, synchronous remove(id) method on the in-memory store returned by createStore in src/todos.js and more",
     );
     expect(long.length).toBeLessThanOrEqual(72);
     expect(long.endsWith("…")).toBe(true);
     expect(long).not.toMatch(/src\/to…$/);
-    expect(pullRequestTitle(null)).toBe("CONSYRION AI: Implement approved decision");
+    expect(pullRequestTitle(null)).toBe("CONSYRIUM AI: Implement approved decision");
     // Night test R4: the approved proposal's title names the change, not the first task ("write the tests (red)").
     const named = pullRequestTitle(
       "Long plan summary sentence.",
@@ -172,7 +172,7 @@ describe("pull request title", () => {
       72,
       "Option A: Titel per rename(id, newTitle) direkt im bestehenden Map-Eintrag aktualisieren",
     );
-    expect(named.startsWith("CONSYRION AI: Option A: Titel per rename(id, newTitle)")).toBe(true);
+    expect(named.startsWith("CONSYRIUM AI: Option A: Titel per rename(id, newTitle)")).toBe(true);
     expect(named.length).toBeLessThanOrEqual(72);
     expect(named).not.toContain("Tests für");
   });

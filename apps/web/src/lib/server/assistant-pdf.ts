@@ -35,8 +35,8 @@ const ACCENT = rgb(0.01, 0.41, 0.63);
 export async function assistantPdf(markdown: string, meta: AssistantDocumentMeta): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(pdfSafe(meta.title));
-  pdf.setProducer("CONSYRION AI");
-  pdf.setCreator("CONSYRION AI");
+  pdf.setProducer("CONSYRIUM AI");
+  pdf.setCreator("CONSYRIUM AI");
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const width = PAGE.width - 2 * PAGE.margin;
@@ -84,7 +84,7 @@ export async function assistantPdf(markdown: string, meta: AssistantDocumentMeta
     y -= opts.gap ?? 4;
   };
 
-  write("CONSYRION AI", { size: 9, font: bold, color: ACCENT, gap: 2 });
+  write("CONSYRIUM AI", { size: 9, font: bold, color: ACCENT, gap: 2 });
   write(meta.title, { size: 17, font: bold, gap: 4 });
   write(meta.subtitle, { size: 9, color: MUTED, gap: 14 });
 
@@ -126,7 +126,7 @@ export async function assistantPdf(markdown: string, meta: AssistantDocumentMeta
 /** Word file with real headings, lists and tables, so it can be edited further (e.g. a customer summary). */
 export async function assistantDocx(markdown: string, meta: AssistantDocumentMeta): Promise<Uint8Array> {
   const children: Array<Paragraph | Table> = [
-    new Paragraph({ children: [new TextRun({ text: "CONSYRION AI", bold: true, color: "0369A1", size: 18 })] }),
+    new Paragraph({ children: [new TextRun({ text: "CONSYRIUM AI", bold: true, color: "0369A1", size: 18 })] }),
     new Paragraph({ text: meta.title, heading: HeadingLevel.TITLE }),
     new Paragraph({ children: [new TextRun({ text: meta.subtitle, color: "5A6680", size: 16 })], spacing: { after: 200 } }),
   ];
@@ -159,7 +159,7 @@ export async function assistantDocx(markdown: string, meta: AssistantDocumentMet
   }
   if (meta.note)
     children.push(new Paragraph({ children: [new TextRun({ text: meta.note, color: "5A6680", size: 14, italics: true })], spacing: { before: 240 } }));
-  const doc = new Document({ creator: "CONSYRION AI", title: meta.title, sections: [{ children }] });
+  const doc = new Document({ creator: "CONSYRIUM AI", title: meta.title, sections: [{ children }] });
   return new Uint8Array(await Packer.toBuffer(doc));
 }
 

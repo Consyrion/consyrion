@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Auth E2E tests (`pnpm --filter @consyrion/web e2e`) against the production build (`next start`) with a real
+ * Auth E2E tests (`pnpm --filter @consyrium/web e2e`) against the production build (`next start`) with a real
  * PostgreSQL database (`E2E_DATABASE_URL`, an empty test database migrated with `pnpm db:migrate`) and a
  * local test mail server that catches verification and reset links (e2e/smtp-sink.mjs).
  *
@@ -34,7 +34,7 @@ export default defineConfig({
             BETTER_AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-1234",
             BETTER_AUTH_URL: `http://localhost:${PORT}`,
             SMTP_URL: "smtp://127.0.0.1:2525",
-            MAIL_FROM: "CONSYRION AI <no-reply@e2e.test>",
+            MAIL_FROM: "CONSYRIUM AI <no-reply@e2e.test>",
             // Only for the local test mail server's self-signed certificate (STARTTLS is required by the app).
             NODE_TLS_REJECT_UNAUTHORIZED: "0",
           },

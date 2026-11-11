@@ -1,45 +1,45 @@
 {
-  "name": "consyrion",
-  "displayName": "CONSYRION AI",
-  "description": "Follow CONSYRION AI council decisions, approve verdicts and review generated code inside VS Code.",
+  "name": "consyrium",
+  "displayName": "CONSYRIUM AI",
+  "description": "Follow CONSYRIUM AI council decisions, approve verdicts and review generated code inside VS Code.",
   "version": "0.1.0",
-  "publisher": "consyrion",
+  "publisher": "consyrium",
   "private": true,
   "license": "AGPL-3.0-only",
-  "repository": { "type": "git", "url": "https://github.com/Consyrion/consyrion" },
+  "repository": { "type": "git", "url": "https://github.com/Consyrion/consyrium" },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Other"],
   "main": "./dist/extension.js",
   "activationEvents": [],
   "capabilities": {
-    "untrustedWorkspaces": { "supported": true, "description": "Only talks to your CONSYRION AI server; it never runs code from the workspace." },
+    "untrustedWorkspaces": { "supported": true, "description": "Only talks to your CONSYRIUM AI server; it never runs code from the workspace." },
     "virtualWorkspaces": true
   },
   "contributes": {
     "viewsContainers": {
-      "activitybar": [{ "id": "consyrion", "title": "CONSYRION AI", "icon": "media/icon.svg" }]
+      "activitybar": [{ "id": "consyrium", "title": "CONSYRIUM AI", "icon": "media/icon.svg" }]
     },
     "views": {
-      "consyrion": [{ "id": "consyrion.projects", "name": "Projects & decisions" }]
+      "consyrium": [{ "id": "consyrium.projects", "name": "Projects & decisions" }]
     },
     "viewsWelcome": [
-      { "view": "consyrion.projects", "contents": "Connect to CONSYRION AI with a personal API token (CONSYRION AI → Settings → API tokens).\n[Sign in](command:consyrion.signIn)" }
+      { "view": "consyrium.projects", "contents": "Connect to CONSYRIUM AI with a personal API token (CONSYRIUM AI → Settings → API tokens).\n[Sign in](command:consyrium.signIn)" }
     ],
     "commands": [
-      { "command": "consyrion.signIn", "title": "CONSYRION AI: Sign in with API token" },
-      { "command": "consyrion.signOut", "title": "CONSYRION AI: Sign out" },
-      { "command": "consyrion.refresh", "title": "CONSYRION AI: Refresh", "icon": "$(refresh)" },
-      { "command": "consyrion.openSession", "title": "CONSYRION AI: Open decision" },
-      { "command": "consyrion.openChanges", "title": "CONSYRION AI: Open generated changes" }
+      { "command": "consyrium.signIn", "title": "CONSYRIUM AI: Sign in with API token" },
+      { "command": "consyrium.signOut", "title": "CONSYRIUM AI: Sign out" },
+      { "command": "consyrium.refresh", "title": "CONSYRIUM AI: Refresh", "icon": "$(refresh)" },
+      { "command": "consyrium.openSession", "title": "CONSYRIUM AI: Open decision" },
+      { "command": "consyrium.openChanges", "title": "CONSYRIUM AI: Open generated changes" }
     ],
     "menus": {
-      "view/title": [{ "command": "consyrion.refresh", "when": "view == consyrion.projects", "group": "navigation" }]
+      "view/title": [{ "command": "consyrium.refresh", "when": "view == consyrium.projects", "group": "navigation" }]
     },
     "configuration": {
-      "title": "CONSYRION AI",
+      "title": "CONSYRIUM AI",
       "properties": {
-        "consyrion.language": { "type": "string", "enum": ["auto", "en", "de", "fr", "es"], "default": "auto", "description": "Language of the extension; auto follows the VS Code display language." },
-        "consyrion.serverUrl": { "type": "string", "default": "https://app.consyrion.com", "description": "Base URL of your CONSYRION AI server (hosted: https://app.consyrion.com, or your self-hosted address)." }
+        "consyrium.language": { "type": "string", "enum": ["auto", "en", "de", "fr", "es"], "default": "auto", "description": "Language of the extension; auto follows the VS Code display language." },
+        "consyrium.serverUrl": { "type": "string", "default": "https://app.consyrium.com", "description": "Base URL of your CONSYRIUM AI server (hosted: https://app.consyrium.com, or your self-hosted address)." }
       }
     }
   },
@@ -47,7 +47,7 @@
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --sourcemap",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "package": "pnpm build && vsce package --no-dependencies --out dist/consyrion.vsix"
+    "package": "pnpm build && vsce package --no-dependencies --out dist/consyrium.vsix"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

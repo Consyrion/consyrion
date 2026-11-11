@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# One-time setup of a fresh Hetzner Cloud server (Ubuntu 24.04, x86) for CONSYRION. Run as root ON THE SERVER:
-#   APP_DOMAIN=app.consyrion.com ACME_EMAIL=you@example.com bash setup-server.sh
+# One-time setup of a fresh Hetzner Cloud server (Ubuntu 24.04, x86) for CONSYRIUM. Run as root ON THE SERVER:
+#   APP_DOMAIN=app.consyrium.com ACME_EMAIL=you@example.com bash setup-server.sh
 # Idempotent: existing secrets are never overwritten. See docs/hetzner.md.
 set -euo pipefail
 
-: "${APP_DOMAIN:?set APP_DOMAIN, e.g. app.consyrion.com}"
+: "${APP_DOMAIN:?set APP_DOMAIN, e.g. app.consyrium.com}"
 : "${ACME_EMAIL:?set ACME_EMAIL for Lets Encrypt notices}"
 export DEBIAN_FRONTEND=noninteractive
 
 echo "== packages and automatic security updates"
 apt-get update -q
 apt-get upgrade -yq
-apt-get install -yq ca-certificates curl gnupg ufw unattended-upgrades postgresql-client
+apt-get install -yq ca-certificates curl gnupg ufw unattended-upgrades postgresql-client age
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
 echo "== swap (4 GB): the image build on a 4 GB server (CX23) needs it briefly"
@@ -101,11 +101,6 @@ ENV
 # The Postgres container reads the password as its own user.
 chmod 0644 "$SECRETS/postgres_password"
 
-echo "== scheduled jobs (backup 03:15, health check every 5 minutes)"
-cat >/etc/cron.d/consyrion <<'CRON'
-SHELL=/bin/bash
-15 3 * * * root /opt/consyrion/app/deploy/hetzner/backup.sh >>/var/log/consyrion-backup.log 2>&1
-*/5 * * * * root /opt/consyrion/app/deploy/hetzner/check.sh >>/var/log/consyrion-check.log 2>&1
-CRON
+echo "== scheduled jobs (backup 03:15, checks every 5 minutes, restore test monthly) – deploy.sh installs deploy/hetzner/consyrion.cron"
 
 echo "Done. Next: point DNS ${APP_DOMAIN} (A/AAAA) to this server, then run deploy.sh from your machine."

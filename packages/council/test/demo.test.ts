@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createCredential,
   addDocument,
@@ -18,7 +18,7 @@ import {
   usageThisMonth,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSession, getSessionView, runSession, submitApproval } from "../src";

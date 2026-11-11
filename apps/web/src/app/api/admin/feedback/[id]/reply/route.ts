@@ -1,4 +1,4 @@
-import { getFeedbackForAdmin, replyToFeedback } from "@consyrion/db";
+import { getFeedbackForAdmin, replyToFeedback } from "@consyrium/db";
 import { after, NextResponse } from "next/server";
 import { requirePlatformAdminContext } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";

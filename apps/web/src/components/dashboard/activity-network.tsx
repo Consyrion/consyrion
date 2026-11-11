@@ -2,27 +2,44 @@
 
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { MarkShapes } from "../brand/consyrion-logo";
+import { MarkShapes } from "../brand/consyrium-logo";
 import { PROVIDER_COLOR, PROVIDER_NAME, type ActivityNode } from "./activity-network-data";
 import type { NodeState } from "./council-network";
 import { ease, pointerPull, svgPoint } from "./pointer-field";
 
 const W = 760;
-const H = 320;
-const CX = 340;
-const CY = 160;
+const H = 360;
+const CX = 380;
+const CY = 180;
 const HEX_R = 70;
 const NODE_R = 31;
+const MAX_NODES = 6;
 
-/** Slots around the central decision hexagon, in the order of design concept 1: left, right top, right bottom, … */
-const SLOTS: Array<{ x: number; y: number; label: "below" | "right" | "left" }> = [
-  { x: 120, y: 150, label: "below" },
-  { x: 560, y: 78, label: "right" },
-  { x: 560, y: 236, label: "right" },
-  { x: 120, y: 48, label: "right" },
-  { x: 120, y: 262, label: "right" },
-  { x: 610, y: 158, label: "left" },
-];
+interface Slot {
+  x: number;
+  y: number;
+  /** Side of the node its text stands on – always the outer side, so no text lies on a link. */
+  label: "right" | "left";
+}
+
+/**
+ * Places `count` models around the central decision hexagon: alternately left and right, each column spread evenly
+ * over the height, the text on the outer side. The layout depends on the number of models (live check 10.11.26: with
+ * six models in the fixed slots of concept 1, labels lay on a neighbouring node and on a link).
+ */
+export function slotsFor(count: number): Slot[] {
+  const n = Math.max(0, Math.min(count, MAX_NODES));
+  const left = Math.ceil(n / 2);
+  const column = (k: number) => (k <= 0 ? [] : k === 1 ? [CY] : k === 2 ? [CY - 78, CY + 78] : [CY - 118, CY, CY + 118]);
+  const leftYs = column(left);
+  const rightYs = column(n - left);
+  const slots: Slot[] = [];
+  for (let i = 0; i < left; i++) {
+    slots.push({ x: 196, y: leftYs[i]!, label: "left" });
+    if (i < rightYs.length) slots.push({ x: W - 196, y: rightYs[i]!, label: "right" });
+  }
+  return slots;
+}
 
 /** Deterministic star field so server and client render the same markup. */
 const STARS = Array.from({ length: 70 }, (_, i) => {
@@ -77,9 +94,8 @@ function ribbon(from: Point, to: Point, strands: number) {
   return paths;
 }
 
-/** Start and end of the link of slot `i`: from the node ring to the facing side of the hexagon. */
-function linkEnds(i: number): [Point, Point] {
-  const slot = SLOTS[i]!;
+/** Start and end of the link of a slot: from the node ring to the facing side of the hexagon. */
+function linkEnds(slot: Slot): [Point, Point] {
   const toLeft = slot.x > CX;
   return [
     { x: slot.x + (toLeft ? -NODE_R - 2 : NODE_R + 2), y: slot.y },
@@ -133,14 +149,14 @@ function coronaPath(cx: number, cy: number) {
   return d;
 }
 
-function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)[number]; id: string }) {
+function NodeCard({ node, slot, id }: { node: ActivityNode; slot: Slot; id: string }) {
   const color = node.state === "failed" ? "var(--danger)" : (PROVIDER_COLOR[node.provider] ?? "#22d3ee");
   const details = node.details;
   const right = slot.x > CX;
   // Next to the node, on the side facing the centre; vertically kept inside the graphic.
   const style: CSSProperties = {
     top: `${(slot.y / H) * 100}%`,
-    transform: `translateY(${slot.y < 100 ? "-18%" : slot.y > 220 ? "-82%" : "-50%"})`,
+    transform: `translateY(${slot.y < H * 0.31 ? "-18%" : slot.y > H * 0.69 ? "-82%" : "-50%"})`,
     borderColor: `color-mix(in oklab, ${color} 45%, transparent)`,
     ...(right ? { right: `${(1 - (slot.x - NODE_R - 14) / W) * 100}%` } : { left: `${((slot.x + NODE_R + 14) / W) * 100}%` }),
   };
@@ -151,7 +167,7 @@ function NodeCard({ node, slot, id }: { node: ActivityNode; slot: (typeof SLOTS)
     <div
       id={id}
       role="tooltip"
-      className="pointer-events-none absolute z-10 w-72 max-w-[75%] rounded-xl border bg-[#071226]/90 p-3.5 text-left text-[13px] text-[#c7d2e8] shadow-[0_14px_40px_rgb(0_0_0/0.5)] backdrop-blur-md [animation:consyrion-card-in_160ms_ease-out]"
+      className="pointer-events-none absolute z-10 w-72 max-w-[75%] rounded-xl border bg-[#071226]/90 p-3.5 text-left text-[13px] text-[#c7d2e8] shadow-[0_14px_40px_rgb(0_0_0/0.5)] backdrop-blur-md [animation:consyrium-card-in_160ms_ease-out]"
       style={style}
     >
       <div className="flex items-center gap-2">
@@ -217,7 +233,8 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
     return `${(CX + HEX_R * Math.cos(a)).toFixed(1)},${(CY + HEX_R * Math.sin(a)).toFixed(1)}`;
   }).join(" ");
   const summary = nodes.map((n) => `${PROVIDER_NAME[n.provider] ?? n.provider} ${n.model}: ${t(`nodeState.${n.state}`)}`).join(", ");
-  const shown = nodes.slice(0, SLOTS.length);
+  const shown = nodes.slice(0, MAX_NODES);
+  const slots = slotsFor(shown.length);
   const [active, setActive] = useState<number | null>(null);
   const figureRef = useRef<HTMLElement>(null);
   const nodeRefs = useRef<Array<SVGGElement | null>>([]);
@@ -235,7 +252,8 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
     const figure = figureRef.current;
     if (!figure || !states || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const nodeStates = states.split(",") as NodeState[];
-    const curves = nodeStates.map((_, i) => coreCurve(...linkEnds(i)));
+    const layout = slotsFor(nodeStates.length);
+    const curves = layout.map((slot) => coreCurve(...linkEnds(slot)));
     // A "zap" is a short burst of stronger trembling and a brighter discharge; working models zap more often.
     const zaps = nodeStates.map(() => ({ until: 0, next: performance.now() + 300 + Math.random() * 1500 }));
     // Eased pointer reaction per node (lean x/y) and for the hexagon, so movements glide instead of jumping.
@@ -254,7 +272,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
       coreNear = ease(coreNear, pointerPull(pointer, CX, CY, HEX_R + 70).strength);
       nodeStates.forEach((state, i) => {
         const zap = zaps[i]!;
-        const slot = SLOTS[i]!;
+        const slot = layout[i]!;
         const pull = pointerPull(pointer, slot.x, slot.y, 150);
         lean[i]!.x = ease(lean[i]!.x, pull.ux * pull.strength * 9);
         lean[i]!.y = ease(lean[i]!.y, pull.uy * pull.strength * 9);
@@ -381,7 +399,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
             </feMerge>
           </filter>
           {shown.map((node, i) => {
-            const slot = SLOTS[i]!;
+            const slot = slots[i]!;
             return (
               <linearGradient key={node.id} id={`an-link-${i}`} gradientUnits="userSpaceOnUse" x1={slot.x} y1={slot.y} x2={CX} y2={CY}>
                 <stop offset="0" stopColor={PROVIDER_COLOR[node.provider] ?? "#22d3ee"} />
@@ -397,12 +415,24 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
         <rect width={W} height={H} fill="url(#an-neb-c)" />
         <g aria-hidden="true" fill="#cfe8ff">
           {STARS.map((s, i) => (
-            <circle key={i} cx={s.x.toFixed(1)} cy={s.y.toFixed(1)} r={s.r.toFixed(2)} opacity={s.o.toFixed(2)} />
+            <circle
+              key={i}
+              cx={s.x.toFixed(1)}
+              cy={s.y.toFixed(1)}
+              r={s.r.toFixed(2)}
+              opacity={s.o.toFixed(2)}
+              // Every fourth star twinkles slowly, each on its own beat (off with reduced motion, see globals.css).
+              style={
+                i % 4 === 0
+                  ? { animation: `consyrium-twinkle ${(3.2 + (i % 5) * 0.9).toFixed(1)}s ease-in-out ${((i % 7) * 0.6).toFixed(1)}s infinite` }
+                  : undefined
+              }
+            />
           ))}
         </g>
 
         {shown.map((node, i) => {
-          const [from, to] = linkEnds(i);
+          const [from, to] = linkEnds(slots[i]!);
           const strands = ribbon(from, to, 9);
           const core = ribbon(from, to, 1)[0]!;
           const working = node.state === "working";
@@ -426,7 +456,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
                 strokeWidth={2.2}
                 strokeLinecap="round"
                 strokeDasharray={working ? "10 14" : undefined}
-                style={working ? ({ "--travel": "-96px", animation: "consyrion-flow 1.4s linear infinite" } as CSSProperties) : undefined}
+                style={working ? ({ "--travel": "-96px", animation: "consyrium-flow 1.4s linear infinite" } as CSSProperties) : undefined}
               />
               {[0, 1].map((k) => (
                 <path
@@ -455,6 +485,30 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
           );
         })}
 
+        {/* Two fine orbits around the decision: slow, opposite directions – the centre reads as the place things move to. */}
+        <g aria-hidden="true" fill="none" stroke="#22d3ee">
+          <circle
+            cx={CX}
+            cy={CY}
+            r={HEX_R + 16}
+            strokeWidth={1}
+            strokeOpacity={0.3}
+            strokeDasharray="2 10"
+            strokeLinecap="round"
+            style={{ transformOrigin: `${CX}px ${CY}px`, animation: "consyrium-orbit 48s linear infinite" }}
+          />
+          <circle
+            cx={CX}
+            cy={CY}
+            r={HEX_R + 27}
+            strokeWidth={1}
+            strokeOpacity={0.16}
+            strokeDasharray="28 18"
+            strokeLinecap="round"
+            style={{ transformOrigin: `${CX}px ${CY}px`, animation: "consyrium-orbit 80s linear infinite reverse" }}
+          />
+        </g>
+
         <g ref={coreRef}>
           <polygon ref={hexGlowRef} points={hex} fill="none" stroke="#22d3ee" strokeWidth={12} strokeOpacity={0.35} filter="url(#an-glow)" />
           <polygon points={hex} fill="url(#an-hex)" stroke="#22d3ee" strokeWidth={2} />
@@ -471,13 +525,14 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
         </g>
 
         {shown.map((node, i) => {
-          const slot = SLOTS[i]!;
+          const slot = slots[i]!;
           const color = node.state === "failed" ? "var(--danger)" : (PROVIDER_COLOR[node.provider] ?? "#22d3ee");
           const name = PROVIDER_NAME[node.provider] ?? node.provider;
-          const model = node.model.length > 24 ? `${node.model.slice(0, 23)}…` : node.model;
-          const lx = slot.label === "below" ? slot.x : slot.label === "right" ? slot.x + NODE_R + 14 : slot.x - NODE_R - 14;
-          const ly = slot.label === "below" ? slot.y + NODE_R + 22 : slot.y - 8;
-          const anchor = slot.label === "below" ? "middle" : slot.label === "right" ? "start" : "end";
+          const model = node.model.length > 21 ? `${node.model.slice(0, 20)}…` : node.model;
+          // Clear of the pulse ring of a working model (radius 44, swelling).
+          const lx = slot.label === "right" ? slot.x + NODE_R + 24 : slot.x - NODE_R - 24;
+          const ly = slot.y - 8;
+          const anchor = slot.label === "right" ? "start" : "end";
           const isActive = active === i;
           return (
             <g
@@ -507,7 +562,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
                     r={44}
                     fill={color}
                     opacity={0.16}
-                    style={{ transformOrigin: `${slot.x}px ${slot.y}px`, animation: "consyrion-pulse 1.8s ease-in-out infinite" }}
+                    style={{ transformOrigin: `${slot.x}px ${slot.y}px`, animation: "consyrium-pulse 1.8s ease-in-out infinite" }}
                     data-pulse="true"
                   />
                 ) : null}
@@ -544,7 +599,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
               <text x={lx} y={ly + 17} textAnchor={anchor} fontSize={11.5} fill="#9aa9c6">
                 {model}
               </text>
-              <g transform={`translate(${anchor === "middle" ? lx - 28 : anchor === "start" ? lx + 6 : lx - 52} ${ly + 33})`}>
+              <g transform={`translate(${anchor === "start" ? lx + 6 : lx - 52} ${ly + 33})`}>
                 <StatusIcon state={node.state} color={color} />
                 <text x={11} y={4} fontSize={11.5} fill={node.state === "done" ? "#2ee6a8" : "#c7d2e8"}>
                   {t(`nodeState.${node.state}`)}
@@ -554,7 +609,7 @@ export function ActivityNetwork({ nodes, centerTitle, centerSubtitle }: { nodes:
           );
         })}
       </svg>
-      {activeNode ? <NodeCard node={activeNode} slot={SLOTS[active!]!} id={`an-card-${active}`} /> : null}
+      {activeNode ? <NodeCard node={activeNode} slot={slots[active!]!} id={`an-card-${active}`} /> : null}
     </figure>
   );
 }

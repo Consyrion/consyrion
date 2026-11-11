@@ -1,4 +1,4 @@
-import type { SkillReviewLight } from "./skill-publication-scan";
+import { normalizeForScan, scanPublicationFields, type SkillReviewLight } from "./skill-publication-scan";
 
 /**
  * SkillHub publication model (#368, ADR docs/adr/0368-skillhub.md). Pure rules shared by the repositories and the UI:
@@ -73,6 +73,8 @@ const SLUG = /^[a-z0-9](?:[a-z0-9]|-(?!-)){1,58}[a-z0-9]$/;
 
 /** Names that would suggest an official, verified or third-party identity. */
 const RESERVED = [
+  "consyrium",
+  // The former brand stays reserved, so nobody can claim it after the rename.
   "consyrion",
   "official",
   "verified",
@@ -105,11 +107,58 @@ const RESERVED = [
 
 export type HandleProblem = "format" | "reserved";
 
-export function validatePublisherHandle(handle: string): HandleProblem | null {
+/**
+ * `allowReserved` is only ever set for platform admins (the operator's own account): they may claim e.g.
+ * `@consyrium-team`; for everyone else reserved names stay refused, so nobody can pose as official.
+ */
+export function validatePublisherHandle(handle: string, options: { allowReserved?: boolean } = {}): HandleProblem | null {
   if (!HANDLE.test(handle)) return "format";
+  if (options.allowReserved) return null;
   return RESERVED.some((word) => handle === word || handle.startsWith(`${word}-`) || handle.endsWith(`-${word}`) || handle.includes("official"))
     ? "reserved"
     : null;
+}
+
+/** Words a public display name must not contain (operator, roles that suggest authority, provider brands). */
+const RESERVED_IN_NAMES = [
+  "consyrium",
+  // The former brand stays reserved, so nobody can claim it after the rename.
+  "consyrion",
+  "official",
+  "verified",
+  "administrator",
+  "moderator",
+  "skillhub",
+  "anthropic",
+  "claude",
+  "openai",
+  "chatgpt",
+  "google",
+  "gemini",
+  "microsoft",
+  "github",
+  "deepseek",
+];
+
+export const PUBLISHER_DISPLAY_NAME_LIMITS = { min: 2, max: 60 } as const;
+export type DisplayNameProblem = "length" | "reserved" | "content";
+
+/**
+ * Optional public name shown next to `@handle` (the handle stays the unique id). Same publication scan as skill texts
+ * (no instructions, links, contact data, hidden characters) and no reserved or third-party names (CONSYRIUM, official,
+ * verified, provider brands …) unless `allowReserved` (platform admins only).
+ */
+export function validatePublisherDisplayName(name: string, options: { allowReserved?: boolean } = {}): DisplayNameProblem | null {
+  const value = name.replace(/\s+/g, " ").trim();
+  if (value.length < PUBLISHER_DISPLAY_NAME_LIMITS.min || value.length > PUBLISHER_DISPLAY_NAME_LIMITS.max) return "length";
+  if (scanPublicationFields([{ field: "displayName", text: value }]).light !== "green") return "content";
+  if (options.allowReserved) return null;
+  const leet: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", $: "s" };
+  const folded = normalizeForScan(value)
+    .toLowerCase()
+    .replace(/[013457@$]/g, (c) => leet[c] ?? c)
+    .replace(/[^a-z]+/g, "");
+  return RESERVED_IN_NAMES.some((word) => folded.includes(word)) ? "reserved" : null;
 }
 
 export function validateSkillSlug(slug: string): HandleProblem | null {

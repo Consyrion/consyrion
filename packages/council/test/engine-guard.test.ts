@@ -1,9 +1,9 @@
-import { DomainError } from "@consyrion/core";
-import { ENGINE_CONTRACT_VERSION } from "@consyrion/engine/contract";
+import { DomainError } from "@consyrium/core";
+import { ENGINE_CONTRACT_VERSION } from "@consyrium/engine/contract";
 import { describe, expect, it, vi } from "vitest";
 
 const installed = vi.hoisted(() => ({ kind: "stub" as "stub" | "test" | "production", contract: 0 }));
-vi.mock("@consyrion/engine", () => ({
+vi.mock("@consyrium/engine", () => ({
   engine: {
     get info() {
       return { kind: installed.kind, name: "mocked", contract: installed.contract };
@@ -36,14 +36,14 @@ describe("engine guard (#188)", () => {
   });
 
   it("accepts only the production engine where production requires it", () => {
-    process.env.CONSYRION_REQUIRE_PRODUCTION_ENGINE = "1";
+    process.env.CONSYRIUM_REQUIRE_PRODUCTION_ENGINE = "1";
     try {
       installed.kind = "test";
-      expect(() => assertEngineInstalled()).toThrow(/requires the production CONSYRION engine/);
+      expect(() => assertEngineInstalled()).toThrow(/requires the production CONSYRIUM engine/);
       installed.kind = "production";
       expect(() => assertEngineInstalled()).not.toThrow();
     } finally {
-      delete process.env.CONSYRION_REQUIRE_PRODUCTION_ENGINE;
+      delete process.env.CONSYRIUM_REQUIRE_PRODUCTION_ENGINE;
     }
   });
 

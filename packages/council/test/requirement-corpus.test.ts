@@ -1,4 +1,4 @@
-import { requirementCheckability } from "@consyrion/core";
+import { requirementCheckability } from "@consyrium/core";
 import {
   addDocument,
   createDatabase,
@@ -10,7 +10,7 @@ import {
   setSubscriptionPlan,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /**
@@ -80,7 +80,7 @@ const CORPUS: Case[] = [
   {
     name: "Self-improvement run log (30.10., 21 candidates, 6 real then)",
     brief: {
-      idea: "CONSYRION verbessert sich selbst.",
+      idea: "CONSYRIUM verbessert sich selbst.",
       requirements: "BYOK bleibt: keine Betreiber-Keys.\nUmsetzbar im bestehenden Stack in kleinen Schritten.",
     },
     document: {

@@ -1,5 +1,5 @@
-import { can } from "@consyrion/core";
-import { ensureDemoProject, listProjects } from "@consyrion/db";
+import { can } from "@consyrium/core";
+import { ensureDemoProject, listProjects } from "@consyrium/db";
 import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";

@@ -39,15 +39,28 @@ export function deriveNextSteps(view: View, proposalId: string | null, gate?: Re
   const content = contentOf(proposal);
   const items = view.requirementList?.items ?? [];
   const g = gate?.proposals.find((x) => x.proposalId === proposal.id);
+  // Gesamttest 08.11.26: a measurement check whose plan is confirmed (#249 part 2) is still open until a recorded
+  // measurement of this verdict meets it – listed as "MEASURE", never as "nothing open".
+  const byRequirement = new Map<string, boolean>();
+  for (const m of (view as { measurements?: Array<{ decisionId: string; proposalId: string; requirementId: string; met: boolean }> }).measurements ?? [])
+    if (m.decisionId === view.decision?.id && m.proposalId === proposal.id)
+      byRequirement.set(m.requirementId, (byRequirement.get(m.requirementId) ?? true) && m.met); // one miss stays decisive
+  const measured = new Set([...byRequirement].filter(([, met]) => met).map(([id]) => id));
   const verify = (g?.requirements ?? [])
-    .filter((r) => r.status !== "PASS")
+    .filter((r) => r.status !== "PASS" || ((r as { measurementPending?: boolean }).measurementPending && !measured.has(r.requirementId)))
     .map((r) => {
       const index = items.findIndex((i) => i.id === r.requirementId);
-      return { id: index >= 0 ? `R${index + 1}` : r.requirementId, text: index >= 0 ? items[index]!.text : "", status: r.status };
+      const status = r.status === "PASS" ? "MEASURE" : r.status;
+      return { id: index >= 0 ? `R${index + 1}` : r.requirementId, text: index >= 0 ? items[index]!.text : "", status };
     });
   const objections = view.objections
     .filter((o) => o.proposalId === proposal.id && ["open", "accepted", "unresolved"].includes(o.status) && !(o as { moot?: unknown }).moot)
-    .map((o) => ({ claim: o.claim, severity: o.severity, status: o.status, by: modelName(view, (o as { raisedByParticipantId?: string }).raisedByParticipantId) }));
+    .map((o) => ({
+      claim: o.claim,
+      severity: o.severity,
+      status: o.status,
+      by: modelName(view, (o as { raisedByParticipantId?: string }).raisedByParticipantId),
+    }));
   // Same ranking as the Key disputes card (#267), not a second logic: blocking first, then status and severity.
   const top = deriveCruxes(view, proposal.id, 50).find(
     (c) => c.proposalId === proposal.id && (c.status === "open" || c.status === "unresolved" || c.status === "accepted") && !c.revision?.moot,
@@ -69,8 +82,14 @@ export function deriveNextSteps(view: View, proposalId: string | null, gate?: Re
             successCriterion: content.cheapestTest.successCriterion?.trim() ?? "",
           }
         : null,
-    stopCriteria: (content.stopCriteria ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5),
-    revisitTriggers: (content.revisitTriggers ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 5),
+    stopCriteria: (content.stopCriteria ?? [])
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 5),
+    revisitTriggers: (content.revisitTriggers ?? [])
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 5),
     assumptions: (content.assumptions ?? []).slice(0, 5),
     stopIf: stopIf.slice(0, 4),
     revisitWhen: ((view.consensus as { disagreements?: string[] } | null)?.disagreements ?? []).slice(0, 4),

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { engineInfo } from "@consyrion/council";
-import { sql } from "@consyrion/db/sql";
+import { engineInfo } from "@consyrium/council";
+import { sql } from "@consyrium/db/sql";
 import { getDb } from "@/lib/server/db";
 
 export const dynamic = "force-dynamic";

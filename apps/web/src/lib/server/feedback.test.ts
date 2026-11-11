@@ -25,13 +25,13 @@ describe("feedback e-mail to the admins (#295)", () => {
     expect(feedbackAdminRecipients({})).toEqual([]);
     const mail = feedbackMail(
       { ...report, subject: "Line\r\nBcc: evil@x.test" },
-      { to: ["a@x.test"], from: "CONSYRION AI <no-reply@x.test>", appUrl: "https://app.example.test/" },
+      { to: ["a@x.test"], from: "CONSYRIUM AI <no-reply@x.test>", appUrl: "https://app.example.test/" },
     );
-    expect(mail.subject).toBe("CONSYRION Fehler: Line Bcc: evil@x.test");
+    expect(mail.subject).toBe("CONSYRIUM Fehler: Line Bcc: evil@x.test");
     expect(mail.text).toContain("Von: alice@example.test (angemeldet)");
     expect(mail.text).toContain("Seite: /sessions/ses_1");
     expect(mail.text).toContain("https://app.example.test/admin/feedback?id=fbk_1");
-    expect(feedbackMail({ ...report, kind: "contact", userId: null }, { to: [], from: "x", appUrl: "" }).subject).toMatch(/^CONSYRION Kontakt: /);
+    expect(feedbackMail({ ...report, kind: "contact", userId: null }, { to: [], from: "x", appUrl: "" }).subject).toMatch(/^CONSYRIUM Kontakt: /);
   });
 
   it("skips without recipients or SMTP and never throws when sending fails", async () => {
@@ -39,7 +39,7 @@ describe("feedback e-mail to the admins (#295)", () => {
     expect(await notifyAdminsAboutFeedback(report, { env: {}, sendMail })).toBe("skipped");
     expect(await notifyAdminsAboutFeedback(report, { env: { ADMIN_EMAILS: "a@x.test" }, sendMail: null })).toBe("skipped");
     expect(await notifyAdminsAboutFeedback(report, { env: { ADMIN_EMAILS: "a@x.test" }, sendMail })).toBe("sent");
-    expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ to: ["a@x.test"], subject: "CONSYRION Fehler: Verdict tab empty" }));
+    expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ to: ["a@x.test"], subject: "CONSYRIUM Fehler: Verdict tab empty" }));
     const failing = vi.fn(async () => {
       throw new Error("connect ETIMEDOUT");
     });
@@ -71,17 +71,17 @@ describe("feedback stage 2 (#295): screenshot attachment and reply e-mail", () =
 
   it("writes the reply in the report's language, quotes the message and links My reports only for accounts", () => {
     const base = { email: "alice@example.test", subject: "Verdict\r\nBcc: x@y", text: "Line 1\nLine 2", reply: "Fixed!", hasAccount: true };
-    const de = feedbackReplyMail({ ...base, locale: "de" }, { from: "CONSYRION AI <no-reply@x.test>", replyTo: "team@x.test", appUrl: "https://app.x.test/" });
+    const de = feedbackReplyMail({ ...base, locale: "de" }, { from: "CONSYRIUM AI <no-reply@x.test>", replyTo: "team@x.test", appUrl: "https://app.x.test/" });
     expect(de.to).toEqual(["alice@example.test"]);
     expect(de.replyTo).toBe("team@x.test");
     expect(de.subject).toBe("Re: Verdict Bcc: x@y");
-    expect(de.text).toContain("Das Team von CONSYRION AI hat auf deine Nachricht geantwortet:");
+    expect(de.text).toContain("Das Team von CONSYRIUM AI hat auf deine Nachricht geantwortet:");
     expect(de.text).toContain("> Line 1\n> Line 2");
     expect(de.text).toContain("https://app.x.test/settings/feedback");
     const visitor = feedbackReplyMail({ ...base, locale: "fr-CH", hasAccount: false }, { from: "x", appUrl: "https://app.x.test" });
-    expect(visitor.text).toContain("L'équipe CONSYRION AI");
+    expect(visitor.text).toContain("L'équipe CONSYRIUM AI");
     expect(visitor.text).not.toContain("/settings/feedback");
-    expect(feedbackReplyMail({ ...base, locale: null }, { from: "x", appUrl: "" }).text).toContain("The CONSYRION AI team");
+    expect(feedbackReplyMail({ ...base, locale: null }, { from: "x", appUrl: "" }).text).toContain("The CONSYRIUM AI team");
   });
 
   it("sends the reply with Reply-To of the first admin, skips without SMTP and never throws", async () => {

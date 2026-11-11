@@ -71,7 +71,7 @@ describe("assistant chat export (#280)", () => {
       labels: { ...labels, checks: checksLabels },
       checks,
       formatDate: () => "8. Nov. 2026",
-      appUrl: "https://app.consyrion.com",
+      appUrl: "https://app.consyrium.com",
     });
     expect(md).toContain("**Gegenprüfung: Widersprochen – lies die Einwände**\n- ⚠ widersprochen – openai/gpt-5.4-mini: Bei 3 Teams besser getrennt.");
     // Law/data protection is never "confirmed", however many models agree.
@@ -92,7 +92,7 @@ describe("assistant chat export (#280)", () => {
   });
 
   it("builds a safe file name from the title", () => {
-    expect(exportFileName("Größe: Postgres / SQLite?")).toBe("consyrion-chat-grosse-postgres-sqlite.md");
-    expect(exportFileName("???")).toBe("consyrion-chat-export.md");
+    expect(exportFileName("Größe: Postgres / SQLite?")).toBe("consyrium-chat-grosse-postgres-sqlite.md");
+    expect(exportFileName("???")).toBe("consyrium-chat-export.md");
   });
 });

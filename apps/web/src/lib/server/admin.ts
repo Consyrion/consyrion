@@ -1,6 +1,6 @@
 import "server-only";
-import { DomainError } from "@consyrion/core";
-import { resolvePlatformAdmin } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { resolvePlatformAdmin } from "@consyrium/db";
 import { requireUser } from "./actor";
 import { getDb } from "./db";
 import { emailVerificationEnabled } from "./email-verification";

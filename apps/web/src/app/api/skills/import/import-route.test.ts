@@ -1,4 +1,4 @@
-import { createDatabase, ensurePersonalOrganization, resolveActor, schema, type DatabaseHandle } from "@consyrion/db";
+import { createDatabase, ensurePersonalOrganization, resolveActor, schema, type DatabaseHandle } from "@consyrium/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -42,7 +42,7 @@ describe("POST /api/skills/import (#419)", () => {
     const response = await POST(importRequest({ schemaVersion: 2, name: "From the future", newField: true }));
     expect(response.status).toBe(422);
     const body = (await response.json()) as { error: { message: string; details: unknown } };
-    expect(body.error.message).toMatch(/newer CONSYRION version/);
+    expect(body.error.message).toMatch(/newer CONSYRIUM version/);
     expect(body.error.details).toEqual({ reason: "newer_schema", schemaVersion: 2 });
   });
 });

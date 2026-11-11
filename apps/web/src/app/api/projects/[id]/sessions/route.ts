@@ -1,5 +1,5 @@
-import { createSession, listSessions, type SessionInput } from "@consyrion/council";
-import { beginIdempotency, completeIdempotency, idempotencyRequestHash, releaseIdempotency, recordClientCouncilStart } from "@consyrion/db";
+import { createSession, listSessions, type SessionInput } from "@consyrium/council";
+import { beginIdempotency, completeIdempotency, idempotencyRequestHash, releaseIdempotency, recordClientCouncilStart } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

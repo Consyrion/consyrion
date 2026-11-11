@@ -19,7 +19,7 @@ Every council of 30.10.2026 without a recommendation, classified by its main cau
 | Gemini-3 Logistics         | no qualifying solution | clear FAILs; a disguised meta rule got contradictory checks (one PASS "because the word does not appear") | (a) correct + (d) on a requirement that should not have been one (#227) |
 
 **Finding:** in none of the eight runs was the decisive cause a weak model judgement on a real requirement. Three
-causes were CONSYRION's own (repair, schema wording, intake) and are fixed or proposed (#224, #225, #227). The one
+causes were CONSYRIUM's own (repair, schema wording, intake) and are fixed or proposed (#224, #225, #227). The one
 contradictory evaluation (Gemini-3, R5) concerned a meta rule, not a product requirement. A stronger "main model"
 would not have changed any of these outcomes – the positive control was recommended once the plumbing was right.
 

@@ -1,7 +1,7 @@
-import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
-import type { ModelCatalog } from "@consyrion/council";
-import { decryptCredentialForUse, recordModelCheck, type ActorContext, type Database } from "@consyrion/db";
-import { DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError, timeoutSignal } from "@consyrium/ai";
+import type { ModelCatalog } from "@consyrium/council";
+import { decryptCredentialForUse, recordModelCheck, type ActorContext, type Database } from "@consyrium/db";
+import { DomainError } from "@consyrium/core";
 import { getKeyring } from "./keyring";
 import { logger } from "./logger";
 

@@ -5,7 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { Select } from "../ui/select";
 
 /** "Skill verwenden" on the council setup (#363): the choice lives in the URL (?skill=…) so the server pre-fills the page. */
-export function SkillPicker({ options, value }: { options: Array<{ id: string; name: string; group: "official" | "own" | "team" }>; value: string | null }) {
+export function SkillPicker({
+  options,
+  value,
+}: {
+  options: Array<{ id: string; name: string; group: "official" | "own" | "team"; version?: number; copyOf?: string | null }>;
+  value: string | null;
+}) {
   const t = useTranslations("skills.picker");
   const router = useRouter();
   const pathname = usePathname();
@@ -27,7 +33,8 @@ export function SkillPicker({ options, value }: { options: Array<{ id: string; n
                 .filter((o) => o.group === group)
                 .map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.name}
+                    {/* Gesamttest 3 (#5): same-named skills stay distinguishable by version and origin. */}
+                    {[o.name, o.version ? `v${o.version}` : null, o.copyOf ? t("copyOf", { name: o.copyOf }) : null].filter(Boolean).join(" · ")}
                   </option>
                 ))}
             </optgroup>

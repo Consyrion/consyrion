@@ -1,6 +1,6 @@
-import { listSessions } from "@consyrion/council";
-import { can, DECISION_MODE_LABELS, DomainError } from "@consyrion/core";
-import { getEntitlements, getProject, latestRequirementList, listDocuments, listGitHubIntegrations, requirementSourceState } from "@consyrion/db";
+import { listSessions } from "@consyrium/council";
+import { can, DECISION_MODE_LABELS, DomainError } from "@consyrium/core";
+import { getEntitlements, getProject, latestRequirementList, listDocuments, listGitHubIntegrations, requirementSourceState } from "@consyrium/db";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -66,6 +66,11 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
               <Link href={`/projects/${project.id}/council/new`} className={buttonClasses()}>
                 {t("startCouncil")}
               </Link>
+            ) : project.status === "archived" && can(actor.role, "decision:run") ? (
+              // #548: say why there is no start – and where to restore.
+              <a href="#project-archive" className={buttonClasses("secondary")} title={t("archive.startBlocked")} data-testid="archived-start">
+                {t("archive.startBlocked")}
+              </a>
             ) : null}
           </div>
         }
@@ -76,7 +81,14 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         </div>
       ) : null}
       {project.isDemo ? <DemoNotice /> : null}
-      <ProjectOverview project={project} overview={overview} sessions={sessions} requirementList={requirementList} canRun={canRun} />
+      <ProjectOverview
+        project={project}
+        overview={overview}
+        sessions={sessions}
+        requirementList={requirementList}
+        canRun={canRun}
+        archived={project.status === "archived"}
+      />
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card>
           <h2 className="font-semibold">{t("brief")}</h2>
@@ -192,7 +204,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         <PhaseOverview />
       </Card>
       {can(actor.role, "project:delete") && !project.isDemo ? (
-        <Card className="mt-6">
+        <Card className="mt-6 scroll-mt-20" id="project-archive">
           <h2 className="font-semibold">{project.status === "archived" ? t("archive.restoreTitle") : t("archive.title")}</h2>
           <div className="mt-2">
             <ProjectArchive projectId={project.id} archived={project.status === "archived"} />
@@ -203,7 +215,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
         <Card className="mt-6 border-danger/40">
           <h2 className="font-semibold text-danger">{t("delete")}</h2>
           <p className="mt-1 text-sm text-muted">{t("deleteText")}</p>
-          {/* #197 (ADR 0197): what is deleted, counted from this project – and what CONSYRION cannot delete. */}
+          {/* #197 (ADR 0197): what is deleted, counted from this project – and what CONSYRIUM cannot delete. */}
           <p className="mt-2 text-sm" data-testid="delete-counts">
             {t("deleteCounts", {
               sessions: sessions.length,

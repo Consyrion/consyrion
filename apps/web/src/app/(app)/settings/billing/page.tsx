@@ -1,5 +1,5 @@
-import { can, DEFAULT_PLAN, isSelfHosted, isUnlimited, type Entitlements } from "@consyrion/core";
-import { approximateCost, getEntitlements, getPlanCatalog, getSubscription, listPriceHints, usageThisMonth } from "@consyrion/db";
+import { can, DEFAULT_PLAN, isSelfHosted, isUnlimited, type Entitlements } from "@consyrium/core";
+import { approximateCost, getEntitlements, getPlanCatalog, getSubscription, listPriceHints, usageThisMonth } from "@consyrium/db";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { DeleteHint, DowngradeButton, PortalButton, PriceHintForm, RefreshUntilSettled, UpgradeButton } from "@/components/saas";

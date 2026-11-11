@@ -40,7 +40,7 @@ const overview = {
     },
   ],
   shown: { id: "ses_2", status: "awaiting_approval", outcome: "recommended" },
-  lastDecision: { sessionId: "ses_2", status: "awaiting_approval", outcome: "recommended", createdAt: sessions[0]!.createdAt },
+  lastDecision: { sessionId: "ses_2", status: "awaiting_approval", outcome: "recommended", awaitingReview: false, createdAt: sessions[0]!.createdAt },
   build: { sessionId: "ses_1", status: "completed", pullRequestUrl: "https://github.com/acme/portal/pull/8" },
   tokens: { council: 552_984, build: 60_000, total: 612_984 },
 };
@@ -78,5 +78,17 @@ describe("project overview (owner request 08.11.26)", () => {
     });
     expect(html).toContain("Noch kein Council");
     expect(html).toContain('href="/projects/prj_1/council/new"');
+  });
+
+  it("shows the verdict title of the session screen and the review split (#268: one status everywhere)", async () => {
+    const html = await render({
+      project,
+      overview: { ...overview, lastDecision: { ...overview.lastDecision!, outcome: "architecture_candidate", awaitingReview: true } },
+      sessions,
+      requirementList: { version: 1, items: [1] },
+      canRun: true,
+    });
+    expect(html).toContain("Architektur-Kandidat – Leistungsnachweis offen, nicht freigebbar");
+    expect(html).toContain("Wartet auf deine Prüfung · Kein freigebbarer Vorschlag");
   });
 });

@@ -1,14 +1,14 @@
 # MCP server (06.11.26)
 
-CONSYRION AI can be used from any MCP client – Claude Code, Claude Desktop, Cursor, VS Code, … – through a
-**Model Context Protocol** server built into the app. Hosted (app.consyrion.com): **Pro and up** (plan entitlement
+CONSYRIUM AI can be used from any MCP client – Claude Code, Claude Desktop, Cursor, VS Code, … – through a
+**Model Context Protocol** server built into the app. Hosted (app.consyrium.com): **Pro and up** (plan entitlement
 `mcp`, editable in /admin); self-hosted: always on.
 
 ## Connect
 
 - Address: `https://<your domain>/api/mcp` (Streamable HTTP, stateless; POST with JSON-RPC, answers as JSON).
 - Auth: an API token from **Settings → API tokens** as `Authorization: Bearer …`.
-- Claude Code: `claude mcp add --transport http consyrion https://app.consyrion.com/api/mcp --header "Authorization: Bearer <TOKEN>"`
+- Claude Code: `claude mcp add --transport http consyrium https://app.consyrium.com/api/mcp --header "Authorization: Bearer <TOKEN>"`
 - OAuth sign-in (needed for claude.ai and ChatGPT connectors) is the next stage and not built yet.
 
 ## Tokens and tools
@@ -16,13 +16,13 @@ CONSYRION AI can be used from any MCP client – Claude Code, Claude Desktop, Cu
 | Token                                                                | Tools                                                                                                                                     |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `cnr_` **Read only** (new; MCP only, refused by every REST endpoint) | `list_projects`, `list_decisions`, `get_decision`, `list_open_steps`, `list_models`, `get_requirements`, `preview_council`, `list_skills` |
-| `cni_` Councils only / `cns_` Full access                            | the read tools + `ask_consyrion`, `create_project_draft`, `update_brief`, `propose_requirements`, `start_council`                         |
+| `cni_` Councils only / `cns_` Full access                            | the read tools + `ask_consyrium`, `create_project_draft`, `update_brief`, `propose_requirements`, `start_council`                         |
 
-## Ask for a decision while working: `ask_consyrion`
+## Ask for a decision while working: `ask_consyrium`
 
 Someone coding with Claude (or Cursor, VS Code …) hits a decision – "PostgreSQL or SQLite?", "queue or cron?" – and
-asks CONSYRION in **one call**: `question`, `context`, optional `options`, `requirements`, `tokenBudget` (required,
-max 1,000,000), optional `participants`/`mode`. CONSYRION creates a ready project (type technology choice), confirms the
+asks CONSYRIUM in **one call**: `question`, `context`, optional `options`, `requirements`, `tokenBudget` (required,
+max 1,000,000), optional `participants`/`mode`. CONSYRIUM creates a ready project (type technology choice), confirms the
 requirement list **from the user's own requirement lines** (sentences of question/context stay context; statements
 that look like instructions to the models are refused, never auto-decided), starts the council and returns the
 `sessionId` at once. The client then calls `get_decision` (phase, tokens, and at the end the verdict).
@@ -52,7 +52,7 @@ that look like instructions to the models are refused, never auto-decided), star
 - `start_council` costs tokens on the workspace's own keys (BYOK): `tokenBudget` is required and at most
   **1,000,000** (`MCP_MAX_TOKEN_BUDGET`); needs a current confirmed requirement list; rate limit 5/min. The client
   should call `preview_council` first and tell the user the estimate.
-- **Daily budget (#405):** `start_council` and `ask_consyrion` are refused once what this user's **client-started**
+- **Daily budget (#405):** `start_council` and `ask_consyrium` are refused once what this user's **client-started**
   councils of the last 24 hours (MCP, Telegram, REST with an API token – marked by the audit event
   `client.council_started`; councils started in the web app never count) **really used** – finished councils with their recorded
   usage, queued or running ones with their full budget – plus the new one exceed **5,000,000** tokens
@@ -63,7 +63,7 @@ that look like instructions to the models are refused, never auto-decided), star
   120 requests per minute and user – a batch does not multiply what one request may do.
 - **Never over MCP:** approve/reject, builds, delete/archive, confirming requirements, keys, billing, settings,
   members, tokens.
-- **Who confirms requirements (#405):** only the human. Over MCP that is the user's approval of the `ask_consyrion`
+- **Who confirms requirements (#405):** only the human. Over MCP that is the user's approval of the `ask_consyrium`
   call, which carries the requirement lines (the client must show them first); `propose_requirements` never confirms.
   Over REST an integration token may confirm a list (`POST /api/projects/:id/requirements`, #101) only for an
   integration that shows the list to its user first – an agent must never confirm on its own.
@@ -80,13 +80,13 @@ that look like instructions to the models are refused, never auto-decided), star
 `apps/web/src/lib/server/mcp.test.ts` (protocol, 401/403, Pro gate, tool sets per scope, nothing that approves,
 builds or deletes, draft creation, budget limit), `actor.test.ts` (read-only token refused by REST endpoints).
 
-### Requirements of an `ask_consyrion` call (QA 07.11.26)
+### Requirements of an `ask_consyrium` call (QA 07.11.26)
 
 Only the `requirements` lines the user gave are confirmed as hard requirements. Sentences of `question` and `context`
 stay context even when they sound binding ("max. 50 users"): this flow confirms without a review screen, so they are
 stored as excluded ("context of the question"). The same applies to `/frage` in Telegram. Invalid tool input names the
 fields (`Invalid session configuration – participants: …`).
-A refused `ask_consyrion` start (budget not confirmed, unknown model, plan limit) archives the project it created, so a
+A refused `ask_consyrium` start (budget not confirmed, unknown model, plan limit) archives the project it created, so a
 retry does not leave a duplicate behind; Telegram `/frage` behaves the same.
 
 ### What was decided – for the editor agent (07.11.26)

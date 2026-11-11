@@ -1,4 +1,4 @@
-import { awaitingReviewWithoutApproval } from "@consyrion/core/browser";
+import { awaitingReviewWithoutApproval } from "@consyrium/core/browser";
 import type { View } from "./helpers";
 import type { RequirementGateResult } from "./requirement-gate";
 import type { NextAction, OutcomeKey } from "./verdict-dashboard";
@@ -22,6 +22,11 @@ export interface VerdictStatus {
   tone: "success" | "warning" | "danger" | "neutral";
   /** The first step the decision form offers (#266). */
   initialAction: NextAction;
+  /**
+   * #548 / live check 08.11.26: the project is archived – read-only, the server refuses every decision. The screen offers
+   * no next step and shows the archive note instead (restore first).
+   */
+  archived: boolean;
   /** #477: the workflow waits for a human, but no proposal can be approved – header says "awaiting your review". */
   nothingApprovable: boolean;
   /** Proposals the server lets a human approve. */
@@ -59,11 +64,22 @@ export function verdictStatus(view: View): VerdictStatus {
   const missingEvaluators = (matrix?.failedEvaluators ?? []).length;
   // #511: an architecture candidate is not a dead end – the first step offered is marking it as favourite (no approval).
   const prototypeReady = (status?.prototypeProposalIds ?? []).length > 0;
+  // #249 part 2 / Gesamttest 08.11.26: after the human step the next one moves on – a marked favourite → approve a
+  // prototype / measurement build; an approved prototype build → record the measured result (or approve after it).
+  const mark = (view as { humanMark?: { kind: "favorite" | "prototype_build"; proposalId: string } | null }).humanMark ?? null;
+  const measured = ((status as { measurementApprovableProposalIds?: string[] } | null)?.measurementApprovableProposalIds ?? []).length > 0;
+  const afterMark: NextAction | null = !mark
+    ? null
+    : mark.kind === "favorite"
+      ? "approve_prototype"
+      : measured
+        ? "approve_after_measurement"
+        : "record_measurement";
   const initialAction: NextAction = notApprovable
     ? missingEvaluators > 0
       ? "repeat_evaluation"
-      : prototypeReady
-        ? "mark_favorite"
+      : prototypeReady || mark
+        ? (afterMark ?? "mark_favorite")
         : "request_changes"
     : decision?.outcome === "recommended" && status?.canApproveRecommendation
       ? "approve"
@@ -98,13 +114,13 @@ export function verdictStatus(view: View): VerdictStatus {
   // Gesamttest #275 / #477: "awaiting your decision" next to "not approvable" contradicted itself.
   const nothingApprovable = awaitingReviewWithoutApproval(view.session.status, status);
   // #249 part 2: the latest favourite / prototype mark of this verdict – a human action, the outcome stays as it is.
-  const mark = (view as { humanMark?: { kind: "favorite" | "prototype_build"; proposalId: string } | null }).humanMark ?? null;
   const humanMark = mark ? { kind: mark.kind, proposalId: mark.proposalId } : null;
   const marks: VerdictMark[] = humanMark ? [humanMark.kind === "prototype_build" ? "prototypeBuild" : "favoriteNotRegular"] : [];
-  return { readable, notApprovable, conflict, s1, outcomeKey, tone, initialAction, nothingApprovable, approvableProposalIds, humanMark, marks };
+  const archived = (view.project as { status?: string } | undefined)?.status === "archived";
+  return { readable, notApprovable, conflict, s1, outcomeKey, tone, initialAction, archived, nothingApprovable, approvableProposalIds, humanMark, marks };
 }
 
-export type NextStepsMode = "chosen" | "recommended" | "tie" | "blocked";
+export type NextStepsMode = "chosen" | "recommended" | "tie" | "favorite" | "blocked";
 
 /**
  * For which proposal the next steps are shown (#273), and how they are introduced – one choice for the verdict screen
@@ -119,6 +135,17 @@ export function nextStepsTarget(view: View, status: VerdictStatus = verdictStatu
   // A human choice wins (ChatGPT test 06.11.26: decided tie sessions still read "nothing can be approved yet").
   const last = (view.approvals ?? []).at(-1);
   const chosenId = last && (last.action === "approve" || last.action === "select_alternative") ? (last.selectedProposalId ?? recommendedId) : null;
-  const mode: NextStepsMode = chosenId ? "chosen" : recommendedId ? "recommended" : status.approvableProposalIds.length ? "tie" : "blocked";
-  return { proposalId: chosenId ?? recommendedId ?? best, mode };
+  // #249 part 2 / live check 08.11.26: a favourite marked by a human is the proposal the next steps are about – still
+  // nothing approvable ("favorite" keeps the not-yet warning), but no longer the best-scored one instead.
+  const favoriteId = !chosenId && !recommendedId && status.humanMark ? status.humanMark.proposalId : null;
+  const mode: NextStepsMode = chosenId
+    ? "chosen"
+    : recommendedId
+      ? "recommended"
+      : favoriteId
+        ? "favorite"
+        : status.approvableProposalIds.length
+          ? "tie"
+          : "blocked";
+  return { proposalId: chosenId ?? recommendedId ?? favoriteId ?? best, mode };
 }

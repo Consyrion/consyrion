@@ -1,5 +1,6 @@
 import "server-only";
-import { reportTranslator, type ReportLocale } from "@consyrion/council";
+import { COUNCIL_PHASE_LABELS } from "@consyrium/core/browser";
+import { reportTranslator, type ReportLocale } from "@consyrium/council";
 import { createTranslator } from "next-intl";
 import { messagesFor } from "@/i18n/all-messages";
 import type { View } from "@/components/session/helpers";
@@ -8,6 +9,7 @@ import { deriveNextSteps } from "@/components/session/next-steps";
 import type { RequirementGateResult } from "@/components/session/requirement-gate";
 import { measurementRows } from "@/components/session/measurements";
 import { PARTICIPATION_PHASES, participationMatrix, silentIn } from "@/components/session/participation";
+import { processQualityLines } from "@/components/session/process-quality-lines";
 import { buildReplayEvents } from "@/components/session/replay-events";
 import { nextStepsTarget, verdictStatus } from "@/components/session/verdict-status";
 
@@ -102,7 +104,7 @@ export function reportStatus(view: unknown, locale: ReportLocale): ReportStatus 
   const gate = (json.decision?.matrix as { requirementGate?: RequirementGateResult } | undefined)?.requirementGate;
   const steps = target ? deriveNextSteps(json, target.proposalId, gate) : null;
   const label = steps ? (json.proposals.find((p) => p.id === steps.proposalId)?.label ?? "?") : "?";
-  const intro = { chosen: "introChosen", recommended: "introRecommended", tie: "introTie", blocked: "introLeading" } as const;
+  const intro = { chosen: "introChosen", recommended: "introRecommended", tie: "introTie", favorite: "introFavorite", blocked: "introLeading" } as const;
   const nextSteps: ReportBlock | null =
     steps && target
       ? {
@@ -144,9 +146,9 @@ export function reportStatus(view: unknown, locale: ReportLocale): ReportStatus 
                   ...steps.stopIf.map((r) => `• ${r.risk}${r.mitigation ? ` – ${tv("verdict.nextSteps.stopIf.mitigation", { text: r.mitigation })}` : ""}`),
                 ]
               : [`• ${tv("verdict.nextSteps.stopIf.empty")}`]),
-            ...(target.mode === "blocked" ? [tv("verdict.nextSteps.notYet")] : []),
+            ...(target.mode === "blocked" || target.mode === "favorite" ? [tv("verdict.nextSteps.notYet")] : []),
           ],
-          warn: target.mode === "blocked",
+          warn: target.mode === "blocked" || target.mode === "favorite",
         }
       : null;
 
@@ -191,7 +193,11 @@ export function reportStatus(view: unknown, locale: ReportLocale): ReportStatus 
 
 type Tv = (key: string, values?: Record<string, string | number>) => string;
 const stamp = (iso: string) => `${new Date(iso).toISOString().slice(0, 16).replace("T", " ")} UTC`;
-const minutes = (from: string, to: string) => Math.max(0, Math.round((Date.parse(to) - Date.parse(from)) / 60000));
+const minutes = (from: string, to: string) => {
+  const m = Math.round((Date.parse(to) - Date.parse(from)) / 60000);
+  // Under a minute is not "0 min" (live check 08.11.26).
+  return m < 1 ? "< 1" : String(m);
+};
 
 /** The course of the council (#268 part 4) – only stored rows, through the screen's own derivations. */
 function processBlocks(view: View, tv: Tv, tr: (key: string) => string, locale: ReportLocale): ReportBlock[] {
@@ -219,6 +225,17 @@ function processBlocks(view: View, tv: Tv, tr: (key: string) => string, locale: 
   const rows = participationMatrix(view);
   const ran = new Set(events.filter((e) => e.kind === "stage_started").map((e) => e.phase));
   const usage = (view.usage ?? []) as Array<{ participantId: string | null; inputTokens: number | string; outputTokens: number | string }>;
+  // #561: phases a model was never asked in because the budget shortened them (participation.shortfalls[].notCalled,
+  // phase labels) – "not called", not "no contribution".
+  const shortfalls = ((view as { participation?: { shortfalls?: Array<{ participantId: string; notCalled?: string[] }> } }).participation?.shortfalls ??
+    []) as Array<{
+    participantId: string;
+    notCalled?: string[];
+  }>;
+  const notCalled = (participantId: string, phase: string) =>
+    shortfalls.some(
+      (sf) => sf.participantId === participantId && (sf.notCalled ?? []).includes(COUNCIL_PHASE_LABELS[phase as keyof typeof COUNCIL_PHASE_LABELS]),
+    );
   const lines = rows.flatMap((row) => {
     const p = view.participants.find((x) => x.id === row.participantId);
     const name = `${p?.provider ?? "?"} · ${p?.modelId ?? "?"}${row.instance ? ` (${tv("councilRoom.participation.instance", { index: row.instance.index, total: row.instance.total })})` : ""}`;
@@ -228,7 +245,11 @@ function processBlocks(view: View, tv: Tv, tr: (key: string) => string, locale: 
     const phases = PARTICIPATION_PHASES.map((phase) => {
       const c = row.cells[phase];
       const parts = [
-        silentIn(row, phase, ran.has(phase)) ? tv("councilRoom.participation.silent") : null,
+        notCalled(row.participantId, phase)
+          ? t("not called (phase shortened by the budget)")
+          : silentIn(row, phase, ran.has(phase))
+            ? tv("councilRoom.participation.silent")
+            : null,
         c.ok ? tv("councilRoom.participation.calls", { n: c.ok }) : null,
         c.contributions ? tv("councilRoom.participation.contributions", { n: c.contributions }) : null,
         c.failed ? tv("councilRoom.participation.failed", { n: c.failed }) : null,
@@ -241,6 +262,18 @@ function processBlocks(view: View, tv: Tv, tr: (key: string) => string, locale: 
     ];
   });
   if (lines.length) blocks.push({ title: tv("councilRoom.participation.title"), lines });
+
+  // 2b. Process quality (#182): the same wording as the card in the Evaluation tab, with its limits.
+  const quality = processQualityLines(view, (key, values) => tv(`processQuality.${key}`, values));
+  if (quality)
+    blocks.push({
+      title: tv("processQuality.title"),
+      lines: [
+        tv("processQuality.intro"),
+        ...quality.flatMap((q) => [`${q.title}: ${q.text}`, ...(q.limit ? [`   ${q.limit}`] : [])]),
+        tv("processQuality.footer"),
+      ],
+    });
 
   // 3. Follow-up check rounds (#228/#229), as stored with the verdict.
   const followUps = ((view.decision?.matrix as { followUpRounds?: Array<{ round: number; kind: string; items: number; applied: boolean }> } | undefined)

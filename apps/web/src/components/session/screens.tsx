@@ -1,7 +1,7 @@
 "use client";
 
 import { AskAssistantButton } from "../assistant-open";
-import { CRITERIA, dedupeStatements, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrion/core/browser";
+import { CRITERIA, dedupeStatements, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrium/core/browser";
 import { EngineText, useConfidenceIssueText } from "./engine-text";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import { RequirementGateTable, useFeasibilityLabel, type RequirementGateResult }
 import { FollowUpCard } from "./follow-up-card";
 import { explainNoRecommendation, type WhyProposal } from "./why-no-recommendation";
 import { MeasurementPanel } from "./measurement-panel";
+import { ProcessQualityCard } from "./process-quality-card";
 import {
   contentOf,
   latestRevision,
@@ -34,11 +35,13 @@ import {
 } from "./helpers";
 import { WhyPerspectives } from "./why-perspectives";
 import { CruxesCard } from "./cruxes-card";
+import { CouncilQuestions, ObjectionInterventions } from "./human-questions";
 import { NextStepsCard } from "./next-steps-card";
 import { deriveNextSteps } from "./next-steps";
 import { ProcessCharts } from "./process-charts";
 import { score1 } from "./verdict-dashboard";
 import { nextStepsTarget, verdictStatus } from "./verdict-status";
+import { councilPurpose, ideaCheck, type IdeaCheckMatrix } from "./idea-check";
 import { VerdictDashboard, type DashboardMatrix, type NextAction, type OutcomeKey } from "./verdict-dashboard";
 
 /** Criterion names, shared with the verdict dashboard (`verdict.dashboard.criteria`). */
@@ -461,7 +464,7 @@ function DiffRows({ before, after }: { before: ProposalContent; after: ProposalC
   );
 }
 
-export function MinorityConsensusScreen({ view }: { view: View }) {
+export function MinorityConsensusScreen({ view, canApprove = false }: { view: View; canApprove?: boolean }) {
   const [section, setSection] = useState<"minority" | "consensus">("minority");
   const [proposalId, setProposalId] = useState<string | null>(view.proposals[0]?.id ?? null);
   const review = view.minorityReview;
@@ -543,6 +546,8 @@ export function MinorityConsensusScreen({ view }: { view: View }) {
                       <EngineText text={o.resolutionReason} />
                     </p>
                   ) : null}
+                  {/* #15/#41: a human's statement request and mark – appendix only, no effect on the verdict. */}
+                  <ObjectionInterventions view={view} objectionId={o.id} canApprove={canApprove} />
                 </li>
               ))}
             </ul>
@@ -893,6 +898,8 @@ export function EvaluationScreen({ view }: { view: View }) {
         })}
       </p>
       {matrix.requirementGate ? <RequirementGateTable view={view} gate={matrix.requirementGate} /> : null}
+      {/* #182: how the council worked, from stored data – no proof of a right verdict. */}
+      <ProcessQualityCard view={view} />
       {drillProposal ? (
         <Card>
           <div className="flex items-center justify-between">
@@ -957,7 +964,8 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const { readable, notApprovable, conflict, s1, initialAction } = verdict;
   const matrix = readable ? (decision?.matrix as unknown as DecisionMatrix | undefined) : undefined;
   const missingEvaluators = (matrix?.failedEvaluators ?? []).length;
-  const [action, setAction] = useState<string>(initialAction);
+  // The form offers decisions only; "record_measurement" points to the measurement panel instead.
+  const [action, setAction] = useState<string>(initialAction === "record_measurement" ? "request_changes" : initialAction);
   const [comment, setComment] = useState("");
   const [alternative, setAlternative] = useState("");
   const [busy, setBusy] = useState(false);
@@ -995,6 +1003,8 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const outcomeKey: OutcomeKey = verdict.outcomeKey ?? "not_approvable";
   const outcome = { title: tOutcome(outcomeKey), tone: verdict.tone };
   const findings = new Set((matrix?.proposals ?? []).filter((p) => p.implementable === false).map((p) => p.proposalId));
+  // #548: the project is archived – read-only, decisions are refused by the server.
+  const archivedProject = (view.project as { status?: string }).status === "archived";
   // #249 part 2 / #478: computed on the server, only displayed here.
   const prototypeIds = new Set(status?.prototypeProposalIds ?? []);
   const measuredIds = new Set(status?.measurementApprovableProposalIds ?? []);
@@ -1007,18 +1017,24 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const candidates = new Map(
     (matrix?.requirementGate?.proposals ?? [])
       .filter((g) => g.architectureCandidate)
-      .map((g) => [g.proposalId, g.requirements.filter((r) => r.measurementPending).map((r) => r.requirementId).join(", ")]),
+      .map((g) => [
+        g.proposalId,
+        g.requirements
+          .filter((r) => r.measurementPending)
+          .map((r) => r.requirementId)
+          .join(", "),
+      ]),
   );
   const notApprovableText = (id: string) =>
     s1 && candidates.has(id)
       ? t("notApprovable.architectureCandidate", { ids: candidates.get(id)! })
       : s1
-      ? qualified.has(id)
-        ? t("notApprovable.qualifiedBlocked")
-        : t("notApprovable.s1")
-      : findings.has(id)
-        ? t("notApprovable.finding")
-        : t("notApprovable.other");
+        ? qualified.has(id)
+          ? t("notApprovable.qualifiedBlocked")
+          : t("notApprovable.s1")
+        : findings.has(id)
+          ? t("notApprovable.finding")
+          : t("notApprovable.other");
   // The same conflict named by several proposals is listed once (#173).
   const conflicts = dedupeStatements(view.proposals.flatMap((p) => contentOf(p).requirementConflicts ?? []));
   const total = (proposalId: string) => (matrix as { proposals?: MatrixProposal[] } | undefined)?.proposals?.find((p) => p.proposalId === proposalId)?.total;
@@ -1051,10 +1067,13 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
           matrix={matrix as unknown as DashboardMatrix}
           outcome={outcome}
           outcomeKey={outcomeKey}
-          nextAction={view.session.status === "awaiting_approval" && canApprove ? (initialAction as NextAction) : null}
+          // No next step in an archived project – nothing can be decided there (#548, verdictStatus.archived).
+          nextAction={view.session.status === "awaiting_approval" && canApprove && !verdict.archived ? (initialAction as NextAction) : null}
           reason={notApprovable ? (conflictReason ?? verdictReason(status?.reason)) : gateText.summary(matrix.requirementGate?.summary)}
           approvableIds={approvableIds}
           recommendedId={notApprovable ? null : (decision.recommendedProposalId ?? null)}
+          // #597: an idea-check council reads a verdict without anything approvable as a favourite with open points.
+          idea={notApprovable && councilPurpose(view.session.policy) === "idea_check" ? ideaCheck(matrix as unknown as IdeaCheckMatrix) : null}
         />
       ) : null}
       {(() => {
@@ -1096,6 +1115,8 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
             onChange={onChange}
           />
         ) : null}
+        {/* #15/#41: questions to the council after the verdict – appendix only. */}
+        <CouncilQuestions view={view} canApprove={canApprove} />
         {notApprovable && status?.reason ? (
           <p className="mt-3 text-sm" data-testid="not-approvable-reason">
             {conflictReason ?? verdictReason(status.reason)} {t("notApprovableHint")}
@@ -1269,7 +1290,12 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         </Alert>
       ) : null}
       {readable && matrix?.requirementGate ? (
-        <MeasurementPanel view={view} gate={matrix.requirementGate} canRecord={canApprove && view.session.status === "awaiting_approval"} onChange={onChange} />
+        <MeasurementPanel
+          view={view}
+          gate={matrix.requirementGate}
+          canRecord={canApprove && view.session.status === "awaiting_approval" && !archivedProject}
+          onChange={onChange}
+        />
       ) : null}
 
       <SendDecision sessionId={view.session.id} projectDefault={view.project.deliveryDefault ?? null} />
@@ -1290,7 +1316,12 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
         </Card>
       ) : null}
 
-      {view.session.status === "awaiting_approval" ? (
+      {view.session.status === "awaiting_approval" && archivedProject ? (
+        // #548: an archived project is read-only – the server refuses every decision, so none is offered.
+        <Alert tone="warning">
+          <span data-testid="archived-decision">{t("form.archived")}</span>
+        </Alert>
+      ) : view.session.status === "awaiting_approval" ? (
         canApprove ? (
           <Card id="your-decision" className="scroll-mt-20">
             <h3 className="font-semibold">{t("form.title")}</h3>

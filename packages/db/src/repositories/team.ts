@@ -1,4 +1,4 @@
-import { assertCan, canAssignRole, DomainError, isOrgRole, type OrgRole } from "@consyrion/core";
+import { assertCan, canAssignRole, DomainError, isOrgRole, type OrgRole } from "@consyrium/core";
 import { createHash, randomBytes } from "node:crypto";
 import { and, asc, eq, gte, isNull } from "drizzle-orm";
 import type { Database } from "../client";

@@ -1,4 +1,4 @@
-import { newId, schema, type Database } from "@consyrion/db";
+import { newId, schema, type Database } from "@consyrium/db";
 import { eq, sql } from "drizzle-orm";
 
 export type JobRow = typeof schema.job.$inferSelect;

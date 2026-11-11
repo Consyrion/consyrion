@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { assertCan, decryptSecret, DomainError, type Keyring } from "@consyrion/core";
+import { assertCan, decryptSecret, DomainError, type Keyring } from "@consyrium/core";
 import { and, eq, inArray, lt } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";

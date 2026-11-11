@@ -46,19 +46,19 @@ function Outline({ width = 0, body = false }: { width?: number; body?: boolean }
         </g>
       )}
       <text x={TEXT_X} y={TEXT_BASELINE} textLength={TEXT_LENGTH} lengthAdjust="spacingAndGlyphs" fontSize={FONT_SIZE} fontWeight={600} fontFamily="var(--font-display)" strokeWidth={width}>
-        CONSYRION AI
+        CONSYRIUM AI
       </text>
     </>
   );
 }
 
 /**
- * Electric lockup (issue #67): the CONSYRION AI mark and the CONSYRION AI wordmark drawn as a living lightning
+ * Electric lockup (issue #67): the CONSYRIUM AI mark and the CONSYRIUM AI wordmark drawn as a living lightning
  * outline – a glowing halo, a crackling core stroke (animated turbulence) and short arcs that leap off the
  * edges. Original SVG implementation inspired by the React Bits "Electric Logo" idea; no third-party code.
  * Server render, reduced motion and hidden tabs show the static glowing outline without arcs.
  */
-export function ElectricLockup({ className = "", label = "CONSYRION AI" }: { className?: string; label?: string }) {
+export function ElectricLockup({ className = "", label = "CONSYRIUM AI" }: { className?: string; label?: string }) {
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
   const uid = useId().replace(/:/g, "");
@@ -157,7 +157,7 @@ export function ElectricLockup({ className = "", label = "CONSYRION AI" }: { cla
         <Outline body />
       </g>
       {/* Halo */}
-      <g fill="none" stroke={`url(#${uid}-g)`} opacity={0.75} filter={`url(#${uid}-halo)`} style={live ? { animation: "consyrion-flicker 2.8s steps(1) infinite" } : undefined}>
+      <g fill="none" stroke={`url(#${uid}-g)`} opacity={0.75} filter={`url(#${uid}-halo)`} style={live ? { animation: "consyrium-flicker 2.8s steps(1) infinite" } : undefined}>
         <Outline width={5} />
       </g>
       {/* Crackling core */}
@@ -171,7 +171,7 @@ export function ElectricLockup({ className = "", label = "CONSYRION AI" }: { cla
       <g fill="none" stroke="none" aria-hidden="true">
         <path ref={ringRef} d={RING_PATH} />
         <text ref={textRef} x={TEXT_X} y={TEXT_BASELINE} textLength={TEXT_LENGTH} lengthAdjust="spacingAndGlyphs" fontSize={FONT_SIZE} fontWeight={600} fontFamily="var(--font-display)">
-          CONSYRION AI
+          CONSYRIUM AI
         </text>
       </g>
       <g ref={arcsRef} fill="none" stroke="var(--electric-core)" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" filter={`url(#${uid}-arc)`} />

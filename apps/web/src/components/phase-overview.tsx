@@ -1,4 +1,4 @@
-import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS } from "@consyrion/core";
+import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS } from "@consyrium/core";
 import { useTranslations } from "next-intl";
 import { Badge } from "./ui/surface";
 

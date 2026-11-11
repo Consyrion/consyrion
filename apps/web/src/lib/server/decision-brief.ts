@@ -1,4 +1,4 @@
-import type { SessionView } from "@consyrion/council";
+import type { SessionView } from "@consyrium/council";
 
 /**
  * What an editor agent (Cursor, Claude Code over MCP) needs to act on a decision (owner request 07.11.26): the chosen or
@@ -71,14 +71,14 @@ export function decisionBrief(view: SessionView) {
 
   const list = (items: string[]) => items.map((i) => `- ${i}`).join("\n");
   const BASIS_TEXT: Record<string, string> = {
-    approved_by_human: "APPROVED by a human in CONSYRION AI – implement this.",
+    approved_by_human: "APPROVED by a human in CONSYRIUM AI – implement this.",
     recommended_awaiting_approval: "RECOMMENDED by the council, NOT YET APPROVED by a human – ask the user before implementing.",
     leading_not_approvable:
       "LEADING proposal only – the council could NOT confirm every requirement, it is not approvable. Tell the user what is unconfirmed before implementing.",
   };
   const markdown = chosen
     ? [
-        `# CONSYRION AI decision: ${view.project.name}`,
+        `# CONSYRIUM AI decision: ${view.project.name}`,
         "",
         `**Status:** ${BASIS_TEXT[chosen.basis!]}`,
         approval ? `**Human decision:** ${approval.action}${approval.comment ? ` – ${approval.comment}` : ""}` : "",
@@ -100,7 +100,7 @@ export function decisionBrief(view: SessionView) {
         .filter((line) => line !== null)
         .join("\n")
         .replace(/\n{3,}/g, "\n\n")
-    : `# CONSYRION AI decision: ${view.project.name}\n\nNo verdict yet (status ${view.session.status}).`;
+    : `# CONSYRIUM AI decision: ${view.project.name}\n\nNo verdict yet (status ${view.session.status}).`;
 
   return { chosen, requirements, objections, implementationBrief: markdown };
 }

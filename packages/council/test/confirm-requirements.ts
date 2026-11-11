@@ -1,4 +1,4 @@
-import { confirmRequirementList, proposeRequirementList, type ActorContext, type Database } from "@consyrion/db";
+import { confirmRequirementList, proposeRequirementList, type ActorContext, type Database } from "@consyrium/db";
 
 /**
  * Test and demo helper (#190): confirms the requirement list exactly as proposed – what a user does who reviews the

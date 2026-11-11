@@ -1,4 +1,4 @@
-import { withdrawPublishedSkill } from "@consyrion/db";
+import { withdrawPublishedSkill } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

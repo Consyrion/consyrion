@@ -6,10 +6,12 @@ import {
   MAX_PARTICIPANTS,
   MAX_TOKEN_BUDGET,
   MIN_PARTICIPANTS,
+  COUNCIL_PURPOSES,
   MIN_TOKEN_BUDGET,
   MODE_POLICIES,
   tokenBudgetError,
   weightFieldError,
+  type CouncilPurpose,
   type CouncilRole,
   type DecisionMode,
   type EvaluationWeights,
@@ -20,7 +22,7 @@ import {
   independenceKey,
   profilesAfterApply,
   suggestRoleProfiles,
-} from "@consyrion/core/browser";
+} from "@consyrium/core/browser";
 import { useFormatter, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,6 +37,7 @@ import { countStatuses, skillBlockStatuses, useDismissedSkillBlocks } from "./sk
 import { chosenRoleProfileIds, RoleProfilePicker } from "./role-profiles/role-profile-picker";
 import type { RoleProfileRow } from "./role-profiles/role-profile-manager";
 import { VoteWeights, voteWarningText, type VoteWeightRow } from "./vote-weights";
+import { suggestedBudget } from "@/lib/budget-suggestion";
 
 interface CredentialModels {
   credentialId: string;
@@ -88,7 +91,13 @@ const stringify = (weights: EvaluationWeights) =>
 const WEIGHT_KEYS: Array<keyof EvaluationWeights> = ["technicalQuality", "security", "maintainability", "operatingCost", "implementationSpeed"];
 
 interface Preview {
-  estimate: { calls: number; upperBound: number; withinBudget: boolean; minimumBudget?: number; typical: { tokens: number; basedOnCalls: number } | null };
+  estimate: {
+    calls: number;
+    upperBound: number;
+    withinBudget: boolean;
+    minimumBudget?: number;
+    typical: { tokens: number; high?: number; basedOnCalls: number } | null;
+  };
   documents: number;
   /** Server-side plan gate (#173): why the start would be refused, or null. */
   planLimit?: string | null;
@@ -112,6 +121,8 @@ export interface SkillPrefill {
   roles?: CouncilRole[];
   weights?: EvaluationWeights;
   sessionRules?: string;
+  /** Written by someone else (official, adopted from the hub, a colleague's team skill): taken-over rules need a confirmation. */
+  foreign?: boolean;
   /**
    * Requirement building blocks (#420) with the confirmed requirement texts: "Before you start" names open blocks as a
    * hint, never as a blocker. `storageKey` is the same per-browser key the intake uses for dismissed blocks.
@@ -128,6 +139,7 @@ export function TeamConfig({
   requirementsConfirmed,
   roleSuggestion,
   skill,
+  initialPurpose = "idea_check",
 }: {
   projectId: string;
   projectName: string;
@@ -139,6 +151,8 @@ export function TeamConfig({
   roleSuggestion?: RoleSuggestionResult;
   /** The chosen skill (#363): pre-fills mode, perspectives, weights and session rules – the user can change everything. */
   skill?: SkillPrefill | null;
+  /** #597: the purpose preselected for this project – approval for repository projects, else an idea check. */
+  initialPurpose?: CouncilPurpose;
 }) {
   const maxModels = Math.max(MIN_PARTICIPANTS, Math.min(MAX_PARTICIPANTS, planMax));
   const t = useTranslations("teamConfig");
@@ -169,6 +183,8 @@ export function TeamConfig({
     stringify(skill?.weights ?? MODE_POLICIES[initialMode].weights),
   );
   const [tokenBudget, setTokenBudget] = useState(400_000);
+  // #597: most users are at the start and want to know whether the idea holds up – the default unless the project is a repository.
+  const [purpose, setPurpose] = useState<CouncilPurpose>(initialPurpose);
   // #136 (ChatGPT review): extra perspectives can be switched off; the setup shows what they cost.
   const [extraRoles, setExtraRoles] = useState(true);
   // #270: optional role profile per active role (Settings → Role profiles); loaded once, never required.
@@ -182,6 +198,9 @@ export function TeamConfig({
     setProfileChoice((current) => profilesAfterApply(next, profileSuggestions, current));
   }
   const [customRules, setCustomRules] = useState(skill?.sessionRules ?? "");
+  const [skillRulesConfirmed, setSkillRulesConfirmed] = useState(false);
+  const skillRulesTakenOver = Boolean(skill?.sessionRules?.trim() && customRules.includes(skill.sessionRules.trim()));
+  const needsRulesConfirmation = Boolean(skill?.foreign && skillRulesTakenOver);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -247,6 +266,7 @@ export function TeamConfig({
       allowHybrid,
       weights,
       tokenBudget,
+      purpose,
       customRules,
       ...(extraRoles ? {} : { extraRoles: false }),
       // Which skill pre-filled this setup (#363); the server records it with the session (part 3) and ignores it until then.
@@ -254,7 +274,22 @@ export function TeamConfig({
       roleAssignments: selected.length > 0 ? roles.map((role, index) => ({ role, participantIndex: assignments[role] ?? index % selected.length })) : undefined,
       ...(chosenRoleProfileIds(roles, profileChoice).length ? { roleProfiles: chosenRoleProfileIds(roles, profileChoice) } : {}),
     }),
-    [mode, selected, roles, debateRounds, consensusRounds, allowHybrid, weights, tokenBudget, customRules, assignments, skill, extraRoles, profileChoice],
+    [
+      mode,
+      selected,
+      roles,
+      debateRounds,
+      consensusRounds,
+      allowHybrid,
+      weights,
+      tokenBudget,
+      purpose,
+      customRules,
+      assignments,
+      skill,
+      extraRoles,
+      profileChoice,
+    ],
   );
 
   useEffect(() => {
@@ -273,6 +308,8 @@ export function TeamConfig({
   // The upper bound exceeds the budget: starting needs an explicit confirmation (#148).
   const overBudget = preview?.estimate.withinBudget === false;
   const [budgetConfirmed, setBudgetConfirmed] = useState(false);
+  // #587: what "Adjust budget" changed, shown at the field until the user types another value.
+  const [budgetAdjusted, setBudgetAdjusted] = useState<{ from: number; to: number } | null>(null);
 
   async function start() {
     setStarting(true);
@@ -280,7 +317,11 @@ export function TeamConfig({
     try {
       const { session } = await fetchJson<{ session: { id: string } }>(`/api/projects/${projectId}/sessions`, {
         method: "POST",
-        body: JSON.stringify({ ...body, confirmBudget: overBudget ? budgetConfirmed : undefined }),
+        body: JSON.stringify({
+          ...body,
+          confirmBudget: overBudget ? budgetConfirmed : undefined,
+          skillRulesConfirmed: needsRulesConfirmation ? skillRulesConfirmed : undefined,
+        }),
       });
       router.push(`/sessions/${session.id}`);
     } catch (err) {
@@ -312,28 +353,64 @@ export function TeamConfig({
     .filter((g) => g.members.length > 1);
   const independentModels = new Set(selected.map(modelKey)).size;
   const perspectives = roles.length + (extraRoles ? coverage.length : 0);
-  const problems = [
-    requirementsConfirmed ? null : t("problem.requirements"),
-    selected.length < MIN_PARTICIPANTS ? t("problem.minModels") : null,
-    selected.length > maxModels ? t("problem.plan", { plan: planName, n: maxModels }) : null,
-    preview?.planLimit ?? null,
-    preview?.finalVerdictSize && !preview.finalVerdictSize.fits ? preview.finalVerdictSize.message : null,
-    budgetError,
-    // Night test R4: below this the council fails before a verdict – the start stays disabled.
-    preview?.estimate.minimumBudget && tokenBudget < preview.estimate.minimumBudget
-      ? t("problem.budgetTooSmall", { tokens: format.number(preview.estimate.minimumBudget) })
-      : null,
-    roles.length === 0 ? t("problem.roles") : null,
-    !weightsValid ? t("problem.weights") : weightTotal !== 100 ? t("problem.total", { total: weightTotal }) : null,
-  ].filter(Boolean) as string[];
+  // Night test R4: below this the council fails before a verdict – the start stays disabled.
+  const budgetTooSmall = Boolean(preview?.estimate.minimumBudget && tokenBudget < preview.estimate.minimumBudget);
+  const typicalHigh = preview?.estimate.typical ? (preview.estimate.typical.high ?? preview.estimate.typical.tokens) : 0;
+  // #587: the budget that fits this team, from the preview (no model call) – offered at the field and in the summary.
+  const budgetSuggestion = preview
+    ? suggestedBudget({ tokenBudget, minimumBudget: preview.estimate.minimumBudget, upperBound: preview.estimate.upperBound })
+    : null;
+  const adjustBudget = () => {
+    if (!budgetSuggestion) return;
+    setBudgetAdjusted({ from: tokenBudget, to: budgetSuggestion });
+    setTokenBudget(budgetSuggestion);
+  };
+  // #587: every blocking reason names the field to change; the list links to it and the field is marked red.
+  const problems = (
+    [
+      requirementsConfirmed ? null : { text: t("problem.requirements") },
+      selected.length < MIN_PARTICIPANTS ? { text: t("problem.minModels"), href: "#council-models" } : null,
+      selected.length > maxModels ? { text: t("problem.plan", { plan: planName, n: maxModels }), href: "#council-models" } : null,
+      preview?.planLimit ? { text: preview.planLimit } : null,
+      preview?.finalVerdictSize && !preview.finalVerdictSize.fits ? { text: preview.finalVerdictSize.message } : null,
+      budgetError ? { text: budgetError, href: "#token-budget" } : null,
+      budgetTooSmall
+        ? { text: t("problem.budgetTooSmall", { tokens: format.number(preview!.estimate.minimumBudget!) }), href: "#token-budget", budget: true }
+        : null,
+      roles.length === 0 ? { text: t("problem.roles") } : null,
+      !weightsValid ? { text: t("problem.weights") } : weightTotal !== 100 ? { text: t("problem.total", { total: weightTotal }) } : null,
+    ] as Array<{ text?: string | null; href?: string; budget?: boolean } | null>
+  ).filter((p): p is { text: string; href?: string; budget?: boolean } => Boolean(p?.text));
 
   return (
     <div className="space-y-6">
       {skill ? <Alert tone="success">{tSkill("prefilled", { name: skill.name, version: skill.version })}</Alert> : null}
       <Card>
+        <h2 className="font-semibold">{t("purpose.title")}</h2>
+        <div role="radiogroup" aria-label={t("purpose.title")} className="mt-3 grid gap-3 md:grid-cols-2">
+          {COUNCIL_PURPOSES.map((p) => (
+            <button
+              key={p}
+              type="button"
+              role="radio"
+              aria-checked={purpose === p}
+              data-testid={`purpose-${p}`}
+              onClick={() => setPurpose(p)}
+              className={`rounded-xl border p-3 text-left text-sm transition ${purpose === p ? "border-primary bg-primary/10" : "border-line bg-surface-2 hover:border-primary/60"}`}
+            >
+              <span className="block font-medium">{t(p === "idea_check" ? "purpose.idea" : "purpose.approval")}</span>
+              <span className="mt-1 block text-muted">{t(p === "idea_check" ? "purpose.ideaHint" : "purpose.approvalHint")}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">{t("purpose.note")}</p>
+      </Card>
+      <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">{t("models.title")}</h2>
+            <h2 id="council-models" className="scroll-mt-24 font-semibold">
+              {t("models.title")}
+            </h2>
             <p className="text-sm text-muted">
               {maxModels < MAX_PARTICIPANTS
                 ? t("models.introPlan", { min: MIN_PARTICIPANTS, max: maxModels, plan: planName })
@@ -572,19 +649,38 @@ export function TeamConfig({
           <label className="text-sm">
             <span className="block font-medium">{t("settings.budget")}</span>
             <input
+              id="token-budget"
               type="number"
               min={MIN_TOKEN_BUDGET}
               max={MAX_TOKEN_BUDGET}
               step={10_000}
               value={tokenBudget}
-              onChange={(e) => setTokenBudget(Number(e.target.value))}
-              aria-invalid={Boolean(budgetError)}
+              onChange={(e) => {
+                setBudgetAdjusted(null);
+                setTokenBudget(Number(e.target.value));
+              }}
+              aria-invalid={Boolean(budgetError) || budgetTooSmall}
               aria-describedby="token-budget-help"
-              className="mt-1 w-full rounded-lg border border-line bg-surface-2 px-3 py-2 aria-[invalid=true]:border-danger"
+              className="mt-1 w-full scroll-mt-24 rounded-lg border border-line bg-surface-2 px-3 py-2 aria-[invalid=true]:border-2 aria-[invalid=true]:border-danger"
             />
-            <span id="token-budget-help" className={`mt-1 block ${budgetError ? "text-danger" : "text-muted"}`}>
-              {budgetError ?? t("settings.budgetHint", { min: format.number(MIN_TOKEN_BUDGET), max: format.number(MAX_TOKEN_BUDGET) })}
+            <span id="token-budget-help" className={`mt-1 block ${budgetError || budgetTooSmall ? "font-medium text-danger" : "text-muted"}`}>
+              {budgetError ??
+                (budgetTooSmall
+                  ? t("settings.budgetNeeds", { needed: format.number(preview!.estimate.minimumBudget!), set: format.number(tokenBudget) })
+                  : t("settings.budgetHint", { min: format.number(MIN_TOKEN_BUDGET), max: format.number(MAX_TOKEN_BUDGET) }))}
             </span>
+            {budgetTooSmall && budgetSuggestion ? (
+              <Button type="button" className="mt-2" onClick={adjustBudget} data-testid="adjust-budget-field">
+                {t("settings.budgetAdjust", { tokens: format.number(budgetSuggestion) })}
+              </Button>
+            ) : budgetTooSmall ? (
+              <span className="mt-1 block text-danger">{t("settings.budgetFewer")}</span>
+            ) : null}
+            {budgetAdjusted && budgetAdjusted.to === tokenBudget ? (
+              <span role="status" className="mt-1 block text-success" data-testid="budget-adjusted">
+                {t("settings.budgetAdjusted", { from: format.number(budgetAdjusted.from), to: format.number(budgetAdjusted.to) })}
+              </span>
+            ) : null}
           </label>
           <TextAreaField
             label={t("settings.rules")}
@@ -594,6 +690,18 @@ export function TeamConfig({
             maxLength={2000}
             hint={t("settings.rulesHint")}
           />
+          {skill && skillRulesTakenOver ? (
+            // Gesamttest 3: rules taken over from a skill reach the models as the user's own rules – make that visible.
+            <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning" data-testid="skill-rules-hint">
+              <p>{tSkill("rulesFromSkill", { name: skill.name })}</p>
+              {needsRulesConfirmation ? (
+                <label className="mt-2 flex items-center gap-2 text-sm text-text">
+                  <input type="checkbox" checked={skillRulesConfirmed} onChange={(e) => setSkillRulesConfirmed(e.target.checked)} />
+                  {tSkill("rulesConfirm")}
+                </label>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </Card>
 
@@ -621,8 +729,20 @@ export function TeamConfig({
               strong: (chunks) => <strong>{chunks}</strong>,
             })}{" "}
             {preview.estimate.typical
-              ? t("summary.typical", { tokens: format.number(preview.estimate.typical.tokens), calls: preview.estimate.typical.basedOnCalls })
+              ? typicalHigh > preview.estimate.typical.tokens
+                ? t("summary.typicalRange", {
+                    low: format.number(preview.estimate.typical.tokens),
+                    high: format.number(typicalHigh),
+                    calls: preview.estimate.typical.basedOnCalls,
+                  })
+                : t("summary.typical", { tokens: format.number(preview.estimate.typical.tokens), calls: preview.estimate.typical.basedOnCalls })
               : t("summary.noTypical")}
+          </p>
+        ) : null}
+        {/* #598: the budget covers the minimum but not what such a council typically uses – phases will likely be shortened. */}
+        {preview && !budgetTooSmall && typicalHigh > tokenBudget ? (
+          <p className="mt-2 text-sm text-warning" data-testid="budget-below-typical">
+            {t("summary.belowTypical", { budget: format.number(tokenBudget), high: format.number(typicalHigh) })}
           </p>
         ) : null}
         {preview?.finalVerdictSize?.fits && preview.finalVerdictSize.split ? (
@@ -659,11 +779,16 @@ export function TeamConfig({
             ))}
           </ul>
         ) : null}
-        {overBudget ? (
+        {overBudget && !budgetTooSmall ? (
           <label className="mt-3 flex items-start gap-2 text-sm text-warning">
             <input type="checkbox" className="mt-1" checked={budgetConfirmed} onChange={(e) => setBudgetConfirmed(e.target.checked)} />
             <span>{t("summary.overBudget", { budget: format.number(tokenBudget) })}</span>
           </label>
+        ) : null}
+        {overBudget && !budgetTooSmall && budgetSuggestion ? (
+          <Button type="button" variant="secondary" className="mt-2" onClick={adjustBudget} data-testid="adjust-budget-summary">
+            {t("settings.budgetAdjust", { tokens: format.number(budgetSuggestion) })}
+          </Button>
         ) : null}
         {openBlocks > 0 && skill ? (
           <p className="mt-2 text-sm text-muted" data-testid="skill-blocks-open">
@@ -674,11 +799,26 @@ export function TeamConfig({
           </p>
         ) : null}
         {problems.length ? (
-          <ul className="mt-2 list-disc pl-5 text-sm text-warning">
-            {problems.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ul>
+          <div className="mt-3 rounded-xl border border-danger/50 bg-danger/5 p-3 text-sm" data-testid="start-problems">
+            <p className="font-medium text-danger">{t("problem.open", { n: problems.length })}</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-text">
+              {problems.map((p) => (
+                <li key={p.text}>
+                  {p.text}{" "}
+                  {p.href ? (
+                    <a href={p.href} className="whitespace-nowrap text-primary underline">
+                      {t("problem.toField")}
+                    </a>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            {budgetTooSmall && budgetSuggestion ? (
+              <Button type="button" className="mt-2" onClick={adjustBudget} data-testid="adjust-budget">
+                {t("settings.budgetAdjust", { tokens: format.number(budgetSuggestion) })}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
         {voteWarnings.length ? (
           <div className="mt-3">
@@ -703,9 +843,18 @@ export function TeamConfig({
             <Alert>{error}</Alert>
           </div>
         ) : null}
-        <Button className="mt-4" onClick={() => void start()} disabled={starting || problems.length > 0 || (overBudget && !budgetConfirmed)}>
+        <Button
+          className="mt-4"
+          onClick={() => void start()}
+          disabled={starting || problems.length > 0 || (overBudget && !budgetConfirmed) || (needsRulesConfirmation && !skillRulesConfirmed)}
+        >
           {starting ? t("starting") : t("start")}
         </Button>
+        {!starting && problems.length ? (
+          <p className="mt-1.5 text-sm text-danger" data-testid="start-blocked">
+            {t("problem.blocked", { reason: problems[0]!.text })}
+          </p>
+        ) : null}
       </Card>
     </div>
   );

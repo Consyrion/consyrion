@@ -26,7 +26,7 @@ export function sha256(content: string) {
 
 /** Writes files into a fresh temporary directory for one sandbox run. */
 export async function materialize(files: ReadonlyMap<string, string>): Promise<{ dir: string; cleanup: () => Promise<void> }> {
-  const dir = await mkdtemp(path.join(tmpdir(), "consyrion-ws-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "consyrium-ws-"));
   for (const [relative, content] of files) {
     const safe = safeRelativePath(relative);
     if (!safe) continue;

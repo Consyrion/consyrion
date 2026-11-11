@@ -1,11 +1,11 @@
 # Hosting on Hetzner (#100)
 
-Decision of 26 Oct 2026: CONSYRION runs on its **own Hetzner Cloud server** (not shared with other projects:
-the Execution Council executes AI-generated code) under **`app.consyrion.com`**. `consyrion.com` stays the
+Decision of 26 Oct 2026: CONSYRIUM runs on its **own Hetzner Cloud server** (not shared with other projects:
+the Execution Council executes AI-generated code) under **`app.consyrium.com`**. `consyrium.com` stays the
 public landing page. Nothing here orders, pays for or publishes anything – the server order, DNS and the
 first deployment are done by the owner.
 
-Hetzner hosts CONSYRION (app, database, backups). Content a user sends to a council or build still goes to the
+Hetzner hosts CONSYRIUM (app, database, backups). Content a user sends to a council or build still goes to the
 AI providers whose keys the user connected (BYOK) – Hetzner does not change that.
 
 ## Architecture (one server)
@@ -33,7 +33,7 @@ SKIP LOCKED, so replicas share the queue safely. A queued session shows how many
 **Sandbox isolation.** Generated code never sees the Docker socket, app secrets or other tenants' data: each
 run is a fresh container with uid 1000, all capabilities dropped, `no-new-privileges`, 1 CPU / 1 GB / 256 pids,
 no network for tests, and gVisor as a user-space kernel between the code and the host
-(`SANDBOX_DOCKER_RUNTIME=runsc`). The worker itself (trusted CONSYRION code, no inbound port) starts these containers
+(`SANDBOX_DOCKER_RUNTIME=runsc`). The worker itself (trusted CONSYRIUM code, no inbound port) starts these containers
 through the host's Docker socket – but only when the sandbox is on (#398): the socket is root-equivalent, so it is
 mounted from `deploy/hetzner/compose.sandbox.yml`, which `deploy.sh` and `rollback.sh` add only when `deploy.env`
 contains `SANDBOX_DISABLED=false`. The hosted default (`SANDBOX_DISABLED=true`) runs the worker without socket and
@@ -85,21 +85,22 @@ AI usage is **not** part of these costs – customers pay their providers direct
 2. **Order** the server in the Hetzner console: CX23 (x86), Ubuntu 26.04 (24.04 works too), your SSH key, backups on. Note the IPv4/IPv6.
 3. **Cloud Firewall** (recommended, in addition to `ufw`): inbound TCP 22 (ideally only from your IP), 80, 443;
    attach it to the server. Docker publishes only Caddy's 80/443, the database has no published port.
-4. **DNS** at your registrar: `A app.consyrion.com → <IPv4>` and `AAAA app.consyrion.com → <IPv6>`.
+4. **DNS** at your registrar: `A app.consyrium.com → <IPv4>` and `AAAA app.consyrium.com → <IPv6>`.
 5. **Server setup** (copies the script, runs it once):
    ```bash
    scp -i ~/.ssh/hetzner_consyrion deploy/hetzner/setup-server.sh root@<IP>:/root/
-   ssh -i ~/.ssh/hetzner_consyrion root@<IP> 'APP_DOMAIN=app.consyrion.com ACME_EMAIL=<your mail> bash /root/setup-server.sh'
+   ssh -i ~/.ssh/hetzner_consyrion root@<IP> 'APP_DOMAIN=app.consyrium.com ACME_EMAIL=<your mail> bash /root/setup-server.sh'
    ```
    It installs updates, Docker, gVisor, the firewall, key-only SSH, cron jobs, and generates
    `/opt/consyrion/secrets/{app.env,postgres_password,deploy.env}` (mode 600, never printed).
    **Copy `CREDENTIALS_MASTER_KEY_V1` and `BETTER_AUTH_SECRET` from `app.env` into your password manager** –
    without the master key, stored provider keys cannot be decrypted after a restore.
 6. Optional values in `/opt/consyrion/secrets/app.env`: `PLATFORM_ADMIN_EMAILS`, `ADMIN_EMAILS` (feedback e-mails, docs/feedback.md), Google/GitHub OAuth, GitHub App
-   (callback URLs `https://app.consyrion.com/api/auth/callback/google` and `…/github`, see docs/github-app.md; the
+   (callback URLs `https://app.consyrium.com/api/auth/callback/google` and `…/github`, see docs/github-app.md; the
    sign-in and sign-up pages render per request, so the buttons appear after a web restart, no rebuild needed), `ARTIFICIAL_ANALYSIS_API_KEY` for the
    model ranking (docs/model-weighting.md). Stripe stays off (postponed).
-   In `deploy.env`: `ALERT_WEBHOOK_URL` (e.g. your Telegram bot) and `BACKUP_REMOTE` (Storage Box).
+   In `deploy.env`: `ALERT_EMAIL` (alert e-mails via the app's SMTP), optionally `ALERT_WEBHOOK_URL`, and `BACKUP_REMOTE` + `BACKUP_AGE_RECIPIENT` (encrypted Storage Box copy, see below).
+   Feature flag `SKILLHUB_PUBLISH=1` in `app.env` lets users submit skills to the SkillHub (#368; review by scan + platform admin). Set on prod since 08.11.26. **Switch off:** remove the line or set `0`, then `docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml up -d --no-deps web worker` in `/opt/consyrion/app` (a deploy does the same).
 7. **Deploy** from your machine (committed `HEAD` only): `./deploy/hetzner/deploy.sh <IP>`
 
 ## Operations
@@ -107,13 +108,34 @@ AI usage is **not** part of these costs – customers pay their providers direct
 | Task                              | Command                                                                                              |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Deploy a new version              | `./deploy/hetzner/deploy.sh <IP>` – builds on the server, pre-deploy backup, migrations, health wait |
-| Smoke check after a deploy        | `SMOKE_BASE_URL=https://app.consyrion.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrion/web e2e:smoke` – e-mail sign-in with a test account must land on `/dashboard` |
+| Smoke check after a deploy        | `SMOKE_BASE_URL=https://app.consyrium.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrium/web e2e:smoke` – e-mail sign-in with a test account must land on `/dashboard` |
 | Roll back to the previous version | `./deploy/hetzner/rollback.sh <IP>` – refused below the running release's minimum (rollback guard)   |
 | Status / logs                     | `ssh … 'cd /opt/consyrion/app && docker compose -p consyrion ps'` · `docker logs consyrion-worker-1` |
 | Restart the worker                | `docker restart consyrion-worker-1` (running councils resume from their checkpoint)                  |
-| Backup now                        | `/opt/consyrion/app/deploy/hetzner/backup.sh manual` (daily 03:15 by cron, 30 days kept, Storage Box mirrored)             |
-| Prove a restore                   | `/opt/consyrion/app/deploy/hetzner/restore-test.sh` → `/opt/consyrion/restore-tests.log`             |
+| Backup now                        | `/opt/consyrion/app/deploy/hetzner/backup.sh manual` (daily 03:15 by cron, 30 days kept; encrypted off-site copy, see below) |
+| Prove a restore                   | `/opt/consyrion/app/deploy/hetzner/restore-test.sh` → `/opt/consyrion/restore-tests.log` (monthly by cron with `--alert`) |
+| Test an alert e-mail              | `/opt/consyrion/app/deploy/hetzner/alert.sh "CONSYRIUM test" "Alert path works"`                     |
 | Releases                          | `/opt/consyrion/RELEASES` (time + git version)                                                       |
+
+## Backups, off-site copy and alerts (#525, #526)
+
+Scheduled jobs live in `deploy/hetzner/consyrion.cron`; every deploy installs it to `/etc/cron.d/consyrion`.
+
+| What | Where / how |
+|---|---|
+| Daily dump | `backup.sh` 03:15 and before every deploy → `/opt/consyrion/backups/consyrion-<UTC>-<label>.dump`, 0600, 30 days. Result in `/opt/consyrion/backup.state`. |
+| Off-site copy | With `BACKUP_REMOTE` and `BACKUP_AGE_RECIPIENT` in `deploy.env`: each dump is encrypted with [age](https://age-encryption.org) to `….dump.age` and uploaded **without** `--delete` (a deletion on the server never reaches the copy). The box keeps its own 30-day prune of `consyrion-*.dump.age`; `deletions.log` (ADR 0206) is never pruned. Without a recipient nothing is uploaded and the check alerts. |
+| Alerts | `check.sh` every 5 minutes: app health, worker, queue, newest backup older than 26 h, backup less than half the previous size, off-site upload failed. One e-mail per state change via `alert.sh` – the app's own SMTP (`SMTP_URL`, `MAIL_FROM` in `app.env`) to `ALERT_EMAIL` (`deploy.env`, comma-separated); `ALERT_WEBHOOK_URL` additionally if set. |
+| Restore test | `restore-test.sh --alert` on the 1st of each month 04:00: throw-away container without network, post-restore scrub, row counts vs. live; the result is e-mailed. |
+
+**Setting up the off-site copy (Hetzner Storage Box).**
+1. In the Hetzner console create a **sub-account** of the box with its own base directory (e.g. `app/`), SSH enabled, nothing else. The server only ever gets this sub-account – it cannot read or delete other folders on the box (e.g. `engine/`).
+2. On the server: `ssh-keygen -t ed25519 -N '' -f /root/.ssh/storagebox_app` and add the public key to the sub-account (`ssh-copy-id -p 23 -s -i /root/.ssh/storagebox_app.pub <sub>@<box>.your-storagebox.de`), plus a `Host <box>.your-storagebox.de` / `IdentityFile /root/.ssh/storagebox_app` entry in `/root/.ssh/config`.
+3. **On your own computer** (never on the server): `age-keygen -o consyrion-backup.key`. Put the file in your password manager. The printed public key (`age1…`) goes to the server.
+4. `apt-get install -y age` on the server; in `deploy.env`: `BACKUP_REMOTE=<sub>@<box>.your-storagebox.de:.`, `BACKUP_AGE_RECIPIENT=age1…`, `ALERT_EMAIL=<you>`.
+5. Run `backup.sh manual` once and check `backup.state` ends in `remote=ok`.
+
+**Restoring from the off-site copy.** Fetch the file (`sftp -P 23 <sub>@<box>…:<file>.dump.age`), copy the private key to the server only for this, then `AGE_KEY_FILE=/root/consyrion-backup.key restore-test.sh <file>.dump.age` to prove it, `age -d -i … -o x.dump <file>.dump.age` and `restore.sh --yes x.dump` for a real restore. Delete the key from the server afterwards.
 
 **Rollback.** Migrations only move forward. If the release you roll back added a migration, restore the
 pre-deploy backup (`consyrion-…-pre-<version>.dump`) into the database first, then run `rollback.sh`.
@@ -180,3 +202,14 @@ Each deploy builds two images; failed deploys used to leave them behind, and 82 
 migration then failed with `ENOSPC`). `deploy.sh` now prunes unused images and build cache older than 48 h before
 building, refuses to build with less than 4 GB free, and removes the images of a release whose migration failed.
 Check by hand: `docker system df`, `df -h /`.
+
+## Former domain (rename of 10 Nov 2026)
+
+The app moved from `app.consyrion.com` to `app.consyrium.com`. Both names point to the same server. `APP_DOMAIN` in
+`/opt/consyrion/secrets/deploy.env` is the current domain; `LEGACY_DOMAIN=app.consyrion.com` makes Caddy keep a
+certificate for the former name: pages are redirected (308, same path) to the current one, while `/api/*` except
+`/api/auth/*` is answered directly – API tokens, MCP clients and webhooks (Telegram) registered with the former
+address keep working, because a redirect to another host would drop the Authorization header. `BETTER_AUTH_URL` in
+`app.env` must be the current domain, and the callback addresses at Google, GitHub (OAuth app and GitHub App) and the
+Stripe webhook must name it too – a webhook does not follow redirects. Without `LEGACY_DOMAIN` nothing changes for an
+installation. Server paths, container names and the database keep the name `consyrion`.

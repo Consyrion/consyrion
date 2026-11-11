@@ -9,7 +9,7 @@ import { createDatabase } from "./client";
 
 // Migration 0021 (#181, stage 1) marks every existing decision as gate version 1 without recomputing anything.
 const drizzleDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "drizzle");
-const before = mkdtempSync(path.join(tmpdir(), "consyrion-migrations-"));
+const before = mkdtempSync(path.join(tmpdir(), "consyrium-migrations-"));
 
 afterAll(() => rmSync(before, { recursive: true, force: true }));
 

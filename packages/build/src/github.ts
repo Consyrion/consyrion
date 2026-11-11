@@ -1,6 +1,6 @@
-import { assertCan, DomainError, MIN_OVERRIDE_REASON, pullRequestReadiness, type ReadinessReview } from "@consyrion/core";
-import { assertSessionProjectWritable, recordAudit, schema, type ActorContext, type Database } from "@consyrion/db";
-import { checkRuns, createDraftPullRequest, installationClient, readSnapshot, type FetchLike, type GitHubAppConfig } from "@consyrion/github";
+import { assertCan, DomainError, MIN_OVERRIDE_REASON, pullRequestReadiness, type ReadinessReview } from "@consyrium/core";
+import { assertSessionProjectWritable, recordAudit, schema, type ActorContext, type Database } from "@consyrium/db";
+import { checkRuns, createDraftPullRequest, installationClient, readSnapshot, type FetchLike, type GitHubAppConfig } from "@consyrium/github";
 import { and, desc, eq } from "drizzle-orm";
 import { changedFiles, type RepositoryAccess } from "./executor";
 import { ciRisks, describeCiRisk } from "./ci-risk";
@@ -112,8 +112,8 @@ export async function createPullRequestForPlan(
         ]
       : []),
     prototype
-      ? `Prototype build for a proposal of a verdict that still needs verification in Consyrion (project "${project!.name}", session ${plan.sessionId}).`
-      : `Implementation of the decision approved in Consyrion (project "${project!.name}", session ${plan.sessionId}).`,
+      ? `Prototype build for a proposal of a verdict that still needs verification in Consyrium (project "${project!.name}", session ${plan.sessionId}).`
+      : `Implementation of the decision approved in Consyrium (project "${project!.name}", session ${plan.sessionId}).`,
     "",
     `**Plan:** ${planJson?.summary ?? "–"}`,
     `**Latest sandbox test run:** ${lastTest ? `${lastTest.status} (\`${lastTest.command}\`)` : "none"}`,
@@ -125,14 +125,14 @@ export async function createPullRequestForPlan(
     ...(risks.length
       ? [
           "",
-          "> **CI-relevant changes – review them before you let workflows run on this pull request.** They were confirmed in Consyrion by the person who created it.",
+          "> **CI-relevant changes – review them before you let workflows run on this pull request.** They were confirmed in Consyrium by the person who created it.",
           ...risks.map((r) => `> - ${describeCiRisk(r)}`),
         ]
       : []),
     "",
     ...reviews.flatMap((r) => (r.findings as Array<{ severity: string; file: string; issue: string }>).map((f) => `- [${f.severity}] ${f.file}: ${f.issue}`)),
     "",
-    "This is a draft created by Consyrion. Review it like any other contribution; Consyrion never merges.",
+    "This is a draft created by Consyrium. Review it like any other contribution; Consyrium never merges.",
   ].join("\n");
 
   const client = await repositoryClient(db, deps, ctx.organizationId, plan.sessionId, plan.repositoryFullName!, "write");
@@ -142,7 +142,7 @@ export async function createPullRequestForPlan(
     {
       baseBranch: plan.baseBranch!,
       baseSha: plan.baseCommitSha!,
-      branch: `consyrion/${plan.id}`,
+      branch: `consyrium/${plan.id}`,
       title: `${prototype ? PROTOTYPE_TITLE_PREFIX : ""}${pullRequestTitle(planJson?.summary, planJson?.tasks?.[0]?.title, prototype ? 72 - PROTOTYPE_TITLE_PREFIX.length : 72, typeof approvedTitle === "string" ? approvedTitle : null)}`,
       body,
       changes: changes.map((c) => ({ path: c.path, content: c.after, mode: c.mode })),
@@ -178,12 +178,12 @@ export async function pullRequestChecks(db: Database, ctx: ActorContext, planId:
 }
 
 /**
- * PR title: "CONSYRION AI: " and the plan summary's first sentence when it is short; otherwise the first task's title
- * (GitHub build test 08.11.26: "Consyrion: Implement Option A in src/todos.js: add search(query) that…" was cut off and
- * hard to read – "CONSYRION AI: Add search(query) to the todo store" says it). Long text is cut at a word boundary.
+ * PR title: "CONSYRIUM AI: " and the plan summary's first sentence when it is short; otherwise the first task's title
+ * (GitHub build test 08.11.26: "Consyrium: Implement Option A in src/todos.js: add search(query) that…" was cut off and
+ * hard to read – "CONSYRIUM AI: Add search(query) to the todo store" says it). Long text is cut at a word boundary.
  */
 export function pullRequestTitle(summary: string | null | undefined, firstTask?: string | null, max = 72, approvedTitle?: string | null) {
-  const prefix = "CONSYRION AI: ";
+  const prefix = "CONSYRIUM AI: ";
   const room = max - prefix.length;
   const sentence =
     (summary ?? "")

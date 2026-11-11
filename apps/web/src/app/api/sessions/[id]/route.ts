@@ -1,4 +1,4 @@
-import { deleteSession, getSessionView } from "@consyrion/council";
+import { deleteSession, getSessionView } from "@consyrium/council";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

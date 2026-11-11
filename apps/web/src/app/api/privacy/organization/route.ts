@@ -1,4 +1,4 @@
-import { deleteOrganization } from "@consyrion/db";
+import { deleteOrganization } from "@consyrium/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ACTIVE_ORG_COOKIE, requireActor } from "@/lib/server/actor";

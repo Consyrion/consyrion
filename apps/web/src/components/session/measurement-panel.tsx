@@ -32,6 +32,7 @@ export function MeasurementPanel({
   if (!rows.length) return null;
   return (
     <Card>
+      <span id="measurements" className="sr-only" />
       <h3 className="font-semibold">{t("title")}</h3>
       <p className="text-sm text-muted">{t("intro")}</p>
       <div className="mt-3 space-y-4">

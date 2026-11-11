@@ -14,7 +14,7 @@ import {
   type RequirementDecomposition,
   type RequirementMeasure,
   type RequirementSplitRef,
-} from "@consyrion/core/browser";
+} from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { skillBlockStatuses, useDismissedSkillBlocks } from "./skills/skill-block-status";
 import { SkillBlocks, SkillBlocksSummary } from "./skills/skill-blocks";

@@ -15,7 +15,7 @@ interface GlassPanelProps {
 
 const GLOW: Record<Glow, string> = { none: "", cyan: "neon-ring", violet: "neon-ring-violet" };
 
-/** Frosted glass surface – the base container of the Consyrion design system. */
+/** Frosted glass surface – the base container of the Consyrium design system. */
 export function GlassPanel({ children, className = "", glow = "none", quiet = false, as: Tag = "section", ...rest }: GlassPanelProps) {
   return (
     <Tag className={`${quiet ? "glass-quiet" : "glass"} rounded-2xl ${GLOW[glow]} ${className}`} {...rest}>

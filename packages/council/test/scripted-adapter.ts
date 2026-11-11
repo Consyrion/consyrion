@@ -2,7 +2,7 @@
  * TEST DOUBLE: deterministic "models" for engine tests. They answer every council step with
  * schema-valid JSON derived from the prompt (labels, ids). Never used outside tests.
  */
-import { ProviderError, type GenerateRequest, type GenerateResult, type ProviderAdapter } from "@consyrion/ai";
+import { ProviderError, type GenerateRequest, type GenerateResult, type ProviderAdapter } from "@consyrium/ai";
 
 export interface Script {
   /** Title of this model's own proposal. */

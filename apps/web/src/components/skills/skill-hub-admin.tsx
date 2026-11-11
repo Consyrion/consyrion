@@ -17,6 +17,7 @@ type Status = "pending_review" | "quarantined" | "published";
 
 interface QueueItem {
   skillId: string;
+  kind: "skill" | "role_profile";
   name: string;
   version: number;
   status: string;
@@ -34,13 +35,18 @@ interface QueueItem {
 interface Detail extends QueueItem {
   content: {
     name: string;
-    summary: string;
-    category: string;
+    summary?: string;
+    category?: string;
     roles?: string[];
     requirementBlocks?: string[];
     weights?: Record<string, number>;
     sessionRules?: string;
     knowledge?: string;
+    // expert profile fields (kind "role_profile")
+    coreQuestion?: string;
+    lenses?: string[];
+    notSuitableFor?: string;
+    sources?: Array<{ title: string; url: string | null; note: string | null }>;
   };
   changelog: string | null;
   scan: { findings: Array<{ kind: string; field: string; severity: string; message: string; excerpt?: string }> } | null;
@@ -176,6 +182,7 @@ export function SkillHubAdmin({ providers }: { providers: ReadonlyArray<{ id: st
                 <span className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex flex-wrap items-center gap-2">
                     <strong>{item.name}</strong>
+                    <Badge tone="neutral">{t(`kind.${item.kind}`)}</Badge>
                     <span className="text-xs text-muted">
                       @{item.handle ?? "?"}/{item.slug ?? "?"} · v{item.version}
                     </span>
@@ -192,7 +199,7 @@ export function SkillHubAdmin({ providers }: { providers: ReadonlyArray<{ id: st
                 {open && open.skillId === item.skillId && open.version === item.version ? (
                   <div className="mt-3 space-y-3 rounded-lg border border-line bg-surface-2 p-3 text-sm">
                     <dl className="grid gap-2">
-                      <Field label={t("field.summary")} text={open.content.summary} />
+                      <Field label={t("field.summary")} text={open.content.summary ?? ""} />
                       <Field label={t("field.changelog")} text={open.changelog ?? ""} />
                       <Field label={t("field.blocks")} text={(open.content.requirementBlocks ?? []).join("\n")} />
                       <Field
@@ -203,6 +210,13 @@ export function SkillHubAdmin({ providers }: { providers: ReadonlyArray<{ id: st
                       />
                       <Field label={t("field.rules")} text={open.content.sessionRules ?? ""} />
                       <Field label={t("field.knowledge")} text={open.content.knowledge ?? ""} />
+                      <Field label={t("field.coreQuestion")} text={open.content.coreQuestion ?? ""} />
+                      <Field label={t("field.lenses")} text={(open.content.lenses ?? []).join("\n")} />
+                      <Field label={t("field.notSuitableFor")} text={open.content.notSuitableFor ?? ""} />
+                      <Field
+                        label={t("field.sources")}
+                        text={(open.content.sources ?? []).map((src) => [src.title, src.url, src.note].filter(Boolean).join(" – ")).join("\n")}
+                      />
                       <Field label={t("field.owner")} text={open.ownerEmail ?? ""} />
                     </dl>
                     {open.scan?.findings.length ? (
@@ -510,7 +524,7 @@ interface OfficialRow {
   hidden: boolean;
 }
 
-/** Official skills (@consyrion) in the public catalog: hide or show without a deploy (#368 PR 7). */
+/** Official skills (@consyrium) in the public catalog: hide or show without a deploy (#368 PR 7). */
 function OfficialSkills() {
   const t = useTranslations("settings.admin.skillHub.official");
   const [rows, setRows] = useState<OfficialRow[] | null>(null);
@@ -555,7 +569,7 @@ function OfficialSkills() {
               <span className="min-w-0">
                 <strong>{r.name}</strong>{" "}
                 <span className="text-xs text-muted">
-                  @consyrion/{r.slug} · v{r.version} · {r.contentHash.slice(0, 12)}
+                  @consyrium/{r.slug} · v{r.version} · {r.contentHash.slice(0, 12)}
                 </span>{" "}
                 <Badge tone={TONE[r.scanLight]}>{r.scanLight}</Badge> {r.hidden ? <Badge tone="warning">{t("hidden")}</Badge> : null}
               </span>

@@ -20,7 +20,7 @@
 - [ ] Stripe in live mode only after pricing is final
 
 ## Legal and business
-- [ ] Trademark check by a lawyer (risk "Consirion", see CONSYRION_BRAND_CHECK.md)
+- [ ] Trademark check by a lawyer (risk "Consirion", see CONSYRIUM_BRAND_CHECK.md)
 - [ ] Privacy policy, terms, imprint (Switzerland), DPA template
 - [ ] Prices for Starter/Pro/Developer/Business entered in `/admin`
 - [ ] Evaluation: council vs. single model on real tasks (docs/review/brief-review.md)

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "./ui/button";
 
 /** Same name as OPEN_ASSISTANT_EVENT in assistant-panel.tsx (kept here so callers do not load the panel module). */
-const OPEN_ASSISTANT_EVENT = "consyrion:open-assistant";
+const OPEN_ASSISTANT_EVENT = "consyrium:open-assistant";
 
 /**
  * Opens the assistant panel from any component (#279), optionally with a question pre-filled. The question is not sent:

@@ -1,12 +1,14 @@
 import "server-only";
-import { DomainError } from "@consyrion/core";
-import { ensurePersonalOrganization, listOrganizationsForUser, resolveActor, resolveApiToken, type ActorContext } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { ensurePersonalOrganization, listOrganizationsForUser, resolveActor, resolveApiToken, type ActorContext } from "@consyrium/db";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth } from "./auth";
 import { getDb } from "./db";
 
-export const ACTIVE_ORG_COOKIE = "consyrion_org";
+export const ACTIVE_ORG_COOKIE = "consyrium_org";
+/** Cookie name before the rename (11 Nov 2026): still read so the active workspace survives; only the new one is written. */
+const LEGACY_ACTIVE_ORG_COOKIE = "consyrion_org";
 
 export async function getSessionUser() {
   // Read request headers before touching the database so Next.js treats every caller as dynamic.
@@ -45,7 +47,7 @@ export async function requireActor(options: { integration?: boolean; sessionOnly
   }
   const user = await requireUser();
   const db = await getDb();
-  const preferred = (await cookies()).get(ACTIVE_ORG_COOKIE)?.value;
+  const preferred = (await cookies()).get(ACTIVE_ORG_COOKIE)?.value ?? (await cookies()).get(LEGACY_ACTIVE_ORG_COOKIE)?.value;
   const orgs = await listOrganizationsForUser(db, user.id);
   const target = orgs.find((org) => org.id === preferred) ?? orgs[0] ?? (await ensurePersonalOrganization(db, user.id, user.name));
   return resolveActor(db, user.id, target.id);

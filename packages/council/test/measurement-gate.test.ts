@@ -5,7 +5,7 @@
  * started for gate version 2 keep their old result.
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createCredential,
   createDatabase,
@@ -16,7 +16,7 @@ import {
   setSubscriptionPlan,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildDecisionReport, createSession, getSessionView, recordMeasurement, runSession, submitApproval, type SessionInput } from "../src";

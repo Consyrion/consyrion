@@ -1,7 +1,7 @@
 /**
  * Catalog for the "Connect your tools" grid (08.11.26): public at /integrations (linked from the homepage) and on
  * Settings → Integrations.
- * One entry per tool people use CONSYRION AI from. Texts live in messages/settings (settings.connect.items.<slug>);
+ * One entry per tool people use CONSYRIUM AI from. Texts live in messages/settings (settings.connect.items.<slug>);
  * this file only holds structure and the copy-paste snippets, which need the server address.
  * Only what works today is "available"; anything else is marked "planned" (CLAUDE.md: no invented features).
  */
@@ -65,7 +65,7 @@ export type ConnectStep = {
   code?: { label: string; text: string };
 };
 
-/** Setup steps per tool. `mcpUrl` is this server's MCP endpoint (e.g. https://app.consyrion.com/api/mcp). */
+/** Setup steps per tool. `mcpUrl` is this server's MCP endpoint (e.g. https://app.consyrium.com/api/mcp). */
 export function connectSteps(slug: DetailSlug, mcpUrl: string): ConnectStep[] {
   const bearer = `Bearer ${TOKEN_PLACEHOLDER}`;
   const json = (value: unknown) => JSON.stringify(value, null, 2);
@@ -73,7 +73,7 @@ export function connectSteps(slug: DetailSlug, mcpUrl: string): ConnectStep[] {
     case "claude-code":
       return [
         { key: "token" },
-        { key: "add", code: { label: "Terminal", text: `claude mcp add --transport http consyrion ${mcpUrl} --header "Authorization: ${bearer}"` } },
+        { key: "add", code: { label: "Terminal", text: `claude mcp add --transport http consyrium ${mcpUrl} --header "Authorization: ${bearer}"` } },
         { key: "check", code: { label: "Claude Code", text: "/mcp" } },
         { key: "ask" },
       ];
@@ -81,7 +81,7 @@ export function connectSteps(slug: DetailSlug, mcpUrl: string): ConnectStep[] {
       return [
         { key: "token" },
         { key: "open" },
-        { key: "paste", code: { label: "~/.cursor/mcp.json", text: json({ mcpServers: { consyrion: { url: mcpUrl, headers: { Authorization: bearer } } } }) } },
+        { key: "paste", code: { label: "~/.cursor/mcp.json", text: json({ mcpServers: { consyrium: { url: mcpUrl, headers: { Authorization: bearer } } } }) } },
         { key: "ask" },
       ];
     case "vscode":
@@ -89,7 +89,7 @@ export function connectSteps(slug: DetailSlug, mcpUrl: string): ConnectStep[] {
         { key: "token" },
         {
           key: "paste",
-          code: { label: ".vscode/mcp.json", text: json({ servers: { consyrion: { type: "http", url: mcpUrl, headers: { Authorization: bearer } } } }) },
+          code: { label: ".vscode/mcp.json", text: json({ servers: { consyrium: { type: "http", url: mcpUrl, headers: { Authorization: bearer } } } }) },
         },
         { key: "start" },
         { key: "ask" },
@@ -104,10 +104,10 @@ export function connectSteps(slug: DetailSlug, mcpUrl: string): ConnectStep[] {
             label: "claude_desktop_config.json",
             text: json({
               mcpServers: {
-                consyrion: {
+                consyrium: {
                   command: "npx",
-                  args: ["-y", "mcp-remote", mcpUrl, "--header", "Authorization:${CONSYRION_AUTH}"],
-                  env: { CONSYRION_AUTH: bearer },
+                  args: ["-y", "mcp-remote", mcpUrl, "--header", "Authorization:${CONSYRIUM_AUTH}"],
+                  env: { CONSYRIUM_AUTH: bearer },
                 },
               },
             }),

@@ -1,4 +1,4 @@
-import { archiveSkill, getSkillForUse, saveSkillVersion, setSkillVisibility } from "@consyrion/db";
+import { archiveSkill, getSkillForUse, saveSkillVersion, setSkillVisibility } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

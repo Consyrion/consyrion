@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { redactSecrets } from "./redact";
 
 describe("redactSecrets (#403)", () => {
-  it("hides every Consyrion token type and provider keys", () => {
+  it("hides every Consyrium token type and provider keys", () => {
     const tail = "a".repeat(30);
     const text = `full cns_${tail} integration cni_${tail} read cnr_${tail} anthropic sk-ant-${tail} github ghp_${tail}`;
     const out = redactSecrets(text);

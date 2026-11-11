@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { DomainError } from "@consyrion/core";
-import { assertEntitlement, disableTelegramInbound, enableTelegramInbound } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { assertEntitlement, disableTelegramInbound, enableTelegramInbound } from "@consyrium/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE, localeFromAcceptLanguage } from "@/i18n/locales";
+import { isLocale, localeCookie, localeFromAcceptLanguage } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
@@ -17,7 +17,7 @@ const appUrl = () => (process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
 
 /**
  * Switches "questions over Telegram" on for a Telegram connection (Pro): registers the webhook of the workspace's own
- * bot with a fresh secret and greets the chat. The bot must be dedicated to CONSYRION – a webhook replaces polling.
+ * bot with a fresh secret and greets the chat. The bot must be dedicated to CONSYRIUM – a webhook replaces polling.
  */
 export const POST = handle(async (_request: Request, { params }: Params) => {
   const actor = await requireActor();
@@ -30,7 +30,7 @@ export const POST = handle(async (_request: Request, { params }: Params) => {
   const secret = randomBytes(24).toString("base64url");
   // The bot speaks the language the interface shows: cookie, else the browser's Accept-Language – like i18n/request.ts
   // (live test 08.11.26: no cookie, German interface, English bot).
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const chosen = localeCookie(await cookies());
   const locale = isLocale(chosen) ? chosen : localeFromAcceptLanguage(_request.headers.get("accept-language"));
   const { botToken, chatId } = await enableTelegramInbound(db, actor, getKeyring(), id, secret, locale);
   try {
@@ -45,12 +45,12 @@ export const POST = handle(async (_request: Request, { params }: Params) => {
     await telegramCall(fetch, botToken, "setMyCommands", {
       commands: de
         ? [
-            { command: "frage", description: "CONSYRION AI nach einer Entscheidung fragen" },
+            { command: "frage", description: "CONSYRIUM AI nach einer Entscheidung fragen" },
             { command: "offen", description: "Was auf dich wartet" },
             { command: "hilfe", description: "Hilfe" },
           ]
         : [
-            { command: "frage", description: "Ask CONSYRION AI for a decision" },
+            { command: "frage", description: "Ask CONSYRIUM AI for a decision" },
             { command: "offen", description: "What is waiting for you" },
             { command: "hilfe", description: "Help" },
           ],
@@ -58,8 +58,8 @@ export const POST = handle(async (_request: Request, { params }: Params) => {
     await telegramCall(fetch, botToken, "sendMessage", {
       chat_id: chatId,
       text: de
-        ? "CONSYRION AI ist verbunden. Schreib /hilfe, um zu sehen, wie du Fragen stellst."
-        : "CONSYRION AI is connected. Send /hilfe to see how to ask.",
+        ? "CONSYRIUM AI ist verbunden. Schreib /hilfe, um zu sehen, wie du Fragen stellst."
+        : "CONSYRIUM AI is connected. Send /hilfe to see how to ask.",
     });
   } catch (error) {
     await disableTelegramInbound(db, actor, getKeyring(), id).catch(() => undefined);

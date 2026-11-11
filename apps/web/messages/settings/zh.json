@@ -41,13 +41,13 @@
       },
       "integrations": {
         "title": "集成",
-        "description": "在你常用的工具中使用 CONSYRION AI——Claude Code、Cursor、VS Code、Telegram——通过电子邮件或 Confluence 发送决策，并连接 GitHub 以创建草稿拉取请求。",
+        "description": "在你常用的工具中使用 CONSYRIUM AI——Claude Code、Cursor、VS Code、Telegram——通过电子邮件或 Confluence 发送决策，并连接 GitHub 以创建草稿拉取请求。",
         "connected": "GitHub 已连接。",
-        "githubText": "最小权限：你在 GitHub 上选择仓库。CONSYRION AI 读取代码，只写入新分支并创建草稿 Pull Request，从不合并。",
+        "githubText": "最小权限：你在 GitHub 上选择仓库。CONSYRIUM AI 读取代码，只写入新分支并创建草稿 Pull Request，从不合并。",
         "addInstallation": "添加其他安装",
         "connectGithub": "连接 GitHub",
         "notConfiguredAdmin": "此服务器尚未配置 GitHub App。请创建它并设置 GITHUB_APP_* 变量（docs/github-app.md）。",
-        "notConfigured": "此 CONSYRION AI 安装尚未提供 GitHub。没有仓库时 Council 仍可使用；运营方可以启用 GitHub。",
+        "notConfigured": "此 CONSYRIUM AI 安装尚未提供 GitHub。没有仓库时 Council 仍可使用；运营方可以启用 GitHub。",
         "notInPlan": "你当前的套餐（{plan}）不包含 GitHub。Pro 套餐起可用——<link>查看账单与用量</link>。",
         "ownersOnly": "只有所有者可以连接 GitHub。",
         "allRepositories": "所有仓库",
@@ -62,7 +62,7 @@
       "title": "账单与用量",
       "selfHostedDescription": "这是自托管安装：没有套餐、没有限制、没有平台费用。",
       "selfHostedText": "AI 用量由你的提供商直接计入你自己的 API 密钥（BYOK）。请在 设置 → AI 提供商 中管理密钥。",
-      "description": "CONSYRION AI 只收取平台费用。AI 用量由你的提供商计入你自己的 API 密钥（BYOK）。",
+      "description": "CONSYRIUM AI 只收取平台费用。AI 用量由你的提供商计入你自己的 API 密钥（BYOK）。",
       "checkoutSuccess": "谢谢。Stripe 确认付款后套餐即会变更。",
       "unlimited": "无限制",
       "notIncluded": "不包含",
@@ -83,12 +83,12 @@
       "planSummaryGithub": "每个会话最多 {models} 个模型 · 包含 GitHub",
       "planSummaryNoGithub": "每个会话最多 {models} 个模型 · 不包含 GitHub",
       "plans": "套餐",
-      "noCheckout": "尚未启用在线结账；套餐由 CONSYRION AI 按需分配。",
+      "noCheckout": "尚未启用在线结账；套餐由 CONSYRIUM AI 按需分配。",
       "planLimits": "{members, plural, other {# 名成员}} · {projects} 个项目 · 每月 {sessions} 次 Council · 最多 {models} 个模型 · {build, select, yes {在 GitHub 上构建：是} other {在 GitHub 上构建：否}} · {mcp, select, yes {MCP 与 Telegram：有} other {MCP 与 Telegram：无}}",
       "current": "当前",
       "choose": "选择 {name}",
       "usageTitle": "本月 AI 用量（你的提供商账户）",
-      "usageText": "CONSYRION AI 运行中观测到的 Token。费用为估算值，仅在你填写了价格时显示；以提供商的账单为准。",
+      "usageText": "CONSYRIUM AI 运行中观测到的 Token。费用为估算值，仅在你填写了价格时显示；以提供商的账单为准。",
       "noCalls": "本月没有模型调用。",
       "colModel": "模型",
       "colCalls": "调用",
@@ -124,7 +124,7 @@
       "saving": "保存中…",
       "saveKey": "保存密钥",
       "emptyTitle": "未连接 AI 提供商",
-      "emptyText": "至少添加一个密钥，以便 CONSYRION AI 发现你的组织可以使用哪些模型。",
+      "emptyText": "至少添加一个密钥，以便 CONSYRIUM AI 发现你的组织可以使用哪些模型。",
       "verified": "已验证",
       "notChecked": "未检查",
       "check": "检查",
@@ -156,7 +156,7 @@
       "never": "从未",
       "revoke": "撤销",
       "mcp": {
-        "title": "MCP 服务器——在 Claude、Cursor 或 VS Code 中使用 CONSYRION",
+        "title": "MCP 服务器——在 Claude、Cursor 或 VS Code 中使用 CONSYRIUM",
         "intro": "将支持 MCP 的 AI 客户端连接到你的工作区。它可以读取决策、准备项目和需求，并使用你自己的密钥启动 Council。批准、构建和删除仍在应用中完成。",
         "address": "地址：",
         "claudeCode": "Claude Code（在上方创建令牌并填入）：",
@@ -293,10 +293,10 @@
       "colPlan": "套餐",
       "stripeTitle": "Stripe 与 Pro 价格",
       "catalogTitle": "套餐目录",
-      "catalogText": "限制在服务器端强制执行。1,000,000 及以上的限制表示无限制。Pro 价格及其 Stripe 价格在上方设置。CONSYRION AI 从不收取 AI Token 费用。",
+      "catalogText": "限制在服务器端强制执行。1,000,000 及以上的限制表示无限制。Pro 价格及其 Stripe 价格在上方设置。CONSYRIUM AI 从不收取 AI Token 费用。",
       "demo": {
         "title": "演示项目",
-        "description": "每个工作区会以其界面语言（否则为英语，再其次德语）一次性获得此处所选委员会的只读副本。只能选择你自己工作区中已完成的委员会。 每位新客户都会看到完整的委员会文本（提案、辩论、裁决）——请选择不含机密内容的委员会。技能知识和文档不会被复制。",
+        "description": "每个工作区会以其界面语言（否则为英语，再其次德语）一次性获得此处所选委员会的只读副本。只能选择你自己工作区中已完成的委员会。 每位新客户都会看到完整的委员会文本（方案、辩论、裁决）——请选择不含机密内容的委员会。技能知识和文档不会被复制。",
         "none": "无演示",
         "locale": {
           "de": "德语",
@@ -348,7 +348,11 @@
           "weights": "权重",
           "rules": "会话规则",
           "knowledge": "知识",
-          "owner": "作者"
+          "owner": "作者",
+          "coreQuestion": "核心问题",
+          "lenses": "审查视角",
+          "notSuitableFor": "不适用于",
+          "sources": "来源"
         },
         "scanFindings": "静态扫描",
         "aiFindings": "AI 审核",
@@ -415,13 +419,17 @@
         },
         "rescan": "按当前规则重新检查",
         "official": {
-          "title": "官方技能（@consyrion）",
-          "text": "随 CONSYRION AI 提供并显示在公开目录中。它们必须以绿色通过扫描；可在此隐藏，无需部署。",
+          "title": "官方技能（@consyrium）",
+          "text": "随 CONSYRIUM AI 提供并显示在公开目录中。它们必须以绿色通过扫描；可在此隐藏，无需部署。",
           "loading": "加载中…",
           "error": "出现错误。",
           "hidden": "已隐藏",
           "hide": "隐藏",
           "show": "显示"
+        },
+        "kind": {
+          "skill": "技能",
+          "role_profile": "专家档案"
         }
       }
     },
@@ -429,7 +437,7 @@
       "categories": {
         "aiClients": {
           "title": "AI 客户端",
-          "description": "在工作中随时通过 MCP 服务器询问 CONSYRION AI。"
+          "description": "在工作中随时通过 MCP 服务器询问 CONSYRIUM AI。"
         },
         "apps": {
           "title": "应用",
@@ -448,55 +456,55 @@
       "detailTitle": "连接 {name}",
       "whatTitle": "你可以做什么",
       "setupTitle": "设置",
-      "proOnly": "托管于 app.consyrion.com：Pro 套餐起提供；自托管：始终可用。<link>查看价格</link>",
+      "proOnly": "托管于 app.consyrium.com：Pro 套餐起提供；自托管：始终可用。<link>查看价格</link>",
       "safety": "批准、构建和删除始终在应用内进行。令牌以你在此工作区中的角色执行操作；council 使用你自己的 AI 密钥运行并在那里消耗 token。",
       "items": {
         "claude-code": {
           "name": "Claude Code",
           "by": "终端 · MCP",
-          "summary": "编程时遇到需要决策的问题，直接在终端中询问 CONSYRION AI。",
-          "what": "Claude Code 调用 ask_consyrion，用你的密钥启动 council，并通过 get_decision 获取结果和实施说明——无需离开终端。",
+          "summary": "编程时遇到需要决策的问题，直接在终端中询问 CONSYRIUM AI。",
+          "what": "Claude Code 调用 ask_consyrium，用你的密钥启动 council，并通过 get_decision 获取结果和实施说明——无需离开终端。",
           "steps": {
             "token": "在<link>设置 → API 令牌</link>中创建令牌（“仅 council”即可），并在下方命令中替换占位符。",
             "add": "在终端中添加服务器：",
-            "check": "在 Claude Code 中运行 <code>/mcp</code>，确认“consyrion”已连接。",
-            "ask": "直接提问：“问问 CONSYRION 我们该用 PostgreSQL 还是 SQLite。”Claude 会先向你展示需求和预算。"
+            "check": "在 Claude Code 中运行 <code>/mcp</code>，确认“consyrium”已连接。",
+            "ask": "直接提问：“问问 CONSYRIUM 我们该用 PostgreSQL 还是 SQLite。”Claude 会先向你展示需求和预算。"
           }
         },
         "cursor": {
           "name": "Cursor",
           "by": "编辑器 · MCP",
-          "summary": "将 CONSYRION AI 作为 Cursor 代理的工具——无需切换应用即可获得决策。",
+          "summary": "将 CONSYRIUM AI 作为 Cursor 代理的工具——无需切换应用即可获得决策。",
           "what": "Cursor 代理可以准备项目、启动 council，并在你的项目中直接使用结果作为实施说明。",
           "steps": {
             "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
             "open": "在 Cursor 中打开 设置 → MCP → “Add new MCP server”，或直接打开文件 <code>~/.cursor/mcp.json</code>。",
             "paste": "粘贴以下配置并保存：",
-            "ask": "代理聊天中会出现“consyrion”及其工具。试试：“让 CONSYRION 决定：队列还是 cron？”"
+            "ask": "代理聊天中会出现“consyrium”及其工具。试试：“让 CONSYRIUM 决定：队列还是 cron？”"
           }
         },
         "vscode": {
           "name": "VS Code",
           "by": "编辑器 · MCP（Copilot Chat）",
-          "summary": "在 Copilot Chat 的代理模式中使用 CONSYRION AI。",
-          "what": "在代理模式下，Copilot Chat 可以调用 CONSYRION 工具：读取决策、启动 council，并在你的项目中实施结果。",
+          "summary": "在 Copilot Chat 的代理模式中使用 CONSYRIUM AI。",
+          "what": "在代理模式下，Copilot Chat 可以调用 CONSYRIUM 工具：读取决策、启动 council，并在你的项目中实施结果。",
           "steps": {
             "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
             "paste": "在项目中创建文件 <code>.vscode/mcp.json</code>：",
-            "start": "在文件中点击“consyrion”上方的“Start”（或命令面板 → “MCP: List Servers”）。",
-            "ask": "将 Copilot Chat 切换到代理模式；工具列表中会出现“consyrion”。"
+            "start": "在文件中点击“consyrium”上方的“Start”（或命令面板 → “MCP: List Servers”）。",
+            "ask": "将 Copilot Chat 切换到代理模式；工具列表中会出现“consyrium”。"
           }
         },
         "claude-desktop": {
           "name": "Claude Desktop",
           "by": "桌面应用 · MCP",
-          "summary": "在 Mac 或 Windows 上的 Claude 应用中使用 CONSYRION AI。",
+          "summary": "在 Mac 或 Windows 上的 Claude 应用中使用 CONSYRIUM AI。",
           "what": "Claude Desktop 通过小型桥接工具 mcp-remote（需要 Node.js）连接到你的工作区，可使用与 Claude Code 相同的工具。",
           "steps": {
             "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
             "open": "在 Claude Desktop 中打开 设置 → 开发者 → “编辑配置”。",
             "paste": "将服务器添加到 <code>claude_desktop_config.json</code>：",
-            "restart": "重启 Claude Desktop；工具中会出现“consyrion”。"
+            "restart": "重启 Claude Desktop；工具中会出现“consyrium”。"
           }
         },
         "telegram": {
@@ -505,7 +513,7 @@
           "summary": "用 /frage 提问，在聊天中收到裁决及其 PDF。",
           "what": "你自己的 Telegram 机器人接收问题，显示需求和预算，在你点击“Start”后才启动 council，并把结果发回。",
           "steps": {
-            "bot": "通过 @BotFather 创建一个仅用于 CONSYRION AI 的机器人：",
+            "bot": "通过 @BotFather 创建一个仅用于 CONSYRIUM AI 的机器人：",
             "chat": "给机器人发一条消息并获取你的聊天 ID（例如通过 @userinfobot）。",
             "connect": "在下方的<link>Telegram 连接</link>中填写机器人令牌和私人聊天 ID。",
             "allow": "点击“允许通过 Telegram 提问”——机器人会向你问好。",
@@ -539,7 +547,7 @@
         }
       },
       "publicTitle": "集成",
-      "publicDescription": "CONSYRION AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude Desktop、Telegram、GitHub、电子邮件和 Confluence——附设置步骤。",
+      "publicDescription": "CONSYRIUM AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude Desktop、Telegram、GitHub、电子邮件和 Confluence——附设置步骤。",
       "signIn": "登录",
       "dashboard": "打开仪表板"
     }
@@ -657,7 +665,7 @@
     "readiness": "就绪情况",
     "latestRun": "最近一次测试运行：<badge></badge>",
     "none": "无",
-    "notRunHint": "未由 CONSYRION AI 执行（此服务器没有沙箱）；草稿 Pull Request 会运行你仓库的 GitHub Actions。",
+    "notRunHint": "未由 CONSYRIUM AI 执行（此服务器没有沙箱）；草稿 Pull Request 会运行你仓库的 GitHub Actions。",
     "blocksPr": "阻止 Pull Request：{reason}",
     "reviewsLine": "评审：{total}（{approve} 个批准，{changes} 个要求修改）",
     "prLine": "Pull Request：<link>草稿 #{n}</link>。合并始终由人在 GitHub 中完成。",
@@ -677,7 +685,7 @@
     "noChecks": "该 Pull Request 尚未报告 CI 检查。",
     "ciChecks": "CI 检查：",
     "readinessText": {
-      "notRunGithub": "CONSYRION AI 未自行运行测试（此服务器没有沙箱）——结果见草稿拉取请求的 GitHub Actions（下方 CI 检查）。",
+      "notRunGithub": "CONSYRIUM AI 未自行运行测试（此服务器没有沙箱）——结果见草稿拉取请求的 GitHub Actions（下方 CI 检查）。",
       "noRun": "此更改没有沙箱测试运行。",
       "installTimeout": "上次沙箱运行中安装依赖超时。",
       "installFailed": "上次沙箱运行中安装依赖失败。",
@@ -743,15 +751,16 @@
     },
     "prototypeBadge": "原型/测量构建",
     "prototypeNotice": "这是原型/测量构建——不是完成的解决方案。它用于测量委员会无法确认的要求；请在 Final Verdict 中填写测量结果。它不是常规批准。",
-    "prototypeStartTitle": "开始原型/测量构建"
+    "prototypeStartTitle": "开始原型/测量构建",
+    "archivedText": "此项目已归档。请在项目页面恢复后再启动或继续构建。"
   },
   "auth": {
     "failed": "身份验证失败",
     "socialFailed": "登录失败",
     "signUpTitle": "创建你的账户",
     "signInTitle": "欢迎回来",
-    "signUpText": "开启你的 CONSYRION AI 工作区——使用你自己的 AI 密钥。",
-    "signInText": "登录你的 CONSYRION AI 工作区。",
+    "signUpText": "开启你的 CONSYRIUM AI 工作区——使用你自己的 AI 密钥。",
+    "signInText": "登录你的 CONSYRIUM AI 工作区。",
     "name": "姓名",
     "email": "电子邮件",
     "password": "密码",
@@ -763,7 +772,7 @@
     "continueWith": "继续使用",
     "acceptTerms": "创建账户即表示你接受<terms>条款（AGB）</terms>和<privacy>隐私政策</privacy>。",
     "haveAccount": "已有账户？",
-    "newHere": "初次使用 CONSYRION AI？",
+    "newHere": "初次使用 CONSYRIUM AI？",
     "createAnAccount": "创建账户",
     "verifyCheckInbox": "快完成了：我们已向 {email} 发送确认链接。打开链接即可激活你的账户。",
     "verifyNotVerified": "请先确认你的电子邮件地址。我们刚刚向 {email} 发送了新的链接。",
@@ -772,7 +781,7 @@
     "verifyFailedTitle": "链接无效或已过期",
     "verifyFailedText": "此确认链接已失效。请使用电子邮件和密码登录，我们会向你发送新的链接。",
     "forgotPassword": "忘记密码？",
-    "oauthNotLinked": "此电子邮箱已有一个带密码的 CONSYRION AI 账户。请先用邮箱和密码登录，然后在“设置 → 账户”中连接 Google 或 GitHub。忘记密码？请重置。",
+    "oauthNotLinked": "此电子邮箱已有一个带密码的 CONSYRIUM AI 账户。请先用邮箱和密码登录，然后在“设置 → 账户”中连接 Google 或 GitHub。忘记密码？请重置。",
     "resetTitle": "重置密码",
     "resetRequestText": "输入你的电子邮箱，我们会发送一个设置新密码的链接。",
     "resetSend": "发送链接",
@@ -787,9 +796,9 @@
     "resetConfirm": "再次输入新密码",
     "resetSave": "保存密码",
     "shell": {
-      "home": "CONSYRION AI 首页",
+      "home": "CONSYRIUM AI 首页",
       "tagline": "辩论。 决策。 交付。",
-      "about": "关于 CONSYRION AI",
+      "about": "关于 CONSYRIUM AI",
       "headline1": "多元视角。",
       "headline2": "一个清晰的决策。",
       "features": {
@@ -810,7 +819,7 @@
     "methods": {
       "credential": "电子邮件和密码",
       "errorLoad": "无法加载登录方式",
-      "alreadyLinked": "此登录已属于另一个 CONSYRION AI 账户。请先删除该账户，再在此处连接。",
+      "alreadyLinked": "此登录已属于另一个 CONSYRIUM AI 账户。请先删除该账户，再在此处连接。",
       "connectFailedCode": "连接失败（{code}）。",
       "connectFailed": "连接失败",
       "errorRemove": "无法移除此方式",
@@ -822,7 +831,7 @@
       "redirecting": "正在跳转…",
       "connect": "连接 {provider}",
       "remove": "移除",
-      "footer": "最后剩下的登录方式无法移除。已属于另一个 CONSYRION AI 账户的登录将被拒绝连接。"
+      "footer": "最后剩下的登录方式无法移除。已属于另一个 CONSYRIUM AI 账户的登录将被拒绝连接。"
     },
     "invite": {
       "metaTitle": "邀请",
@@ -839,7 +848,7 @@
     "imported": "技能已导入——目前为私有。",
     "ignoredTitle": "未采用：{fields}。",
     "ignoredText": "这些字段不属于技能格式，未被保存。其余内容均已保存。",
-    "newerSchema": "此技能由更新版本的 CONSYRION AI 创建（技能格式 {version}）。请更新 CONSYRION AI 后再导入。",
+    "newerSchema": "此技能由更新版本的 CONSYRIUM AI 创建（技能格式 {version}）。请更新 CONSYRIUM AI 后再导入。",
     "shared": "已与团队共享。",
     "unshared": "该技能已恢复为私有。",
     "archived": "技能已归档。使用过它的 council 保留各自的版本。",
@@ -872,7 +881,7 @@
     "modeDefault": "模式默认值",
     "safetyNote": "技能从不确认要求，从不跳过独立审查，也从不批准任何内容。",
     "officialTitle": "官方技能",
-    "officialText": "由 CONSYRION AI 提供，只读。复制后即可作为自己的技能进行调整。",
+    "officialText": "由 CONSYRIUM AI 提供，只读。复制后即可作为自己的技能进行调整。",
     "visibility": {
       "private": "私有",
       "team": "团队",
@@ -916,13 +925,17 @@
         "own": "你的技能",
         "team": "团队技能",
         "official": "官方技能"
-      }
+      },
+      "copyOf": "{name} 的副本",
+      "unavailable": "链接中的技能不可用（已归档或你无权查看）——设置未被预填。"
     },
     "setup": {
       "prefilled": "已根据技能“{name}”（v{version}）预先填写。你可以修改任何内容。",
       "blocksOpen": "技能“{name}”还有 {n, plural, other {# 个构建块}}未决定——仅为提示，不会阻止启动。",
       "blocksOpenLink": "查看构建块",
-      "modelsRecommended": "该技能建议使用 {n} 个模型——请自行选择（使用你自己的密钥）。已选 {selected} / {n}。"
+      "modelsRecommended": "该技能建议使用 {n} 个模型——请自行选择（使用你自己的密钥）。已选 {selected} / {n}。",
+      "rulesFromSkill": "这些会话规则来自技能“{name}”。模型会把它们当作你自己的规则——请在开始前检查。",
+      "rulesConfirm": "我已检查从此技能沿用的会话规则。"
     },
     "intake": {
       "label": "{name} 的要求模块",
@@ -986,7 +999,8 @@
         "link": "链接",
         "markup": "HTML 或 Markdown 链接",
         "code": "命令或脚本",
-        "bias": "极端权重"
+        "bias": "极端权重",
+        "impersonation": "冒充真实人物"
       },
       "close": "关闭",
       "loading": "加载中…",
@@ -1008,7 +1022,7 @@
       "changelog": "此版本包含或更改的内容",
       "changelogHint": "必填——显示在公开页面上。",
       "license": "我以 {license} 发布此技能，并拥有相应权利。",
-      "reviewNote": "文本会被自动检查，包括由 CONSYRION AI 运营的外部 AI 服务。切勿包含个人数据、密钥或机密信息。",
+      "reviewNote": "文本会被自动检查，包括由 CONSYRIUM AI 运营的外部 AI 服务。切勿包含个人数据、密钥或机密信息。",
       "submit": "提交审核",
       "errors": {
         "handle_format": "使用 3–32 个小写字母、数字或单个连字符。",
@@ -1022,9 +1036,15 @@
         "slug_format": "使用 3–60 个小写字母、数字或单个连字符。",
         "slug_reserved": "此地址已保留。",
         "slug_taken": "你已将此地址用于另一个技能。",
-        "not_public": "此技能未公开。"
-      }
-    }
+        "not_public": "此技能未公开。",
+        "display_name_reserved": "此名称已保留——它会暗示官方或第三方身份。",
+        "display_name_length": "请使用 2–60 个字符。",
+        "display_name_content": "无法使用此名称（链接、联系方式、指令或隐藏字符）。"
+      },
+      "displayName": "公开名称（可选）",
+      "displayNameHint": "显示在每个公开技能的 @标识 旁边，例如你的姓名或公司。不允许使用暗示 CONSYRIUM、提供商或官方身份的名称。"
+    },
+    "weightsSum": "合计：{sum} %（必须为 100 %）"
   },
   "roleProfiles": {
     "title": "专业视角档案",
@@ -1070,7 +1090,7 @@
     "addSource": "添加来源",
     "save": "保存",
     "curated": "精选档案",
-    "curatedHint": "随 CONSYRION AI 提供，只读。团队自有评估，不含人物和链接。",
+    "curatedHint": "随 CONSYRIUM AI 提供，只读。团队自有评估，不含人物和链接。",
     "checkedAt": "核实于 {date}",
     "visibility": {
       "private": "私有",
@@ -1085,7 +1105,9 @@
     },
     "pickerTitle": "专业视角档案（可选）",
     "pickerNote": "档案细化该角色的关注点，不会增加模型、投票或评审者。",
-    "pickerNone": "不使用档案"
+    "pickerNone": "不使用档案",
+    "publish": "在 SkillHub 发布",
+    "adoptedFrom": "采用自 {name}"
   },
   "deletion": {
     "title": "删除会移除什么——以及无法移除什么",
@@ -1095,7 +1117,7 @@
     "auditWorkspace": "会保留一条记录：此工作区已被删除、由谁删除以及何时删除——不含任何内容。",
     "feedback": "你的反馈报告属于你的账户，在你删除它们或删除账户之前会一直保留。",
     "backups": "数据库备份（服务器上以及位于德国的备份存储中）在 30 天后自动删除之前仍包含这些数据。",
-    "external": "在 CONSYRION AI 之外——我们无法删除：GitHub 上的 pull request 和分支（请在仓库中关闭或删除），通过电子邮件、Telegram 或 Confluence 发送的报告（保留在收件人处），以及你导出或下载的任何内容。",
+    "external": "在 CONSYRIUM AI 之外——我们无法删除：GitHub 上的 pull request 和分支（请在仓库中关闭或删除），通过电子邮件、Telegram 或 Confluence 发送的报告（保留在收件人处），以及你导出或下载的任何内容。",
     "privacy": "更多信息请见隐私政策",
     "running": "已在运行的模型调用仍可能由提供商计费（使用你自己的密钥）。"
   }

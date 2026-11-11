@@ -16,9 +16,9 @@ Locally (needs an empty PostgreSQL database):
 
 ```
 pnpm build
-DATABASE_URL=postgres://…/consyrion_e2e pnpm db:migrate
-pnpm --filter @consyrion/web exec playwright install chromium
-E2E_DATABASE_URL=postgres://…/consyrion_e2e pnpm --filter @consyrion/web e2e
+DATABASE_URL=postgres://…/consyrium_e2e pnpm db:migrate
+pnpm --filter @consyrium/web exec playwright install chromium
+E2E_DATABASE_URL=postgres://…/consyrium_e2e pnpm --filter @consyrium/web e2e
 ```
 
 ## Smoke check after every deploy (`smoke.e2e.ts`)
@@ -27,7 +27,7 @@ Signs in with a verified test account, expects `/dashboard`, signs out again. Th
 environment – never from the repository:
 
 ```
-SMOKE_BASE_URL=https://app.consyrion.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrion/web e2e:smoke
+SMOKE_BASE_URL=https://app.consyrium.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrium/web e2e:smoke
 ```
 
 Use a dedicated test account without API keys or data. Without `SMOKE_EMAIL`/`SMOKE_PASSWORD` the check is skipped.

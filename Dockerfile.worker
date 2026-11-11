@@ -6,7 +6,7 @@ FROM node:24-alpine
 WORKDIR /app
 RUN corepack enable pnpm && apk add --no-cache docker-cli
 COPY . .
-RUN pnpm install --frozen-lockfile --filter @consyrion/worker... --filter @consyrion/db...
+RUN pnpm install --frozen-lockfile --filter @consyrium/worker... --filter @consyrium/db...
 ENV NODE_ENV=production
 USER node
 # Started through the installed binaries, not pnpm: corepack would otherwise fetch pnpm at runtime for the

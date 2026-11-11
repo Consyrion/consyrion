@@ -1,5 +1,5 @@
 import "server-only";
-import { keyringFromEnv, type Keyring } from "@consyrion/core";
+import { keyringFromEnv, type Keyring } from "@consyrium/core";
 
 let cached: Keyring | undefined;
 

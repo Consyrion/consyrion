@@ -8,7 +8,7 @@ When starting, the user picks **who builds it**: either all council models share
 plans and writes every task (`builderParticipantId`, stored as `development_plan.builder_participant_id`); the other
 models of the council only review. Resume can still hand a failed task to another model when the user asks.
 
-**Tests on the hosted app.** app.consyrion.com runs no generated code (`SANDBOX_DISABLED=true` on the worker,
+**Tests on the hosted app.** app.consyrium.com runs no generated code (`SANDBOX_DISABLED=true` on the worker,
 `deploy/hetzner/compose.yml`): tests are stored as "not run" with the note that they run in the repository's GitHub
 Actions once the draft PR is open; the PR view shows those checks. Self-hosted installations keep the Docker sandbox.
 
@@ -43,7 +43,7 @@ section "Favourite, prototype build and acceptance by measurement".
    With a linked repository an owner/admin can publish it as a draft pull request (docs/github-app.md); merging
    always needs a human.
 
-**Quality gate before the draft PR** (`pullRequestReadiness` in `@consyrion/core`, enforced on the server and
+**Quality gate before the draft PR** (`pullRequestReadiness` in `@consyrium/core`, enforced on the server and
 explained in the UI): a failed/errored/timed-out latest test run, a failed dependency install or any critical
 review finding blocks publishing. An owner/admin may publish anyway only with a written reason (≥ 10 chars),
 which is written into the PR body and the audit log. Tests that could not run (no container runtime) and

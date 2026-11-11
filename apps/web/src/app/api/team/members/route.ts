@@ -1,5 +1,5 @@
-import { createInvitation, listInvitations, listMembers } from "@consyrion/db";
-import { can } from "@consyrion/core";
+import { createInvitation, listInvitations, listMembers } from "@consyrium/db";
+import { can } from "@consyrium/core";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

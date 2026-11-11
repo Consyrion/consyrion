@@ -1,5 +1,5 @@
 {
-  "name": "@consyrion/council",
+  "name": "@consyrium/council",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,10 +14,10 @@
     "reference": "tsx eval/reference-cli.ts"
   },
   "dependencies": {
-    "@consyrion/ai": "workspace:*",
-    "@consyrion/core": "workspace:*",
-    "@consyrion/db": "workspace:*",
-    "@consyrion/engine": "workspace:*",
+    "@consyrium/ai": "workspace:*",
+    "@consyrium/core": "workspace:*",
+    "@consyrium/db": "workspace:*",
+    "@consyrium/engine": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "zod": "^4.6.7"
   },

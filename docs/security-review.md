@@ -24,4 +24,4 @@ Reviewed 25.10.2026 against the brief's security requirements. Status: ✅ imple
 | Dependencies | ✅ | `pnpm audit --prod --audit-level high` fails CI; Dependabot (npm + GitHub Actions, weekly, grouped); actions pinned by commit SHA (#397) |
 
 Recommended before public launch: external penetration test, lawyer review
-of privacy policy/terms and the trademark question (CONSYRION_BRAND_CHECK.md).
+of privacy policy/terms and the trademark question (CONSYRIUM_BRAND_CHECK.md).

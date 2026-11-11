@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { COUNCIL_ROLES, type CouncilRole } from "./phases";
-import { scanSkillContent, SKILL_SCHEMA_VERSION } from "./skills";
+import { detectImpersonation } from "./impersonation";
+import { scanSkillTexts } from "./skills";
 
 /**
  * Expert Library, stage 1 (#270): a role profile is a workspace's own, versioned addition to one of the twelve existing
@@ -175,21 +176,40 @@ export function validateRoleProfileContent(input: unknown): Result {
     sources,
   };
   const findings = scanRoleProfileContent(content);
+  // 0d's skills test 08.11.26: no imitated personalities – the form says so, now it is enforced.
+  for (const [field, value] of [
+    ["name", content.name],
+    ["coreQuestion", content.coreQuestion],
+    ...content.lenses.map((l, i) => [`lenses[${i}]`, l] as const),
+    ["notSuitableFor", content.notSuitableFor],
+    ...content.sources.flatMap((s, i) => [[`sources[${i}].title`, s.title] as const, [`sources[${i}].note`, s.note ?? ""] as const]),
+  ] as const) {
+    const match = detectImpersonation(value);
+    if (match) findings.push(`${field} imitates a named person ("${match}") – a role profile describes a perspective, never a real personality`);
+  }
   return findings.length ? { ok: false, errors: findings, ignoredFields } : { ok: true, content, ignoredFields };
 }
 
-/** The same scan as skill text (secrets, contact data, rule-override text) over every text of the profile. */
+/**
+ * The same scan as skill text (secrets, contact data, rule-override text in every language of the shared instruction
+ * patterns, #563) over every text of the profile, with the field named in the message.
+ */
 export function scanRoleProfileContent(content: RoleProfileContent): string[] {
-  const all = [
-    content.name,
-    content.coreQuestion,
-    ...content.lenses,
-    content.notSuitableFor,
-    ...content.sources.flatMap((s) => [s.title, s.url ?? "", s.note ?? ""]),
-  ].join("\n");
-  return scanSkillContent({ schemaVersion: SKILL_SCHEMA_VERSION, name: "", summary: "", category: "other", knowledge: all }).map((f) =>
-    f.message.replace(/^The skill/, "The role profile").replace(/skills must not/, "role profiles must not"),
-  );
+  const fields: Array<[string, string]> = [
+    ["name", content.name],
+    ["coreQuestion", content.coreQuestion],
+    ...content.lenses.map((l, i) => [`lenses[${i}]`, l] as [string, string]),
+    ["notSuitableFor", content.notSuitableFor],
+    ...content.sources.flatMap((s, i) => [
+      [`sources[${i}].title`, s.title] as [string, string],
+      [`sources[${i}].url`, s.url ?? ""] as [string, string],
+      [`sources[${i}].note`, s.note ?? ""] as [string, string],
+    ]),
+  ];
+  return scanSkillTexts(
+    fields.map(([, text]) => text),
+    fields.map(([name]) => name),
+  ).map((f) => f.message.replace(/^The skill/, "The role profile").replace(/skills must not/, "role profiles must not"));
 }
 
 /** Stable content hash (sha256 hex over JSON with sorted keys at every level). */
@@ -218,7 +238,7 @@ const curated = (slug: string, content: Omit<RoleProfileContent, "schemaVersion"
 const OWN = (title: string): RoleProfileSource => ({ title, url: null, status: "own_statement", checkedAt: null, note: null });
 
 /**
- * Five curated starting profiles, read-only. Written by the CONSYRION team as their own assessment: no real persons, no
+ * Five curated starting profiles, read-only. Written by the CONSYRIUM team as their own assessment: no real persons, no
  * quotes, no links – every source is labelled `own_statement`.
  */
 export const CURATED_ROLE_PROFILES: ReadonlyArray<{ slug: string; version: number; content: RoleProfileContent }> = [
@@ -234,7 +254,7 @@ export const CURATED_ROLE_PROFILES: ReadonlyArray<{ slug: string; version: numbe
       "What is logged, and whether logs leak personal data or secrets",
     ],
     notSuitableFor: "Legal compliance sign-off or a penetration test; this perspective names risks, it does not certify.",
-    sources: [OWN("Assessment of the CONSYRION team, without external source")],
+    sources: [OWN("Assessment of the CONSYRIUM team, without external source")],
   }),
   curated("architecture-fit", {
     role: "software_architect",
@@ -248,7 +268,7 @@ export const CURATED_ROLE_PROFILES: ReadonlyArray<{ slug: string; version: numbe
       "Migration path from today's system and the first concrete step",
     ],
     notSuitableFor: "Detailed performance tuning or framework-level code review.",
-    sources: [OWN("Assessment of the CONSYRION team, without external source")],
+    sources: [OWN("Assessment of the CONSYRIUM team, without external source")],
   }),
   curated("product-value", {
     role: "product_strategist",
@@ -261,7 +281,7 @@ export const CURATED_ROLE_PROFILES: ReadonlyArray<{ slug: string; version: numbe
       "A measurable signal of success and a point to stop",
     ],
     notSuitableFor: "Market sizing or pricing studies that need external data.",
-    sources: [OWN("Assessment of the CONSYRION team, without external source")],
+    sources: [OWN("Assessment of the CONSYRIUM team, without external source")],
   }),
   curated("cost-control", {
     role: "cost_analyst",
@@ -274,7 +294,7 @@ export const CURATED_ROLE_PROFILES: ReadonlyArray<{ slug: string; version: numbe
       "The cheapest option that still meets every confirmed requirement",
     ],
     notSuitableFor: "Tax, accounting or contract advice.",
-    sources: [OWN("Assessment of the CONSYRION team, without external source")],
+    sources: [OWN("Assessment of the CONSYRIUM team, without external source")],
   }),
   curated("verification", {
     role: "quality_assurance_expert",
@@ -287,7 +307,7 @@ export const CURATED_ROLE_PROFILES: ReadonlyArray<{ slug: string; version: numbe
       "Monitoring that shows a failure before users report it",
     ],
     notSuitableFor: "Formal certification or manual acceptance on behalf of the customer.",
-    sources: [OWN("Assessment of the CONSYRION team, without external source")],
+    sources: [OWN("Assessment of the CONSYRIUM team, without external source")],
   }),
 ];
 

@@ -1,4 +1,4 @@
-import { pullRequestChecks } from "@consyrion/build";
+import { pullRequestChecks } from "@consyrium/build";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

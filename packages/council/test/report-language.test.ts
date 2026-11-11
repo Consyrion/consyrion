@@ -158,7 +158,7 @@ describe("one report language from start to end (ChatGPT review of the Telegram 
     expect(text).not.toContain("request_changes");
   });
 
-  it("translates stored exclusion reasons (live test of #410: ask_consyrion context sentences)", () => {
+  it("translates stored exclusion reasons (live test of #410: ask_consyrium context sentences)", () => {
     const withList = buildDecisionReport({
       ...view,
       requirementList: {
@@ -198,6 +198,13 @@ describe("one report language from start to end (ChatGPT review of the Telegram 
       "Vorschlag B ist ein Architektur-Kandidat: Markiere ihn in der App als Favorit, gib einen Prototyp-/Mess-Build frei oder trage das Messergebnis ein – als fertige Lösung wird nichts freigegeben.",
     );
     expect(outcomeLine(candidate as never, "zh", reportTranslator("zh"))).toContain("架构候选");
+    // After the human mark the step moves on (Gesamttest 08.11.26).
+    expect(nextAction({ ...candidate, humanMark: { kind: "favorite", proposal: "B" } } as never, reportTranslator("de"))).toContain(
+      "Vorschlag B ist dein Favorit",
+    );
+    expect(nextAction({ ...candidate, humanMark: { kind: "prototype_build", proposal: "B" } } as never, reportTranslator("de"))).toContain(
+      "Trage in der App das Messergebnis ein",
+    );
   });
 
   it("keeps the same clean result in French and Spanish", () => {

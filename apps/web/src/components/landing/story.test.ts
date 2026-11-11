@@ -1,4 +1,4 @@
-import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrion/core";
+import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrium/core";
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_QUESTION, STORY_CHAPTERS } from "./story-chapters";
 import { blendAt, fillForward, HOLD, progressFromRects } from "./story-timeline";

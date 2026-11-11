@@ -1,4 +1,4 @@
-import { setDemoTemplate } from "@consyrion/db";
+import { setDemoTemplate } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { requirePlatformAdmin } from "@/lib/server/admin";

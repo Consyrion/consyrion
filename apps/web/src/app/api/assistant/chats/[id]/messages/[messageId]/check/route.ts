@@ -1,5 +1,5 @@
-import { createAdapter, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
 import {
   addAssistantCheck,
   assertAssistantBudget,
@@ -9,10 +9,10 @@ import {
   releaseAssistantUsage,
   reserveAssistantUsage,
   settleAssistantUsage,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
+import { isLocale, localeCookie } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
 import { sameModelId } from "@/lib/council-check";
@@ -74,7 +74,7 @@ export const POST = handle(async (request: Request, { params }: Params) => {
     await assertAssistantBudget(db, actor);
     const keys = new Map<string, { provider: Parameters<typeof createAdapter>[0]; secret: string }>();
     for (const p of checkers) if (!keys.has(p.credentialId)) keys.set(p.credentialId, await decryptCredentialForUse(db, actor, getKeyring(), p.credentialId));
-    const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+    const chosen = localeCookie(await cookies());
     const locale = isLocale(chosen) ? chosen : "en";
     // #519: each check reserves its estimated tokens against the user's limits before any model runs.
     const perCheck = estimateCheckTokens(question.length + answer.content.length + others.reduce((n, m) => n + Math.min(m.content.length, 4_000), 0));

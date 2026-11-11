@@ -1,0 +1,8 @@
+# Installed to /etc/cron.d/consyrion by setup-server.sh and every deploy.sh (#525).
+SHELL=/bin/bash
+# Daily database backup (+ encrypted off-site copy when BACKUP_REMOTE is set, #526).
+15 3 * * * root /opt/consyrion/app/deploy/hetzner/backup.sh >>/var/log/consyrion-backup.log 2>&1
+# Health and backup check every 5 minutes, alerts by e-mail (ALERT_EMAIL) once per state change.
+*/5 * * * * root /opt/consyrion/app/deploy/hetzner/check.sh >>/var/log/consyrion-check.log 2>&1
+# Monthly restore test into a throw-away container; the result is e-mailed.
+0 4 1 * * root /opt/consyrion/app/deploy/hetzner/restore-test.sh --alert >>/var/log/consyrion-restore-test.log 2>&1

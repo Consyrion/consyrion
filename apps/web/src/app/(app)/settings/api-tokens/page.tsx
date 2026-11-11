@@ -1,4 +1,4 @@
-import { getEntitlements, listApiTokens } from "@consyrion/db";
+import { getEntitlements, listApiTokens } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { ApiTokens } from "@/components/api-tokens";
 import { PageHeader } from "@/components/ui/surface";

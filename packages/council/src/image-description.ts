@@ -1,5 +1,5 @@
-import { timeoutSignal, type ImageInput, type ProviderAdapter, type TokenUsage } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
+import { timeoutSignal, type ImageInput, type ProviderAdapter, type TokenUsage } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
 
 /**
  * "Describe first" for images (docs/documents.md): one image-capable model turns an uploaded image into text once; the

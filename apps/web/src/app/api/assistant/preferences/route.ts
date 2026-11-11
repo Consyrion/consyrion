@@ -1,4 +1,4 @@
-import { assistantBudget, getAssistantPreference, setAssistantPreference } from "@consyrion/db";
+import { assistantBudget, getAssistantPreference, setAssistantPreference } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

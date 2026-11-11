@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. CONSYRION AI is licensed under AGPL-3.0; by contributing you agree that your contribution is
+Thanks for helping. CONSYRIUM AI is licensed under AGPL-3.0; by contributing you agree that your contribution is
 released under the same license.
 
 1. Open an issue first for larger changes, so the approach can be agreed before you build it.

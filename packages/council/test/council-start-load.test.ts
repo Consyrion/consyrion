@@ -4,7 +4,7 @@
  * exactly `limit − used` starts succeed and every started session is booked once. Local only: PGlite, test key.
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createCredential,
   createDatabase,
@@ -16,7 +16,7 @@ import {
   usageThisMonth,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createSession, type SessionInput } from "../src";

@@ -1,5 +1,5 @@
 /**
- * Writes the static CONSYRION AI brand assets (favicon, mark, logo with wordmark) from the shared geometry,
+ * Writes the static CONSYRIUM AI brand assets (favicon, mark, logo with wordmark) from the shared geometry,
  * so the files never drift from the React components. Run: node scripts/brand-assets.ts
  */
 import { writeFileSync } from "node:fs";
@@ -23,17 +23,17 @@ export function markShapes(stroke: string, nodeFill: string) {
 
 const gradient = `<linearGradient id="g" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${CYAN}"/><stop offset="0.55" stop-color="${EMERALD}"/><stop offset="1" stop-color="${VIOLET}"/></linearGradient>`;
 
-export const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" fill="none" role="img" aria-label="CONSYRION AI"><title>CONSYRION AI</title><defs>${gradient}</defs>${markShapes("url(#g)", INK)}</svg>\n`;
+export const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" fill="none" role="img" aria-label="CONSYRIUM AI"><title>CONSYRIUM AI</title><defs>${gradient}</defs>${markShapes("url(#g)", INK)}</svg>\n`;
 
 /** Favicon: the mark on an ink tile so it stays visible on light and dark browser chrome. */
 export const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" fill="none"><defs>${gradient}</defs><rect width="64" height="64" rx="14" fill="${INK}"/>${markShapes("url(#g)", INK)}</svg>\n`;
 
-export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" fill="none" role="img" aria-label="CONSYRION AI"><title>CONSYRION AI</title><defs>${gradient}</defs>${markShapes("url(#g)", INK)}<text x="78" y="42" fill="#E8EEFC" font-family="Avenir Next, Segoe UI, Inter, sans-serif" font-size="26" font-weight="600" letter-spacing="7">CONSYRION AI</text></svg>\n`;
+export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" fill="none" role="img" aria-label="CONSYRIUM AI"><title>CONSYRIUM AI</title><defs>${gradient}</defs>${markShapes("url(#g)", INK)}<text x="78" y="42" fill="#E8EEFC" font-family="Avenir Next, Segoe UI, Inter, sans-serif" font-size="26" font-weight="600" letter-spacing="7">CONSYRIUM AI</text></svg>\n`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const root = new URL("../", import.meta.url);
   writeFileSync(new URL("src/app/icon.svg", root), ICON_SVG);
-  writeFileSync(new URL("public/brand/consyrion-mark.svg", root), MARK_SVG);
-  writeFileSync(new URL("public/brand/consyrion-logo.svg", root), LOGO_SVG);
+  writeFileSync(new URL("public/brand/consyrium-mark.svg", root), MARK_SVG);
+  writeFileSync(new URL("public/brand/consyrium-logo.svg", root), LOGO_SVG);
   console.log("brand assets written");
 }

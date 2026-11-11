@@ -28,7 +28,7 @@ describe("assistant PDF and Word files (#280, #282)", () => {
   it("renders a Word file (zip) and builds safe file names", async () => {
     const bytes = await assistantDocx(markdown, meta);
     expect(Buffer.from(bytes.slice(0, 2)).toString()).toBe("PK");
-    expect(documentFileName("consyrion-summary", "Größe: Vereins-Tool?", "pdf")).toBe("consyrion-summary-grosse-vereins-tool.pdf");
-    expect(documentFileName("consyrion-chat", "???", "docx")).toBe("consyrion-chat-export.docx");
+    expect(documentFileName("consyrium-summary", "Größe: Vereins-Tool?", "pdf")).toBe("consyrium-summary-grosse-vereins-tool.pdf");
+    expect(documentFileName("consyrium-chat", "???", "docx")).toBe("consyrium-chat-export.docx");
   });
 });

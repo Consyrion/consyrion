@@ -1,4 +1,4 @@
-import { cancelSession } from "@consyrion/council";
+import { cancelSession } from "@consyrium/council";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

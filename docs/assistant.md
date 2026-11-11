@@ -121,7 +121,7 @@ external links are left out) and its suggested actions with their status. Labels
 `openAssistant({ prompt? })` (`apps/web/src/components/assistant-open.tsx`) opens the panel on the chat tab with the
 question pre-filled – it is **not sent**; the user reads, edits and sends it (a question costs tokens). The page context
 (e.g. the decision) is switched on. `AskAssistantButton` ("Ask the AI") uses it; the Final Verdict screen shows it with
-"Summarise this decision …" as the question. The panel listens for the window event `consyrion:open-assistant`.
+"Summarise this decision …" as the question. The panel listens for the window event `consyrium:open-assistant`.
 
 ## Native tool calling in packages/ai (#284, 08.11.26)
 
@@ -264,6 +264,19 @@ The chat tab has two modes: **1 model** and **Council chat**.
   list). `create_project_draft`/`draft_brief` now accept a list and join it into "- " lines; the prompt names the
   format; dropped suggestions are logged by type and reason (no content). Answer and cards use the language of the
   council chat's question; the button hides right after it was used.
+- #583 (11.11.26), from a real council chat where several voices said "I prepared a card" and none was there:
+  - Voices of a council chat are told that they cannot create cards and must not announce one; they point to
+    **Make it a council**. (Their suggestions were always dropped by the route – only the wording was wrong.)
+  - The project card's button reads **Create project now**: one click saves the project as a draft and shows its link.
+  - An answer whose card was dropped, or that was asked for a card and brought none, is stored with the marker
+    `_card_missing`: the chat says that there is no card and that nothing was created, with **Ask for the card again**
+    under the latest answer – also after a reload or from the history.
+  - Small slips no longer cost the card: an overlong name, goal or idea is cut to its limit, an unknown project type
+    becomes "idea", `null` for goal or requirements counts as empty. Values the user edits are validated strictly.
+  - What happened to earlier cards goes into the history as an app record (ran with result link, still waiting,
+    dismissed), so later answers name the real project instead of "there is no project yet".
+  - Tool calls a model writes as text (`[{"name": …}]</tool_calls>`, DeepSeek) are run as tool calls and never shown.
+  - Still open in #583: context for the cross-check and paging of the project list in the assistant.
 - For follow-up questions after a council chat the history keeps each answer's model label (`[provider/model] …`), so
   the model knows who said what. The rule is in the assistant's system prompt; the cards keep the server allowlist.
 
@@ -292,3 +305,72 @@ The chat export (Markdown, PDF, Word) puts every cross-check under the answer it
 contradicted – read the objections / not verified, plus the medicine/law/security note) and each verdict with model and
 reason, in the same words as the panel. So the document never looks more certain than the chat. The PDF shows the words
 without ✓/⚠ (its font has no such characters). Code: `chatMarkdown` in `apps/web/src/lib/server/assistant-export.ts`.
+- **Personal token limit** stays soft (checked before the call): measured +50 % with 10 parallel questions → #519.
+
+## Quick questions per page (#486, 08.11.26)
+An empty chat offers questions that fit the page (chips, nothing is sent until the user presses Send):
+- decision page: summary for a customer, what speaks against the recommendation / open objections, next step;
+- project page: what is missing in the brief, ready for a council (unconfirmed requirements), risks to check;
+- elsewhere: open steps, decisions waiting for approval, summary.
+On a project page the question carries the project as context (chip "About this project", removable), like the
+decision context on a decision page; the model reads it with its tools.
+## Report a conversation (#486 part 3, 08.11.26)
+Under a chat, **Report this conversation** opens a box: an explanation (required), a preview of exactly the excerpt that
+would be sent, and a checkbox to agree. Only after consent the explanation plus that excerpt go to the feedback inbox
+(#295) as a bug report (page `/assistant`); admins are notified like for any report.
+- The excerpt is built on the server only (`reportExcerpt`, `apps/web/src/lib/server/assistant-report.ts`): the last 10
+  messages, each at most 1,500 characters, at most 3,000 in total; who wrote it, the model and the text – no tool data,
+  links, actions, ids or tokens; anything that looks like a key is replaced (`redactSecrets`).
+- Stored in the feedback text, so it is part of the user's data export and is deleted like feedback reports (no fixed
+  period – docs/feedback.md). Privacy page and `docs/privacy-data-map.md` name it.
+- `POST /api/assistant/chats/{id}/report` `{ explanation, consent, preview? }`; only the chat's owner; 10 reports per day.
+
+## Prepare a project with me – interview (#215 stage 1, 08.11.26)
+An empty chat (1-model mode) offers **Prepare a project with me**. In this mode every answer:
+- asks at most 3 questions, the most decision-relevant open points first, and skips what does not matter for the question;
+- fills a fixed checklist: decision, options (status quo / small trial only when the user agrees), goal and success
+  measure, hard limits, decision or build, reversibility, and optionally the user's leaning (context the models must
+  question, never a weight) – each **answered**, **assumed** (never turned into a requirement) or **open**;
+- ends with a short draft and the existing `create_project_draft` / `draft_brief` card. The requirement list is still
+  confirmed by the user on the project page; a council still starts from the council form (stage 2 adds a start card).
+
+The panel shows "Preparing a project · 4 of 6 points clear", the open points and the unconfirmed assumptions, and an
+End button. The checklist is stored as a marker on the answer (`_interview`), so a reopened chat continues the
+interview. Interview answers always use the JSON loop (schema `assistant_interview_step` with `checklist`), also when
+`ASSISTANT_TOOL_MODE=native`. Costs like any question (reserved, plan quota, limits). Code: `withInterview`,
+`INTERVIEW_KEYS`, `parseChecklist` in `apps/web/src/lib/server/assistant.ts`; request flag `interview: true`.
+
+## Start a council from the chat (#215 stage 2, 08.11.26)
+When the user asks to start a council and the project's requirement list is confirmed for the current brief, the
+assistant may suggest a **start_council** card (`{ projectId, tokenBudget? }`, at most 1,000,000). The card:
+- loads the **cost preview** with the same service as the council form (`previewSession`): project, models of the
+  workspace's last council (as for MCP and Telegram), budget, upper bound, typical use, plan limit, Final Verdict fit,
+  a note when phases may be shortened, and whether the requirement list is current;
+- starts only after the user ticks **"I confirm the costs: up to N tokens on my own keys"** and presses Start;
+- at the click the server builds the preview again; if brief, requirement list, models, budget or estimate changed it
+  refuses with 409 and the new preview (no start without a fresh confirmation);
+- starts exactly one council (`createSession`, idempotency key per card, `onceAtATime` for a double click), marks the
+  card executed (`completeCouncilStartAction`, audit `assistant.council_started` with chat, session and budget – no
+  prompt, no keys) and then shows the session's live status (server-sent `usage` event of `/api/sessions/{id}/events`, #12; polling every 5 s only as fallback when the stream breaks) with a link;
+- offers "Adjust in the form" for other models or settings, and "Dismiss".
+The generic action route never runs `start_council` (409), and the model cannot start anything by itself. Route:
+`POST /api/assistant/chats/{id}/messages/{messageId}/actions/{actionId}/council` `{ preview: true }` or
+`{ confirmCosts: true, previewHash }`. Tests: `council-start-route.test.ts`, `assistant-actions.test.ts`.
+## Decision facts like the screen (Gesamttest 0d, finding 10, 08.11.26)
+`get_session` also returns `statusText` (the readable verdict status from `reportStatus` – the same derivation as the
+verdict screen and the PDF), `humanMarks` (favourite / prototype build), `openMeasurements`, `nextSteps`, and
+`projectArchived` with a note. The prompt tells the model to use these words instead of raw values such as
+`needs_verification`, and never to suggest a decision, a council or a build in an archived project (restore it first).
+`list_open_steps` leaves councils of archived projects out.
+
+## Options, assumptions and leaning (#215 stage 3, 08.11.26)
+In the interview the assistant lists the options as A/B/C; "status quo" or "a small reversible trial" is added only
+after the user says yes. The draft puts options, unconfirmed assumptions and the user's leaning into sections whose
+heading ends with `[context]` (e.g. `## Assumptions (unconfirmed) [context]`); the requirement intake skips those
+sections (`stripContextSections` in `packages/core/src/engine/requirement-extraction.ts`), so they are never proposed
+as hard requirements, and no card can carry weights or roles – the leaning is context for the models to question. The
+brief's source hash still covers the whole text. The interview banner shows the options; after the council the start
+card points to the verdict and its next steps.
+- Live test 08.11.26 (one real council, 110,805 tokens): `get_project` now says `requirementList.confirmed` and
+  `councilCanStart` explicitly (the model was unsure with version + current alone), and the start card names the
+  minimum budget when the budget is too small instead of only disabling the start.

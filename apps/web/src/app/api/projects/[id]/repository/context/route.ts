@@ -1,6 +1,6 @@
-import { DomainError } from "@consyrion/core";
-import { getGitHubIntegration, getProject, listDocuments, replaceRepositoryContext, type ActorContext, type Database } from "@consyrion/db";
-import { contextDocument, installationClient, readContextFiles, readRepositoryTree, suggestContextFiles, CONTEXT_LIMITS } from "@consyrion/github";
+import { DomainError } from "@consyrium/core";
+import { getGitHubIntegration, getProject, listDocuments, replaceRepositoryContext, type ActorContext, type Database } from "@consyrium/db";
+import { contextDocument, installationClient, readContextFiles, readRepositoryTree, suggestContextFiles, CONTEXT_LIMITS } from "@consyrium/github";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireActor } from "@/lib/server/actor";

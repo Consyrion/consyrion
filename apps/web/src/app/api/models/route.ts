@@ -1,7 +1,7 @@
-import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
-import { latestStrengthCatalog } from "@consyrion/council";
-import { strengthSuggestion } from "@consyrion/core";
-import { decryptCredentialForUse, listCredentials, recentlyUnavailableModels } from "@consyrion/db";
+import { createAdapter, ProviderError, timeoutSignal } from "@consyrium/ai";
+import { latestStrengthCatalog } from "@consyrium/council";
+import { strengthSuggestion } from "@consyrium/core";
+import { decryptCredentialForUse, listCredentials, recentlyUnavailableModels } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

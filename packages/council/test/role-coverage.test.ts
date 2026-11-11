@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { coverAllParticipants, keyringFromEnv } from "@consyrion/core";
+import { coverAllParticipants, keyringFromEnv } from "@consyrium/core";
 import {
   createCredential,
   createDatabase,
@@ -10,7 +10,7 @@ import {
   setSubscriptionPlan,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSession, getSessionView, previewSession, runSession } from "../src";
 import { confirmProposedRequirements } from "./confirm-requirements";

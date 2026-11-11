@@ -1,4 +1,4 @@
-import { independenceKey } from "@consyrion/core/browser";
+import { independenceKey } from "@consyrium/core/browser";
 import type { View } from "./helpers";
 
 /**

@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
 import type { Database } from "../client";

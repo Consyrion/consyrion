@@ -1,11 +1,11 @@
 "use client";
 
-import type { CouncilPhase } from "@consyrion/core/browser";
+import type { CouncilPhase } from "@consyrium/core/browser";
 import { useEngineText } from "./engine-text";
 import { createTranslator, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import sessionEn from "../../../messages/session/en.json";
-import { MarkShapes } from "../brand/consyrion-logo";
+import { MarkShapes } from "../brand/consyrium-logo";
 import { PROVIDER_COLOR } from "../dashboard/activity-network-data";
 import { CompactNetwork } from "../dashboard/live-council-compact";
 import { ease, pointerPull, svgPoint } from "../dashboard/pointer-field";
@@ -279,7 +279,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
                 strokeOpacity={working ? 0.95 : 0.55}
                 strokeWidth="1.8"
                 strokeDasharray={working ? "6 9" : undefined}
-                style={working ? ({ "--travel": "-60px", animation: "consyrion-flow 1.3s linear infinite" } as CSSProperties) : undefined}
+                style={working ? ({ "--travel": "-60px", animation: "consyrium-flow 1.3s linear infinite" } as CSSProperties) : undefined}
               />
             </g>
           );
@@ -336,7 +336,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
                   r="58"
                   fill={color}
                   opacity="0.16"
-                  style={{ transformOrigin: `${p.x}px ${p.y}px`, animation: "consyrion-pulse 1.8s ease-in-out infinite" }}
+                  style={{ transformOrigin: `${p.x}px ${p.y}px`, animation: "consyrium-pulse 1.8s ease-in-out infinite" }}
                 />
               ) : null}
               <circle ref={(el) => void (glowRefs.current[i] = el)} cx={p.x} cy={p.y} r="50" fill={color} opacity="0.32" filter="url(#vn-glow)" />
@@ -572,7 +572,9 @@ function Proposals({ view, onOpen }: { view: View; onOpen: (tab: "open_council" 
 /** Council Room overview (design concept 2): voices, objections, proposals and the human gate on one screen. */
 export function CouncilRoom({ view, onOpen }: { view: View; onOpen: (tab: "open_council" | "evaluation" | "final_verdict") => void }) {
   const states = voiceStates(view);
-  const awaiting = view.session.status === "awaiting_approval";
+  // Gesamttest 08.11.26 (#552): in an archived project nothing waits for a decision – the footer says so instead.
+  const archived = (view.project as { status?: string }).status === "archived";
+  const awaiting = !archived && view.session.status === "awaiting_approval";
   const t = useTranslations("councilRoom");
   return (
     <div className="space-y-5">
@@ -596,15 +598,17 @@ export function CouncilRoom({ view, onOpen }: { view: View; onOpen: (tab: "open_
         className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4 ${awaiting ? "border-warning/60 bg-warning/10" : "border-glass-line bg-surface/50"}`}
       >
         <p className="text-sm">
-          <strong className={awaiting ? "text-warning" : ""}>{awaiting ? t("decisionNeeded") : t("youDecide")}</strong>{" "}
+          <strong className={awaiting ? "text-warning" : ""}>{archived ? t("archived") : awaiting ? t("decisionNeeded") : t("youDecide")}</strong>{" "}
           <span className="text-muted">
-            {awaiting
-              ? t("gateAwaiting")
-              : view.session.status === "approved"
-                ? t("gateApproved")
-                : view.session.status === "failed" || view.session.status === "cancelled"
-                  ? t("gateEnded")
-                  : t("gateDebate")}
+            {archived
+              ? t("gateArchived")
+              : awaiting
+                ? t("gateAwaiting")
+                : view.session.status === "approved"
+                  ? t("gateApproved")
+                  : view.session.status === "failed" || view.session.status === "cancelled"
+                    ? t("gateEnded")
+                    : t("gateDebate")}
           </span>
         </p>
         {view.decision ? (

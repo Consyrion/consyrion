@@ -1,6 +1,6 @@
 "use client";
 
-import type { CouncilRole } from "@consyrion/core/browser";
+import type { CouncilRole } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { SelectField } from "../ui/field";
 import type { RoleProfileRow } from "./role-profile-manager";
@@ -43,6 +43,7 @@ export function RoleProfilePicker({
               .map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} · {t(`visibility.${p.visibility}`)} · {t("versionShort", { version: p.version })}
+                  {p.forkedFromName ? ` · ${t("adoptedFrom", { name: p.forkedFromName })}` : ""}
                 </option>
               ))}
           </SelectField>

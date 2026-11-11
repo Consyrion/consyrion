@@ -1,4 +1,4 @@
-import { can } from "@consyrion/core";
+import { can } from "@consyrium/core";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { ProjectForm } from "@/components/project-form";

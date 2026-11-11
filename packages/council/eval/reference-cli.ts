@@ -1,5 +1,5 @@
 /**
- * `pnpm --filter @consyrion/council reference <dir>`: scores every Decision Report JSON in <dir>. File names are
+ * `pnpm --filter @consyrium/council reference <dir>`: scores every Decision Report JSON in <dir>. File names are
  * `<case id>__<configuration>__<anything>.json`, e.g. `imp-light-speed__A-cheap__run1.json` (#182).
  */
 import { readdirSync, readFileSync } from "node:fs";

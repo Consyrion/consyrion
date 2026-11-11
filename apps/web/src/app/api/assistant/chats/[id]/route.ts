@@ -1,4 +1,4 @@
-import { deleteAssistantChat, getAssistantChat } from "@consyrion/db";
+import { deleteAssistantChat, getAssistantChat } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { withCosts } from "@/lib/server/assistant-cost";

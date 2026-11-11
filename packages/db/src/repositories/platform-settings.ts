@@ -1,4 +1,4 @@
-import { decryptSecret, encryptSecret, type Keyring } from "@consyrion/core";
+import { decryptSecret, encryptSecret, type Keyring } from "@consyrium/core";
 import { eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { platformSetting } from "../schema";

@@ -64,14 +64,14 @@ const render = (extra: Record<string, unknown> = {}, messages: Record<string, un
   renderToStaticMarkup(
     <NextIntlClientProvider locale="en" messages={messages}>
       <VerdictDashboard
-      view={view}
-      matrix={matrix}
-      outcome={{ title: "Recommended solution", tone: "success" }}
-      reason={null}
-      approvableIds={new Set(["pro_a"])}
-      recommendedId="pro_a"
-      {...extra}
-    />
+        view={view}
+        matrix={matrix}
+        outcome={{ title: "Recommended solution", tone: "success" }}
+        reason={null}
+        approvableIds={new Set(["pro_a"])}
+        recommendedId="pro_a"
+        {...extra}
+      />
     </NextIntlClientProvider>,
   );
 
@@ -106,8 +106,78 @@ describe("verdict dashboard (stage 1 visualisations)", () => {
     expect(html).toContain("claude-haiku-5-5: unconfirmed");
   });
 
+  it("sets DISPUTED apart from UNKNOWN: own symbol, dashed frame, its own count, and a legend (#266)", () => {
+    const disputed = {
+      ...matrix,
+      requirementGate: {
+        ...matrix.requirementGate!,
+        proposals: matrix.requirementGate!.proposals.map((g) =>
+          g.proposalId === "pro_a"
+            ? {
+                ...g,
+                requirements: [
+                  g.requirements[0]!,
+                  { requirementId: "req_2", status: "DISPUTED" as const, pass: ["par_b"], fail: ["par_x"], unknown: [], open: [], conflicts: [] },
+                ],
+              }
+            : g,
+        ),
+      },
+    };
+    const html = render({ matrix: disputed });
+    expect(html).toContain("≠</span> disputed");
+    expect(html).toContain("1 confirm, 1 not met");
+    expect(html).toContain("border-dashed");
+    // UNKNOWN keeps its own look.
+    expect(html).toContain("?</span> unconfirmed");
+    expect(html).toContain('data-testid="heatmap-legend"');
+  });
+
+  it("offers search and 'problems only' from 20 requirements on, not below (#266 part B)", () => {
+    expect(render()).not.toContain('data-testid="heatmap-filter"');
+    const ids = Array.from({ length: 25 }, (_, i) => `req_${i + 1}`);
+    const manyView = { ...view, requirementList: { version: 1, items: ids.map((id, i) => ({ id, text: `Requirement number ${i + 1}` })), excluded: [] } };
+    const many = {
+      ...matrix,
+      requirementGate: {
+        ...matrix.requirementGate!,
+        proposals: matrix.requirementGate!.proposals.map((g) => ({
+          ...g,
+          requirements: ids.map((id, i) => ({
+            requirementId: id,
+            status: i === 3 ? ("FAIL" as const) : ("PASS" as const),
+            pass: ["par_a"],
+            fail: [],
+            unknown: [],
+            open: [],
+            conflicts: [],
+          })),
+        })),
+      },
+    };
+    const html = render({ view: manyView, matrix: many });
+    expect(html).toContain('data-testid="heatmap-filter"');
+    expect(html).toContain("Problems only");
+    expect(html).toContain("25 of 25 shown");
+  });
+
+  it("the requirement table of the Evaluation tab speaks words, not raw codes (#266)", async () => {
+    const { RequirementGateTable } = await import("./requirement-gate");
+    const { messagesFor } = await import("@/i18n/all-messages");
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="de" messages={messagesFor("de")} timeZone="UTC">
+        <RequirementGateTable view={view} gate={matrix.requirementGate!} />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("✓ erfüllt");
+    expect(html).toContain("? unbestätigt");
+    expect(html).toContain("Bestätigt von:");
+    expect(html).not.toMatch(/>PASS</);
+    expect(html).not.toContain("PASS:");
+  });
+
   it("shows the criteria as one matrix and says when every proposal is blocked", () => {
-    const html = render({ approvableIds: new Set() , recommendedId: null });
+    const html = render({ approvableIds: new Set(), recommendedId: null });
     expect(html).toContain("Criterion");
     expect(html).toContain("All 2 proposals are not approvable");
   });
@@ -192,6 +262,47 @@ describe("requirements no proposal meets (night test 07.11.26)", () => {
     expect(html).toContain('data-next-action="request_changes"');
     // With an approvable proposal the hint stays away.
     expect(render()).not.toContain("No proposal meets");
+  });
+
+  it("reads a verdict without anything approvable as an idea check when the council was started as one (#597)", () => {
+    const open: DashboardMatrix = {
+      ...matrix,
+      requirementGate: {
+        ...matrix.requirementGate!,
+        proposals: [
+          { ...matrix.requirementGate!.proposals[1]!, proposalId: "pro_a" },
+          {
+            ...matrix.requirementGate!.proposals[1]!,
+            feasibility: "fail" as const,
+            requirements: matrix.requirementGate!.proposals[1]!.requirements.map((r) => ({ ...r, status: "FAIL" as const })),
+          },
+        ],
+      },
+    };
+    const props = { matrix: open, outcome: { title: "Needs verification", tone: "warning" as const }, approvableIds: new Set<string>(), recommendedId: null };
+    const idea = {
+      kind: "favorite" as const,
+      leaders: ["pro_a"],
+      toClarify: ["req_2"],
+      excluded: [{ proposalId: "pro_b", requirementIds: ["req_1", "req_2"] }],
+    };
+    const html = render({ ...props, outcomeKey: "needs_verification", idea });
+    expect(html).toContain("Idea checked – favourite with open points");
+    expect(html).toContain("Clarify before the next step");
+    expect(html).toContain("R2 – Existing tests keep passing");
+    expect(html).toContain("not met: R1, R2");
+    expect(html).toContain("This is an idea check, not an approval");
+    // The strict wording of an approval council is not shown on top of it.
+    expect(html).not.toContain("No proposal can be approved");
+    expect(html).not.toContain('data-testid="who-acts"');
+    // An approval council keeps its verdict and now says who has to act and that the lock is a rule of the app.
+    const strict = render({ ...props, outcomeKey: "needs_verification" });
+    expect(strict).toContain("No proposal can be approved");
+    expect(strict).toContain('data-testid="who-acts"');
+    expect(strict).toContain("that is a rule of the app");
+    expect(strict).not.toContain("Idea checked");
+    // With an approvable proposal neither appears.
+    expect(render()).not.toContain('data-testid="who-acts"');
   });
 
   it("names a requirement every proposal leaves unconfirmed (R2-02, 08.11.26)", () => {

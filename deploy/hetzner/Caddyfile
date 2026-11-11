@@ -16,3 +16,30 @@
 	}
 	reverse_proxy web:3000
 }
+
+# Former app domain (rename CONSYRIUM → CONSYRIUM, 10 Nov 2026): keeps its certificate. Pages redirect to the same path on
+# the current domain (308 keeps method and body). API calls are answered here instead: a client that follows a redirect
+# to another host drops its Authorization header, and webhook senders (Telegram, GitHub, Stripe) do not follow redirects
+# at all – MCP clients with the former address were rejected after the move (found 11 Nov 2026). Sign-in routes still
+# redirect, because their cookies belong to the current domain. Unset → "localhost" (internal certificate, no ACME
+# request), so installations without a former domain need nothing.
+{$LEGACY_DOMAIN:localhost} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	request_body {
+		max_size 20MB
+	}
+	@api {
+		path /api/*
+		not path /api/auth/*
+	}
+	handle @api {
+		reverse_proxy web:3000
+	}
+	handle {
+		redir https://{$APP_DOMAIN}{uri} 308
+	}
+}

@@ -2,10 +2,10 @@
  * Local development only: approves the newest DEMO session and runs the Execution Council with
  * scripted test models. Without a container runtime the tests are reported as "not run".
  *
- *   pnpm --filter @consyrion/build seed:demo-execution -- tester@example.test
+ *   pnpm --filter @consyrium/build seed:demo-execution -- tester@example.test
  */
-import { submitApproval } from "@consyrion/council";
-import { createDatabase, resolveActor, schema } from "@consyrion/db";
+import { submitApproval } from "@consyrium/council";
+import { createDatabase, resolveActor, schema } from "@consyrium/db";
 import { desc, eq, like } from "drizzle-orm";
 import path from "node:path";
 import { detectSandbox, runExecution, startExecution } from "../src";

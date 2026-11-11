@@ -1,5 +1,5 @@
-import { createAdapter, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
 import {
   acceptActionProposals,
   addAssistantMessage,
@@ -13,14 +13,14 @@ import {
   decryptCredentialForUse,
   getAssistantChat,
   setAssistantChatModel,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
+import { isLocale, localeCookie } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
-import { assistantToolMode, estimateAnswerTokens, runAssistant, type AssistantEvent } from "@/lib/server/assistant";
+import { assistantToolMode, cardMissing, estimateAnswerTokens, runAssistant, withActionFacts, type AssistantEvent } from "@/lib/server/assistant";
 import { withCosts } from "@/lib/server/assistant-cost";
 import { assistantTools } from "@/lib/server/assistant-tools";
 import { getDb } from "@/lib/server/db";
@@ -39,7 +39,14 @@ type Params = { params: Promise<{ id: string }> };
 export const POST = handle(async (request: Request, { params }: Params) => {
   const actor = await requireActor();
   rateLimit(`assistant:${actor.userId}`, 20, 60_000);
-  const body = (await readJson(request)) as { content?: unknown; credentialId?: unknown; modelId?: unknown; context?: unknown };
+  const body = (await readJson(request)) as {
+    content?: unknown;
+    credentialId?: unknown;
+    modelId?: unknown;
+    context?: unknown;
+    interview?: unknown;
+    expectCard?: unknown;
+  };
   const content = typeof body.content === "string" ? body.content.trim() : "";
   if (!content) throw new DomainError("VALIDATION", "Ask a question");
   if (content.length > 4_000) throw new DomainError("VALIDATION", "The question is too long (max. 4000 characters)");
@@ -76,7 +83,10 @@ export const POST = handle(async (request: Request, { params }: Params) => {
       ? []
       : (await getAssistantChat(db, actor, chat.id)).messages.filter((m) => !m.reviewOf && (!chat.summaryUntil || m.createdAt > chat.summaryUntil));
   const several = new Set(earlier.filter((m) => m.role === "assistant" && m.model).map((m) => m.model)).size > 1;
-  const history = earlier.map((m) => ({ role: m.role, content: several && m.role === "assistant" && m.model ? `[${m.model}] ${m.content}` : m.content }));
+  const history = earlier.map((m) => ({
+    role: m.role,
+    content: withActionFacts(several && m.role === "assistant" && m.model ? `[${m.model}] ${m.content}` : m.content, m.actions),
+  }));
   // #510: the plan's daily question is reserved under a workspace lock before the model runs (parallel requests).
   const reservation = await reserveAssistantQuestion(
     db,
@@ -88,7 +98,7 @@ export const POST = handle(async (request: Request, { params }: Params) => {
   );
   await addAssistantMessage(db, actor, chat.id, { role: "user", content });
 
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const chosen = localeCookie(await cookies());
   // The decision form's heading as the user sees it ("Deine Entscheidung", "Your decision", …) – ChatGPT QA 06.11.26.
   const decisionSection = (await getTranslations("verdictScreen"))("form.title");
   const modelId = body.modelId.trim();
@@ -108,6 +118,8 @@ export const POST = handle(async (request: Request, { params }: Params) => {
         mode: assistantToolMode(),
         summary: id === "new" ? null : chat.summary,
         onEvent,
+        // #215: "prepare a project with me" – asks for what a council needs and returns the checklist.
+        interview: body.interview === true,
       });
     } catch (error) {
       // No answer, no question used (#510): the reservation is given back.
@@ -125,7 +137,16 @@ export const POST = handle(async (request: Request, { params }: Params) => {
       content: result.answer,
       actions,
       model: result.model,
-      tools: result.tools,
+      // The interview checklist is stored as a marker, like the expert perspective (#241) – not a tool call.
+      // #583: "_card_missing" when a card was suggested but dropped, or was asked for ("Make it a council") and did not
+      // come – the chat then says so and offers a retry, also after a reload, instead of an answer naming a card that is not there.
+      tools: [
+        ...result.tools,
+        ...(result.checklist ? [{ name: "_interview", args: { items: result.checklist } }] : []),
+        ...(cardMissing({ suggested: result.actions.length, accepted: actions.length, expected: body.expectCard === true })
+          ? [{ name: "_card_missing", args: { retry: body.expectCard === true } }]
+          : []),
+      ],
       links: result.links,
       inputTokens: result.usage.inputTokens,
       outputTokens: result.usage.outputTokens,

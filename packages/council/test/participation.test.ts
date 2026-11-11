@@ -38,4 +38,17 @@ describe("valid participation rate (#182)", () => {
     ]);
     expect(validParticipation(participants, [])).toEqual({ valid: 0, total: 3, percent: null, shortfalls: [] });
   });
+
+  it("Gesamttest 08.11.26: a model never called in the 12 Minds Council (shortened) did not deliver there", () => {
+    const result = validParticipation(participants, [
+      ...["a", "b", "c"].map((p) => ({ participantId: p, phase: "independent_thinking" as const, outcome: "ok", calls: 1 })),
+      { participantId: "c", phase: "twelve_minds_council", outcome: "ok", calls: 1 },
+      ...["a", "b", "c"].map((p) => ({ participantId: p, phase: "final_verdict" as const, outcome: "ok", calls: 1 })),
+    ]);
+    expect(result.valid).toBe(1);
+    expect(result.shortfalls).toEqual([
+      { participantId: "a", phases: ["12 Minds Council"], notCalled: ["12 Minds Council"] },
+      { participantId: "b", phases: ["12 Minds Council"], notCalled: ["12 Minds Council"] },
+    ]);
+  });
 });

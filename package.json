@@ -1,5 +1,5 @@
 {
-  "name": "consyrion",
+  "name": "consyrium",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -8,13 +8,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @consyrion/web dev",
-    "build": "pnpm --filter @consyrion/web build",
+    "dev": "pnpm --filter @consyrium/web dev",
+    "build": "pnpm --filter @consyrium/web build",
     "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "db:generate": "pnpm --filter @consyrion/db generate",
-    "db:migrate": "pnpm --filter @consyrion/db migrate",
+    "db:generate": "pnpm --filter @consyrium/db generate",
+    "db:migrate": "pnpm --filter @consyrium/db migrate",
     "format": "prettier --write",
     "format:check": "prettier --check"
   },

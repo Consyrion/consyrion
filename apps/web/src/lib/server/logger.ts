@@ -2,7 +2,7 @@
  * Structured JSON logs. Values under keys that look like secrets, and strings that look like API keys
  * or tokens, are redacted so logs can be shipped to any log service.
  */
-import { redactSecrets } from "@consyrion/core";
+import { redactSecrets } from "@consyrium/core";
 
 type Level = "debug" | "info" | "warn" | "error";
 

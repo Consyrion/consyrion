@@ -1,16 +1,16 @@
 # Data map: where data lives, how long, and what deleting does (#206)
 
-What CONSYRION AI stores, where, for how long, what the workspace export contains and what a deletion removes. It describes
+What CONSYRIUM AI stores, where, for how long, what the workspace export contains and what a deletion removes. It describes
 the code on `main`, not legal advice; legal requirements (GDPR, Swiss nDSG) are for the operator to confirm. Two-step
 deletion (archive → delete permanently, stopping running councils and jobs) is #197 ([ADR 0197](adr/0197-project-lifecycle.md)): deleting starts at once, the project is hidden and locked, running councils, jobs and builds are stopped and a clean-up job removes the data, usually within seconds to minutes.
 
 ## Places
 
-| Place                                    | What                                               | How long                                                | Deleted by CONSYRION AI? |
+| Place                                    | What                                               | How long                                                | Deleted by CONSYRIUM AI? |
 | ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------------- | ------------------------ |
 | PostgreSQL (active database)             | accounts, workspaces and everything they produce   | until the user deletes it (project, workspace, account) | yes, see below           |
 | Backups on the server                    | daily `pg_dump` and one before every deploy        | 30 days (`deploy/hetzner/backup.sh`)                    | yes, automatically       |
-| Backup storage (Hetzner Storage Box, DE) | mirror of the server backups (`rsync --delete`)    | 30 days – deleted together with the server copies       | yes, automatically       |
+| Backup storage (Hetzner Storage Box, FI Helsinki, EU) | age-encrypted copies of the server backups, uploaded without `--delete` (#526) | 30 days – own prune on the box by the date in the file name | yes, automatically       |
 | Sandbox containers                       | a copy of the repository while a build task runs   | removed when the task ends                              | yes                      |
 | Model providers (BYOK)                   | prompts and answers of council calls               | the provider's API terms, under the user's own key      | no – provider account    |
 | GitHub                                   | draft pull requests and branches the build created | until closed/deleted in the repository                  | **no**                   |
@@ -40,7 +40,7 @@ subscriptions, model price hints, skills and role profiles of the workspace, ass
 workspace's audit log. Memberships end; user accounts stay.
 
 Stays: one audit entry `privacy.organization_deleted` without workspace (who, when, which id – no content); the users'
-own feedback reports (personal data of the account, the workspace link is cleared); backups for up to 30 days; external
+own feedback reports, including reported assistant excerpts (personal data of the account, the workspace link is cleared); backups for up to 30 days; external
 copies.
 
 ## Export (`exportOrganization`, Settings → Workspace)
@@ -64,3 +64,5 @@ backup storage: it contains no personal content, and it is needed for as long as
 
 The delete sections of a project and of a workspace show this in short (`components/deletion-notice.tsx`); the privacy
 policy (`/datenschutz`) names the backup period and external copies.
+
+- `human_intervention` / `human_intervention_answer` (#15/#41): a person's questions to the council after the verdict and the models' answers; part of the session, deleted with it, in the workspace export.

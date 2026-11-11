@@ -3,9 +3,10 @@
 import { useTranslations } from "next-intl";
 import { Badge, Card } from "../ui/surface";
 import { modelName, proposalLabel, useGateText, type View } from "./helpers";
+import { REQUIREMENT_CELL, requirementCellKey } from "./requirement-status";
 
 /** Shape of the engine's gate result stored in a version-2 matrix (#181, S1); the server computed it, this only shows it. */
-interface GateRequirement {
+export interface GateRequirement {
   requirementId: string;
   status: "PASS" | "FAIL" | "DISPUTED" | "UNKNOWN";
   pass: string[];
@@ -76,19 +77,13 @@ export function useFeasibilityLabel() {
   };
 }
 
-const STATUS_TONE: Record<GateRequirement["status"], "success" | "warning" | "danger"> = {
-  PASS: "success",
-  UNKNOWN: "warning",
-  DISPUTED: "warning",
-  FAIL: "danger",
-};
-
 /**
  * Per proposal and confirmed requirement: the status, who said what, and the evidence (#181, S1). Raw checks stay
  * visible, also duplicates, contradictions and checks that did not count.
  */
 export function RequirementGateTable({ view, gate }: { view: View; gate: RequirementGateResult }) {
   const t = useTranslations("requirementGate");
+  const tReq = useTranslations("verdict.dashboard.req");
   const gateText = useGateText();
   const feasibility = useFeasibilityLabel();
   const items = new Map((view.requirementList?.items ?? []).map((item) => [item.id, item.text]));
@@ -131,7 +126,10 @@ export function RequirementGateTable({ view, gate }: { view: View; gate: Require
                             <Badge tone="warning">{t("measurementPending")}</Badge>
                           </span>
                         ) : (
-                          <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
+                          // #266: the word of the heatmap (with its symbol), never the raw code "PASS"/"FAIL".
+                          <Badge tone={REQUIREMENT_CELL[requirementCellKey(r)].tone}>
+                            {REQUIREMENT_CELL[requirementCellKey(r)].icon} {tReq(requirementCellKey(r))}
+                          </Badge>
                         )}
                         <span>
                           <strong>{r.requirementId}</strong> {items.get(r.requirementId) ?? ""}
@@ -139,7 +137,7 @@ export function RequirementGateTable({ view, gate }: { view: View; gate: Require
                       </div>
                       {r.estimate ? (
                         <p className="mt-1 text-xs">
-                          {t("estimate", {
+                          {t("estimate.summary", {
                             n: r.estimate.evaluators,
                             low: fmt(r.estimate.low),
                             high: fmt(r.estimate.high),
@@ -167,7 +165,7 @@ export function RequirementGateTable({ view, gate }: { view: View; gate: Require
                           <ul className="mt-1 space-y-1">
                             {evidence.map((c) => (
                               <li key={c.id}>
-                                {modelName(view, c.evaluatorParticipantId)} – {c.status}
+                                {modelName(view, c.evaluatorParticipantId)} – {tReq.has(c.status) ? tReq(c.status) : c.status}
                                 {c.status === "PASS" && c.allPartsMet !== true ? ` ${t("notEveryPart")}` : ""}
                                 {c.estimateLow != null && c.estimateHigh != null
                                   ? `, ${t("checkEstimate", { low: fmt(c.estimateLow), high: fmt(c.estimateHigh) })}`

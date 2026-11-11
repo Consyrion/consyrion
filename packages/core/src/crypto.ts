@@ -42,6 +42,10 @@ export function keyringFromEnv(env: Record<string, string | undefined> = process
   return { activeVersion, keys };
 }
 
+/**
+ * Additional authenticated data of every stored provider key. The literal "consyrion:credential:" is part of the
+ * ciphertexts already in the database – it must NEVER follow a product rename, or no stored key can be decrypted.
+ */
 function aad(context: CredentialContext): Buffer {
   return Buffer.from(`consyrion:credential:${context.organizationId}:${context.credentialId}`, "utf8");
 }

@@ -1,5 +1,5 @@
-import { createAdapter, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
 import {
   addAssistantMessage,
   assertAssistantBudget,
@@ -11,11 +11,11 @@ import {
   reserveAssistantQuestion,
   reserveAssistantUsage,
   settleAssistantUsage,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
+import { isLocale, localeCookie } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
 import { assistantToolMode, estimateAnswerTokens, runAssistant } from "@/lib/server/assistant";
@@ -117,7 +117,7 @@ export const POST = handle(async (request: Request, { params }: Params) => {
   }
   await addAssistantMessage(db, actor, chat.id, { role: "user", content });
 
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const chosen = localeCookie(await cookies());
   const decisionSection = (await getTranslations("verdictScreen"))("form.title");
   const names = participants.map((p) => p.label || p.modelId);
   const results = await Promise.allSettled(

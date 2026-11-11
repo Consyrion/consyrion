@@ -1,4 +1,4 @@
-import { handleStripeEvent, StripeClient, verifyStripeSignature } from "@consyrion/billing";
+import { handleStripeEvent, StripeClient, verifyStripeSignature } from "@consyrium/billing";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
 import { getStripeConfig } from "@/lib/server/stripe";

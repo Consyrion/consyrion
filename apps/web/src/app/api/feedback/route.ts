@@ -1,8 +1,8 @@
-import { DomainError } from "@consyrion/core";
-import { createFeedback, type FeedbackAuthor } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { createFeedback, type FeedbackAuthor } from "@consyrium/db";
 import { cookies, headers } from "next/headers";
 import { after, NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
+import { isLocale, localeCookie } from "@/i18n/locales";
 import { getSessionUser, requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
@@ -36,7 +36,7 @@ export const POST = handle(async (request: Request) => {
     author = { kind: "visitor", email };
   }
 
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const chosen = localeCookie(await cookies());
   const db = await getDb();
   const report = await createFeedback(db, author, {
     kind: str(body.kind) as "bug",

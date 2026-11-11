@@ -1,4 +1,4 @@
-import { createRoleProfile, listRoleProfiles } from "@consyrion/db";
+import { createRoleProfile, listRoleProfiles } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

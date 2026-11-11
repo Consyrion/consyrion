@@ -1,4 +1,4 @@
-import { assertCan, DomainError, SECRET_VALUE_PATTERN } from "@consyrion/core";
+import { assertCan, DomainError, SECRET_VALUE_PATTERN } from "@consyrium/core";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
@@ -182,7 +182,7 @@ const PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\bAKIA[0-9A-Z]{16}\b/;
 export const CLIENT_FILE_LIMITS = { maxFiles: 20, maxPathChars: 300 } as const;
 
 /**
- * File excerpts an external client (MCP `ask_consyrion`, #331) sends with its question, e.g. the code the decision is
+ * File excerpts an external client (MCP `ask_consyrium`, #331) sends with its question, e.g. the code the decision is
  * about. They are stored as ONE document with role "context": the models read it like any document (as untrusted
  * <document> data), but it is never a source of requirements. Same total size limit as a text document. Called while
  * the project is new, before the requirement list is proposed, so the list is confirmed against these files.

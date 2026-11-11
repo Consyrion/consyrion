@@ -1,4 +1,4 @@
-import { suggestRoles } from "@consyrion/core/browser";
+import { suggestRoles } from "@consyrium/core/browser";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -43,7 +43,7 @@ describe("council setup with a skill (#421)", () => {
     // Five skill roles are active, each marked "aus Skill".
     expect(html.match(/>aus Skill</g)).toHaveLength(5);
     expect(html).toContain("Alternative: empfohlene Perspektiven für dieses Projekt");
-    expect(html).toContain("Der Skill „Architecture review“ ist aktiv – seine 5 Perspektiven sind unten ausgewählt.");
+    expect(html).toContain("Der Skill „Architecture review“ ist aktiv – seine Perspektiven wurden unten vorausgewählt.");
     expect(html).toMatch(/Durch \d+ Perspektiven ersetzen/);
     expect(html).toContain("„Ersetzen“ tauscht die 5 aktiven Perspektiven");
   });

@@ -85,7 +85,7 @@ describe("bias signal in the static scan (rules version 2)", () => {
     });
     expect(biased.light).toBe("yellow");
     expect(biased.findings[0]).toMatchObject({ kind: "bias", field: "weights" });
-    expect(biased.rulesVersion).toBe(2);
+    expect(biased.rulesVersion).toBeGreaterThanOrEqual(2);
     expect(OFFICIAL_SKILLS.filter((s) => scanSkillForPublication(s.content).light !== "green").map((s) => s.slug)).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 import "server-only";
-import { ensurePersonalOrganization, markEmailVerifiedAfterPasswordReset, schema } from "@consyrion/db";
+import { ensurePersonalOrganization, markEmailVerifiedAfterPasswordReset, schema } from "@consyrium/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -33,7 +33,7 @@ export const passwordResetEnabled = passwordResetConfigured();
 
 function createAuth(db: Awaited<ReturnType<typeof getDb>>) {
   return betterAuth({
-    appName: "CONSYRION AI",
+    appName: "CONSYRIUM AI",
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: { user: schema.user, session: schema.session, account: schema.account, verification: schema.verification },

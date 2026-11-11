@@ -1,4 +1,4 @@
-import { listOfficialSkillsForAdmin } from "@consyrion/db";
+import { listOfficialSkillsForAdmin } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdminContext } from "@/lib/server/admin";
 import { handle } from "@/lib/server/api";

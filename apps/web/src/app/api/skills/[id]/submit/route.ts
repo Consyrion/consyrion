@@ -1,6 +1,7 @@
-import { autoApproveSkillVersionIfAllowed, submitSkillForPublication } from "@consyrion/db";
+import { autoApproveSkillVersionIfAllowed, submitSkillForPublication } from "@consyrium/db";
 import { NextResponse } from "next/server";
-import { requireActor } from "@/lib/server/actor";
+import { getSessionUser, requireActor } from "@/lib/server/actor";
+import { isPlatformAdmin } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";
 import { getDb } from "@/lib/server/db";
 import { assertSkillHubPublishEnabled } from "@/lib/server/skillhub-flag";
@@ -17,7 +18,9 @@ export const POST = handle(async (request: Request, { params }: { params: Promis
   const actor = await requireActor();
   const body = ((await readJson(request)) ?? {}) as Record<string, unknown>;
   const db = await getDb();
-  const result = await submitSkillForPublication(db, actor, decodeURIComponent((await params).id), body);
+  // Owner decision 08.11.2026: platform admins are exempt from the 14-day account age only (decided here, server-side).
+  const platformAdmin = isPlatformAdmin(await getSessionUser());
+  const result = await submitSkillForPublication(db, actor, decodeURIComponent((await params).id), body, new Date(), { platformAdmin });
   const review = result.status === "pending_review" ? await runSkillAiReview(db, getKeyring(), { skillId: result.skillId, version: result.version }) : null;
   // Opt-in admin switch (off by default): only green in both checks is published without a human (#368 PR 5).
   const autoApproved = review?.status === "reviewed" ? await autoApproveSkillVersionIfAllowed(db, { skillId: result.skillId, version: result.version }) : false;

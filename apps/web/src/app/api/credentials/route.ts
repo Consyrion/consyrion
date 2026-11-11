@@ -1,4 +1,4 @@
-import { createCredential, listCredentials } from "@consyrion/db";
+import { createCredential, listCredentials } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

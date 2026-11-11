@@ -1,5 +1,5 @@
-import { independenceKey } from "@consyrion/core";
-import type { SessionView } from "@consyrion/council";
+import { independenceKey } from "@consyrium/core";
+import type { SessionView } from "@consyrium/council";
 
 /**
  * Full audit appendix (#268, level 3): every stored requirement check (requirement × proposal × actual evaluator) with

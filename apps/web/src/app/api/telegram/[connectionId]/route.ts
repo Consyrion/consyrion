@@ -1,4 +1,4 @@
-import { telegramInboundForWebhook } from "@consyrion/db";
+import { telegramInboundForWebhook } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
 import { getKeyring } from "@/lib/server/keyring";

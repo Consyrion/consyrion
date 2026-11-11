@@ -1,6 +1,6 @@
 # Self-hosting
 
-CONSYRION AI runs entirely on your own hardware. You bring your own AI provider keys (BYOK); the providers bill
+CONSYRIUM AI runs entirely on your own hardware. You bring your own AI provider keys (BYOK); the providers bill
 you directly. There is no hosted service and nothing is sent anywhere except to the AI providers and services you
 configure yourself.
 
@@ -41,7 +41,7 @@ Open the URL, create an account and add your keys under **AI providers**. Keys a
 | `PLATFORM_ADMIN_ALLOW_UNVERIFIED`                    | `true` only without SMTP: the admin list alone decides, also for unverified accounts     |
 | `ADMIN_EMAILS`                                       | Recipients of the e-mail about new feedback reports (needs `SMTP_URL`)                  |
 
-`SELF_HOSTED=true` (set by `init.sh`) removes all plan limits. Stripe and plans are only for running CONSYRION AI
+`SELF_HOSTED=true` (set by `init.sh`) removes all plan limits. Stripe and plans are only for running CONSYRIUM AI
 as a hosted service ([saas.md](saas.md)).
 
 The optional follow-up round after a verdict without recommendation (#228/#229) is off when `SELF_HOSTED=true`; set
@@ -69,6 +69,6 @@ docker compose -f deploy/selfhost/compose.yml up -d --build   # migrations run a
 ## Backup and restore
 
 ```bash
-docker compose -f deploy/selfhost/compose.yml exec postgres pg_dump -U consyrion -Fc consyrion > consyrion.dump
-docker compose -f deploy/selfhost/compose.yml exec -T postgres pg_restore -U consyrion -d consyrion --clean < consyrion.dump
+docker compose -f deploy/selfhost/compose.yml exec postgres pg_dump -U consyrion -Fc consyrion > consyrium.dump
+docker compose -f deploy/selfhost/compose.yml exec -T postgres pg_restore -U consyrion -d consyrion --clean < consyrium.dump
 ```

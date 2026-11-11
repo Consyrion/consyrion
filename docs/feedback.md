@@ -54,7 +54,7 @@ reminds users that no passwords or keys should be visible.
 `ADMIN_EMAILS` (comma-separated) plus the platform SMTP server (`SMTP_URL`, `MAIL_FROM`, see `docs/delivery.md`).
 The mail is sent after the response (`after()` from `next/server`): a failure is logged (`Feedback e-mail to admins
 failed`, without content) and never fails the report. Without `ADMIN_EMAILS` or without `SMTP_URL` reports are only in
-the inbox. Subject `CONSYRION Fehler|Feature|Kontakt: <subject>`, body with sender, page, language, browser, version,
+the inbox. Subject `CONSYRIUM Fehler|Feature|Kontakt: <subject>`, body with sender, page, language, browser, version,
 the message and the link `<BETTER_AUTH_URL>/admin/feedback?id=<id>`.
 
 ## Reply by e-mail (stage 2)

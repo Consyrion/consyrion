@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createDatabase,
   createDeliveryConnection,
@@ -12,7 +12,7 @@ import {
   telegramInboundForWebhook,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));

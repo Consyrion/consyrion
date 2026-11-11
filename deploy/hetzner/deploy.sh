@@ -14,8 +14,8 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 fi
 
 [ -d node_modules ] || pnpm install --frozen-lockfile
-pnpm --filter @consyrion/engine typecheck
-pnpm --filter @consyrion/engine test
+pnpm --filter @consyrium/engine typecheck
+pnpm --filter @consyrium/engine test
 
 VERSION="$(git rev-parse --short HEAD)"
 echo "== deploying $VERSION to $HOST"
@@ -63,6 +63,8 @@ cd /opt/consyrion/app
 # Deletion list (ADR 0206): web (user app) and worker (user node) both append; ids and times only, kept forever.
 install -d -m 1777 /opt/consyrion/deletions
 touch /opt/consyrion/deletions/deletions.log && chmod 666 /opt/consyrion/deletions/deletions.log
+# Scheduled jobs (backup, checks, monthly restore test) follow the release (#525).
+[ -f deploy/hetzner/consyrion.cron ] && install -m 0644 deploy/hetzner/consyrion.cron /etc/cron.d/consyrion
 COMPOSE=(docker compose --env-file /opt/consyrion/secrets/deploy.env -f deploy/hetzner/compose.yml)
 # The Docker socket only when the sandbox is on (#398).
 if grep -qE '^SANDBOX_DISABLED=(false|0|no)$' /opt/consyrion/secrets/deploy.env && [ -f deploy/hetzner/compose.sandbox.yml ]; then

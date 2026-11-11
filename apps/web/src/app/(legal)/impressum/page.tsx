@@ -42,8 +42,8 @@ export default function ImpressumPage() {
         <h2 className="text-lg font-semibold">Quellcode</h2>
         <p className="mt-2 text-muted">
           {o.brand} ist freie Software unter der GNU Affero General Public License v3.0. Der Quellcode ist öffentlich unter{" "}
-          <a className="underline" href="https://github.com/Consyrion/consyrion">
-            github.com/Consyrion/consyrion
+          <a className="underline" href="https://github.com/Consyrion/consyrium">
+            github.com/Consyrion/consyrium
           </a>{" "}
           verfügbar.
         </p>

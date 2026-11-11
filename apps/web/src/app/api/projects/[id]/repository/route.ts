@@ -1,6 +1,6 @@
-import { DomainError } from "@consyrion/core";
-import { getGitHubIntegration, linkRepository } from "@consyrion/db";
-import { installationClient, listInstallationRepositories } from "@consyrion/github";
+import { DomainError } from "@consyrium/core";
+import { getGitHubIntegration, linkRepository } from "@consyrium/db";
+import { installationClient, listInstallationRepositories } from "@consyrium/github";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireActor } from "@/lib/server/actor";

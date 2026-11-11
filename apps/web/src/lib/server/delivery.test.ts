@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createDatabase,
   createDeliveryConnection,
@@ -12,18 +12,18 @@ import {
   schema,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 // The report itself is tested in the council package; here a fixed report keeps the tests on delivery.
-vi.mock("@consyrion/council", async () => ({
+vi.mock("@consyrium/council", async () => ({
   // The real report wording (#322); only the session data is mocked.
-  reportTranslator: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).reportTranslator,
-  reportLanguageIssues: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).reportLanguageIssues,
-  blockedExplanation: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).blockedExplanation,
-  nextAction: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).nextAction,
-  outcomeLine: (await vi.importActual<typeof import("@consyrion/council")>("@consyrion/council")).outcomeLine,
+  reportTranslator: (await vi.importActual<typeof import("@consyrium/council")>("@consyrium/council")).reportTranslator,
+  reportLanguageIssues: (await vi.importActual<typeof import("@consyrium/council")>("@consyrium/council")).reportLanguageIssues,
+  blockedExplanation: (await vi.importActual<typeof import("@consyrium/council")>("@consyrium/council")).blockedExplanation,
+  nextAction: (await vi.importActual<typeof import("@consyrium/council")>("@consyrium/council")).nextAction,
+  outcomeLine: (await vi.importActual<typeof import("@consyrium/council")>("@consyrium/council")).outcomeLine,
   getSessionView: vi.fn(async (_db: unknown, _actor: unknown, id: string) => ({
     session: { id, createdAt: new Date("2026-10-27T12:00:00Z") },
     decision: { outcome: "recommended" },
@@ -104,7 +104,7 @@ describe("sending decisions (#165)", () => {
       keyring,
       sessionId,
       { target: "telegram", connectionId: connection.id },
-      { fetch: fetchMock as unknown as typeof fetch, appUrl: "https://app.consyrion.com" },
+      { fetch: fetchMock as unknown as typeof fetch, appUrl: "https://app.consyrium.com" },
     );
     expect(result).toEqual({ status: "sent", externalUrl: null });
     const [entry] = await listDeliveries(handle.db, actor, sessionId);
@@ -205,12 +205,12 @@ describe("sending decisions (#165)", () => {
   });
 
   it("reads SMTP_URL with STARTTLS on 587 or SSL on 465 and short timeouts", () => {
-    expect(smtpOptions("smtp://support%40consyrion.com:p%40ss%2Fw@smtp.hostinger.com:587")).toMatchObject({
+    expect(smtpOptions("smtp://support%40consyrium.com:p%40ss%2Fw@smtp.hostinger.com:587")).toMatchObject({
       host: "smtp.hostinger.com",
       port: 587,
       secure: false,
       requireTLS: true,
-      auth: { user: "support@consyrion.com", pass: "p@ss/w" },
+      auth: { user: "support@consyrium.com", pass: "p@ss/w" },
       connectionTimeout: 15_000,
     });
     expect(smtpOptions("smtps://u:p@smtp.example.test")).toMatchObject({ port: 465, secure: true });

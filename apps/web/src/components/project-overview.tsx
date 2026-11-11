@@ -1,4 +1,4 @@
-import { DECISION_MODE_LABELS } from "@consyrion/core";
+import { DECISION_MODE_LABELS } from "@consyrium/core";
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ProjectOverview as Overview, OverviewSession } from "@/lib/server/project-overview";
@@ -18,12 +18,15 @@ export async function ProjectOverview({
   sessions,
   requirementList,
   canRun,
+  archived = false,
 }: {
   project: { id: string; status: string; repositoryFullName: string | null; createdAt: Date; updatedAt: Date };
   overview: Overview;
   sessions: OverviewSession[];
   requirementList: { version: number; items: unknown[] } | null;
   canRun: boolean;
+  /** #548: archived projects explain why no council can start and point to the restore card. */
+  archived?: boolean;
 }) {
   const t = await getTranslations("projects.overview");
   const tProject = await getTranslations("projects");
@@ -31,6 +34,7 @@ export async function ProjectOverview({
   // A build run has its own states (executionScreen.status.plan): "completed" was shown raw (live check 08.11.26).
   const tPlan = await getTranslations("executionScreen.status.plan");
   const tOutcome = await getTranslations("verdict.dashboard.outcome");
+  const tWorkspace = await getTranslations("sessionWorkspace");
   const format = await getFormatter();
   const status = (s: string) => (tStatus.has(s) ? tStatus(s) : s.replaceAll("_", " "));
   const outcome = (o: string) => (tOutcome.has(o) ? tOutcome(o) : o.replaceAll("_", " "));
@@ -41,11 +45,11 @@ export async function ProjectOverview({
       <div className="mb-6">
         <EmptyCouncil
           next={{
-            href: `/projects/${project.id}/council/new`,
+            href: archived ? "#project-archive" : `/projects/${project.id}/council/new`,
             icon: "play",
             title: t("emptyTitle"),
             text: t("emptyText"),
-            action: canRun ? tProject("startCouncil") : t("emptyNoRights"),
+            action: archived ? tProject("archive.startBlocked") : canRun ? tProject("startCouncil") : t("emptyNoRights"),
           }}
         />
       </div>
@@ -73,7 +77,19 @@ export async function ProjectOverview({
         </span>
       ),
     ],
-    [t("approval"), overview.lastDecision ? status(overview.lastDecision.status) : <span className="text-muted">{t("none")}</span>],
+    [
+      t("approval"),
+      overview.lastDecision ? (
+        // #477 / #268: the same split as the session header.
+        overview.lastDecision.awaitingReview ? (
+          `${tWorkspace("status.awaitingReview")} · ${tWorkspace("status.noApprovableProposal")}`
+        ) : (
+          status(overview.lastDecision.status)
+        )
+      ) : (
+        <span className="text-muted">{t("none")}</span>
+      ),
+    ],
     [
       t("build"),
       overview.build ? (

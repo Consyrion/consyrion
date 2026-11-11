@@ -3,9 +3,9 @@
  * SCRIPTED TEST MODELS, so every screen can be inspected without provider keys. The project and the
  * model names are labelled as demo data. Never run against a production database.
  *
- *   pnpm --filter @consyrion/council seed:demo -- tester@example.test
+ *   pnpm --filter @consyrium/council seed:demo -- tester@example.test
  */
-import { createDatabase, createProject, newId, resolveActor, schema } from "@consyrion/db";
+import { createDatabase, createProject, newId, resolveActor, schema } from "@consyrium/db";
 import { and, eq } from "drizzle-orm";
 import path from "node:path";
 import { createSession, runSession } from "../src";

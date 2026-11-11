@@ -1,4 +1,4 @@
-import { acceptInvitation } from "@consyrion/db";
+import { acceptInvitation } from "@consyrium/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ACTIVE_ORG_COOKIE, requireUser } from "@/lib/server/actor";

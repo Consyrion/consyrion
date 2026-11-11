@@ -1,10 +1,10 @@
 {
-  "id": "consyrion",
-  "name": "CONSYRION AI",
+  "id": "consyrium",
+  "name": "CONSYRIUM AI",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Send selected text to a CONSYRION AI council of several AI models and save the decision report as a new note.",
-  "author": "CONSYRION AI",
-  "authorUrl": "https://consyrion.com",
+  "description": "Send selected text to a CONSYRIUM AI council of several AI models and save the decision report as a new note.",
+  "author": "CONSYRIUM AI",
+  "authorUrl": "https://consyrium.com",
   "isDesktopOnly": true
 }

@@ -8,7 +8,7 @@ import {
   GATE_VERSION,
   MAX_SUPPORTED_GATE_VERSION,
 } from "../src/decision-format";
-import { NOT_IMPLEMENTABLE_MESSAGE } from "@consyrion/core";
+import { NOT_IMPLEMENTABLE_MESSAGE } from "@consyrium/core";
 
 const matrix = (proposals: unknown[], extra: Record<string, unknown> = {}) => ({ outcome: "recommended", recommendedProposalId: "A", proposals, ...extra });
 const v1 = (overrides: Record<string, unknown> = {}) => ({

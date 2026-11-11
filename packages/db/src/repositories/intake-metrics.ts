@@ -1,4 +1,4 @@
-import type { RequirementItem } from "@consyrion/core";
+import type { RequirementItem } from "@consyrium/core";
 import { and, gte } from "drizzle-orm";
 import type { Database } from "../client";
 import { finalDecision, requirementList } from "../schema";

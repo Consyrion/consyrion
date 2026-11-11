@@ -1,4 +1,4 @@
-import { FEEDBACK_KINDS, FEEDBACK_STATES, countNewFeedback, listFeedbackForAdmin, type FeedbackKind, type FeedbackState } from "@consyrion/db";
+import { FEEDBACK_KINDS, FEEDBACK_STATES, countNewFeedback, listFeedbackForAdmin, type FeedbackKind, type FeedbackState } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdminContext } from "@/lib/server/admin";
 import { handle } from "@/lib/server/api";

@@ -8,8 +8,8 @@ import {
   severityAtLeast,
   splitRequirementIds,
   type CouncilRole,
-} from "@consyrion/core";
-import { newId, schema } from "@consyrion/db";
+} from "@consyrium/core";
+import { newId, schema } from "@consyrium/db";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import { callStructured, ParticipantCallError, PHASE_FAILURE_LIMIT, PROVIDER_FAILURE_KINDS, settle, type AdapterResolver, type CallErrorKind } from "./call";

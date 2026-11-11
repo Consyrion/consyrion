@@ -1,6 +1,6 @@
 "use client";
 
-import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrion/core/browser";
+import { COUNCIL_PHASE_LABELS, COUNCIL_PHASES } from "@consyrium/core/browser";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../ui/button";

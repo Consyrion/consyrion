@@ -8,7 +8,7 @@ import type {
   SkillForkRef,
   PublicationScanResult,
   SkillSessionSnapshot,
-} from "@consyrion/core";
+} from "@consyrium/core";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -105,7 +105,7 @@ export const membership = pgTable(
 
 /* ---------- GitHub (Milestone 5) ---------- */
 
-/** One GitHub App installation linked to a Consyrion organization. */
+/** One GitHub App installation linked to a Consyrium organization. */
 export const githubIntegration = pgTable(
   "github_integration",
   {
@@ -214,7 +214,7 @@ export const projectDocument = pgTable(
     role: text("role").notNull().default("source"),
     /**
      * Where a generated document came from: the repository, commit and files of a repository context, or the file
-     * excerpts an external client (MCP ask_consyrion, #331) sent with its question.
+     * excerpts an external client (MCP ask_consyrium, #331) sent with its question.
      */
     origin: jsonb("origin").$type<
       | {
@@ -302,7 +302,7 @@ export const aiProviderCredential = pgTable(
       .references(() => organization.id, { onDelete: "cascade" }),
     provider: aiProviderId("provider").notNull(),
     label: text("label").notNull(),
-    /** AES-256-GCM envelope, see @consyrion/core crypto. Never returned by any API. */
+    /** AES-256-GCM envelope, see @consyrium/core crypto. Never returned by any API. */
     encryptedSecret: text("encrypted_secret").notNull(),
     keyVersion: integer("key_version").notNull(),
     secretHint: text("secret_hint").notNull(),
@@ -817,10 +817,10 @@ export const finalDecision = pgTable("final_decision", {
   outcome: verdictOutcome("outcome").notNull(),
   recommendedProposalId: text("recommended_proposal_id").references(() => proposal.id, { onDelete: "set null" }),
   recommendedRevisionId: text("recommended_revision_id").references(() => proposalRevision.id, { onDelete: "set null" }),
-  /** Deterministic aggregation result (see @consyrion/core verdict.ts); reproducible from scores. */
+  /** Deterministic aggregation result (see @consyrium/core verdict.ts); reproducible from scores. */
   matrix: jsonb("matrix").$type<Record<string, unknown>>().notNull(),
   /**
-   * Format/gate version of this decision (#181), see GATE_VERSION in @consyrion/core: 1 = the feasibility gate of
+   * Format/gate version of this decision (#181), see GATE_VERSION in @consyrium/core: 1 = the feasibility gate of
    * production e33a3bb (also every decision that existed when migration 0021 ran), 2 = S1 gate (later). Nullable on
    * purpose: a release older than stage 1 still writing after the migration leaves it null, and such a decision is
    * never approvable or buildable.
@@ -891,7 +891,7 @@ export const usageRecord = pgTable(
     phase: councilPhase("phase"),
     provider: aiProviderId("provider").notNull(),
     modelId: text("model_id").notNull(),
-    /** All input tokens, including those served from the provider's prompt cache (see TokenUsage in @consyrion/ai). */
+    /** All input tokens, including those served from the provider's prompt cache (see TokenUsage in @consyrium/ai). */
     inputTokens: integer("input_tokens").notNull(),
     outputTokens: integer("output_tokens").notNull(),
     /** Part of `inputTokens` read from the provider's prompt cache (#244), billed cheaper; 0 for older rows. */
@@ -905,6 +905,11 @@ export const usageRecord = pgTable(
     errorKind: text("error_kind"),
     /** HTTP status of a failed provider call, when the provider sent one. */
     httpStatus: integer("http_status"),
+    /**
+     * Null for council and build calls. "intervention" (#15/#41): a model's answer to a human question after the verdict
+     * – real cost of the session, but no phase: per-phase and per-model contribution counts leave it out.
+     */
+    kind: text("kind").$type<"intervention">(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("usage_org_created_idx").on(t.organizationId, t.createdAt), index("usage_session_idx").on(t.sessionId)],
@@ -1475,6 +1480,55 @@ export const assistantUsage = pgTable(
 );
 
 /**
+ * #15/#41 stage 1 – a human's intervention after the verdict: a question to the council, a request for a statement on
+ * an objection, or a mark "important". Kept apart from the debate (council_message), so the council's data, scores,
+ * votes, checks and verdict stay exactly as the models produced them. The models' answers are an appendix only.
+ */
+export const humanIntervention = pgTable(
+  "human_intervention",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => councilSession.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    kind: text("kind").$type<"question" | "statement_request" | "mark">().notNull(),
+    /** What it refers to: the whole council, one objection or one key dispute (crux id). */
+    targetType: text("target_type").$type<"session" | "objection" | "crux">().notNull(),
+    targetId: text("target_id"),
+    text: text("text").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("human_intervention_session_idx").on(t.sessionId, t.createdAt)],
+);
+
+/** One model's answer to a human intervention (#15/#41) – never part of the debate or the evaluation. */
+export const humanInterventionAnswer = pgTable(
+  "human_intervention_answer",
+  {
+    id: text("id").primaryKey(),
+    interventionId: text("intervention_id")
+      .notNull()
+      .references(() => humanIntervention.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    participantId: text("participant_id").references(() => councilParticipant.id, { onDelete: "set null" }),
+    modelId: text("model_id").notNull(),
+    body: text("body").notNull(),
+    /** Set when the model did not answer (provider error, timeout); `body` is empty then. */
+    error: text("error"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("human_intervention_answer_idx").on(t.interventionId, t.createdAt)],
+);
+
+/**
  * Cross-check in the council chat (#241 stage 2): on the user's click, every other model of the council chat judges one
  * answer – confirmed, contradicted or not checkable – with a short reason. Contradictions stay visible next to the
  * answer; nothing is merged or hidden. Deleted with the chat and the answer. Tokens also go into the usage ledger.
@@ -1584,6 +1638,8 @@ export const feedbackReply = pgTable(
 /* ---------- Skills (#363): shareable decision packages ---------- */
 
 export const skillVisibility = pgEnum("skill_visibility", ["private", "team"]);
+/** SkillHub content type (#368): decision skills and expert profiles share the hub pipeline. */
+export const hubKind = pgEnum("hub_kind", ["skill", "role_profile"]);
 export const skillReviewStatus = pgEnum("skill_review_status", ["draft", "scanning", "pending_review", "published", "rejected", "quarantined", "withdrawn"]);
 
 /** A skill of a workspace. Content lives in immutable versions; a council stores id + version + content hash. */
@@ -1599,6 +1655,10 @@ export const skill = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** What the versions contain (HubKind): a decision skill or an expert profile submitted to the SkillHub. */
+    kind: hubKind("kind").notNull().default("skill"),
+    /** For kinds that mirror another workspace object (an expert profile): its id. Null for decision skills. */
+    sourceId: text("source_id"),
     visibility: skillVisibility("visibility").notNull().default("private"),
     latestVersion: integer("latest_version").notNull().default(1),
     /** Where a duplicated skill came from (#422): source id, version and content hash at the time of the copy. */
@@ -1623,6 +1683,7 @@ export const skill = pgTable(
     index("skill_org_idx").on(t.organizationId),
     index("skill_owner_idx").on(t.ownerUserId),
     uniqueIndex("skill_owner_slug_uq").on(t.ownerUserId, t.slug),
+    uniqueIndex("skill_kind_source_uq").on(t.kind, t.sourceId),
     index("skill_public_idx").on(t.publicVersion),
   ],
 );
@@ -1638,7 +1699,7 @@ export const skillVersion = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
-    /** Validated SkillContent (@consyrion/core). */
+    /** Validated SkillContent (@consyrium/core). */
     content: jsonb("content").$type<Record<string, unknown>>().notNull(),
     /** sha256 of the canonical JSON (skillContentHash). */
     contentHash: text("content_hash").notNull(),
@@ -1648,7 +1709,7 @@ export const skillVersion = pgTable(
       .notNull()
       .references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    /** SkillHub review state (SKILL_REVIEW_STATUSES in @consyrion/core). Only `published` is public. */
+    /** SkillHub review state (SKILL_REVIEW_STATUSES in @consyrium/core). Only `published` is public. */
     reviewStatus: skillReviewStatus("review_status").notNull().default("draft"),
     /** Static publication scan (scanSkillForPublication) incl. its rules version – the light an approval is bound to. */
     scanResult: jsonb("scan_result").$type<PublicationScanResult>(),
@@ -1673,6 +1734,8 @@ export const skillPublisher = pgTable("skill_publisher", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   handle: text("handle").notNull().unique(),
+  /** Optional public name shown next to @handle (checked like skill texts; reserved names only for platform admins). */
+  displayName: text("display_name"),
   suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   suspendedReason: text("suspended_reason"),
   ...timestamps,
@@ -1713,7 +1776,7 @@ export const skillModerationLog = pgTable(
       .references(() => skill.id, { onDelete: "cascade" }),
     version: integer("version"),
     actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
-    /** SKILL_MODERATION_ACTIONS in @consyrion/core. */
+    /** SKILL_MODERATION_ACTIONS in @consyrium/core. */
     action: text("action").notNull(),
     fromStatus: text("from_status"),
     toStatus: text("to_status"),
@@ -1745,6 +1808,8 @@ export const roleProfile = pgTable(
     name: text("name").notNull(),
     visibility: roleProfileVisibility("visibility").notNull().default("private"),
     latestVersion: integer("latest_version").notNull().default(1),
+    /** Origin of a profile adopted from the SkillHub (#368): hub skill id, version, content hash, `@handle/slug`. */
+    forkedFrom: jsonb("forked_from").$type<SkillForkRef>(),
     /** Deactivated profiles stay readable for councils that used them, but are no longer offered. */
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     ...timestamps,
@@ -1763,7 +1828,7 @@ export const roleProfileVersion = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
-    /** Validated RoleProfileContent (@consyrion/core). */
+    /** Validated RoleProfileContent (@consyrium/core). */
     content: jsonb("content").$type<Record<string, unknown>>().notNull(),
     /** sha256 of the canonical JSON (roleProfileContentHash). */
     contentHash: text("content_hash").notNull(),

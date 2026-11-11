@@ -1,4 +1,4 @@
-# Self-hosted CONSYRION AI on one machine: PostgreSQL, migrations, web app and worker, built from this checkout.
+# Self-hosted CONSYRIUM AI on one machine: PostgreSQL, migrations, web app and worker, built from this checkout.
 #   deploy/selfhost/init.sh                                  # once: writes deploy/selfhost/.env with fresh secrets
 #   docker compose -f deploy/selfhost/compose.yml up -d --build
 # Then open http://localhost:3000, sign up and add your own AI provider keys (BYOK). See docs/self-hosting.md.

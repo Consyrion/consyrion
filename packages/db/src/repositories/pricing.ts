@@ -1,4 +1,4 @@
-import { assertCan, DomainError } from "@consyrion/core";
+import { assertCan, DomainError } from "@consyrium/core";
 import { and, asc, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";

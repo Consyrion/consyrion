@@ -38,7 +38,8 @@ export function sessionActivityNodes(view: ActivitySessionView): ActivityNode[] 
                 ? "done"
                 : "idle"
               : "done";
-    const usage = view.usage.filter((u) => u.participantId === p.id);
+    // #15/#41: answers to a human after the verdict are not part of the model's council activity.
+    const usage = view.usage.filter((u) => u.participantId === p.id && (u as { kind?: string | null }).kind !== "intervention");
     return {
       id: p.id,
       provider: p.provider,

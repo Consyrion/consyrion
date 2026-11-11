@@ -1,11 +1,12 @@
 "use client";
 
-import { COUNCIL_ROLES, type CouncilRole } from "@consyrion/core/browser";
+import { COUNCIL_ROLES, type CouncilRole } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiRequestError, fetchJson } from "@/lib/fetch-json";
 import { Button } from "../ui/button";
+import { PublishPanel } from "../skills/skill-publish";
 import { SelectField, TextAreaField, TextField } from "../ui/field";
 import { Alert, Badge, Card } from "../ui/surface";
 
@@ -27,6 +28,8 @@ export interface RoleProfileRow {
   contentHash: string;
   editable: boolean;
   updatedAt: string | null;
+  /** `@handle/slug` of a profile adopted from the SkillHub. */
+  forkedFromName?: string | null;
 }
 
 interface Source {
@@ -127,7 +130,18 @@ export function RoleProfileDetail({ content }: { content: Content }) {
   );
 }
 
-export function RoleProfileManager({ profiles, canWrite, canShare }: { profiles: RoleProfileRow[]; canWrite: boolean; canShare: boolean }) {
+export function RoleProfileManager({
+  profiles,
+  canWrite,
+  canShare,
+  publishEnabled = false,
+}: {
+  profiles: RoleProfileRow[];
+  canWrite: boolean;
+  canShare: boolean;
+  /** SkillHub publishing is switched on for this installation (owner decision 08.11.26: profiles are a hub kind). */
+  publishEnabled?: boolean;
+}) {
   const t = useTranslations("roleProfiles");
   const tRoles = useTranslations("roleSuggestion.names");
   const router = useRouter();
@@ -138,6 +152,7 @@ export function RoleProfileManager({ profiles, canWrite, canShare }: { profiles:
   const [notice, setNotice] = useState<string | null>(null);
   const [ignored, setIgnored] = useState<string[]>([]);
   const [archiving, setArchiving] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
 
   async function run(action: () => Promise<unknown>, done?: string) {
     setBusy(true);
@@ -263,11 +278,24 @@ export function RoleProfileManager({ profiles, canWrite, canShare }: { profiles:
                   {t("archive")}
                 </Button>
               )}
+              {publishEnabled ? (
+                <Button variant="ghost" disabled={busy} onClick={() => setPublishing(publishing === p.id ? null : p.id)}>
+                  {t("publish")}
+                </Button>
+              ) : null}
             </>
           ) : null}
         </span>
       </div>
       {open?.id === p.id ? <RoleProfileDetail content={open.content} /> : null}
+      {publishing === p.id ? (
+        <PublishPanel
+          skill={{ id: p.id, name: p.name }}
+          submitUrl={`/api/role-profiles/${encodeURIComponent(p.id)}/publish`}
+          onClose={() => setPublishing(null)}
+          onDone={() => router.refresh()}
+        />
+      ) : null}
     </li>
   );
 

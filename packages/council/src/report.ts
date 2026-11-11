@@ -12,7 +12,7 @@ import {
   splitObjections,
   type ConfidenceIssue,
   type VerdictResult,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import { decisionStatusOf } from "./decision-format";
 import type { ProposalContent } from "./schemas";
 import { confidenceIssueText, objectionDecisionText } from "./report-engine-text";
@@ -282,6 +282,11 @@ export function buildDecisionReport(view: SessionView) {
     })(),
     /** Proposals the server allows to be approved (#181); everything else is shown as not approvable. */
     approvableProposals: (status?.approvableProposalIds ?? []).map((id) => label(id)),
+    /** #249 part 2: the latest favourite / prototype mark of this verdict – a human action, never the verdict. */
+    humanMark: (() => {
+      const mark = (view as { humanMark?: { kind: "favorite" | "prototype_build"; proposalId: string } | null }).humanMark;
+      return mark ? { kind: mark.kind, proposal: label(mark.proposalId) } : null;
+    })(),
     /** #511: architecture candidates a human may mark as favourite or build as a prototype / measurement build. */
     prototypeProposals: ((status as { prototypeProposalIds?: string[] } | null)?.prototypeProposalIds ?? []).map((id) => label(id)),
     /** Same status for every client: true means "confirmed finding, no build" (#121). */
@@ -610,6 +615,17 @@ export function nextAction(report: DecisionReport, t: ReportT): string {
     return t("Check Proposal {label} and approve it in the app – nothing is built before a human approves.", { label: recommended });
   if (approvable.length)
     return t("Choose one of the approvable proposals in the app: {list}. The council left this choice to a human.", { list: joinLabels(approvable, t) });
+  // Gesamttest 08.11.26: after the human mark the step moves on, as on the verdict screen (verdictStatus.initialAction).
+  if (report.humanMark?.kind === "favorite")
+    return t(
+      "Proposal {label} is your favourite: approve a prototype / measurement build in the app or record the measured result – nothing is approved as a finished solution.",
+      { label: report.humanMark.proposal },
+    );
+  if (report.humanMark?.kind === "prototype_build")
+    return t(
+      "A prototype / measurement build of Proposal {label} is approved: record the measured result in the app – only a met measurement allows the approval after measurement.",
+      { label: report.humanMark.proposal },
+    );
   // #511: same trigger as the verdict screen's first step (decisionStatus.prototypeProposalIds → "mark_favorite").
   const prototypes = report.prototypeProposals ?? [];
   if (prototypes.length)

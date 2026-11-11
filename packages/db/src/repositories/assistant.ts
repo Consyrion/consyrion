@@ -1,4 +1,4 @@
-import { assertCan, DomainError, isUnlimited, UNLIMITED } from "@consyrion/core";
+import { assertCan, DomainError, isUnlimited, UNLIMITED } from "@consyrium/core";
 import { and, asc, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";

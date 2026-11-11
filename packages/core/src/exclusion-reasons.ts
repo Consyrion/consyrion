@@ -12,7 +12,7 @@ export const CONTEXT_EXCLUSION_REASON = "From the idea or goal – context, not 
 export const INSTRUCTION_EXCLUSION_REASON = "A work instruction to the council for this run, not a product requirement. Keep it if it is one.";
 /** R2-04: an idea or goal sentence that repeats a requirements-field item (same numbers, same words). */
 export const DUPLICATE_EXCLUSION_REASON = "Repeats a requirement from the requirements field, so it is listed once. Keep it if it says more.";
-/** ask_consyrion / Telegram /frage: a sentence of the question or context, not one of the user's requirement lines. */
+/** ask_consyrium / Telegram /frage: a sentence of the question or context, not one of the user's requirement lines. */
 export const CLIENT_CONTEXT_EXCLUSION_REASON = "Context of the question, not a requirement the user listed";
 /** #245: a document sentence without binding wording of its own. */
 export const DOCUMENT_EXCLUSION_REASON =

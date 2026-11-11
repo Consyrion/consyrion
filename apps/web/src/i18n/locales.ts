@@ -5,7 +5,13 @@
 export const LOCALES = ["en", "de", "fr", "es", "zh"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
-export const LOCALE_COOKIE = "consyrion-locale";
+export const LOCALE_COOKIE = "consyrium-locale";
+/** Cookie name before the rename to CONSYRIUM AI (11 Nov 2026): still read so nobody loses the chosen language; only the new one is written. */
+export const LEGACY_LOCALE_COOKIE = "consyrion-locale";
+/** The chosen language from the request cookies (new name first, then the former one). */
+export function localeCookie(jar: { get(name: string): { value: string } | undefined }): string | undefined {
+  return jar.get(LOCALE_COOKIE)?.value ?? jar.get(LEGACY_LOCALE_COOKIE)?.value;
+}
 
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",

@@ -1,5 +1,5 @@
 import "server-only";
-import type { FeedbackKind } from "@consyrion/db";
+import type { FeedbackKind } from "@consyrium/db";
 import { smtpSenderFromEnv, type MailMessage } from "./delivery";
 import { logger } from "./logger";
 
@@ -32,7 +32,7 @@ export function screenshotAttachment(dataUrl: string | null | undefined): MailMe
   return { filename: `screenshot.${ext}`, content: Buffer.from(match[3]!, "base64"), contentType: match[1]! };
 }
 
-/** Subject prefix as in the brief: "CONSYRION Fehler/Feature/Kontakt: …" (the operator's inbox is German). */
+/** Subject prefix as in the brief: "CONSYRIUM Fehler/Feature/Kontakt: …" (the operator's inbox is German). */
 const KIND_LABEL: Record<FeedbackKind, string> = { bug: "Fehler", feature: "Feature", contact: "Kontakt" };
 
 export function feedbackAdminRecipients(env: Record<string, string | undefined> = process.env): string[] {
@@ -48,7 +48,7 @@ export function feedbackMail(report: FeedbackMailReport, options: { to: string[]
     from: options.from,
     to: options.to,
     // The repository already collapses whitespace, so the subject cannot carry header line breaks.
-    subject: `CONSYRION ${KIND_LABEL[report.kind]}: ${report.subject}`.replace(/[\r\n]+/g, " ").slice(0, 200),
+    subject: `CONSYRIUM ${KIND_LABEL[report.kind]}: ${report.subject}`.replace(/[\r\n]+/g, " ").slice(0, 200),
     text: [
       `Art: ${KIND_LABEL[report.kind]}`,
       `Von: ${report.email}${report.userId ? " (angemeldet)" : " (Besucher)"}`,
@@ -79,7 +79,7 @@ export async function notifyAdminsAboutFeedback(report: FeedbackMailReport, deps
   try {
     const send = deps.sendMail === undefined ? await smtpSenderFromEnv(env) : deps.sendMail;
     if (!send) return "skipped";
-    await send(feedbackMail(report, { to, from: env.MAIL_FROM ?? "CONSYRION AI <no-reply@consyrion.com>", appUrl: env.BETTER_AUTH_URL ?? "" }));
+    await send(feedbackMail(report, { to, from: env.MAIL_FROM ?? "CONSYRIUM AI <no-reply@consyrium.com>", appUrl: env.BETTER_AUTH_URL ?? "" }));
     return "sent";
   } catch (error) {
     logger.warn("Feedback e-mail to admins failed", { feedbackId: report.id, error: error instanceof Error ? error.message.slice(0, 200) : "unknown" });
@@ -95,35 +95,35 @@ type ReplyLocale = "en" | "de" | "fr" | "es" | "zh";
 const REPLY_MAIL: Record<ReplyLocale, { subject: string; intro: string; original: string; appLink: string; noReply: string }> = {
   en: {
     subject: "Re: {subject}",
-    intro: "The CONSYRION AI team has answered your message:",
+    intro: "The CONSYRIUM AI team has answered your message:",
     original: "Your message",
     appLink: "You can also read the answer in the app under My reports:",
     noReply: "Reply to this e-mail if you have further questions.",
   },
   de: {
     subject: "Re: {subject}",
-    intro: "Das Team von CONSYRION AI hat auf deine Nachricht geantwortet:",
+    intro: "Das Team von CONSYRIUM AI hat auf deine Nachricht geantwortet:",
     original: "Deine Nachricht",
     appLink: "Die Antwort findest du auch in der App unter Meine Meldungen:",
     noReply: "Antworte einfach auf diese E-Mail, wenn du noch Fragen hast.",
   },
   fr: {
     subject: "Re : {subject}",
-    intro: "L'équipe CONSYRION AI a répondu à votre message :",
+    intro: "L'équipe CONSYRIUM AI a répondu à votre message :",
     original: "Votre message",
     appLink: "Vous trouverez aussi la réponse dans l'application sous Mes signalements :",
     noReply: "Répondez à cet e-mail si vous avez d'autres questions.",
   },
   es: {
     subject: "Re: {subject}",
-    intro: "El equipo de CONSYRION AI ha respondido a tu mensaje:",
+    intro: "El equipo de CONSYRIUM AI ha respondido a tu mensaje:",
     original: "Tu mensaje",
     appLink: "También encontrarás la respuesta en la aplicación, en Mis reportes:",
     noReply: "Responde a este correo si tienes más preguntas.",
   },
   zh: {
     subject: "回复：{subject}",
-    intro: "CONSYRION AI 团队已回复你的消息：",
+    intro: "CONSYRIUM AI 团队已回复你的消息：",
     original: "你的消息",
     appLink: "你也可以在应用的“我的反馈”中查看回复：",
     noReply: "如有其他问题，请直接回复此邮件。",
@@ -169,7 +169,7 @@ export async function sendFeedbackReplyMail(report: FeedbackReplyMail, deps: Not
     if (!send) return "skipped";
     // Answers from the author go to the first admin address, not to the no-reply sender.
     const replyTo = feedbackAdminRecipients(env)[0] ?? null;
-    await send(feedbackReplyMail(report, { from: env.MAIL_FROM ?? "CONSYRION AI <no-reply@consyrion.com>", replyTo, appUrl: env.BETTER_AUTH_URL ?? "" }));
+    await send(feedbackReplyMail(report, { from: env.MAIL_FROM ?? "CONSYRIUM AI <no-reply@consyrium.com>", replyTo, appUrl: env.BETTER_AUTH_URL ?? "" }));
     return "sent";
   } catch (error) {
     logger.warn("Feedback reply e-mail failed", { error: error instanceof Error ? error.message.slice(0, 200) : "unknown" });

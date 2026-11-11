@@ -1,4 +1,4 @@
-import { assertCan } from "@consyrion/core";
+import { assertCan } from "@consyrium/core";
 import { and, desc, eq, gte } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";

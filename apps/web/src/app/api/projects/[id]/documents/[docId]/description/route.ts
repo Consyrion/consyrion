@@ -1,5 +1,5 @@
-import { DomainError } from "@consyrion/core";
-import { setImageDescription } from "@consyrion/db";
+import { DomainError } from "@consyrium/core";
+import { setImageDescription } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

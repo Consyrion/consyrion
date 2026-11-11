@@ -1,4 +1,4 @@
-import { COUNCIL_PHASES, type CouncilPhase } from "@consyrion/core/browser";
+import { COUNCIL_PHASES, type CouncilPhase } from "@consyrium/core/browser";
 import type { View } from "./helpers";
 
 /**

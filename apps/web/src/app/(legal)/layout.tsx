@@ -8,7 +8,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <header className="border-b border-glass-line">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 text-sm md:px-8">
           <Link href="/" className="font-semibold tracking-wide">
-            CONSYRION AI
+            CONSYRIUM AI
           </Link>
           <nav className="flex gap-4 text-muted">
             <Link href="/impressum" className="hover:text-text">

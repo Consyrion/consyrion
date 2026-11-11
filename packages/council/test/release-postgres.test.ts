@@ -1,10 +1,10 @@
 /**
  * Release test against a real PostgreSQL (#181 review): concurrency that PGlite (one connection) cannot show.
  * Skipped unless RELEASE_TEST_DATABASE_URL points to a throwaway database – it drops and recreates the public schema.
- *   RELEASE_TEST_DATABASE_URL=postgres://user@127.0.0.1:55432/release_test pnpm --filter @consyrion/council exec vitest run test/release-postgres.test.ts
+ *   RELEASE_TEST_DATABASE_URL=postgres://user@127.0.0.1:55432/release_test pnpm --filter @consyrium/council exec vitest run test/release-postgres.test.ts
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   addDocument,
   createCredential,
@@ -18,7 +18,7 @@ import {
   setSubscriptionPlan,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createSession, runSession, type SessionInput } from "../src";

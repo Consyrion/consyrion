@@ -11,6 +11,7 @@
       "rejected": "Rechazada",
       "changes_requested": "Cambios solicitados",
       "awaitingReview": "Esperando tu revisión",
+      "ideaChecked": "Idea revisada",
       "noApprovableProposal": "Ninguna propuesta aprobable"
     },
     "cancelError": "No se pudo cancelar",
@@ -49,7 +50,8 @@
       "failed": "fallida",
       "blocked": "bloqueada",
       "cancelled": "cancelada",
-      "skipped": "omitida"
+      "skipped": "omitida",
+      "shortened": "acortada"
     },
     "execText": {
       "notStarted": "sin iniciar",
@@ -150,7 +152,9 @@
     "gateEnded": "El council terminó sin veredicto – no se puede aprobar ni construir nada a partir de él.",
     "gateDebate": "Debate en curso; la aprobación final sigue al veredicto.",
     "reviewVerdict": "Revisar veredicto",
-    "viewVerdict": "Ver veredicto"
+    "viewVerdict": "Ver veredicto",
+    "archived": "Proyecto archivado.",
+    "gateArchived": "Aquí no se puede aprobar, marcar ni construir nada: restaura el proyecto en su página para continuar."
   },
   "phaseScreens": {
     "none": "ninguno",
@@ -456,7 +460,8 @@
       "onlyOwners": "Solo los propietarios y administradores pueden aprobar decisiones.",
       "markFavorite": "Marcar como favorita (sin aprobación ni build)",
       "approvePrototype": "Aprobar un build de prototipo / medición (no es una solución terminada)",
-      "approveAfterMeasurement": "Aprobar tras la medición"
+      "approveAfterMeasurement": "Aprobar tras la medición",
+      "archived": "Este proyecto está archivado: restáuralo primero en la página del proyecto para decidir, marcar, medir o construir."
     },
     "reasons": {
       "needsVerification": "Requiere verificación: el consejo no pudo confirmar que una propuesta cumpla todos los requisitos. No se puede aprobar ni construir.",
@@ -494,7 +499,7 @@
     },
     "followUp": {
       "title": "Comprobación adicional (opcional, cuesta tokens)",
-      "intro": "Los mismos evaluadores de IA vuelven a mirar: solo las comprobaciones indicadas, sobre las propuestas congeladas. Un FAIL nunca se vuelve a preguntar ni se sustituye. Solo se ejecuta tras confirmar un presupuesto adicional.",
+      "intro": "Los mismos evaluadores de IA vuelven a mirar: solo las comprobaciones indicadas, sobre las propuestas congeladas. Un «no cumplido» nunca se vuelve a preguntar ni se sustituye. Solo se ejecuta tras confirmar un presupuesto adicional.",
       "completion": {
         "button": "Completar {n} comprobaciones que faltan (≈ {tokens} tokens)",
         "explain": "Se pregunta exactamente por ellas a los evaluadores que las omitieron. Después se recalcula el veredicto."
@@ -517,7 +522,7 @@
   },
   "requirementGate": {
     "title": "Requisitos confirmados por propuesta",
-    "intro": "Un requisito solo cuenta como cumplido si cada evaluador esperado confirmó cada parte con un motivo. PASS y FAIL son juicios de modelos guardados y motivados, no una verificación independiente de hechos.",
+    "intro": "Un requisito solo cuenta como cumplido si cada evaluador esperado confirmó cada parte con un motivo. «Confirmado» y «no cumplido» son juicios de modelos guardados y motivados, no una verificación independiente de hechos.",
     "proposal": "Propuesta {label}",
     "feasibility": {
       "qualified": "cumple todos los requisitos confirmados",
@@ -547,7 +552,8 @@
         "across": "para {k} de {n} evaluadores el rango cruza el límite",
         "noEstimate": "{k} de {n} evaluadores no dieron una estimación útil",
         "noAnswer": "{k} de {n} evaluadores no dieron una respuesta válida"
-      }
+      },
+      "summary": "Estimado por {n, plural, one {# modelo} other {# modelos}}: {low}–{high}{unit} (mediana {median}) · límite {relation} {limit}{unit}. Solo se cumple si cada rango respeta el límite."
     },
     "relation": {
       "below": "por debajo de",
@@ -555,8 +561,8 @@
       "above": "por encima de",
       "atLeast": "como mínimo"
     },
-    "pass": "PASS: {names}.",
-    "fail": "FAIL: {names}.",
+    "pass": "Confirmado por: {names}.",
+    "fail": "No cumplido según: {names}.",
     "unknown": "No concluyente: {names}.",
     "open": "Sin respuesta: {names}.",
     "conflicts": "Contradictorio (contado como FAIL): {names}.",
@@ -602,7 +608,7 @@
       "single_evaluator": "La propuesta {label} fue evaluada por un solo evaluador independiente (solo dos modelos activos)",
       "requirements_disputed": "{failed} de {total} evaluadores independientes consideran que la propuesta {label} incumple un requisito estricto",
       "insufficient_evaluators": "Solo {evaluators} de {expected} evaluadores esperados dieron puntuaciones utilizables – demasiado pocos para una decisión del council; repite la evaluación",
-      "no_debate_contribution": "{model} no aportó ninguna revisión de rol al 12 Minds Council (fallaron todas las llamadas); sus perspectivas faltan en el debate, pero su voto cuenta en el Final Verdict si evaluó",
+      "no_debate_contribution": "{model} no aportó ninguna revisión de rol en el 12 Minds Council (ninguna llamada correcta: sus llamadas fallaron o el presupuesto acortó la fase antes de su turno); sus perspectivas faltan en el debate, pero su voto sigue contando en el Final Verdict si evaluó",
       "undefended_proposal": "La propuesta {label} no fue defendida – {reason}: {count, plural, one {# objeción sigue} other {# objeciones siguen}} sin respuesta, lo que no equivale a una crítica no rebatida",
       "phase_shortened": "{phase} se acortó para reservar el presupuesto de tokens para el Final Verdict; el veredicto se basa en las revisiones disponibles en ese momento",
       "weighting_changed_winner_both": "Los pesos de voto decidieron el resultado: con pesos iguales el council recomendaría la propuesta {unweighted}; con pesos recomienda la propuesta {weighted}",
@@ -753,7 +759,62 @@
     "exportPdf": "Informe completo (PDF)",
     "exportMarkdown": "Informe (Markdown)",
     "stopFirst": "Este Council sigue en curso: detenlo primero (y cancela un build activo) y luego elimina la sesión.",
-    "external": "CONSYRION no elimina los informes ya enviados, los pull requests en borrador de GitHub ni las copias de seguridad (hasta que venza su plazo). El número de Councils del mes no se restablece.",
+    "external": "CONSYRIUM no elimina los informes ya enviados, los pull requests en borrador de GitHub ni las copias de seguridad (hasta que venza su plazo). El número de Councils del mes no se restablece.",
     "button": "Eliminar sesión"
+  },
+  "processQuality": {
+    "title": "Calidad del proceso",
+    "intro": "Cómo trabajó este Council, calculado a partir de sus datos guardados. Describe el proceso; no demuestra que el veredicto sea correcto.",
+    "notMeasurable": "no medible para este Council",
+    "participation": {
+      "title": "Participación",
+      "value": "{valid} de {total} modelos entregaron en cada fase ({groupsValid} de {groups} modelos independientes; las instancias de un modelo cuentan una vez)."
+    },
+    "convergence": {
+      "title": "Convergencia de las propuestas",
+      "strong": "Fuerte: las propuestas se acercaron claramente (vocabulario común {initial} → {latest}). Comprueba si se perdieron alternativas reales.",
+      "moderate": "Moderada: las propuestas se acercaron algo (vocabulario común {initial} → {latest}).",
+      "little": "Poca: las propuestas siguieron siendo distintas (vocabulario común {initial} → {latest}).",
+      "fewer_than_two_proposals": "no medible: menos de dos propuestas",
+      "no_revisions": "no medible: ninguna propuesta fue revisada",
+      "limit": "Medido por palabras comunes, no por el contenido."
+    },
+    "objections": {
+      "title": "Efecto de las objeciones",
+      "none": "No se plantearon objeciones; eso por sí solo no es un signo de calidad.",
+      "value": "{total} objeciones: {survived} siguen en pie al final, {refuted} refutadas. De las que siguen: {revised} seguidas de una revisión, {blocking} bloqueantes, {noEffect} sin efecto visible.",
+      "limit": "Asignado por momento y propuesta objetivo, no demostrado como causa."
+    },
+    "weight": {
+      "title": "Peso de los votos",
+      "changed": "Los pesos decidieron el ganador: ponderado Propuesta {weighted}, con votos iguales Propuesta {unweighted}. El modelo independiente más fuerte tiene {share} del voto.",
+      "unchanged": "Los pesos no cambiaron el ganador. El modelo independiente más fuerte tiene {share} del voto ({groups} modelos independientes).",
+      "noWinner": "no aplicable: no hay un ganador aprobable"
+    },
+    "footer": "Calculado solo a partir de datos guardados; sin llamadas a modelos ni comparación con un único modelo."
+  },
+  "processQualityOverview": {
+    "title": "Calidad del proceso",
+    "description": "Cómo trabajaron los últimos Councils de este espacio de trabajo: cifras de datos guardados, sin contenido. Describe el proceso, no demuestra que los veredictos sean correctos.",
+    "back": "Volver a las decisiones",
+    "emptyTitle": "Aún no hay veredicto",
+    "emptyText": "La calidad del proceso aparece cuando un Council llega a un veredicto.",
+    "summaryTitle": "Últimos {n, plural, one {# Council} other {# Councils}}",
+    "summary": {
+      "participation": "{full} de {n} Councils en los que cada modelo entregó en cada fase.",
+      "convergence": "Convergencia de las propuestas: {strong} fuerte, {moderate} moderada, {little} poca, {none} no medible.",
+      "objections": "{total} objeciones, {survived} siguen en pie al final, {noEffect} de ellas sin efecto visible.",
+      "weight": "En {n} de {total} Councils los pesos de los votos decidieron el ganador."
+    },
+    "col": {
+      "council": "Council"
+    },
+    "level": {
+      "strong": "fuerte",
+      "moderate": "moderada",
+      "little": "poca"
+    },
+    "weightDecided": "decidió el peso",
+    "legend": "La participación cuenta modelos independientes (las instancias de un modelo una vez); objeciones: en pie/total; peso: cuota del modelo independiente más fuerte o «decidió el peso» cuando cambió el ganador."
   }
 }

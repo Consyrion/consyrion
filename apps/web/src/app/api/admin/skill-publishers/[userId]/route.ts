@@ -1,4 +1,4 @@
-import { setPublisherSuspended } from "@consyrion/db";
+import { setPublisherSuspended } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdminContext } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";

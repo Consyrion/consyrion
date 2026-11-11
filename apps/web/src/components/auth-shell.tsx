@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ConsyrionMark } from "./brand/consyrion-logo";
+import { ConsyriumMark } from "./brand/consyrium-logo";
 import { AuthScene } from "./auth-scene";
 import { RibbonField } from "./fx/ribbon-field";
 import { Icon, type IconName } from "./ui/icons";
@@ -28,9 +28,9 @@ export function AuthShell({ children }: { children: ReactNode }) {
       />
       <div className="mx-auto flex min-h-svh w-full max-w-[1440px] flex-col px-4 py-6 md:px-10 lg:py-8">
         <Link href="/" className="flex w-fit items-center gap-4" aria-label={t("home")}>
-          <ConsyrionMark size={52} title="" className="drop-shadow-[0_0_14px_rgb(34_211_238/0.45)]" />
+          <ConsyriumMark size={52} title="" className="drop-shadow-[0_0_14px_rgb(34_211_238/0.45)]" />
           <span>
-            <span className="block font-[family-name:var(--font-display)] text-xl tracking-[0.32em]">CONSYRION AI</span>
+            <span className="block font-[family-name:var(--font-display)] text-xl tracking-[0.32em]">CONSYRIUM AI</span>
             <span className="block text-xs tracking-[0.18em] text-muted">{t("tagline")}</span>
           </span>
         </Link>

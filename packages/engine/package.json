@@ -1,5 +1,5 @@
 {
-  "name": "@consyrion/engine",
+  "name": "@consyrium/engine",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@consyrion/core": "workspace:*"
+    "@consyrium/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0"

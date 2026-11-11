@@ -1,6 +1,6 @@
-import { createAdapter } from "@consyrion/ai";
-import { DomainError, type Keyring } from "@consyrion/core";
-import { decryptCredentialForOrganization, newId, PROJECT_PURGE_JOB, purgeProject, schema, type Database } from "@consyrion/db";
+import { createAdapter } from "@consyrium/ai";
+import { DomainError, type Keyring } from "@consyrium/core";
+import { decryptCredentialForOrganization, newId, PROJECT_PURGE_JOB, purgeProject, schema, type Database } from "@consyrium/db";
 import type { AdapterResolver } from "./call";
 import { runSession } from "./engine";
 import { runWorker, type ClaimLimits, type JobHandler } from "./queue";

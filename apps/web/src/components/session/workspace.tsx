@@ -1,6 +1,6 @@
 "use client";
 
-import { COUNCIL_PHASE_LABELS, DECISION_MODE_LABELS, type CouncilPhase } from "@consyrion/core/browser";
+import { COUNCIL_PHASE_LABELS, DECISION_MODE_LABELS, type CouncilPhase } from "@consyrium/core/browser";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import { Alert, Badge } from "../ui/surface";
 import { CouncilRoom } from "./council-room";
 import { ReplayScreen } from "./replay";
 import type { View } from "./helpers";
+import { councilPurpose, ideaCheck, type IdeaCheckMatrix } from "./idea-check";
 import { verdictStatus } from "./verdict-status";
 import {
   EvaluationScreen,
@@ -173,6 +174,9 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
   // Gesamttest #275: "Awaiting your decision" next to "Needs verification – not approvable" contradicted itself. While
   // nothing can be approved the header says so and asks for the next step – the same message as the verdict card (#230).
   const nothingApprovable = verdictStatus(view).nothingApprovable;
+  const ideaResult =
+    nothingApprovable && councilPurpose(view.session.policy) === "idea_check" ? ideaCheck(view.decision?.matrix as unknown as IdeaCheckMatrix) : null;
+  const ideaChecked = Boolean(ideaResult && ideaResult.kind !== "none");
   // #477: workflow status and approval status are shown apart – "awaiting your review" plus "no approvable proposal".
   const statusInfo = nothingApprovable
     ? { text: t("status.awaitingReview"), tone: STATUS_TONE[status] ?? ("neutral" as const) }
@@ -198,7 +202,8 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
             <Badge tone={statusInfo.tone}>{statusInfo.text}</Badge>
             {nothingApprovable ? (
               <span data-testid="approval-status">
-                <Badge tone="warning">{t("status.noApprovableProposal")}</Badge>
+                {/* #597: an idea check with a favourite is a result, not a missing approval. */}
+                {ideaChecked ? <Badge tone="success">{t("status.ideaChecked")}</Badge> : <Badge tone="warning">{t("status.noApprovableProposal")}</Badge>}
               </span>
             ) : null}
             {isLive ? <Badge tone={connection === "live" ? "success" : "warning"}>{connection === "live" ? t("live") : t("reconnecting")}</Badge> : null}
@@ -287,7 +292,10 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
                 : built && item.id === "review_tests"
                   ? { state: built.reviewTests, text: execText(built.reviewTestsText) }
                   : null;
-            const state = derived ? derived.state : item.phase ? (stage?.status ?? "pending") : isLive ? "running" : "completed";
+            const raw = derived ? derived.state : item.phase ? (stage?.status ?? "pending") : isLive ? "running" : "completed";
+            // Gesamttest 08.11.26: a phase the budget cut short after some contributions is "shortened", not "skipped".
+            const contributed = item.phase ? view.usage.some((u) => u.phase === item.phase && u.outcome === "ok") : false;
+            const state = raw === "skipped" && contributed ? "shortened" : raw;
             return (
               <li key={item.id}>
                 <button
@@ -304,7 +312,7 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
                           ? "bg-primary/20 text-primary"
                           : state === "failed"
                             ? "bg-danger/20 text-danger"
-                            : state === "blocked"
+                            : state === "blocked" || state === "shortened"
                               ? "bg-warning/20 text-warning"
                               : "bg-surface-2"
                     }`}
@@ -339,7 +347,7 @@ export function SessionWorkspace({ initial, canRun, canApprove }: { initial: Vie
         {tab === "independent_thinking" ? <IndependentThinkingScreen view={view} /> : null}
         {tab === "open_council" ? <OpenCouncilScreen view={view} /> : null}
         {tab === "twelve_minds_council" ? <TwelveMindsScreen view={view} /> : null}
-        {tab === "minority_review" || tab === "consensus_round" ? <MinorityConsensusScreen view={view} /> : null}
+        {tab === "minority_review" || tab === "consensus_round" ? <MinorityConsensusScreen view={view} canApprove={canApprove} /> : null}
         {tab === "evaluation" ? <EvaluationScreen view={view} /> : null}
         {tab === "final_verdict" ? <VerdictScreen view={view} canApprove={canApprove} onChange={refresh} /> : null}
         {tab === "execution_council" ? <ExecutionScreen view={view} canApprove={canApprove} /> : null}

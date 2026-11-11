@@ -1,6 +1,6 @@
-import { ARTIFICIAL_ANALYSIS, fetchArtificialAnalysis } from "@consyrion/ai";
-import type { StrengthCatalog, StrengthEntry } from "@consyrion/core";
-import { newId, schema, type Database } from "@consyrion/db";
+import { ARTIFICIAL_ANALYSIS, fetchArtificialAnalysis } from "@consyrium/ai";
+import type { StrengthCatalog, StrengthEntry } from "@consyrium/core";
+import { newId, schema, type Database } from "@consyrium/db";
 import { and, desc, eq } from "drizzle-orm";
 import { enqueue } from "./queue";
 

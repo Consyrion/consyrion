@@ -9,7 +9,7 @@ export function reportFileName(question: string, date: Date): string {
     .trim()
     .slice(0, 80)
     .trim();
-  return `CONSYRION ${day} ${title || "decision"}.md`;
+  return `CONSYRIUM ${day} ${title || "decision"}.md`;
 }
 
 /** The first free path: "name.md", then "name (2).md", "name (3).md" … – an existing note is never replaced. */
@@ -43,10 +43,10 @@ export function reportNote(input: {
   const yaml = (value: string) => JSON.stringify(value);
   const front = [
     "---",
-    `consyrion_session: ${yaml(input.sessionId)}`,
-    `consyrion_url: ${yaml(runUrl)}`,
-    `consyrion_status: ${yaml(input.status)}`,
-    `consyrion_models: [${input.models.map(yaml).join(", ")}]`,
+    `consyrium_session: ${yaml(input.sessionId)}`,
+    `consyrium_url: ${yaml(runUrl)}`,
+    `consyrium_status: ${yaml(input.status)}`,
+    `consyrium_models: [${input.models.map(yaml).join(", ")}]`,
     ...(input.sourcePath ? [`source: ${yaml(`[[${input.sourcePath.replace(/\.md$/, "")}]]`)}`] : []),
     `created: ${input.date.toISOString()}`,
     "---",

@@ -1,3 +1,5 @@
+import { findInstruction } from "./instruction-patterns";
+import { SUSPICIOUS_INVISIBLE } from "./text-normalize";
 import { createHash } from "node:crypto";
 import { COUNCIL_ROLES, DECISION_MODES, validateWeights, type CouncilRole, type DecisionMode, type EvaluationWeights } from "./phases";
 import { MAX_PARTICIPANTS, MIN_PARTICIPANTS } from "./policy";
@@ -100,9 +102,9 @@ const KNOWN_FIELDS = ["schemaVersion", "name", "summary", "category", "council",
 const KNOWN_COUNCIL_FIELDS = ["mode", "models"] as const;
 const WEIGHT_KEYS = ["technicalQuality", "security", "maintainability", "operatingCost", "implementationSpeed"] as const;
 
-/** Message for a skill written for a later schema (#419): a clear "update CONSYRION" instead of a cryptic error. */
+/** Message for a skill written for a later schema (#419): a clear "update CONSYRIUM" instead of a cryptic error. */
 export function newerSkillSchemaMessage(schemaVersion: number) {
-  return `This skill was created with a newer CONSYRION version (skill schema ${schemaVersion}); this installation reads schema ${SKILL_SCHEMA_VERSION}. Update CONSYRION to import it.`;
+  return `This skill was created with a newer CONSYRIUM version (skill schema ${schemaVersion}); this installation reads schema ${SKILL_SCHEMA_VERSION}. Update CONSYRIUM to import it.`;
 }
 
 function unknownKeys(value: Record<string, unknown>, known: readonly string[], prefix = ""): IgnoredSkillField[] {
@@ -131,8 +133,10 @@ export function validateSkillContent(input: unknown): Result {
     return { ok: false, errors: [newerSkillSchemaMessage(sv)], ignoredFields, ignored, newerSchemaVersion: sv };
   if (sv !== undefined && sv !== SKILL_SCHEMA_VERSION) errors.push(`Unsupported schemaVersion (expected ${SKILL_SCHEMA_VERSION})`);
   const name = text(input.name);
-  if (!name) errors.push("name is required");
+  if (input.name !== undefined && input.name !== null && typeof input.name !== "string") errors.push("name must be a text");
+  else if (!name) errors.push("name is required");
   else if (name.length > SKILL_LIMITS.name) errors.push(`name is longer than ${SKILL_LIMITS.name} characters`);
+  if (input.summary !== undefined && input.summary !== null && typeof input.summary !== "string") errors.push("summary must be a text");
   const summary = text(input.summary) ?? "";
   if (summary.length > SKILL_LIMITS.summary) errors.push(`summary is longer than ${SKILL_LIMITS.summary} characters`);
   const category = (input.category ?? "other") as SkillCategory;
@@ -227,9 +231,11 @@ export function skillBlockGaps(block: string): string[] {
 }
 
 export interface SkillFinding {
-  kind: "secret" | "personal_data" | "instruction";
+  kind: "secret" | "personal_data" | "instruction" | "hidden_characters";
   message: string;
 }
+
+export { INSTRUCTION_PATTERNS } from "./instruction-patterns";
 
 /** Shared with the SkillHub publication check (`skill-publication-scan.ts`). */
 export const SECRET_PATTERNS: ReadonlyArray<RegExp> = [
@@ -245,31 +251,49 @@ export const SECRET_PATTERNS: ReadonlyArray<RegExp> = [
 /** Bounded local part and domain (RFC limits), so a long run of letters cannot cause quadratic backtracking. */
 export const SKILL_EMAIL_PATTERN = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,}/;
 const EMAIL = SKILL_EMAIL_PATTERN;
-/** Text that tries to steer the council's rules instead of describing the subject (#363 security rule 1). */
-export const INSTRUCTION_PATTERNS: ReadonlyArray<RegExp> = [
-  /\b(?:ignore|disregard|forget)\b.{0,40}\b(?:previous|above|prior|all|system)\b.{0,20}\b(?:instructions?|rules?|prompts?)\b/i,
-  /\b(?:ignoriere|vergiss|missachte)\b.{0,40}\b(?:vorherigen?|obigen?|alle|system)\b.{0,20}\b(?:anweisungen|regeln|prompts?)\b/i,
-  /\bsystem\s*prompt\b/i,
-  /\b(?:mark|treat|count|report|rate)\b.{0,40}\b(?:as\s+)?(?:pass(?:ed)?|met|satisfied|approved)\b.{0,30}\b(?:always|regardless|without)\b/i,
-  /\b(?:skip|bypass|override|umgeh\w*|überspring\w*)\b.{0,40}\b(?:approval|freigabe|review|prüfung|gate|requirements?|anforderungen)\b/i,
-  /\b(?:you are|du bist)\s+(?:now\s+|jetzt\s+)?(?:the\s+)?(?:system|admin|developer)\b/i,
-];
 
 /**
  * Checks skill text before it is stored (every save, import and – in V2 – publication): no secrets or personal contact
  * data, and nothing that tries to override the council's rules. Skill text stays untrusted data in any case.
  */
 export function scanSkillContent(content: SkillContent): SkillFinding[] {
-  const texts = [content.name, content.summary, ...(content.requirementBlocks ?? []), content.sessionRules ?? "", content.knowledge ?? ""];
+  const fields: Array<[string, string]> = [
+    ["name", content.name],
+    ["summary", content.summary],
+    ...(content.requirementBlocks ?? []).map((b, i): [string, string] => [`requirementBlocks[${i}]`, b]),
+    ["sessionRules", content.sessionRules ?? ""],
+    ["knowledge", content.knowledge ?? ""],
+  ];
+  return scanSkillTexts(
+    fields.map(([, t]) => t),
+    fields.map(([f]) => f),
+  );
+}
+
+/**
+ * The save-time check over any list of texts (skills; expert profiles reuse it): secrets, e-mail addresses, hidden or
+ * bidi characters, and instructions or steering in de/en/fr/es/zh – the same patterns as the publication scan.
+ */
+export function scanSkillTexts(texts: ReadonlyArray<string>, fieldNames?: ReadonlyArray<string>): SkillFinding[] {
   const all = texts.join("\n");
   const findings: SkillFinding[] = [];
+  /** Gesamttest 3 (#8): the message names the field(s), so the editor can point to them. */
+  const where = (hit: (t: string) => boolean) => {
+    const names = fieldNames ? texts.flatMap((t, i) => (hit(t) ? [fieldNames[i]!] : [])) : [];
+    return names.length ? ` (field: ${names.join(", ")})` : "";
+  };
   if (SECRET_PATTERNS.some((p) => p.test(all)))
     findings.push({ kind: "secret", message: "The skill contains something that looks like a key, token or password – remove it." });
   if (EMAIL.test(all)) findings.push({ kind: "personal_data", message: "The skill contains an e-mail address – skills must not carry personal contact data." });
-  if (INSTRUCTION_PATTERNS.some((p) => p.test(all)))
+  if (texts.some((t) => SUSPICIOUS_INVISIBLE.test(t)))
+    findings.push({
+      kind: "hidden_characters",
+      message: "The skill contains invisible or text-direction characters – remove them (they can hide what the text says).",
+    });
+  if (texts.some((t) => findInstruction(t)))
     findings.push({
       kind: "instruction",
-      message: "The skill contains text that tries to change the council's rules (e.g. ignore instructions, skip the approval). Describe the subject instead.",
+      message: `The skill contains text that tries to steer the council (e.g. rate everything as met, always recommend one option, skip the approval)${where((t) => Boolean(findInstruction(t)))}. Describe the subject instead.`,
     });
   return findings;
 }

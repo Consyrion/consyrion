@@ -1,4 +1,4 @@
-import { assertCan, DomainError } from "@consyrion/core";
+import { assertCan, DomainError } from "@consyrium/core";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
@@ -30,6 +30,8 @@ export const EXPORT_COVERAGE: Record<string, { exported: string } | { excluded: 
   proposal_revision: { exported: "proposalRevisions" },
   debate_message: { exported: "debateMessages" },
   minority_objection: { exported: "minorityObjections" },
+  human_intervention: { exported: "humanInterventions" },
+  human_intervention_answer: { exported: "humanInterventionAnswers" },
   minority_review: { exported: "minorityReviews" },
   consensus_result: { exported: "consensusResults" },
   evaluation_score: { exported: "evaluationScores" },
@@ -123,6 +125,9 @@ export async function exportOrganization(db: Database, ctx: ActorContext) {
     proposalRevisions: await db.select().from(s.proposalRevision).where(byOrg(s.proposalRevision)),
     debateMessages: await db.select().from(s.debateMessage).where(byOrg(s.debateMessage)),
     minorityObjections: await db.select().from(s.minorityObjection).where(byOrg(s.minorityObjection)),
+    // #15/#41: a human's questions after the verdict and the models' answers.
+    humanInterventions: await db.select().from(s.humanIntervention).where(byOrg(s.humanIntervention)),
+    humanInterventionAnswers: await db.select().from(s.humanInterventionAnswer).where(byOrg(s.humanInterventionAnswer)),
     evaluationScores: await db.select().from(s.evaluationScore).where(byOrg(s.evaluationScore)),
     finalDecisions: await db.select().from(s.finalDecision).where(byOrg(s.finalDecision)),
     humanApprovals: await db.select().from(s.humanApproval).where(byOrg(s.humanApproval)),

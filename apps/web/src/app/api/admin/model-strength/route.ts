@@ -1,6 +1,6 @@
-import { modelStrengthStatus, strengthSourceFromEnv, syncModelStrength } from "@consyrion/council";
-import { DomainError } from "@consyrion/core";
-import { recordAudit } from "@consyrion/db";
+import { modelStrengthStatus, strengthSourceFromEnv, syncModelStrength } from "@consyrium/council";
+import { DomainError } from "@consyrium/core";
+import { recordAudit } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/server/admin";
 import { handle } from "@/lib/server/api";

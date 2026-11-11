@@ -1,15 +1,15 @@
-import { EXECUTION_JOB, executionJobHandlers } from "@consyrion/build";
-import { startCouncilWorker, workerCapacityFromEnv } from "@consyrion/council";
+import { EXECUTION_JOB, executionJobHandlers } from "@consyrium/build";
+import { startCouncilWorker, workerCapacityFromEnv } from "@consyrium/council";
 import { getDb } from "./db";
 import { getKeyring } from "./keyring";
 import { logger } from "./logger";
 
-const globalForWorker = globalThis as unknown as { consyrionWorker?: AbortController };
+const globalForWorker = globalThis as unknown as { consyriumWorker?: AbortController };
 
 export function startInlineWorker() {
-  if (globalForWorker.consyrionWorker) return;
+  if (globalForWorker.consyriumWorker) return;
   const controller = new AbortController();
-  globalForWorker.consyrionWorker = controller;
+  globalForWorker.consyriumWorker = controller;
   void (async () => {
     let keyring;
     try {

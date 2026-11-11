@@ -1,16 +1,16 @@
-# CLAUDE.md – Consyrion
+# CLAUDE.md – Consyrium
 
 Guidance for Claude Code (and humans) working in this repository. Keep it short and current.
 
 ## Product
-**CONSYRION AI** is an open-source (AGPL-3.0), self-hosted, bring-your-own-key multi-model decision and development platform: several AI
+**CONSYRIUM AI** is an open-source (AGPL-3.0), self-hosted, bring-your-own-key multi-model decision and development platform: several AI
 models think independently, challenge each other, protect minority views, reach a documented verdict and –
 only after human approval – implement it as a reviewed pull request.
 
-- Name: company and product are both **CONSYRION AI** – use exactly this in visible UI text, titles and assets
-  (code identifiers stay `Consyrion*`). No other company name.
-- Canonical brief: issue #58 (supersedes older naming in #1–#48: the domain is **consyrion.com**, not .ai).
-- Product areas: Consyrion Decision, Consyrion Build, Consyrion Workspace.
+- Name: company and product are both **CONSYRIUM AI** – use exactly this in visible UI text, titles and assets
+  (code identifiers, package names and file names stay `Consyrium*`). No other company name.
+- Canonical brief: issue #58 (supersedes older naming in #1–#48: the domain is **consyrium.com** since the rename on 10 Nov 2026).
+- Product areas: Consyrium Decision, Consyrium Build, Consyrium Workspace.
 - The seven phases, exact names everywhere (code: `COUNCIL_PHASES` in `packages/core/src/phases.ts`):
   Independent Thinking, Open Council, 12 Minds Council, Minority Review, Consensus Round, Final Verdict, Execution Council.
 - Modes: Independent Expert, Adversarial Review, Consensus. Modes must change orchestration, not just labels.

@@ -1,6 +1,6 @@
-import { isMissingStripeCustomer, StripeClient } from "@consyrion/billing";
-import { assertCan, DomainError, PLAN_KEYS, type PlanKey } from "@consyrion/core";
-import { forgetStripeCustomer, getPlanCatalog, getSubscription } from "@consyrion/db";
+import { isMissingStripeCustomer, StripeClient } from "@consyrium/billing";
+import { assertCan, DomainError, PLAN_KEYS, type PlanKey } from "@consyrium/core";
+import { forgetStripeCustomer, getPlanCatalog, getSubscription } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor, requireUser } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import { createAppJwt, type GitHubAppConfig } from "./app-auth";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -29,7 +29,7 @@ export class GitHubClient {
         Accept: "application/vnd.github+json",
         Authorization: `Bearer ${this.token}`,
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "Consyrion",
+        "User-Agent": "Consyrium",
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,

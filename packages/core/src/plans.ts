@@ -1,5 +1,5 @@
 /**
- * Platform subscription plans. Consyrion is strictly BYOK (issue #30): plans limit platform usage
+ * Platform subscription plans. Consyrium is strictly BYOK (issue #30): plans limit platform usage
  * (seats, projects, councils, sandbox time) – never AI tokens, which customers pay to their provider.
  * The catalog below is only the seed; the platform admin edits names, limits and prices at runtime.
  */
@@ -45,7 +45,7 @@ export function isUnlimited(limit: number): boolean {
 }
 
 export const DEFAULT_PLAN_CATALOG: PlanDefinition[] = [
-  // Hosted app.consyrion.com (owner decision 05.11.26): Free = 2 councils a month, advice only; Pro = 4.99 € incl. VAT,
+  // Hosted app.consyrium.com (owner decision 05.11.26): Free = 2 councils a month, advice only; Pro = 4.99 € incl. VAT,
   // unlimited councils and the GitHub build. The platform admin can change every value at runtime (/admin).
   {
     key: "starter",

@@ -1,9 +1,9 @@
 # Hosted service: plans and Stripe (Milestone 6)
 
-This applies only to the hosted instance (app.consyrion.com) and to anyone who runs CONSYRION AI as a service.
+This applies only to the hosted instance (app.consyrium.com) and to anyone who runs CONSYRIUM AI as a service.
 Self-hosted installations set `SELF_HOSTED=true` and have no plans (docs/self-hosting.md).
 
-## Pricing of app.consyrion.com (owner decision 05.11.26)
+## Pricing of app.consyrium.com (owner decision 05.11.26)
 
 | Plan             | Price                    | Limits                                                                                 |
 | ---------------- | ------------------------ | -------------------------------------------------------------------------------------- |
@@ -15,8 +15,8 @@ the platform admin changes them in `/admin` → Plan catalog. Limits of 1,000,00
 
 ## Business model: platform subscription + BYOK
 
-Binding product decision (issue #30): Consyrion is **strictly BYOK**. Customers connect their own Anthropic,
-OpenAI or Google keys and pay AI usage to those providers. Consyrion never resells tokens, has no AI credits,
+Binding product decision (issue #30): Consyrium is **strictly BYOK**. Customers connect their own Anthropic,
+OpenAI or Google keys and pay AI usage to those providers. Consyrium never resells tokens, has no AI credits,
 wallets or top-ups, and never falls back to an operator-owned key. The brief's mention of "managed AI credits"
 is superseded by this decision.
 
@@ -25,7 +25,7 @@ error, the token reservation is released, and the model is marked failed with th
 <provider>: …" (UI, report and log). The council continues if at least two models remain; another key is never
 used in its place (test: "stops only the model whose key is deleted during the run", `packages/council/test/engine.test.ts`).
 
-Consyrion charges a **platform subscription** (hosting, database, workers, sandbox, storage, operations).
+Consyrium charges a **platform subscription** (hosting, database, workers, sandbox, storage, operations).
 
 ## Plans and entitlements
 
@@ -55,7 +55,7 @@ separately.
 
 **Set up from `/admin` → "Stripe and Pro price"** (same approach as OnJam): paste the secret key (`sk_test_…` for the
 sandbox, `sk_live_…` for real money) and the monthly price. The server checks the key and creates at Stripe: product
-"CONSYRION AI Pro", a monthly EUR price with `tax_behavior=inclusive`, the webhook to `/api/billing/webhook` and a
+"CONSYRIUM AI Pro", a monthly EUR price with `tax_behavior=inclusive`, the webhook to `/api/billing/webhook` and a
 customer portal configuration (cancel at period end, payment method, invoices). Key and webhook secret are stored
 encrypted in `platform_setting` (`CREDENTIALS_MASTER_KEY_*`) and never shown again; the Pro plan gets the new price
 id and label. Changing the price later needs no key: a new Stripe price is created and the old one archived, running

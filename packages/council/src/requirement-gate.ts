@@ -1,8 +1,8 @@
 import { groupsOf } from "./independence";
-import { DomainError, MEASUREMENT_CHECK_GATE_VERSION, requirementVerification } from "@consyrion/core";
-import { newId, schema } from "@consyrion/db";
-import { engine } from "@consyrion/engine";
-import type { GateResult, RawRequirementCheck } from "@consyrion/engine/contract";
+import { DomainError, MEASUREMENT_CHECK_GATE_VERSION, requirementVerification } from "@consyrium/core";
+import { newId, schema } from "@consyrium/db";
+import { engine } from "@consyrium/engine";
+import type { GateResult, RawRequirementCheck } from "@consyrium/engine/contract";
 import { and, asc, eq } from "drizzle-orm";
 import type { SessionContext } from "./context";
 import { mergeFollowUpChecks } from "./follow-up";
@@ -225,7 +225,7 @@ const STATUSES = new Set(["PASS", "FAIL", "DISPUTED", "UNKNOWN"]);
  */
 export function assertGateResultConsistent(round: Pick<EvaluationRound, "requirementIds" | "proposals">, result: GateResult): void {
   const fail = (why: string) => {
-    throw new DomainError("CONFIGURATION", `The CONSYRION engine returned an inconsistent requirement gate result (${why}); no verdict was stored.`);
+    throw new DomainError("CONFIGURATION", `The CONSYRIUM engine returned an inconsistent requirement gate result (${why}); no verdict was stored.`);
   };
   if (!result || !Array.isArray(result.proposals) || typeof result.comparisonComplete !== "boolean") fail("shape");
   const roundIds = round.proposals.map((p) => p.proposalId);

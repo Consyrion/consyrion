@@ -1,5 +1,6 @@
 import {
   addDocument,
+  archiveProject,
   createDatabase,
   createProject,
   ensurePersonalOrganization,
@@ -7,7 +8,7 @@ import {
   schema,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -52,7 +53,7 @@ describe("assistant read tools (#282)", () => {
     expect(data).toMatchObject({
       name: "Beitragslauf",
       brief: { idea: brief.idea, goal: brief.goal },
-      requirementList: { version: null, current: false },
+      requirementList: { version: null, current: false, confirmed: false, councilCanStart: false },
       documents: [{ name: "konzept.md", role: "source" }],
       href: `/projects/${projectId}`,
     });
@@ -81,5 +82,38 @@ describe("assistant read tools (#282)", () => {
     const search = await tool(bob, "search").run({ query: "sepa" });
     expect(search.data).toMatchObject({ projects: [], decisions: [] });
     await expect(tool(alice, "get_project").run({})).rejects.toThrow(/projectId required/);
+  });
+});
+
+describe("decision facts for the assistant (Gesamttest 0d, finding 10)", () => {
+  it("get_session gives the readable status and says when the project is archived; open steps leave archived projects out", async () => {
+    const project = await createProject(handle.db, alice, {
+      name: "Archiviert",
+      type: "technology_choice",
+      brief: { idea: "Altes Vorhaben, das archiviert wurde." },
+    });
+    const b = (await handle.db.select().from(schema.projectBrief)).find((r) => r.projectId === project.id);
+    await handle.db.insert(schema.councilSession).values({
+      id: "ses_archived",
+      organizationId: alice.organizationId,
+      projectId: project.id,
+      briefId: b!.id,
+      mode: "independent_expert",
+      policy: {},
+      policyVersion: 1,
+      tokenBudget: 100_000,
+      status: "awaiting_approval",
+      createdById: "alice",
+    });
+    const steps = async () => ((await tool(alice, "list_open_steps").run({})).data as { steps: Array<{ href: string }> }).steps.map((st) => st.href);
+    expect(await steps()).toContain("/sessions/ses_archived");
+
+    await archiveProject(handle.db, alice, project.id);
+    expect(await steps()).not.toContain("/sessions/ses_archived");
+    const { data } = await tool(alice, "get_session").run({ sessionId: "ses_archived" });
+    expect(data).toMatchObject({ projectArchived: true, nextSteps: [] });
+    expect((data as { archivedNote: string }).archivedNote).toMatch(/read-only/);
+    expect(typeof (data as { statusText: string }).statusText).toBe("string");
+    expect((data as { statusText: string }).statusText.length).toBeGreaterThan(0);
   });
 });

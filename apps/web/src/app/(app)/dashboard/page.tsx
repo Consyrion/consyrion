@@ -1,8 +1,8 @@
-import { getExecutionView, listExecutions } from "@consyrion/build";
-import { getSessionView, listSessionParticipants, listSessions } from "@consyrion/council";
-import { can, COUNCIL_PHASE_LABELS, COUNCIL_PHASES, type CouncilPhase } from "@consyrion/core";
-import { ensureDemoProject, listCredentials, listProjects } from "@consyrion/db";
-import { sql } from "@consyrion/db/sql";
+import { getExecutionView, listExecutions } from "@consyrium/build";
+import { getSessionView, listSessionParticipants, listSessions } from "@consyrium/council";
+import { can, COUNCIL_PHASE_LABELS, COUNCIL_PHASES, type CouncilPhase } from "@consyrium/core";
+import { ensureDemoProject, listCredentials, listProjects } from "@consyrium/db";
+import { sql } from "@consyrium/db/sql";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -157,7 +157,8 @@ export default async function DashboardPage() {
     databaseHealthy(),
   ]);
   const activeProjects = projects.filter((p) => p.status !== "archived");
-  const awaiting = sessions.filter((s) => s.status === "awaiting_approval");
+  // Gesamttest 08.11.26: a session of an archived project waits for nobody – not counted, not "your next action".
+  const awaiting = sessions.filter((s) => s.status === "awaiting_approval" && s.projectStatus !== "archived");
   const running = sessions.filter((s) => LIVE.has(s.status));
   const recent = sessions.slice(0, 6);
   const participants = await listSessionParticipants(
@@ -360,7 +361,7 @@ export default async function DashboardPage() {
                     <span className={`flex items-center justify-end gap-1.5 font-medium ${live ? "text-primary" : "text-text"}`}>
                       <span
                         aria-hidden="true"
-                        className={`size-2 rounded-full ${live ? "bg-primary [animation:consyrion-pulse_1.6s_ease-in-out_infinite]" : "bg-muted"}`}
+                        className={`size-2 rounded-full ${live ? "bg-primary [animation:consyrium-pulse_1.6s_ease-in-out_infinite]" : "bg-muted"}`}
                       />
                       {COUNCIL_PHASE_LABELS[phase]}
                     </span>

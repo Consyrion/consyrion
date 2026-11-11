@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 
 /**
  * In-memory fixed-window limiter for expensive or abusable endpoints (per process). With several web

@@ -1,4 +1,4 @@
-import { createProject, listProjects, type ProjectInput } from "@consyrion/db";
+import { createProject, listProjects, type ProjectInput } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

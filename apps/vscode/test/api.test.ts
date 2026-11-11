@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConsyrionApi, ConsyrionApiError, normalizeServerUrl, type FetchLike } from "../src/api";
+import { ConsyriumApi, ConsyriumApiError, normalizeServerUrl, type FetchLike } from "../src/api";
 import { escapeHtml, renderSessionHtml } from "../src/html";
 import { translator } from "../src/i18n";
 
@@ -20,13 +20,13 @@ describe("api client", () => {
       if (url.endsWith("/approval")) return new Response(JSON.stringify({ status: "approved" }));
       return new Response(JSON.stringify({ error: { message: "Not found" } }), { status: 404 });
     };
-    const api = new ConsyrionApi("https://consyrion.test/", "cns_x", fetchImpl);
+    const api = new ConsyriumApi("https://consyrium.test/", "cns_x", fetchImpl);
     expect(await api.projects()).toEqual([{ id: "p1", name: "A", status: "ready" }]);
-    expect(calls[0]).toMatchObject({ url: "https://consyrion.test/api/projects", auth: "Bearer cns_x" });
+    expect(calls[0]).toMatchObject({ url: "https://consyrium.test/api/projects", auth: "Bearer cns_x" });
     await api.approve("s/1", "approve", "ok");
-    expect(calls[1]!.url).toBe("https://consyrion.test/api/sessions/s%2F1/approval");
+    expect(calls[1]!.url).toBe("https://consyrium.test/api/sessions/s%2F1/approval");
     expect(JSON.parse(calls[1]!.body!)).toMatchObject({ action: "approve", comment: "ok" });
-    await expect(api.session("missing")).rejects.toBeInstanceOf(ConsyrionApiError);
+    await expect(api.session("missing")).rejects.toBeInstanceOf(ConsyriumApiError);
   });
 });
 
@@ -91,13 +91,15 @@ describe("webview html", () => {
 
 describe("server URL (QA 07.11.26)", () => {
   it("maps the redirecting website domain to the app and keeps other addresses", () => {
-    expect(normalizeServerUrl("https://consyrion.com")).toBe("https://app.consyrion.com");
-    expect(normalizeServerUrl("https://www.consyrion.com/")).toBe("https://app.consyrion.com");
-    expect(normalizeServerUrl("https://consyrion.example.org/")).toBe("https://consyrion.example.org");
+    expect(normalizeServerUrl("https://consyrion.com")).toBe("https://app.consyrium.com");
+    expect(normalizeServerUrl("https://consyrium.com")).toBe("https://app.consyrium.com");
+    expect(normalizeServerUrl("https://app.consyrion.com/")).toBe("https://app.consyrium.com");
+    expect(normalizeServerUrl("https://www.consyrion.com/")).toBe("https://app.consyrium.com");
+    expect(normalizeServerUrl("https://consyrium.example.org/")).toBe("https://consyrium.example.org");
   });
 
   it("explains a web page answer instead of failing on JSON", async () => {
-    const api = new ConsyrionApi(
+    const api = new ConsyriumApi(
       "https://self.example",
       "cns_x",
       async () => new Response("<!DOCTYPE html><html></html>", { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }),

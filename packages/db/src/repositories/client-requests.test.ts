@@ -25,7 +25,7 @@ afterAll(async () => {
   await handle.close();
 });
 
-describe("decision requests from external clients (ask_consyrion)", () => {
+describe("decision requests from external clients (ask_consyrium)", () => {
   it("creates a ready project whose requirement list is confirmed from the user's own requirements – a council can start", async () => {
     const { project, requirements } = await createProjectForDecisionRequest(
       handle.db,

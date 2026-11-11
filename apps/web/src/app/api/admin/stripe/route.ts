@@ -1,5 +1,5 @@
-import { setupStripe, stripeStatus } from "@consyrion/billing";
-import { DomainError } from "@consyrion/core";
+import { setupStripe, stripeStatus } from "@consyrium/billing";
+import { DomainError } from "@consyrium/core";
 import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/server/admin";
 import { handle, readJson } from "@/lib/server/api";

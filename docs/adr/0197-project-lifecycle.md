@@ -84,7 +84,7 @@ listed under "Archive" on the projects page; the decisions list hides their sess
 
 Before deleting, the dialog shows real counts (sessions, decisions, builds, documents, running jobs, sent reports,
 draft PRs), requires the typed name and embeds `DeletionNotice` (#206): already running model calls may still be
-billed by the provider; GitHub PRs, sent reports and backups (until their retention ends) are not deleted by CONSYRION.
+billed by the provider; GitHub PRs, sent reports and backups (until their retention ends) are not deleted by CONSYRIUM.
 
 ### 4.5 Data
 

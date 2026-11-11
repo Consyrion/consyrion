@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /**
  * Post-deploy smoke check: a real e-mail sign-in with a verified test account lands on /dashboard.
  * Credentials come only from the environment (SMOKE_EMAIL, SMOKE_PASSWORD) – never from the repository.
- * Run: SMOKE_BASE_URL=https://app.consyrion.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrion/web e2e:smoke
+ * Run: SMOKE_BASE_URL=https://app.consyrium.com SMOKE_EMAIL=… SMOKE_PASSWORD=… pnpm --filter @consyrium/web e2e:smoke
  */
 test("e-mail sign-in lands on the dashboard", async ({ page }) => {
   const email = process.env.SMOKE_EMAIL;

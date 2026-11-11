@@ -2,14 +2,14 @@
 
 | Package | Command | What is covered |
 |---|---|---|
-| `packages/core` | `pnpm --filter @consyrion/core test` | RBAC matrix, encryption (round trip, tamper, tenant binding, rotation), phase names, weights |
-| `packages/db` | `pnpm --filter @consyrion/db test` | Real SQL on in-memory PGlite: migrations, org creation, tenant isolation, roles, brief versioning, credential storage |
-| `packages/ai` | `pnpm --filter @consyrion/ai test` | Adapter contract tests with **mocked SDK clients**, retry policy, model discovery error isolation |
-| `packages/council` | `pnpm --filter @consyrion/council test` | Full council runs on PGlite with **scripted test models** (test/scripted-adapter.ts): isolation of Independent Thinking, reveal, 11:1 security block, refuted/unresolved objections, failing model, budget stop, cancel, crash resume, mode differences, approval gate, more-debate cycle, tenant isolation, queue locking |
-| `packages/build` | `pnpm --filter @consyrion/build test` | Execution Council with scripted engineers and a fake sandbox: approval and feasibility gates, DAG order, repair loop, reviews, resume of failed tasks, GitHub flow |
-| `packages/github` | `pnpm --filter @consyrion/github test` | App JWT, webhook signatures, state, scoped tokens, snapshot and pull-request secret filters, draft PR without touching the base branch |
-| `apps/web` | `pnpm --filter @consyrion/web test` | API error mapping, no leakage of internal errors, design-system components, execution status |
-| `apps/web` (E2E) | `pnpm --filter @consyrion/web e2e` (CI job `e2e-auth`) | Auth flows in a real browser against the production build: sign-up, verification link, sign-in (verified/unverified/wrong password), sign-out, second account in the same browser, password reset ([apps/web/e2e/README.md](../apps/web/e2e/README.md)) |
+| `packages/core` | `pnpm --filter @consyrium/core test` | RBAC matrix, encryption (round trip, tamper, tenant binding, rotation), phase names, weights |
+| `packages/db` | `pnpm --filter @consyrium/db test` | Real SQL on in-memory PGlite: migrations, org creation, tenant isolation, roles, brief versioning, credential storage |
+| `packages/ai` | `pnpm --filter @consyrium/ai test` | Adapter contract tests with **mocked SDK clients**, retry policy, model discovery error isolation |
+| `packages/council` | `pnpm --filter @consyrium/council test` | Full council runs on PGlite with **scripted test models** (test/scripted-adapter.ts): isolation of Independent Thinking, reveal, 11:1 security block, refuted/unresolved objections, failing model, budget stop, cancel, crash resume, mode differences, approval gate, more-debate cycle, tenant isolation, queue locking |
+| `packages/build` | `pnpm --filter @consyrium/build test` | Execution Council with scripted engineers and a fake sandbox: approval and feasibility gates, DAG order, repair loop, reviews, resume of failed tasks, GitHub flow |
+| `packages/github` | `pnpm --filter @consyrium/github test` | App JWT, webhook signatures, state, scoped tokens, snapshot and pull-request secret filters, draft PR without touching the base branch |
+| `apps/web` | `pnpm --filter @consyrium/web test` | API error mapping, no leakage of internal errors, design-system components, execution status |
+| `apps/web` (E2E) | `pnpm --filter @consyrium/web e2e` (CI job `e2e-auth`) | Auth flows in a real browser against the production build: sign-up, verification link, sign-in (verified/unverified/wrong password), sign-out, second account in the same browser, password reset ([apps/web/e2e/README.md](../apps/web/e2e/README.md)) |
 
 ## Real provider end-to-end tests
 Run locally with the user's own keys on 26 Oct 2026 (BYOK; keys are entered by the user in the app, never in the
@@ -35,7 +35,7 @@ Screenshots of the running app are in `docs/screenshots/m1/`.
 ## Golden cases (evaluation harness, #33)
 `packages/council/eval/` runs fixed decision scenarios through the real engine with deterministic models and
 checks properties of the outcome (winner, tie, blocking objection, confidence, failed models). It runs in CI as
-part of the council tests and prints a report with `pnpm --filter @consyrion/council eval`. Limits and how
+part of the council tests and prints a report with `pnpm --filter @consyrium/council eval`. Limits and how
 to add cases: `packages/council/eval/README.md`.
 
 

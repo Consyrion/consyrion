@@ -1,9 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { answerStreamer, argsSchema, assistantToolMode, isInternalHref, reviewQuestion, runAssistant, summarizeChat, systemPrompt, withSummary } =
-  await import("./assistant");
-const { ProviderError } = await import("@consyrion/ai");
+const {
+  answerStreamer,
+  argsSchema,
+  assistantToolMode,
+  cardMissing,
+  rawToolCalls,
+  withActionFacts,
+  isInternalHref,
+  parseChecklist,
+  reviewQuestion,
+  runAssistant,
+  summarizeChat,
+  systemPrompt,
+  withSummary,
+} = await import("./assistant");
+const { ProviderError } = await import("@consyrium/ai");
 
 /** Scripted model: returns the given steps in order (test double, not a real provider). */
 function scripted(steps: unknown[]) {
@@ -78,7 +91,7 @@ describe("assistant (#278): read-only tools in a JSON loop", () => {
 
   it("tells the model it is read-only, in the user's language, and allows only app-internal links", () => {
     const prompt = systemPrompt(tools, "de", "session ses_1");
-    expect(prompt).toContain("You cannot approve, reject, start a council, start a build, delete or change anything");
+    expect(prompt).toContain("You cannot approve, reject, start a council yourself, start a build, delete or change anything");
     expect(prompt).toContain("German");
     expect(prompt).toContain("language of the user's latest message"); // question language wins over UI language (#275)
     expect(prompt).toContain("make it a council"); // #241 stage 3: council chat → project draft via action cards
@@ -155,7 +168,9 @@ describe("assistant (#278): read-only tools in a JSON loop", () => {
     ]);
     const prompt = systemPrompt(tools, "en", null);
     expect(prompt).toContain("prepare_council");
-    expect(prompt).toContain("Never suggest approve, reject, starting a council or build");
+    expect(prompt).toContain("Never suggest approve, reject, a build, deleting");
+    // #215 stage 2: a council start is only a card the user confirms – never claimed as done.
+    expect(prompt).toContain("Never claim the council started.");
     expect(prompt).toContain("never replacements like ae/oe/ue");
   });
 
@@ -314,7 +329,10 @@ describe("native tool calling loop (#284)", () => {
     expect(result.answer).toBe("JSON answer");
     expect(rejected.calls[1]!.jsonSchema).toBeDefined();
     // A native round that succeeded before the fallback still counts (ChatGPT review 08.11.26).
-    const late = native([{ text: "", toolCalls: [{ id: "a", name: "list_sessions", args: {} }] }, new ProviderError("anthropic", "bad_request", "bad tool result")]);
+    const late = native([
+      { text: "", toolCalls: [{ id: "a", name: "list_sessions", args: {} }] },
+      new ProviderError("anthropic", "bad_request", "bad tool result"),
+    ]);
     const lateResult = await runAssistant({ ...base, adapter: late.adapter as never, question: "?", tools });
     expect(lateResult.answer).toBe("JSON answer");
     expect(lateResult.usage).toEqual({ inputTokens: 15, outputTokens: 8 });
@@ -366,5 +384,143 @@ describe("summary of long chats (#280)", () => {
     expect(sent[0]!.system).toContain("German");
     expect(sent[0]!.messages[0]!.content).toContain("<previous_summary>\n- frühere Kurzfassung");
     expect(sent[0]!.messages[0]!.content).toContain("USER: Welche Schritte sind offen?\n\nASSISTANT: Zwei: [A](/sessions/ses_a)");
+  });
+});
+
+describe("interview mode (#215 stage 1)", () => {
+  it("asks with the interview rules and schema, uses the JSON loop even in native mode, and returns the checklist", async () => {
+    const requests: Array<{ system?: string; jsonSchema?: { name: string; schema: Record<string, unknown> }; tools?: unknown }> = [];
+    const adapter = {
+      provider: "anthropic" as const,
+      listModels: async () => [],
+      generate: async (req: (typeof requests)[number]) => {
+        requests.push(req);
+        const json = {
+          tool_calls: [],
+          answer: "Welche Optionen vergleichst du?",
+          actions: [],
+          checklist: [
+            { key: "decision", status: "answered", note: "Datenbank wählen" },
+            { key: "constraints", status: "assumed", note: "Budget unter 50 €" },
+            { key: "drop_tables", status: "answered", note: "x" },
+          ],
+        };
+        return {
+          provider: "anthropic" as const,
+          model: "m",
+          text: JSON.stringify(json),
+          json,
+          stopReason: "completed" as const,
+          usage: { inputTokens: 10, outputTokens: 5 },
+        };
+      },
+    };
+    const result = await runAssistant({
+      adapter,
+      model: "m",
+      history: [],
+      question: "Ich brauche eine Datenbank.",
+      locale: "de",
+      context: null,
+      tools,
+      mode: "native",
+      interview: true,
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.tools).toBeUndefined(); // JSON loop, not native tools
+    expect(requests[0]!.jsonSchema!.name).toBe("assistant_interview_step");
+    expect(requests[0]!.jsonSchema!.schema.required as string[]).toContain("checklist");
+    expect(requests[0]!.system).toContain("INTERVIEW MODE (#215)");
+    expect(requests[0]!.system).toContain("Ask at most 3 questions per answer");
+    expect(requests[0]!.system).toContain("never turn them into hard requirements");
+    // #215 stage 3: options, assumptions and the leaning go into [context] sections; extra options only after a yes.
+    expect(requests[0]!.system).toContain('" [context]" exactly');
+    expect(requests[0]!.system).toContain("add them ONLY after the user says yes in this chat");
+    expect(requests[0]!.system).toContain("never assumptions, never the leaning, never an option");
+    expect(result.checklist).toEqual([
+      { key: "decision", status: "answered", note: "Datenbank wählen" },
+      { key: "constraints", status: "assumed", note: "Budget unter 50 €" },
+    ]);
+  });
+
+  it("keeps known keys in a fixed order and treats unknown statuses as open", () => {
+    expect(parseChecklist(null)).toEqual([]);
+    expect(
+      parseChecklist([
+        { key: "scope", status: "done", note: " nur Entscheidung " },
+        { key: "decision", status: "answered", note: "A oder B" },
+      ]),
+    ).toEqual([
+      { key: "decision", status: "answered", note: "A oder B" },
+      { key: "scope", status: "open", note: "nur Entscheidung" },
+    ]);
+  });
+
+  it("returns no checklist outside interview mode", async () => {
+    const { adapter } = scripted([{ tool_calls: [], answer: "ok", actions: [] }]);
+    const result = await runAssistant({ adapter, model: "m", history: [], question: "?", locale: "en", context: null, tools });
+    expect(result.checklist).toBeUndefined();
+  });
+});
+
+describe("cards that go missing and tool calls written as text (#583)", () => {
+  it("runs tool calls a model wrote as text with a stray closing tag instead of showing them (DeepSeek 09.11.26)", async () => {
+    const raw = '[{"name": "list_sessions", "arguments": {"status": "completed"}}]</tool_calls>';
+    const calls: unknown[] = [];
+    const adapter = {
+      provider: "deepseek" as const,
+      listModels: async () => [],
+      generate: async (req: { messages: unknown[] }) => {
+        calls.push(req.messages.length);
+        const first = calls.length === 1;
+        const json = first ? null : { tool_calls: [], answer: "One decision is done.", actions: [] };
+        return {
+          provider: "deepseek" as const,
+          model: "deepseek-chat",
+          text: first ? raw : JSON.stringify(json),
+          json,
+          stopReason: "completed" as const,
+          usage: { inputTokens: 10, outputTokens: 5 },
+        };
+      },
+    };
+    const result = await runAssistant({
+      adapter: adapter as never,
+      model: "deepseek-chat",
+      history: [],
+      question: "status?",
+      locale: "en",
+      context: null,
+      tools,
+    });
+    expect(result.answer).toBe("One decision is done.");
+    expect(result.tools).toEqual([{ name: "list_sessions", args: { status: "completed" } }]);
+    expect(result.answer).not.toContain("tool_calls");
+  });
+
+  it("recognises the common shapes of textual tool calls and nothing else", () => {
+    expect(rawToolCalls('<tool_calls>[{"name":"search","arguments":"{\\"q\\":\\"x\\"}"}]</tool_calls>')).toEqual([{ name: "search", args: { q: "x" } }]);
+    expect(rawToolCalls('[{"type":"function","function":{"name":"list_projects","arguments":{}}}]')).toEqual([{ name: "list_projects", args: {} }]);
+    expect(rawToolCalls("[1] First point, [2] second point")).toBeNull();
+    expect(rawToolCalls('[{"title":"not a call"}]')).toBeNull();
+    expect(rawToolCalls("A normal answer.")).toBeNull();
+  });
+
+  it("marks an answer whose card was dropped or was asked for and did not come – never one that has its card", () => {
+    expect(cardMissing({ suggested: 1, accepted: 0, expected: false })).toBe(true);
+    expect(cardMissing({ suggested: 0, accepted: 0, expected: true })).toBe(true);
+    expect(cardMissing({ suggested: 2, accepted: 1, expected: true })).toBe(false);
+    expect(cardMissing({ suggested: 0, accepted: 0, expected: false })).toBe(false);
+  });
+
+  it("adds what happened to earlier cards to the history as app records", () => {
+    const done = withActionFacts("Card is ready.", [
+      { type: "create_project_draft", status: "executed", params: { name: "IS-U" }, result: { label: "IS-U nutzen", href: "/projects/prj_1" } },
+    ]);
+    expect(done).toContain("Card is ready.");
+    expect(done).toContain("IS-U nutzen (/projects/prj_1)");
+    expect(withActionFacts("x", [{ type: "create_project_draft", status: "proposed", params: { name: "IS-U" } }])).toContain("does not exist yet");
+    expect(withActionFacts("x", [])).toBe("x");
+    expect(withActionFacts("x", null)).toBe("x");
   });
 });

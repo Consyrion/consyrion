@@ -1,4 +1,4 @@
-import { recordMeasurement } from "@consyrion/council";
+import { recordMeasurement } from "@consyrium/council";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

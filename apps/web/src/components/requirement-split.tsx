@@ -1,6 +1,6 @@
 "use client";
 
-import { splitPartLetter, type RequirementDecomposition } from "@consyrion/core/browser";
+import { splitPartLetter, type RequirementDecomposition } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { Button } from "./ui/button";
 

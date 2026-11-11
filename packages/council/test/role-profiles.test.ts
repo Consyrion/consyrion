@@ -3,7 +3,7 @@
  * never an extra model, vote or reviewer, and it cannot break out of its frame.
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   archiveRoleProfile,
   createCredential,
@@ -17,7 +17,7 @@ import {
   setSubscriptionPlan,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSession, getSessionView, runSession, type SessionInput } from "../src";

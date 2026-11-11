@@ -7,7 +7,7 @@ export async function generateMetadata() {
   return { title: t("publicTitle"), description: t("publicDescription") };
 }
 
-/** Public overview of every tool CONSYRION AI connects to; same grid as Settings → Integrations. */
+/** Public overview of every tool CONSYRIUM AI connects to; same grid as Settings → Integrations. */
 export default async function PublicIntegrationsPage() {
   const t = await getTranslations("settings.connect");
   return (

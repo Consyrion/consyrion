@@ -1,5 +1,5 @@
-import { can, isUnlimited } from "@consyrion/core";
-import { getEntitlements, listSkills } from "@consyrion/db";
+import { can, isUnlimited } from "@consyrium/core";
+import { getEntitlements, listSkills } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { SkillManager } from "@/components/skills/skill-manager";
 import { PageHeader } from "@/components/ui/surface";

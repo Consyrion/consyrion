@@ -5,7 +5,7 @@
  * version-2 verdict (approval, more debate, repeat evaluation).
  */
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createCredential,
   createDatabase,
@@ -17,8 +17,8 @@ import {
   updateBrief,
   type ActorContext,
   type DatabaseHandle,
-} from "@consyrion/db";
-import { engine } from "@consyrion/engine";
+} from "@consyrium/db";
+import { engine } from "@consyrium/engine";
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -353,7 +353,7 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
   it.skipIf(engine.info.kind !== "production")(
     "measured requirements (Council 1, 30.10.26): a model's 'not proven' on the go-live no longer blocks when every estimate keeps the limit",
     async () => {
-      const { latestRequirementList } = await import("@consyrion/db");
+      const { latestRequirementList } = await import("@consyrium/db");
       const list = (await latestRequirementList(handle.db, actor, projectId))!;
       const goLive = list.items.find((i) => /Go-live/.test(i.text))!;
       expect(goLive.measure).toEqual({ direction: "max", value: 4, unit: "months" });
@@ -394,7 +394,7 @@ describe("S1 gate orchestration (#181, gate version 2)", () => {
   );
 
   it("test case 30.10.26: a reversed range (best case as low, worst as high) is stored in order", async () => {
-    const { latestRequirementList } = await import("@consyrion/db");
+    const { latestRequirementList } = await import("@consyrium/db");
     const list = (await latestRequirementList(handle.db, actor, projectId))!;
     const goLive = list.items.find((i) => /Go-live/.test(i.text))!;
     const reversed = council({
@@ -641,6 +641,18 @@ describe("#228/#229 follow-up round – same evaluators, append-only, a FAIL is 
       await expect(startFollowUp(handle.db, actor, id, { kind: "completion", tokenBudget: 10, confirmBudget: true })).rejects.toMatchObject({
         code: "VALIDATION",
       });
+      // Gesamttest 3 (HIGH): in an archived project the paid follow-up is neither offered nor started (#197).
+      const [sessionRow] = await handle.db
+        .select({ projectId: schema.councilSession.projectId })
+        .from(schema.councilSession)
+        .where(eq(schema.councilSession.id, id));
+      const projectId = sessionRow!.projectId;
+      await handle.db.update(schema.project).set({ status: "archived" }).where(eq(schema.project.id, projectId));
+      expect(await previewFollowUp(handle.db, actor, id)).toMatchObject({ available: false, reason: "archived" });
+      await expect(
+        startFollowUp(handle.db, actor, id, { kind: "completion", tokenBudget: preview.completion.estimatedTokens * 2, confirmBudget: true }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      await handle.db.update(schema.project).set({ status: "ready" }).where(eq(schema.project.id, projectId));
       const before = (await getSessionView(handle.db, actor, id)).session.tokenBudget;
       const started = await startFollowUp(handle.db, actor, id, {
         kind: "completion",

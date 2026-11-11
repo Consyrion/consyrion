@@ -1,4 +1,4 @@
-# Kritische Prüfung des Master-Briefs (#58 / „CONSYRION anforderung teil1.docx“)
+# Kritische Prüfung des Master-Briefs (#58 / „CONSYRIUM anforderung teil1.docx“)
 
 Stand 25.10.2026. Der Brief wurde mit ChatGPT erstellt. Diese Prüfung trennt, was übernommen wird, was
 angepasst wird und was als Risiko offen bleibt.
@@ -29,7 +29,7 @@ angepasst wird und was als Risiko offen bleibt.
 - README nannte Firebase, der Brief PostgreSQL. Umgesetzt: PostgreSQL.
 - Doppelte Issues: #19 = #21, #20 = #22. Viele Issues tragen dieselbe generische Checkliste ohne konkrete Abnahmekriterien.
 - Mockups zeigen veraltete Modellnamen (GPT-4o, Claude 3.5, Gemini 1.5). Die App lädt Modelle live und zeigt keine festen Namen.
-- „12 Minds“ lehnt sich an „12 Angry Men“ an; der Brief verlangt zu Recht, Filmtitel nicht zu verwenden. Der Name selbst ist unkritisch, sollte aber in die Markenprüfung (siehe CONSYRION_BRAND_CHECK.md, Risiko „Consirion“).
+- „12 Minds“ lehnt sich an „12 Angry Men“ an; der Brief verlangt zu Recht, Filmtitel nicht zu verwenden. Der Name selbst ist unkritisch, sollte aber in die Markenprüfung (siehe CONSYRIUM_BRAND_CHECK.md, Risiko „Consirion“).
 
 ## Empfehlung zur Reihenfolge
 1. M2 Entscheidungs-Engine + M3 Oberfläche (der eigentliche Produktkern).

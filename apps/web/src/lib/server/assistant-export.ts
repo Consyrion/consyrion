@@ -98,5 +98,5 @@ export function exportFileName(title: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60)
     .toLowerCase();
-  return `consyrion-chat-${slug || "export"}.md`;
+  return `consyrium-chat-${slug || "export"}.md`;
 }

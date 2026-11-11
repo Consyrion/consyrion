@@ -1,6 +1,8 @@
-import { getPublicSkill } from "@consyrion/db";
+import { getPublicSkill } from "@consyrium/db";
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
+import type { RoleProfileContent, SkillContent } from "@consyrium/core";
+import { PublicRoleProfile } from "@/components/role-profiles/public-role-profile";
 import { PublicSkillActions } from "@/components/skills/public-skill-actions";
 import { getDb } from "@/lib/server/db";
 
@@ -31,7 +33,8 @@ export default async function PublicSkillPage({ params }: Params) {
   const tRoles = await getTranslations("roleSuggestion.names");
   const tCriteria = await getTranslations("skills.criteria");
   const format = await getFormatter();
-  const c = skill.content;
+  const isSkill = skill.kind === "skill";
+  const c = (isSkill ? skill.content : {}) as SkillContent;
   const section = (title: string, body: React.ReactNode) => (
     <section className="mt-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{title}</h2>
@@ -41,7 +44,8 @@ export default async function PublicSkillPage({ params }: Params) {
   return (
     <article>
       <p className="text-xs text-muted">
-        {tCategory(skill.category)} · @{skill.handle}
+        {isSkill ? tCategory(skill.category) : `${t("kinds.role_profile")} · ${tRoles.has(skill.category) ? tRoles(skill.category) : skill.category}`} ·{" "}
+        {skill.publisherName ? `${skill.publisherName} (@${skill.handle})` : `@${skill.handle}`}
       </p>
       <h1 className="mt-1 text-2xl font-semibold">{skill.name}</h1>
       <p className="mt-2">{skill.summary}</p>
@@ -54,7 +58,8 @@ export default async function PublicSkillPage({ params }: Params) {
         <span className="rounded-full border border-line px-2 py-0.5">{skill.license}</span>
         <span className="rounded-full border border-line px-2 py-0.5">{t("detail.uses", { n: skill.uses ?? 0 })}</span>
       </p>
-      <PublicSkillActions handle={skill.handle} slug={skill.slug} />
+      <PublicSkillActions handle={skill.handle} slug={skill.slug} kind={isSkill ? "skill" : "role_profile"} />
+      {!isSkill ? <PublicRoleProfile content={skill.content as RoleProfileContent} /> : null}
       {c.roles?.length ? section(t("detail.perspectives"), <p>{c.roles.map((r) => (tRoles.has(r) ? tRoles(r) : r)).join(", ")}</p>) : null}
       {c.requirementBlocks?.length
         ? section(
@@ -81,7 +86,7 @@ export default async function PublicSkillPage({ params }: Params) {
       {skill.changelog ? section(t("detail.changelog"), <p className="whitespace-pre-wrap break-words">{skill.changelog}</p>) : null}
       {section(t("detail.hash"), <code className="break-all text-xs">{skill.contentHash}</code>)}
       <p className="mt-10 text-xs text-muted">{t("detail.licenseText", { license: skill.license, handle: skill.handle })}</p>
-      <p className="mt-2 text-xs text-muted">{t("disclaimer")}</p>
+      <p className="mt-2 text-xs text-muted">{skill.handle === "consyrium" ? t("disclaimerOfficial") : t("disclaimer")}</p>
     </article>
   );
 }

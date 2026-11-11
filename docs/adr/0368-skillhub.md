@@ -7,7 +7,7 @@ Status: **accepted (08.11.2026)** – the owner approved the full SkillHub (not 
 ## Decisions (owner, 08.11.2026)
 
 1. **Reviewer key – documented exception to BYOK, approved by the owner on 08.11.2026.** The model review of skills
-   submitted to the public hub on **consyrion.com** runs on a platform key. Limits of the exception:
+   submitted to the public hub on **consyrium.com** runs on a platform key. Limits of the exception:
    - only for the SkillHub publication review – never for councils, the assistant or any user request;
    - stored encrypted in `platform_setting` (same envelope as provider keys), set by a platform admin, never shown again,
      never in the client, logs or audit metadata;
@@ -27,6 +27,26 @@ Status: **accepted (08.11.2026)** – the owner approved the full SkillHub (not 
    after the ClawHavoc malware skills).
 6. **Reports** go to the admin queue and never hide a skill automatically (ClawHub dropped its "4 reports hide a skill"
    rule on 11.09.2026 after it was abused).
+
+### Addendum 08.11.2026 – expert profiles as a hub type
+
+The owner decided on 08.11.2026 that **expert profiles (#270, `role_profile`) are a publishable SkillHub type of their
+own**, with the same pipeline as skills: static scan, model review, admin approval, CC BY 4.0, reports, immutable
+versions. **The documented BYOK exception for the reviewer key (decision 1) also applies to expert profiles**, with the
+same caps per review and per month. Profiles are chosen per council role, never per model.
+
+Implementation: `skill.kind` (`skill` | `role_profile`, migration 0054) carries the type through submission, queue,
+moderation, reports, re-scan and the public catalog (filter "type"). Each type plugs in one adapter
+(`packages/core/src/hub-content.ts`: validate, fields for scan and review, display, review meta, hash); the profile
+adapter, publishing from Settings → Role profiles and adopting a profile (`role_profile.forked_from`) are delivered by
+the role-profile work stream. Hub entries of other kinds never appear among a workspace's skills.
+
+### Owner decision 08.11.2026 – platform admins and the account age
+
+**Owner decision 08.11.2026:** platform admins (PLATFORM_ADMIN_EMAILS with a verified address – the same check as for the
+reserved handles) are exempt from the 14-day account age when submitting. Everything else still applies to them: Pro,
+verified e-mail, static scan, model review or admin approval (no automatic bypass), red never publishable. The submission
+is logged with `gateException: "platform_admin"` in `skill_moderation_log`. For everyone else the upload gate is unchanged.
 
 ## Build plan (approved order)
 
@@ -61,7 +81,7 @@ ask for human sign-off") passes the pattern scan (201).
 
 - `/skills` and `/skills/<slug>` public, without login, server-rendered, cached, indexable.
 - Content: **only skills curated by us** (the five official ones plus new official ones). No third-party text.
-- "Open in CONSYRION AI" → login → council setup with `?skill=official:<slug>` (exists already).
+- "Open in CONSYRIUM AI" → login → council setup with `?skill=official:<slug>` (exists already).
 - The page shows description, category, perspectives, requirement blocks, weights, rules, version, changelog, hash.
 - No counters, ratings or reports needed.
 - Risk: very low (our own text). Main work: public route without a session, caching, SEO, i18n.
@@ -101,7 +121,7 @@ and hiding.**
 | Secrets / personal data in a skill                                              | Data leak, GDPR                                 | V1 scan (keys, e-mail) plus phone numbers, IBAN, name heuristics, Base64 blocks                                                                                              |
 | Spam / SEO abuse / links                                                        | Worthless catalog, phishing                     | Upload gate (verified, account age, Pro), rate limit, no clickable external links in the public rendering (text only; `rel="nofollow"` if ever)                              |
 | Impersonation (`@microsoft/…`, "Official")                                      | Abuse of trust                                  | Reserved handles, "Official" only for our skills, report reason                                                                                                              |
-| Liability / legal advice (a third-party "GDPR check")                           | Liability and reputation                        | Required note "Community skill, no legal advice, not reviewed by CONSYRION AI"; terms clause; notice-and-takedown process                                                    |
+| Liability / legal advice (a third-party "GDPR check")                           | Liability and reputation                        | Required note "Community skill, no legal advice, not reviewed by CONSYRIUM AI"; terms clause; notice-and-takedown process                                                    |
 | Copyright (copied checklists, standards)                                        | Legal notice                                    | Licence confirmation when publishing; report → hide                                                                                                                          |
 | Load on public routes                                                           | Outage                                          | Caching, per-IP rate limit, no uncached database access                                                                                                                      |
 | Later change / takedown                                                         | Past decisions change                           | Exists: the session stores id, version, hash and the knowledge text (snapshot)                                                                                               |
@@ -120,7 +140,7 @@ and hiding.**
    get around the gate, the scoring, the approval or the review breadth; a hit gives `review` instead of `passed`.
    **Conflict with CLAUDE.md:** #423 names an "operator key of the hub". That contradicts the BYOK rule (no
    operator-owned key). Options: (a) the checker runs on the **publisher's** key (BYOK, small fixed budget, cost shown
-   upfront); (b) an exception only for the hosted hub on consyrion.com, explicitly approved by the owner and documented;
+   upfront); (b) an exception only for the hosted hub on consyrium.com, explicitly approved by the owner and documented;
    (c) no model, a human approves every first version instead. **Decision needed.** Recommendation: (a), fallback (c).
 5. **Quarantine:** new versions start `pending`; `review` goes to the admin queue; `blocked` is never usable; only
    `passed` is public.
@@ -137,8 +157,8 @@ and hiding.**
   public routes are read-only.
 - The admin area `/admin` exists → the moderation queue builds on it.
 - Legal: terms/imprint additions, choice of licence (owner).
-- Self-hosted (AGPL): the hub is a service of consyrion.com. Self-hosted instances could read it (read-only import);
-  publishing only on consyrion.com. Whether self-hosted installations connect at all is open.
+- Self-hosted (AGPL): the hub is a service of consyrium.com. Self-hosted instances could read it (read-only import);
+  publishing only on consyrium.com. Whether self-hosted installations connect at all is open.
 
 ## Open decisions for the owner
 

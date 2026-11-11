@@ -7,9 +7,9 @@ import {
   reportTranslator,
   type DecisionReport,
   type ReportLocale,
-} from "@consyrion/council";
-import { assertCan, DomainError, type Keyring } from "@consyrion/core";
-import { deliveryConnectionForUse, listMembers, recordDelivery, setProjectDeliveryDefault, type ActorContext, type Database } from "@consyrion/db";
+} from "@consyrium/council";
+import { assertCan, DomainError, type Keyring } from "@consyrium/core";
+import { deliveryConnectionForUse, listMembers, recordDelivery, setProjectDeliveryDefault, type ActorContext, type Database } from "@consyrium/db";
 import { z } from "zod";
 import { pdfLocale, reportBlocks, reportPdf } from "./report-documents";
 import { reportStatus } from "./report-status";
@@ -126,7 +126,7 @@ export function deliverySummary(report: DecisionReport, link: string, locale: Re
   const r = report.recommendedSolution;
   const confidence = report.evaluationMatrix?.confidence;
   return [
-    `CONSYRION AI – ${report.project}`,
+    `CONSYRIUM AI – ${report.project}`,
     t(report.outcomeText),
     r ? `${approvable ? t("Recommended") : t("Leading proposal (not approvable)")}: ${t("Proposal {label}", { label: r.label })} – ${r.title ?? ""}` : null,
     approvable ? null : t("Not approvable: this verdict cannot be approved or built."),
@@ -171,7 +171,7 @@ export async function deliverDecision(db: Database, actor: ActorContext, keyring
       { locale: docLocale, status: reportStatus(view, docLocale), verdictId: view.decision?.id ?? null },
     ),
   );
-  const filename = `consyrion-decision-${sessionId}.pdf`;
+  const filename = `consyrium-decision-${sessionId}.pdf`;
   const doFetch = deps.fetch ?? fetch;
 
   let recipient = "";
@@ -188,7 +188,7 @@ export async function deliverDecision(db: Database, actor: ActorContext, keyring
       const send = deps.sendMail === undefined ? await smtpSenderFromEnv() : deps.sendMail;
       if (!send) throw new Error("E-mail is not configured on this server (SMTP_URL)");
       await send({
-        from: deps.mailFrom ?? process.env.MAIL_FROM ?? "CONSYRION AI <no-reply@consyrion.com>",
+        from: deps.mailFrom ?? process.env.MAIL_FROM ?? "CONSYRIUM AI <no-reply@consyrium.com>",
         to: data.recipients,
         subject: title,
         text: `${summary}\n\nThe full decision report is attached as PDF.`,
@@ -228,7 +228,7 @@ export async function deliverDecision(db: Database, actor: ActorContext, keyring
               storage: {
                 value:
                   reportStorageHtml(markdown) +
-                  (link ? `<p><a href="${escapeHtml(link)}">${escapeHtml(reportTranslator(locale)("Open in CONSYRION AI"))}</a></p>` : ""),
+                  (link ? `<p><a href="${escapeHtml(link)}">${escapeHtml(reportTranslator(locale)("Open in CONSYRIUM AI"))}</a></p>` : ""),
                 representation: "storage",
               },
             },

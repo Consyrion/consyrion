@@ -1,5 +1,5 @@
-import { createAdapter, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
 import {
   addAssistantMessage,
   assertAssistantBudget,
@@ -9,10 +9,10 @@ import {
   releaseAssistantUsage,
   reserveAssistantUsage,
   settleAssistantUsage,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
+import { isLocale, localeCookie } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";
 import { assistantToolMode, estimateAnswerTokens, reviewQuestion, runAssistant } from "@/lib/server/assistant";
@@ -45,7 +45,7 @@ export const POST = handle(async (request: Request, { params }: Params) => {
     const { question, answer } = await getAnswerForReview(db, actor, id, messageId);
     await assertAssistantBudget(db, actor);
     const { provider, secret } = await decryptCredentialForUse(db, actor, getKeyring(), credentialId);
-    const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+    const chosen = localeCookie(await cookies());
     const prompt = reviewQuestion(question, answer.content, answer.model);
     // #519: the estimated tokens are reserved against the user's limits before the call.
     const reservation = await reserveAssistantUsage(db, actor, { kind: "second_opinion", estimate: estimateAnswerTokens(0, prompt.length) });

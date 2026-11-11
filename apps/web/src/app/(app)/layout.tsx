@@ -1,5 +1,5 @@
-import { can, DEFAULT_PLAN, isSelfHosted } from "@consyrion/core";
-import { countNewFeedback, countUnreadFeedbackReplies, getEntitlements, listOrganizationsForUser, resolvePlatformAdmin } from "@consyrion/db";
+import { can, DEFAULT_PLAN, isSelfHosted } from "@consyrium/core";
+import { countNewFeedback, countUnreadFeedbackReplies, getEntitlements, listOrganizationsForUser, resolvePlatformAdmin } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";

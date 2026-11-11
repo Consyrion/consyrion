@@ -1,5 +1,5 @@
 import "server-only";
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 
 /**
  * Refuses a second identical paid request while the first one still runs (#510 load test: a double click on "second

@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -31,18 +31,18 @@ describe("API error mapping", () => {
 });
 
 describe("CSRF protection (#396)", () => {
-  const env = { BETTER_AUTH_URL: "https://app.consyrion.test" };
+  const env = { BETTER_AUTH_URL: "https://app.consyrium.test" };
   const req = (method: string, headers: Record<string, string> = {}) => new Request("http://0.0.0.0:3000/api/tokens", { method, headers });
 
   it("lets the app's own pages through", () => {
-    expect(() => assertSameOrigin(req("POST", { "sec-fetch-site": "same-origin", origin: "https://app.consyrion.test" }), env)).not.toThrow();
+    expect(() => assertSameOrigin(req("POST", { "sec-fetch-site": "same-origin", origin: "https://app.consyrium.test" }), env)).not.toThrow();
     // Local development: the request origin itself.
     expect(() => assertSameOrigin(new Request("http://localhost:3000/api/x", { method: "POST", headers: { origin: "http://localhost:3000" } }), {})).not.toThrow();
   });
 
   it("refuses cross-site and same-site (sibling subdomain) requests", () => {
     expect(() => assertSameOrigin(req("POST", { "sec-fetch-site": "cross-site", origin: "https://evil.test" }), env)).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
-    expect(() => assertSameOrigin(req("DELETE", { "sec-fetch-site": "same-site", origin: "https://blog.consyrion.test" }), env)).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
+    expect(() => assertSameOrigin(req("DELETE", { "sec-fetch-site": "same-site", origin: "https://blog.consyrium.test" }), env)).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
     // Older browsers without Sec-Fetch-Site still send Origin.
     expect(() => assertSameOrigin(req("PATCH", { origin: "https://evil.test" }), env)).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
     expect(() => assertSameOrigin(req("POST", { origin: "null" }), env)).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
@@ -72,7 +72,7 @@ describe("CSRF protection (#396)", () => {
     const form = new FormData();
     form.set("file", new File(["x"], "a.txt"));
     const upload = (headers: Record<string, string>) => new Request("http://0.0.0.0:3000/api/projects/p/documents", { method: "POST", headers, body: form });
-    expect(() => assertSameOrigin(upload({ "sec-fetch-site": "same-origin", origin: "https://app.consyrion.test" }), env)).not.toThrow();
+    expect(() => assertSameOrigin(upload({ "sec-fetch-site": "same-origin", origin: "https://app.consyrium.test" }), env)).not.toThrow();
     expect(() => assertSameOrigin(upload({ authorization: "Bearer cni_abc" }), env)).not.toThrow();
     expect(() => assertSameOrigin(upload({ "sec-fetch-site": "cross-site", origin: "https://evil.test" }), env)).toThrow(expect.objectContaining({ code: "FORBIDDEN" }));
   });

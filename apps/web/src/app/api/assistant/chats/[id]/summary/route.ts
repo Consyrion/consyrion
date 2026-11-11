@@ -1,5 +1,5 @@
-import { createAdapter, ProviderError } from "@consyrion/ai";
-import { DomainError } from "@consyrion/core";
+import { createAdapter, ProviderError } from "@consyrium/ai";
+import { DomainError } from "@consyrium/core";
 import {
   assertAssistantBudget,
   decryptCredentialForUse,
@@ -9,10 +9,10 @@ import {
   reserveAssistantUsage,
   settleAssistantUsage,
   setAssistantChatSummary,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/locales";
+import { isLocale, localeCookie } from "@/i18n/locales";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";
 import { estimateSummaryTokens, HISTORY_MESSAGES, summarizeChat } from "@/lib/server/assistant";
@@ -42,7 +42,7 @@ export const POST = handle(async (_request: Request, { params }: Params) => {
   if (!credentialId || !modelId) throw new DomainError("VALIDATION", "Choose a model from your AI providers");
   await assertAssistantBudget(db, actor);
   const { provider, secret } = await decryptCredentialForUse(db, actor, getKeyring(), credentialId);
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const chosen = localeCookie(await cookies());
   // #519: the estimated tokens are reserved against the user's limits before the call.
   const reservation = await reserveAssistantUsage(db, actor, {
     kind: "summary",

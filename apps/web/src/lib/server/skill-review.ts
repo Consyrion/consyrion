@@ -1,19 +1,19 @@
 import "server-only";
-import { createAdapter, PROVIDER_IDS, timeoutSignal, type AdapterFactory, type ProviderId } from "@consyrion/ai";
+import { createAdapter, PROVIDER_IDS, timeoutSignal, type AdapterFactory, type ProviderId } from "@consyrium/ai";
 import {
-  buildSkillReviewPrompt,
-  estimateSkillReviewTokens,
+  buildHubReviewPrompt,
+  estimateHubReviewTokens,
+  hubReviewFields,
   parseSkillReviewOutput,
   SKILL_REVIEW_JSON_SCHEMA,
   SKILL_REVIEW_PROMPT_VERSION,
   SKILL_REVIEWER_LIMITS,
   SKILL_REVIEWER_SETTING,
-  skillReviewFields,
   skillReviewPrecheck,
   type Keyring,
   type SkillAiReview,
   type SkillReviewSkipReason,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import {
   getPlatformSecret,
   getSkillReviewerConfig,
@@ -21,11 +21,11 @@ import {
   recordSkillAiReview,
   skillReviewTokensThisMonth,
   type Database,
-} from "@consyrion/db";
+} from "@consyrium/db";
 
 /**
  * SkillHub model review runner (#423 step 3). The ONLY place that decrypts the reviewer key – a platform key under the
- * documented BYOK exception the owner approved on 08.11.2026 (ADR 0368, decision 1): only on consyrion.com, only for
+ * documented BYOK exception the owner approved on 08.11.2026 (ADR 0368, decision 1): only on consyrium.com, only for
  * this review, with a cap per review and per month. A boundary test keeps every other module away from the secret.
  *
  * Red static results are never sent to the model. Every skip (disabled, no key, budget, provider error) means manual
@@ -57,14 +57,14 @@ export async function runSkillAiReview(
     settings: { ...settings, enabled: settings.enabled && PROVIDER_IDS.includes(provider) },
     hasKey,
     scan: target.scan,
-    estimatedTokens: estimateSkillReviewTokens(target.content, target.changelog),
+    estimatedTokens: estimateHubReviewTokens(target.kind, target.content, target.changelog),
     usedThisMonth: await skillReviewTokensThisMonth(db, now),
   });
   if (precheck) return skip(precheck);
 
   const apiKey = await getPlatformSecret(db, SKILL_REVIEWER_SETTING, keyring);
   if (!apiKey) return skip("no_key");
-  const { system, user } = buildSkillReviewPrompt(target.content, target.changelog);
+  const { system, user } = buildHubReviewPrompt(target.kind, target.content, target.changelog);
   let result;
   try {
     result = await (deps.adapterFactory ?? createAdapter)(provider, apiKey).generate({
@@ -82,7 +82,7 @@ export async function runSkillAiReview(
 
   const parsed = parseSkillReviewOutput(
     result.json,
-    skillReviewFields(target.content, target.changelog).map((f) => f.field),
+    hubReviewFields(target.kind, target.content, target.changelog).map((f) => f.field),
   );
   const review: SkillAiReview = {
     ...(parsed ?? { light: "yellow" as const, summary: "The reviewer output could not be read – manual review.", findings: [] }),

@@ -1,5 +1,5 @@
-import { PROVIDER_IDS, PROVIDER_LABELS } from "@consyrion/ai";
-import { stripeStatus } from "@consyrion/billing";
+import { PROVIDER_IDS, PROVIDER_LABELS } from "@consyrium/ai";
+import { stripeStatus } from "@consyrium/billing";
 import {
   countNewFeedback,
   requirementIntakeMetrics,
@@ -9,7 +9,7 @@ import {
   getSubscription,
   platformOverview,
   resolvePlatformAdmin,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";

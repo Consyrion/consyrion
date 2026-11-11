@@ -1,6 +1,6 @@
 "use client";
 
-import { SKILL_REPORT_REASONS } from "@consyrion/core/browser";
+import { SKILL_REPORT_REASONS } from "@consyrium/core/browser";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -13,7 +13,9 @@ import { Alert } from "../ui/surface";
  * Actions on a public skill page (#368 PR 6): adopt it as an own private copy, or report it to the admins. The page is
  * cached without login, so the session is checked by the API: a 401 shows the sign-in link instead.
  */
-export function PublicSkillActions({ handle, slug }: { handle: string; slug: string }) {
+export function PublicSkillActions({ handle, slug, kind = "skill" }: { handle: string; slug: string; kind?: "skill" | "role_profile" }) {
+  // An adopted expert profile becomes a private role profile (owner decision 08.11.26) – it lives under Role profiles.
+  const profile = kind === "role_profile";
   const t = useTranslations("skillHub.actions");
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<{ tone: "success" | "danger"; text: string; signIn?: boolean; mySkills?: boolean } | null>(null);
@@ -25,9 +27,11 @@ export function PublicSkillActions({ handle, slug }: { handle: string; slug: str
     setBusy(true);
     setState(null);
     try {
-      await fetchJson(path, { method: "POST", body: JSON.stringify({ handle, slug, ...body }) });
-      setState({ tone: "success", text: done, mySkills });
+      const res = (await fetchJson(path, { method: "POST", body: JSON.stringify({ handle, slug, ...body }) })) as { alreadyAdopted?: boolean } | undefined;
+      setState({ tone: "success", text: res?.alreadyAdopted ? t("alreadyAdopted") : done, mySkills });
       setReporting(false);
+      setReason("");
+      setNote("");
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 401) setState({ tone: "danger", text: t("signInNeeded"), signIn: true });
       else {
@@ -45,14 +49,14 @@ export function PublicSkillActions({ handle, slug }: { handle: string; slug: str
   return (
     <div className="mt-5 space-y-3">
       <span className="flex flex-wrap gap-2">
-        <Button disabled={busy} onClick={() => void call("/api/skills/hub/adopt", {}, t("adopted"), true)}>
-          {t("adopt")}
+        <Button disabled={busy} onClick={() => void call("/api/skills/hub/adopt", {}, profile ? t("adoptedProfile") : t("adopted"), true)}>
+          {profile ? t("adoptProfile") : t("adopt")}
         </Button>
         <Button variant="ghost" disabled={busy} aria-expanded={reporting} onClick={() => setReporting(!reporting)}>
           {t("report")}
         </Button>
       </span>
-      <p className="text-xs text-muted">{t("adoptHint")}</p>
+      <p className="text-xs text-muted">{profile ? t("adoptProfileHint") : t("adoptHint")}</p>
       {state ? (
         <Alert tone={state.tone}>
           {state.text}{" "}
@@ -62,8 +66,8 @@ export function PublicSkillActions({ handle, slug }: { handle: string; slug: str
             </Link>
           ) : null}
           {state.mySkills ? (
-            <Link className="underline" href="/settings/skills">
-              {t("mySkills")}
+            <Link className="underline" href={profile ? "/settings/role-profiles" : "/settings/skills"}>
+              {profile ? t("myProfiles") : t("mySkills")}
             </Link>
           ) : null}
         </Alert>

@@ -1,4 +1,4 @@
-import { createSkill, listSkills } from "@consyrion/db";
+import { createSkill, listSkills } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle, readJson } from "@/lib/server/api";

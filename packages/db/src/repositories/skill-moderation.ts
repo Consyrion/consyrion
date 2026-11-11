@@ -4,15 +4,17 @@ import {
   DomainError,
   normalizeSkillReviewerSettings,
   PUBLICATION_SCAN_RULES_VERSION,
-  scanSkillForPublication,
   SKILL_REVIEWER_SETTING,
-  validateSkillContent,
   type PublicationScanResult,
+  type HubKind,
+  type RoleProfileContent,
   type SkillContent,
   type SkillReviewActor,
   type SkillReviewLight,
   type SkillReviewStatus,
-} from "@consyrion/core";
+  scanHubContent,
+  validateHubContent,
+} from "@consyrium/core";
 import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
@@ -35,6 +37,8 @@ export type ModerationDecision = "approve" | "reject" | "quarantine" | "restore"
 
 export interface ReviewQueueItem {
   skillId: string;
+  /** HubKind (#368): decision skill or expert profile. */
+  kind: HubKind;
   name: string;
   version: number;
   status: SkillReviewStatus;
@@ -76,6 +80,7 @@ export async function listSkillReviewQueue(
     const ai = aiLightOf(v.aiReview);
     return {
       skillId: s.id,
+      kind: s.kind,
       name: s.name,
       version: v.version,
       status: v.reviewStatus,
@@ -96,7 +101,8 @@ export async function listSkillReviewQueue(
 }
 
 export interface ReviewItemDetail extends ReviewQueueItem {
-  content: SkillContent;
+  /** SkillContent or RoleProfileContent, depending on `kind`. */
+  content: SkillContent | RoleProfileContent;
   changelog: string | null;
   scan: PublicationScanResult | null;
   aiReview: Record<string, unknown> | null;
@@ -120,6 +126,7 @@ export async function getSkillReviewItem(db: Database, admin: PlatformAdminConte
   const ai = aiLightOf(row.version.aiReview);
   return {
     skillId,
+    kind: row.skill.kind,
     name: row.skill.name,
     version,
     status: row.version.reviewStatus,
@@ -135,7 +142,7 @@ export async function getSkillReviewItem(db: Database, admin: PlatformAdminConte
     submittedAt: row.version.submittedAt,
     publisherSuspended: Boolean(row.publisher?.suspendedAt),
     ownerUserId: row.skill.ownerUserId,
-    content: row.version.content as unknown as SkillContent,
+    content: row.version.content as unknown as SkillContent | RoleProfileContent,
     changelog: row.version.changelog,
     scan: row.version.scanResult ?? null,
     aiReview: row.version.aiReview ?? null,
@@ -226,9 +233,9 @@ async function applyDecision(
     if (input.decision === "approve" || input.decision === "restore") {
       // Re-check under the current rules before anything goes (back) towards public.
       if (!scan || scan.rulesVersion !== PUBLICATION_SCAN_RULES_VERSION) {
-        const checked = validateSkillContent(v.content);
+        const checked = validateHubContent(s.kind, v.content);
         if (!checked.ok) throw new DomainError("VALIDATION", checked.errors.join("; "));
-        scan = scanSkillForPublication(checked.content, { changelog: v.changelog });
+        scan = scanHubContent(s.kind, checked.content, { changelog: v.changelog });
         await tx.update(skillVersion).set({ scanResult: scan }).where(eq(skillVersion.id, v.id));
         await tx.insert(skillModerationLog).values({
           id: newId("sml"),
@@ -388,9 +395,9 @@ export async function rescanSkillVersions(db: Database, admin: PlatformAdminCont
   const summary: RescanSummary = { checked: rows.length, rescanned: 0, quarantined: [] };
   for (const { version: v, skill: s } of rows) {
     if (v.scanResult?.rulesVersion === PUBLICATION_SCAN_RULES_VERSION) continue;
-    const checked = validateSkillContent(v.content);
+    const checked = validateHubContent(s.kind, v.content);
     if (!checked.ok) continue;
-    const scan = scanSkillForPublication(checked.content, { changelog: v.changelog });
+    const scan = scanHubContent(s.kind, checked.content, { changelog: v.changelog });
     summary.rescanned++;
     const toQuarantine = scan.light === "red" && v.reviewStatus !== "quarantined";
     await db.transaction(async (tx) => {

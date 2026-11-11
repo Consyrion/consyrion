@@ -1,5 +1,5 @@
-import { can } from "@consyrion/core";
-import { listCredentials } from "@consyrion/db";
+import { can } from "@consyrium/core";
+import { listCredentials } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { ProviderSettings } from "@/components/provider-settings";
 import { Alert, PageHeader } from "@/components/ui/surface";

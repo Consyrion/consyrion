@@ -1,6 +1,6 @@
 "use client";
 
-import type { StrengthSuggestion, VoteWeightWarning } from "@consyrion/core/browser";
+import type { StrengthSuggestion, VoteWeightWarning } from "@consyrium/core/browser";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "./ui/button";

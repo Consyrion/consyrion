@@ -2,17 +2,20 @@ import {
   assertCan,
   canReviewTransition,
   DomainError,
-  scanSkillForPublication,
   SKILL_PUBLICATION_LICENSE,
   SKILL_PUBLISHER_MIN_ACCOUNT_AGE_DAYS,
   slugFromName,
+  validatePublisherDisplayName,
   validatePublisherHandle,
   validateSkillChangelog,
-  validateSkillContent,
   validateSkillSlug,
   type PublicationScanResult,
   type SkillReviewStatus,
-} from "@consyrion/core";
+  hubAdapter,
+  scanHubContent,
+  type HubKind,
+  validateHubContent,
+} from "@consyrium/core";
 import { and, desc, eq } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
@@ -33,13 +36,24 @@ export type PublisherEligibilityProblem = "plan" | "email_unverified" | "account
 
 export interface SkillPublisherStatus {
   handle: string | null;
+  displayName: string | null;
   suspended: boolean;
   problems: PublisherEligibilityProblem[];
   /** When the account reaches the minimum age (only with `account_too_new`). */
   eligibleFrom: string | null;
 }
 
-export async function getPublisherStatus(db: Database, ctx: ActorContext, now = new Date()): Promise<SkillPublisherStatus> {
+/**
+ * `platformAdmin` (owner decision 08.11.2026): platform admins – PLATFORM_ADMIN_EMAILS with a verified address, decided by
+ * the route – are exempt from the 14-day account age only. Pro, verified e-mail, scan, model review and the admin approval
+ * still apply; the submission is logged with `gateException: "platform_admin"`.
+ */
+export async function getPublisherStatus(
+  db: Database,
+  ctx: ActorContext,
+  now = new Date(),
+  options: { platformAdmin?: boolean } = {},
+): Promise<SkillPublisherStatus & { gateException: "platform_admin" | null }> {
   assertCan(ctx.role, "project:read");
   const [account] = await db.select({ emailVerified: user.emailVerified, createdAt: user.createdAt }).from(user).where(eq(user.id, ctx.userId));
   const [publisher] = await db.select().from(skillPublisher).where(eq(skillPublisher.userId, ctx.userId));
@@ -49,21 +63,24 @@ export async function getPublisherStatus(db: Database, ctx: ActorContext, now = 
   if (!entitlements.teamSkills) problems.push("plan");
   if (!account?.emailVerified) problems.push("email_unverified");
   const eligible = account ? new Date(account.createdAt.getTime() + SKILL_PUBLISHER_MIN_ACCOUNT_AGE_DAYS * 86_400_000) : now;
-  if (eligible > now) problems.push("account_too_new");
+  const tooNew = eligible > now;
+  if (tooNew && !options.platformAdmin) problems.push("account_too_new");
   if (publisher?.suspendedAt) problems.push("suspended");
   return {
     handle: publisher?.handle ?? null,
+    displayName: publisher?.displayName ?? null,
     suspended: Boolean(publisher?.suspendedAt),
     problems,
     eligibleFrom: problems.includes("account_too_new") ? eligible.toISOString() : null,
+    gateException: tooNew && options.platformAdmin ? "platform_admin" : null,
   };
 }
 
 /** Claims the caller's publisher handle (once; changing it later would break public links). */
-export async function claimPublisherHandle(db: Database, ctx: ActorContext, handle: unknown): Promise<string> {
+export async function claimPublisherHandle(db: Database, ctx: ActorContext, handle: unknown, options: { allowReserved?: boolean } = {}): Promise<string> {
   assertCan(ctx.role, "project:write");
   const value = typeof handle === "string" ? handle.trim().toLowerCase() : "";
-  const problem = validatePublisherHandle(value);
+  const problem = validatePublisherHandle(value, { allowReserved: options.allowReserved });
   if (problem)
     throw new DomainError(
       "VALIDATION",
@@ -90,6 +107,41 @@ export async function claimPublisherHandle(db: Database, ctx: ActorContext, hand
   return value;
 }
 
+/**
+ * Sets or clears the optional public display name (owner request 08.11.2026). The handle stays the unique id;
+ * `allowReserved` only for platform admins (e.g. "CONSYRIUM Team"). Audited.
+ */
+export async function setPublisherDisplayName(db: Database, ctx: ActorContext, name: unknown, options: { allowReserved?: boolean } = {}) {
+  assertCan(ctx.role, "project:write");
+  const [publisher] = await db.select().from(skillPublisher).where(eq(skillPublisher.userId, ctx.userId));
+  if (!publisher) throw new DomainError("VALIDATION", "Choose your publisher handle first.", { reason: "handle_missing" });
+  const value = typeof name === "string" ? name.replace(/\s+/g, " ").trim() : "";
+  if (value) {
+    const problem = validatePublisherDisplayName(value, { allowReserved: options.allowReserved });
+    if (problem)
+      throw new DomainError(
+        "VALIDATION",
+        problem === "reserved"
+          ? "This name is reserved – it would suggest an official or third-party identity."
+          : problem === "length"
+            ? "Use 2–60 characters."
+            : "This name cannot be used (links, contact data, instructions or hidden characters).",
+        { reason: `display_name_${problem}` },
+      );
+  }
+  await db
+    .update(skillPublisher)
+    .set({ displayName: value || null, updatedAt: new Date() })
+    .where(eq(skillPublisher.userId, ctx.userId));
+  await recordAudit(db, {
+    organizationId: ctx.organizationId,
+    actorUserId: ctx.userId,
+    action: "skill.publisher_name_set",
+    targetType: "user",
+    targetId: ctx.userId,
+  });
+}
+
 export interface SubmitSkillInput {
   slug?: unknown;
   listed?: unknown;
@@ -113,9 +165,10 @@ export async function submitSkillForPublication(
   skillId: string,
   input: SubmitSkillInput,
   now = new Date(),
+  options: { platformAdmin?: boolean } = {},
 ): Promise<SubmitSkillResult> {
   assertCan(ctx.role, "project:write");
-  const status = await getPublisherStatus(db, ctx, now);
+  const status = await getPublisherStatus(db, ctx, now, options);
   if (status.problems.length)
     throw new DomainError("FORBIDDEN", "Publishing in the SkillHub needs Pro, a verified e-mail and an account at least 14 days old.", {
       reason: "not_eligible",
@@ -159,9 +212,9 @@ export async function submitSkillForPublication(
     if (clash && clash.id !== skillId) throw new DomainError("VALIDATION", "You already use this address for another skill.", { reason: "slug_taken" });
   }
 
-  const checked = validateSkillContent(row.version.content);
+  const checked = validateHubContent(row.skill.kind, row.version.content);
   if (!checked.ok) throw new DomainError("VALIDATION", checked.errors.join("; "));
-  const scan = scanSkillForPublication(checked.content, { changelog });
+  const scan = scanHubContent(row.skill.kind, checked.content, { changelog });
   const next: SkillReviewStatus = scan.light === "red" ? "quarantined" : "pending_review";
   const listed = input.listed === undefined ? row.skill.listed : input.listed === true;
 
@@ -182,7 +235,11 @@ export async function submitSkillForPublication(
         action: "submit",
         fromStatus: from,
         toStatus: "scanning",
-        detail: { contentHash: row.version.contentHash, license: SKILL_PUBLICATION_LICENSE.id },
+        detail: {
+          contentHash: row.version.contentHash,
+          license: SKILL_PUBLICATION_LICENSE.id,
+          ...(status.gateException ? { gateException: status.gateException } : {}),
+        },
       },
       {
         id: newId("sml"),
@@ -267,4 +324,63 @@ export async function getSkillHubState(db: Database, ctx: ActorContext, skillId:
         publishedAt: v.publishedAt,
       })),
   };
+}
+
+/**
+ * Hub draft for kinds that mirror another workspace object (#368, expert profiles): creates the hub entry for
+ * `sourceId` (version 1) or appends a new immutable version when the content changed. The caller has already checked
+ * that the source (e.g. the role profile) belongs to the actor. Submitting then uses `submitSkillForPublication` with
+ * the returned `skillId` – the same gate, scan, model review, queue and audit as skills.
+ */
+export async function saveHubDraft(
+  db: Database,
+  ctx: ActorContext,
+  input: { kind: Exclude<HubKind, "skill">; sourceId: string; name: string; content: unknown },
+): Promise<{ skillId: string; version: number; unchanged: boolean }> {
+  assertCan(ctx.role, "project:write");
+  const adapter = hubAdapter(input.kind);
+  const checked = adapter.validate(input.content);
+  if (!checked.ok) throw new DomainError("VALIDATION", checked.errors.join("; "));
+  const contentHash = adapter.hash(checked.content);
+  const name = input.name.trim().slice(0, 80) || adapter.display(checked.content).name;
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(skill)
+      .where(and(eq(skill.kind, input.kind), eq(skill.sourceId, input.sourceId)));
+    if (existing && (existing.ownerUserId !== ctx.userId || existing.organizationId !== ctx.organizationId)) throw new DomainError("NOT_FOUND", "Not found");
+    if (!existing) {
+      const skillId = newId("skl");
+      await tx
+        .insert(skill)
+        .values({ id: skillId, organizationId: ctx.organizationId, ownerUserId: ctx.userId, name, kind: input.kind, sourceId: input.sourceId });
+      await tx.insert(skillVersion).values({
+        id: newId("skv"),
+        skillId,
+        organizationId: ctx.organizationId,
+        version: 1,
+        content: checked.content as Record<string, unknown>,
+        contentHash,
+        createdById: ctx.userId,
+      });
+      return { skillId, version: 1, unchanged: false };
+    }
+    const [latest] = await tx
+      .select()
+      .from(skillVersion)
+      .where(and(eq(skillVersion.skillId, existing.id), eq(skillVersion.version, existing.latestVersion)));
+    if (latest?.contentHash === contentHash) return { skillId: existing.id, version: existing.latestVersion, unchanged: true };
+    const version = existing.latestVersion + 1;
+    await tx.insert(skillVersion).values({
+      id: newId("skv"),
+      skillId: existing.id,
+      organizationId: ctx.organizationId,
+      version,
+      content: checked.content as Record<string, unknown>,
+      contentHash,
+      createdById: ctx.userId,
+    });
+    await tx.update(skill).set({ name, latestVersion: version, archivedAt: null, updatedAt: new Date() }).where(eq(skill.id, existing.id));
+    return { skillId: existing.id, version, unchanged: false };
+  });
 }

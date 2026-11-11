@@ -1,5 +1,5 @@
-import { createAdapter, ProviderError, timeoutSignal } from "@consyrion/ai";
-import { decryptCredentialForUse, recordCredentialValidation } from "@consyrion/db";
+import { createAdapter, ProviderError, timeoutSignal } from "@consyrium/ai";
+import { decryptCredentialForUse, recordCredentialValidation } from "@consyrium/db";
 import { NextResponse } from "next/server";
 import { requireActor } from "@/lib/server/actor";
 import { handle } from "@/lib/server/api";

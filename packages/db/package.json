@@ -1,5 +1,5 @@
 {
-  "name": "@consyrion/db",
+  "name": "@consyrium/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "migrate": "tsx src/migrate-cli.ts"
   },
   "dependencies": {
-    "@consyrion/core": "workspace:*",
+    "@consyrium/core": "workspace:*",
     "@electric-sql/pglite": "^0.5.11",
     "drizzle-orm": "^0.45.4",
     "jszip": "3.10.2",

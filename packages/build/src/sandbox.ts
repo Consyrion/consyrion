@@ -138,7 +138,7 @@ export class DockerSandbox implements Sandbox {
       return `The sandbox network "${network}" does not exist – the install was not run (deploy/hetzner/sandbox-network.sh creates it).`;
     }
     try {
-      const marker = (await readFile(env.SANDBOX_EGRESS_MARKER || DEFAULT_EGRESS_MARKER, "utf8")).trim();
+      const marker = (await readFile(/* turbopackIgnore: true */ env.SANDBOX_EGRESS_MARKER || DEFAULT_EGRESS_MARKER, "utf8")).trim();
       const bootId = (await readFile("/proc/sys/kernel/random/boot_id", "utf8")).trim();
       if (marker !== bootId)
         return "The sandbox firewall was not set up since the last restart – the install was not run (run deploy/hetzner/sandbox-network.sh).";
@@ -149,7 +149,7 @@ export class DockerSandbox implements Sandbox {
   }
 
   async run(request: SandboxRunRequest): Promise<SandboxResult> {
-    const name = `consyrion-${randomUUID()}`;
+    const name = `consyrium-${randomUUID()}`;
     const started = Date.now();
     const refuse = (output: string): SandboxResult => ({ status: "error", exitCode: null, output, durationMs: Date.now() - started });
     if (request.network === "egress") {
@@ -234,7 +234,7 @@ export class UnavailableSandbox implements Sandbox {
 }
 
 /** Message of a run on an installation with SANDBOX_DISABLED=true (hosted app: tests run in the user's GitHub CI). */
-export const SANDBOX_DISABLED_REASON = "Not run on CONSYRION AI: tests run in your repository's GitHub Actions once the draft pull request is open.";
+export const SANDBOX_DISABLED_REASON = "Not run on CONSYRIUM AI: tests run in your repository's GitHub Actions once the draft pull request is open.";
 
 export async function detectSandbox(env: Record<string, string | undefined> = process.env): Promise<Sandbox> {
   if (/^(1|true|yes)$/i.test(env.SANDBOX_DISABLED ?? "")) return new UnavailableSandbox(SANDBOX_DISABLED_REASON);

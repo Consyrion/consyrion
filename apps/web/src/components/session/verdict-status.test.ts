@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { View } from "./helpers";
-import { verdictStatus } from "./verdict-status";
+import { nextStepsTarget, verdictStatus } from "./verdict-status";
 
 /** Minimal session views for each verdict case (test data, not a real run). */
 const view = (over: { outcome?: string; status?: Record<string, unknown> | null; matrix?: Record<string, unknown>; session?: string }) =>
@@ -61,6 +61,50 @@ describe("one verdict status for screen, header and PDF (#268)", () => {
     const proto = verdictStatus({ ...blocked, humanMark: { kind: "prototype_build", proposalId: "p1" } } as unknown as View);
     expect(proto.marks).toEqual(["prototypeBuild"]);
     expect(proto.initialAction).not.toBe("approve");
+    // Gesamttest 08.11.26: the next step moves on after the human mark.
+    const ready = { prototypeProposalIds: ["p1"], approvable: false, approvableProposalIds: [] };
+    expect(verdictStatus(view({ outcome: "needs_verification", status: ready })).initialAction).toBe("mark_favorite");
+    expect(
+      verdictStatus({ ...view({ outcome: "needs_verification", status: ready }), humanMark: { kind: "favorite", proposalId: "p1" } } as unknown as View)
+        .initialAction,
+    ).toBe("approve_prototype");
+    expect(
+      verdictStatus({ ...view({ outcome: "needs_verification", status: ready }), humanMark: { kind: "prototype_build", proposalId: "p1" } } as unknown as View)
+        .initialAction,
+    ).toBe("record_measurement");
+    expect(
+      verdictStatus({
+        ...view({ outcome: "needs_verification", status: { ...ready, measurementApprovableProposalIds: ["p1"] } }),
+        humanMark: { kind: "prototype_build", proposalId: "p1" },
+      } as unknown as View).initialAction,
+    ).toBe("approve_after_measurement");
+  });
+
+  it("the next steps are about the favourite once a human marked one, not the best-scored proposal (live check 08.11.26)", () => {
+    const blocked = {
+      ...view({
+        outcome: "needs_verification",
+        status: { approvable: false, approvableProposalIds: [] },
+        matrix: {
+          proposals: [
+            { proposalId: "p3", total: 8 },
+            { proposalId: "p2", total: 7 },
+          ],
+        },
+      }),
+      approvals: [],
+    } as unknown as View;
+    expect(nextStepsTarget(blocked)).toEqual({ proposalId: "p3", mode: "blocked" });
+    expect(nextStepsTarget({ ...blocked, humanMark: { kind: "favorite", proposalId: "p2" } } as unknown as View)).toEqual({
+      proposalId: "p2",
+      mode: "favorite",
+    });
+  });
+
+  it("an archived project offers no next step (#548, live check 08.11.26)", () => {
+    const ready = view({ outcome: "needs_verification", status: { prototypeProposalIds: ["p1"], approvable: false, approvableProposalIds: [] } });
+    expect(verdictStatus(ready).archived).toBe(false);
+    expect(verdictStatus({ ...ready, project: { status: "archived" } } as unknown as View).archived).toBe(true);
   });
 
   it("no verdict yet: no title and no human mark", () => {
@@ -72,7 +116,9 @@ describe("one verdict status for screen, header and PDF (#268)", () => {
 describe("#511 architecture candidate: the first step is marking it as favourite, never an approval", () => {
   it("offers mark_favorite when the server lists a prototype-eligible proposal; otherwise request_changes as before", () => {
     const matrix = { requirementGate: { proposals: [{ proposalId: "p1", feasibility: "needs_verification", architectureCandidate: true }] } };
-    const candidate = verdictStatus(view({ outcome: "needs_verification", status: { approvable: false, approvableProposalIds: [], gateVersion: 3, prototypeProposalIds: ["p1"] }, matrix }));
+    const candidate = verdictStatus(
+      view({ outcome: "needs_verification", status: { approvable: false, approvableProposalIds: [], gateVersion: 3, prototypeProposalIds: ["p1"] }, matrix }),
+    );
     expect(candidate).toMatchObject({ outcomeKey: "architecture_candidate", initialAction: "mark_favorite", notApprovable: true });
     const plain = verdictStatus(view({ outcome: "needs_verification", status: { approvable: false, approvableProposalIds: [], gateVersion: 3 } }));
     expect(plain.initialAction).toBe("request_changes");

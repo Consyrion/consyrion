@@ -1,6 +1,6 @@
 "use client";
 
-import { COUNCIL_ROLES, CRITERIA, DECISION_MODE_LABELS, MAX_PARTICIPANTS, MIN_PARTICIPANTS, type CouncilRole } from "@consyrion/core/browser";
+import { COUNCIL_ROLES, CRITERIA, DECISION_MODE_LABELS, MAX_PARTICIPANTS, MIN_PARTICIPANTS, type CouncilRole } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -169,7 +169,7 @@ export function SkillManager({
   const [history, setHistory] = useState<{ id: string; versions: VersionRow[] } | null>(null);
   const atLimit = limits.max !== null && limits.own >= limits.max;
 
-  /** A skill of a newer schema gets a translated "update CONSYRION" (#419); other errors keep the server's message. */
+  /** A skill of a newer schema gets a translated "update CONSYRIUM" (#419); other errors keep the server's message. */
   function errorMessage(err: unknown) {
     if (!(err instanceof ApiRequestError)) return t("error");
     const details = err.details as { reason?: string; schemaVersion?: number } | undefined;
@@ -471,6 +471,14 @@ export function SkillManager({
                       onChange={(e) => set({ weights: { ...d.weights, [c]: e.target.value } })}
                     />
                   ))}
+                  {(() => {
+                    const sum = CRITERIA.reduce((acc, c) => acc + (Number(d.weights[c]) || 0), 0);
+                    return (
+                      <p className={`text-xs sm:col-span-5 ${sum === 100 ? "text-muted" : "text-warning"}`} data-testid="skill-weights-sum">
+                        {t("weightsSum", { sum })}
+                      </p>
+                    );
+                  })()}
                 </div>
               ) : null}
               <TextAreaField
@@ -497,6 +505,7 @@ export function SkillManager({
                   onChange={(e) => set({ changelog: e.target.value })}
                 />
               ) : null}
+              {error ? <Alert>{error}</Alert> : null}
               <div className="flex gap-2">
                 <Button disabled={busy || !d.name.trim()} onClick={() => void save()}>
                   {t("save")}

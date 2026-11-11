@@ -3,7 +3,7 @@
     "metaTitle": "Comentarios",
     "nav": "Comentarios y errores",
     "title": "Comentarios",
-    "description": "Informa de un error, propón una función o haz una pregunta. El equipo de CONSYRION AI lee cada mensaje y responde aquí.",
+    "description": "Informa de un error, propón una función o haz una pregunta. El equipo de CONSYRIUM AI lee cada mensaje y responde aquí.",
     "newTitle": "Nuevo mensaje",
     "visitorTitle": "Contacto y comentarios",
     "visitorDescription": "Informa de un error, propón una función o haz una pregunta, sin cuenta. Respondemos por correo electrónico.",
@@ -34,7 +34,7 @@
     "screenshotNone": "Ninguna imagen seleccionada",
     "screenshotRemove": "Quitar",
     "attached": "Se adjunta automáticamente: página {page}, idioma de la interfaz, navegador y versión de la aplicación.",
-    "privacy": "Guardamos tu mensaje, tu correo electrónico y estos datos para responderte y mejorar CONSYRION AI.",
+    "privacy": "Guardamos tu mensaje, tu correo electrónico y estos datos para responderte y mejorar CONSYRIUM AI.",
     "privacyLink": "Política de privacidad",
     "send": "Enviar",
     "sending": "Enviando…",
@@ -53,7 +53,7 @@
     "mine": {
       "title": "Mis reportes",
       "empty": "Todavía no has enviado ningún reporte.",
-      "reply": "Respuesta del equipo de CONSYRION AI",
+      "reply": "Respuesta del equipo de CONSYRIUM AI",
       "deleteNote": "¿Quieres que borremos un reporte? Escríbenos y lo eliminamos con todas sus respuestas.",
       "new": "nuevo"
     },

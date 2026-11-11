@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv, type Entitlements } from "@consyrion/core";
+import { keyringFromEnv, type Entitlements } from "@consyrium/core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDatabase, type DatabaseHandle } from "../client";
 import { membership, user } from "../schema";

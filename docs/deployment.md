@@ -26,11 +26,11 @@ credential master keys; the worker also needs the GitHub App variables if reposi
 3. Start one or more workers (`docker compose -f docker-compose.prod.yml up -d worker`).
 4. Check `GET /api/health` → `{"status":"ok"}`.
 5. Configure OAuth callback URLs, the GitHub App (docs/github-app.md) and Stripe webhooks (docs/saas.md).
-6. Point `consyrion.com` to the web app only after the release checklist (docs/release-checklist.md) is complete.
+6. Point `consyrium.com` to the web app only after the release checklist (docs/release-checklist.md) is complete.
    Today the domain serves the coming-soon page from `~/consyrion-site`.
 
 ## Sandbox host hardening
-- Rootless Docker (or gVisor `runsc`) for the worker host; the worker itself only runs Consyrion code.
+- Rootless Docker (or gVisor `runsc`) for the worker host; the worker itself only runs Consyrium code.
 - Keep the images `node:22-alpine` / `python:3.12-alpine` pre-pulled by the digests in `packages/build/src/sandbox.ts` (#399).
 - With the sandbox on, run `deploy/hetzner/sandbox-network.sh` as root on the Docker host (and at every boot): installs only run on its egress network, which cannot reach the host, private ranges or 169.254.169.254. Set `SANDBOX_EGRESS_MARKER` if your workspace directory is not `/srv/consyrion/workspaces` (docs/hetzner.md, #399).
 - Firewall: the worker needs outbound HTTPS (AI providers, GitHub, package registries during install).

@@ -1,8 +1,8 @@
-import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrion/core";
+import { COUNCIL_PHASES, COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrium/core";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { LanguageSwitcher } from "../language-switcher";
-import { ConsyrionWordmark } from "../brand/consyrion-logo";
+import { ConsyriumWordmark } from "../brand/consyrium-logo";
 import { ElectricLogo } from "../brand/electric-logo";
 import { RibbonField } from "../fx/ribbon-field";
 import { DELIVERY_TARGETS } from "./delivery-targets";
@@ -27,8 +27,8 @@ export const LANDING_CTAS = {
 } as const;
 
 /** Public source repository (AGPL-3.0) and its self-hosting guide. */
-export const SOURCE_URL = "https://github.com/Consyrion/consyrion";
-export const SELF_HOSTING_URL = "https://github.com/Consyrion/consyrion/blob/main/docs/self-hosting.md";
+export const SOURCE_URL = "https://github.com/Consyrion/consyrium";
+export const SELF_HOSTING_URL = "https://github.com/Consyrion/consyrium/blob/main/docs/self-hosting.md";
 
 /** Owner request 07.11.26: advantages, MCP & Telegram, open source and prices on the homepage (copy reviewed with ChatGPT). */
 const WHY_POINTS = ["perspectives", "review", "requirements", "transparent", "control"] as const;
@@ -70,7 +70,7 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
   const t = await getTranslations("landing");
   return (
     <div className="stage-dark relative isolate min-h-screen overflow-x-clip bg-bg text-text">
-      <RibbonField intensity={1.9} interactive />
+      <RibbonField intensity={1.9} interactive calmBelow="overview" />
       <a
         href="#content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2"
@@ -82,7 +82,7 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
         <nav aria-label={t("nav.main")} className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-8">
           <Link href="/" className="flex items-center gap-2.5" aria-label={t("nav.home")}>
             <ElectricLogo size={32} mode="intro" title="" />
-            <ConsyrionWordmark className="text-sm" />
+            <ConsyriumWordmark className="text-sm" />
           </Link>
           <div className="hidden items-center gap-5 whitespace-nowrap text-sm text-muted md:flex">
             <a href="#how" className="hover:text-text">
@@ -364,9 +364,9 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-muted md:px-8">
           <span className="flex items-center gap-2">
             <ElectricLogo size={20} mode="hover" title="" />
-            <ConsyrionWordmark className="text-xs" />
+            <ConsyriumWordmark className="text-xs" />
           </span>
-          <span>© {new Date().getFullYear()} CONSYRION AI</span>
+          <span>© {new Date().getFullYear()} CONSYRIUM AI</span>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link href="/sign-in" className="hover:text-text">
               {t("footer.signIn")}

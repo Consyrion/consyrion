@@ -1,5 +1,5 @@
-import { can } from "@consyrion/core";
-import { listInvitations, listMembers } from "@consyrion/db";
+import { can } from "@consyrium/core";
+import { listInvitations, listMembers } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { TeamManager } from "@/components/saas";
 import { PageHeader } from "@/components/ui/surface";

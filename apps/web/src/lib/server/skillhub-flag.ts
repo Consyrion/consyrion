@@ -1,5 +1,5 @@
 import "server-only";
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 
 /**
  * Feature flag for SkillHub submissions (#368): `SKILLHUB_PUBLISH=1` turns on the "Publish…" button and the submission

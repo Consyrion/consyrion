@@ -1,13 +1,13 @@
-import type { ConsyrionApi, Mode, Participant } from "./api";
-import { ConsyrionError } from "./api";
+import type { ConsyriumApi, Mode, Participant } from "./api";
+import { ConsyriumError } from "./api";
 
 /**
  * Prepares a council from the selected text (#103): a ready project whose brief is exactly the shown text, and a
  * requirement list confirmed from the user's own requirement lines only – sentences of the text stay context, lines
- * that look like instructions to the models are refused (the user decides in the app). Same rules as ask_consyrion.
+ * that look like instructions to the models are refused (the user decides in the app). Same rules as ask_consyrium.
  */
 export async function prepareProject(
-  api: ConsyrionApi,
+  api: ConsyriumApi,
   input: { question: string; text: string; goal: string; requirements: string[] },
 ): Promise<{ projectId: string; requirements: string[] }> {
   const question = input.question.replace(/\s+/g, " ").trim();
@@ -20,7 +20,7 @@ export async function prepareProject(
   });
   const { proposal } = await api.requirementProposal(project.id);
   if (proposal.toDecide.length)
-    throw new ConsyrionError("validation", `instructions:${proposal.toDecide.map((t) => `"${t.text.slice(0, 60)}"`).join(", ")}`, 400);
+    throw new ConsyriumError("validation", `instructions:${proposal.toDecide.map((t) => `"${t.text.slice(0, 60)}"`).join(", ")}`, 400);
   const confirmed = proposal.items.filter((i) => i.source.kind === "requirements");
   const fromText = proposal.items.filter((i) => i.source.kind !== "requirements" && i.candidateKey);
   await api.confirmRequirements(project.id, {

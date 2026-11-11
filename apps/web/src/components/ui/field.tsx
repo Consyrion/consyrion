@@ -14,7 +14,8 @@ export function FieldShell({ label, hint, error, children }: FieldShellProps) {
   const id = useId();
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
-    <div className="space-y-1.5">
+    // min-w-0: inside a grid the field must not grow to the width of a long, untruncated select text (#509 rest, phone view).
+    <div className="min-w-0 space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium">
         {label}
       </label>

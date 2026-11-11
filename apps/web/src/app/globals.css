@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Consyrion design tokens – "futuristic glassmorphism" (issue #67, docs/design/consyrion-futuristic-glassmorphism.md).
+ * Consyrium design tokens – "futuristic glassmorphism" (issue #67, docs/design/consyrium-futuristic-glassmorphism.md).
  * Ink navy (dark) is the default for everyone, also on a light OS; light mode only via the theme toggle
  * (data-theme="light", remembered in localStorage). Every text/background pair is checked for WCAG AA in src/lib/design-tokens.test.ts.
  */
@@ -174,7 +174,7 @@ body {
   color: transparent;
 }
 
-@keyframes consyrion-pulse {
+@keyframes consyrium-pulse {
   0%,
   100% {
     opacity: 0.55;
@@ -187,14 +187,27 @@ body {
 }
 
 /* Moves a dash pattern along a path; --travel is a whole number of pattern periods so the loop is seamless. */
-@keyframes consyrion-flow {
+@keyframes consyrium-flow {
   to {
     stroke-dashoffset: var(--travel, -240px);
   }
 }
 
+/* Dashboard activity network: slow orbits around the decision and twinkling stars. */
+@keyframes consyrium-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes consyrium-twinkle {
+  50% {
+    opacity: 0.08;
+  }
+}
+
 /* Hover card of the dashboard activity network. */
-@keyframes consyrion-card-in {
+@keyframes consyrium-card-in {
   from {
     opacity: 0;
     translate: 0 4px;
@@ -202,7 +215,7 @@ body {
 }
 
 /* Gentle glow flicker for electric outlines; brightness changes stay small (no strobing). */
-@keyframes consyrion-flicker {
+@keyframes consyrium-flicker {
   0%,
   100% {
     opacity: 0.75;
@@ -222,13 +235,13 @@ body {
 }
 
 /* Sphere surface sliding sideways inside its clip = rotation on its own axis; --travel-x is one texture period. */
-@keyframes consyrion-spin-surface {
+@keyframes consyrium-spin-surface {
   to {
     transform: translateX(var(--travel-x, -24px));
   }
 }
 
-@keyframes consyrion-drift {
+@keyframes consyrium-drift {
   to {
     transform: translate3d(56px, 56px, 0);
   }

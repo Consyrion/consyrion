@@ -14,7 +14,7 @@ function Section({ n, title, children }: { n: number; title: string; children: R
   );
 }
 
-/** General terms of the hosted service app.consyrion.com (Free and Pro). Self-hosting is governed by the AGPL-3.0 only. */
+/** General terms of the hosted service app.consyrium.com (Free and Pro). Self-hosting is governed by the AGPL-3.0 only. */
 export default function AgbPage() {
   const o = OPERATOR;
   return (
@@ -23,7 +23,7 @@ export default function AgbPage() {
 
       <Section n={1} title="Geltungsbereich und Vertragspartner">
         <p>
-          Diese AGB gelten für die Nutzung des Online-Dienstes {o.brand} unter app.consyrion.com. Vertragspartner ist {o.company}, {o.street}, {o.city},{" "}
+          Diese AGB gelten für die Nutzung des Online-Dienstes {o.brand} unter app.consyrium.com. Vertragspartner ist {o.company}, {o.street}, {o.city},{" "}
           {o.country} (nachfolgend «wir»). Abweichende Bedingungen von Nutzerinnen und Nutzern gelten nicht.
         </p>
         <p>Wer {o.brand} selbst betreibt (Download des Quellcodes), schliesst keinen Vertrag mit uns ab; dafür gilt allein die Lizenz GNU AGPL-3.0.</p>

@@ -1,4 +1,4 @@
-# CONSYRION on one Hetzner Cloud server (docs/hetzner.md). Started by deploy.sh from /opt/consyrion/app.
+# CONSYRIUM on one Hetzner Cloud server (docs/hetzner.md). Started by deploy.sh from /opt/consyrion/app.
 # Public: only Caddy on 80/443. Postgres, web and worker sit on internal networks without published ports.
 name: consyrion
 
@@ -17,6 +17,8 @@ services:
     ports: ["80:80", "443:443"]
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
+      # Optional former domain that redirects to APP_DOMAIN (see Caddyfile).
+      LEGACY_DOMAIN: ${LEGACY_DOMAIN:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
     volumes:
       # Relative to this file's directory (compose resolves bind sources there).
@@ -65,7 +67,7 @@ services:
       APP_VERSION: ${APP_VERSION:-latest}
       COUNCIL_WORKER: external
       # Councils and builds run only with the engine (#188), never with the public test engine.
-      CONSYRION_REQUIRE_PRODUCTION_ENGINE: "1"
+      CONSYRIUM_REQUIRE_PRODUCTION_ENGINE: "1"
       # ADR 0206: deletion list outside the database backups (workspace deletion appends here).
       DELETIONS_LOG: /deletions/deletions.log
     volumes:
@@ -88,7 +90,7 @@ services:
     env_file: [/opt/consyrion/secrets/app.env]
     environment:
       APP_VERSION: ${APP_VERSION:-latest}
-      CONSYRION_REQUIRE_PRODUCTION_ENGINE: "1"
+      CONSYRIUM_REQUIRE_PRODUCTION_ENGINE: "1"
       # Workspaces live on the host at the same path, so sandbox containers started through the host's Docker
       # see the files the worker wrote (uid 1000 on both sides).
       TMPDIR: /srv/consyrion/workspaces

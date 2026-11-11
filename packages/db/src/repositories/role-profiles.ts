@@ -1,3 +1,4 @@
+import type { SkillForkRef } from "@consyrium/core";
 import {
   assertCan,
   can,
@@ -10,8 +11,8 @@ import {
   type RoleProfileContent,
   type RoleProfileSessionSnapshot,
   type RoleProfileVisibility,
-} from "@consyrion/core";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+} from "@consyrium/core";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
 import { roleProfile, roleProfileVersion } from "../schema";
@@ -37,6 +38,8 @@ export interface RoleProfileSummary {
   editable: boolean;
   ownerUserId: string | null;
   updatedAt: Date | null;
+  /** Origin of a profile adopted from the SkillHub (`@handle/slug`), so the setup can tell original and copy apart. */
+  forkedFromName: string | null;
 }
 
 const visibleTo = (ctx: ActorContext) =>
@@ -75,6 +78,7 @@ export async function listRoleProfiles(db: Database, ctx: ActorContext): Promise
         editable: p.ownerUserId === ctx.userId,
         ownerUserId: p.ownerUserId,
         updatedAt: p.updatedAt,
+        forkedFromName: p.forkedFrom?.name ?? null,
       };
     }),
     ...CURATED_ROLE_PROFILES.map((c) => ({
@@ -88,6 +92,7 @@ export async function listRoleProfiles(db: Database, ctx: ActorContext): Promise
       editable: false,
       ownerUserId: null,
       updatedAt: null,
+      forkedFromName: null,
     })),
   ];
 }
@@ -160,7 +165,11 @@ function assertCanShare(ctx: ActorContext) {
 }
 
 /** Creates a profile (version 1). New profiles are private unless `visibility: "team"` is asked for and allowed. */
-export async function createRoleProfile(db: Database, ctx: ActorContext, input: { content: unknown; visibility?: RoleProfileVisibility }) {
+export async function createRoleProfile(
+  db: Database,
+  ctx: ActorContext,
+  input: { content: unknown; visibility?: RoleProfileVisibility; forkedFrom?: SkillForkRef | null },
+) {
   assertCan(ctx.role, "project:write");
   const { content, ignoredFields } = checked(input.content);
   const visibility = input.visibility ?? "private";
@@ -177,6 +186,8 @@ export async function createRoleProfile(db: Database, ctx: ActorContext, input: 
       name: content.name,
       visibility,
       latestVersion: 1,
+      // SkillHub (owner decision 08.11.26): where an adopted profile came from – hub entry, version, hash, author handle.
+      forkedFrom: input.forkedFrom ?? null,
     });
     await tx.insert(roleProfileVersion).values({
       id: newId("rpv"),
@@ -193,7 +204,7 @@ export async function createRoleProfile(db: Database, ctx: ActorContext, input: 
       action: "role_profile.created",
       targetType: "role_profile",
       targetId: id,
-      metadata: { role: content.role, visibility, contentHash },
+      metadata: { role: content.role, visibility, contentHash, ...(input.forkedFrom ? { forkedFrom: input.forkedFrom.name } : {}) },
     });
   });
   return { id, version: 1, contentHash, ignoredFields };
@@ -275,4 +286,48 @@ export async function archiveRoleProfile(db: Database, ctx: ActorContext, profil
     targetType: "role_profile",
     targetId: profileId,
   });
+}
+
+/**
+ * SkillHub (owner decision 08.11.26): adopting a public role profile creates a private copy with its origin
+ * (`forked_from`: hub entry, version, content hash, `@handle/slug` for the CC BY 4.0 attribution). The copy is validated
+ * again like any profile (scan, impersonation) and then offered in the council setup for its role. It never updates
+ * itself – a newer public version is a new adoption.
+ */
+export async function adoptPublicRoleProfile(
+  db: Database,
+  ctx: ActorContext,
+  ref: { skillId: string; version: number; contentHash: string; handle: string; slug: string },
+  content: unknown,
+) {
+  // Idempotent like skills (Gesamttest 3): a second click returns the caller's existing copy of this version.
+  const [existing] = await db
+    .select({ id: roleProfile.id })
+    .from(roleProfile)
+    .where(
+      and(
+        eq(roleProfile.organizationId, ctx.organizationId),
+        eq(roleProfile.ownerUserId, ctx.userId),
+        isNull(roleProfile.archivedAt),
+        sql`${roleProfile.forkedFrom}->>'skillId' = ${ref.skillId}`,
+        sql`(${roleProfile.forkedFrom}->>'version')::int = ${ref.version}`,
+      ),
+    )
+    .limit(1);
+  if (existing) return { id: existing.id, alreadyAdopted: true as const };
+  return createRoleProfile(db, ctx, {
+    content,
+    visibility: "private",
+    forkedFrom: { skillId: ref.skillId, name: `@${ref.handle}/${ref.slug}`, version: ref.version, contentHash: ref.contentHash },
+  });
+}
+
+/**
+ * The content of the caller's own profile for a SkillHub submission – only the author may publish it (team members see
+ * a team profile, but it is not theirs to publish), archived profiles are not offered.
+ */
+export async function ownRoleProfileForPublication(db: Database, ctx: ActorContext, profileId: string) {
+  const found = await getRoleProfile(db, ctx, profileId);
+  if (found.visibility === "curated" || !found.editable) throw new DomainError("FORBIDDEN", "Only the author can publish this role profile");
+  return { name: found.snapshot.content.name, content: found.snapshot.content };
 }

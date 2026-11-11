@@ -1,7 +1,7 @@
 import "server-only";
-import { DomainError } from "@consyrion/core";
-import { getEntitlements, linkRepository, listGitHubIntegrations, type ActorContext, type Database } from "@consyrion/db";
-import { githubAppConfigFromEnv, installationClient, listInstallationRepositories, type GitHubAppConfig } from "@consyrion/github";
+import { DomainError } from "@consyrium/core";
+import { getEntitlements, linkRepository, listGitHubIntegrations, type ActorContext, type Database } from "@consyrium/db";
+import { githubAppConfigFromEnv, installationClient, listInstallationRepositories, type GitHubAppConfig } from "@consyrium/github";
 import { repositoryFullName } from "../github-url";
 import { logger } from "./logger";
 

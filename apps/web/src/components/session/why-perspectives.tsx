@@ -1,6 +1,6 @@
 "use client";
 
-import type { CouncilRole, RoleOrigin } from "@consyrion/core/browser";
+import type { CouncilRole, RoleOrigin } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { Badge } from "../ui/surface";
 import { useRoleLabel, type View } from "./helpers";

@@ -1,5 +1,5 @@
-import { getSessionView } from "@consyrion/council";
-import { can, DomainError } from "@consyrion/core";
+import { getSessionView } from "@consyrium/council";
+import { can, DomainError } from "@consyrium/core";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { DemoNotice } from "@/components/demo-notice";

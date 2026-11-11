@@ -3,7 +3,7 @@
     "metaTitle": "反馈",
     "nav": "反馈与问题",
     "title": "反馈",
-    "description": "报告错误、提出功能建议或咨询问题。CONSYRION AI 团队会阅读每条消息并在此回复。",
+    "description": "报告错误、提出功能建议或咨询问题。CONSYRIUM AI 团队会阅读每条消息并在此回复。",
     "newTitle": "新消息",
     "visitorTitle": "联系与反馈",
     "visitorDescription": "无需账户即可报告错误、提出功能建议或咨询问题。我们会通过电子邮件回复。",
@@ -34,7 +34,7 @@
     "screenshotNone": "未选择图片",
     "screenshotRemove": "移除",
     "attached": "自动附带：页面 {page}、界面语言、浏览器和应用版本。",
-    "privacy": "我们会保存您的消息、电子邮件地址和上述信息，用于回复您并改进 CONSYRION AI。",
+    "privacy": "我们会保存您的消息、电子邮件地址和上述信息，用于回复您并改进 CONSYRIUM AI。",
     "privacyLink": "隐私政策",
     "send": "发送",
     "sending": "正在发送…",
@@ -53,7 +53,7 @@
     "mine": {
       "title": "我的反馈",
       "empty": "您还没有发送过反馈。",
-      "reply": "CONSYRION AI 团队的回复",
+      "reply": "CONSYRIUM AI 团队的回复",
       "deleteNote": "想删除某条反馈？请联系我们，我们会将其连同所有回复一并删除。",
       "new": "新"
     },

@@ -1,7 +1,8 @@
+import { reportStatus } from "./report-status";
 import "server-only";
-import { getExecutionView, listExecutions } from "@consyrion/build";
-import { getSessionView, listSessions } from "@consyrion/council";
-import { getProject, latestRequirementList, listDocuments, listProjects, requirementSourceState, type ActorContext, type Database } from "@consyrion/db";
+import { getExecutionView, listExecutions } from "@consyrium/build";
+import { getSessionView, listSessions } from "@consyrium/council";
+import { getProject, latestRequirementList, listDocuments, listProjects, requirementSourceState, type ActorContext, type Database } from "@consyrium/db";
 import type { AssistantTool } from "./assistant";
 
 /**
@@ -84,15 +85,38 @@ export function assistantTools(db: Database, actor: ActorContext): AssistantTool
         const matrix = view.decision?.matrix as { proposals?: Array<{ proposalId: string; total: number | null }> } | undefined;
         const content = (p: (typeof view.proposals)[number]) => (p.revisions.at(-1)?.content ?? {}) as { title?: string; summary?: string };
         const last = view.approvals.at(-1);
+        // Gesamttest 0d, finding 10: the assistant must know what the screen knows – the readable status (same
+        // derivation as the verdict screen and the PDF), a favourite or prototype build, open measurements, next steps,
+        // and that an archived project is read-only. Worded in English; the model answers in the user's language.
+        const status = reportStatus(view, "en");
+        const archived = (view.project as { status?: string }).status === "archived";
         return {
           data: {
             project: view.project.name,
+            projectArchived: archived,
+            ...(archived
+              ? {
+                  archivedNote:
+                    "The project is archived and read-only: no decision, no new council and no build are possible until someone restores it on the projects page.",
+                }
+              : {}),
+            statusText: [status.title, status.line].filter(Boolean).join(" – "),
+            humanMarks: status.marks ?? [],
+            openMeasurements: status.measurements ? status.measurements.lines.slice(0, 8) : [],
+            nextSteps: archived ? [] : (status.nextSteps?.lines.slice(0, 6) ?? []),
             status: view.session.status,
             phase: view.session.currentPhase,
             tokens: `${view.session.tokensUsed}/${view.session.tokenBudget}`,
             mode: view.session.mode,
             // #363 part 3: the skill this council was set up with, pinned by version and content hash.
-            skill: view.session.skill ? { id: view.session.skill.skillId, name: view.session.skill.name, version: view.session.skill.version, contentHash: view.session.skill.contentHash } : null,
+            skill: view.session.skill
+              ? {
+                  id: view.session.skill.skillId,
+                  name: view.session.skill.name,
+                  version: view.session.skill.version,
+                  contentHash: view.session.skill.contentHash,
+                }
+              : null,
             verdict: view.decision
               ? {
                   outcome: view.decision.outcome,
@@ -131,6 +155,8 @@ export function assistantTools(db: Database, actor: ActorContext): AssistantTool
         const sessions = await listSessions(db, actor);
         const steps: Array<{ kind: string; project: string; status: string; href: string }> = [];
         for (const s of sessions) {
+          // An archived project waits for nobody (Gesamttest 08.11.26) – its sessions are no open step.
+          if (s.projectStatus === "archived") continue;
           if (["awaiting_approval", "failed", "running", "queued"].includes(s.status)) {
             steps.push({
               kind: s.status === "awaiting_approval" ? "decision_waiting_for_you" : `council_${s.status}`,
@@ -185,8 +211,11 @@ export function assistantTools(db: Database, actor: ActorContext): AssistantTool
                   items: list.items.length,
                   noHardRequirements: list.noHardRequirements,
                   current: Boolean(source && list.sourceHash === source.hash),
+                  // Live test 08.11.26: "version + current" alone left the model unsure whether the list was confirmed.
+                  confirmed: true,
+                  councilCanStart: Boolean(source && list.sourceHash === source.hash),
                 }
-              : { version: null, items: 0, current: false, note: "not confirmed yet" },
+              : { version: null, items: 0, current: false, confirmed: false, councilCanStart: false, note: "not confirmed yet" },
             documents: documents.map((d) => ({ name: d.name, role: d.role, sizeBytes: d.sizeBytes })),
             councils: sessions
               .slice(0, 10)

@@ -65,8 +65,22 @@ function strandY(b: Bundle, x: number, w: number, h: number, t: number, strand: 
  * across the page, particles riding them and a star field. One fixed canvas behind the content; max 30 fps,
  * stopped when the tab is hidden and a single still frame for reduced motion.
  */
-/** `intensity` scales strand brightness (1 = sign-in default; the homepage uses a stronger wave). */
-export function RibbonField({ className = "", intensity = 1, interactive = false }: { className?: string; intensity?: number; interactive?: boolean }) {
+/**
+ * `intensity` scales strand brightness (1 = sign-in default; the homepage uses a stronger wave). `calmBelow` is the id of
+ * an element: once it has scrolled into the upper part of the screen the ribbons ease down to a third, so the strands
+ * no longer run through the text of the reading sections below the scroll story (live check 10.11.26).
+ */
+export function RibbonField({
+  className = "",
+  intensity = 1,
+  interactive = false,
+  calmBelow,
+}: {
+  className?: string;
+  intensity?: number;
+  interactive?: boolean;
+  calmBelow?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reduced = usePrefersReducedMotion();
   const visible = usePageVisible();
@@ -91,6 +105,16 @@ export function RibbonField({ className = "", intensity = 1, interactive = false
     let h = 0;
     const pull: Pull = { x: 0, y: 0, pull: 0 };
     const target = { x: 0, y: 0, on: false };
+    let calm = 0;
+    let calmTarget = 0;
+    const onScroll = () => {
+      const marker = calmBelow ? document.getElementById(calmBelow) : null;
+      calmTarget = marker && marker.getBoundingClientRect().top < window.innerHeight * 0.7 ? 1 : 0;
+    };
+    if (calmBelow) {
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+    }
     const onPointer = (e: PointerEvent) => {
       target.x = e.clientX;
       target.y = e.clientY;
@@ -127,7 +151,8 @@ export function RibbonField({ className = "", intensity = 1, interactive = false
         ctx.fill();
       }
       // Narrow screens get calmer ribbons so the form stays the focus.
-      const strength = (w < 768 ? 0.55 : 1) * intensity;
+      calm += (calmTarget - calm) * 0.06;
+      const strength = (w < 768 ? 0.55 : 1) * intensity * (1 - 0.68 * calm);
       for (const bundle of BUNDLES) {
         const gradient = ctx.createLinearGradient(0, 0, w, 0);
         bundle.colors.forEach((color, i) => gradient.addColorStop(i / (bundle.colors.length - 1), color));
@@ -180,6 +205,7 @@ export function RibbonField({ className = "", intensity = 1, interactive = false
     };
     if (!running) {
       stopPointer();
+      window.removeEventListener("scroll", onScroll);
       return () => observer.disconnect();
     }
 
@@ -199,8 +225,9 @@ export function RibbonField({ className = "", intensity = 1, interactive = false
       cancelAnimationFrame(frame);
       observer.disconnect();
       stopPointer();
+      window.removeEventListener("scroll", onScroll);
     };
-  }, [running, intensity, interactive]);
+  }, [running, intensity, interactive, calmBelow]);
 
   return <canvas ref={canvasRef} aria-hidden="true" className={`pointer-events-none fixed inset-0 -z-10 size-full ${className}`} data-ribbons={running ? "on" : "off"} />;
 }

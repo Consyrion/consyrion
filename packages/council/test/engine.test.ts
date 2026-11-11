@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { keyringFromEnv } from "@consyrion/core";
+import { keyringFromEnv } from "@consyrium/core";
 import {
   createCredential,
   createDatabase,
@@ -12,7 +12,7 @@ import {
   type ActorContext,
   type DatabaseHandle,
   setSubscriptionPlan,
-} from "@consyrion/db";
+} from "@consyrium/db";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -31,12 +31,13 @@ import {
   buildDecisionReport,
   reportToMarkdown,
   previewSession,
+  typicalRange,
   looksRepetitive,
   ADJUDICATION_BATCH_SIZE,
   JUDGE_PARALLEL_CALLS,
   type SessionInput,
 } from "../src";
-import type { GenerateRequest } from "@consyrion/ai";
+import type { GenerateRequest } from "@consyrium/ai";
 import { ScriptedAdapter, type Script } from "./scripted-adapter";
 import { confirmProposedRequirements } from "./confirm-requirements";
 
@@ -601,6 +602,32 @@ describe("council engine", () => {
     await expect(createSession(handle.db, actor, projectId, { ...input, confirmBudget: true })).resolves.toMatchObject({ id: expect.any(String) });
   });
 
+  it("stores the purpose of a council in its policy only when one is chosen, and refuses unknown ones (#597)", async () => {
+    const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" } });
+    const input = { mode: "independent_expert" as const, participants: c.participants };
+    const idea = await createSession(handle.db, actor, projectId, { ...input, purpose: "idea_check" });
+    expect(((await getSessionView(handle.db, actor, idea.id)).session.policy as { purpose?: string }).purpose).toBe("idea_check");
+    const plain = await createSession(handle.db, actor, projectId, input);
+    expect("purpose" in ((await getSessionView(handle.db, actor, plain.id)).session.policy as object)).toBe(false);
+    await expect(createSession(handle.db, actor, projectId, { ...input, purpose: "anything" as never })).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
+  it("gives the typical consumption as a range from the median to the upper quartile, capped by the upper bound (#598)", () => {
+    // Skewed like real councils: many short calls, a few long ones (Final Verdict).
+    const calls = [...Array.from({ length: 15 }, () => 5_000), ...Array.from({ length: 5 }, () => 15_000)];
+    expect(typicalRange(calls, 26, 1_000_000)).toEqual({ tokens: 130_000, high: 390_000, basedOnCalls: 20 });
+    expect(typicalRange(calls, 26, 200_000)).toEqual({ tokens: 130_000, high: 200_000, basedOnCalls: 20 });
+    expect(typicalRange(calls, 26, 100_000)).toEqual({ tokens: 100_000, high: 100_000, basedOnCalls: 20 });
+    // Evenly sized calls: no range is claimed.
+    expect(
+      typicalRange(
+        Array.from({ length: 20 }, () => 4_000),
+        10,
+        1_000_000,
+      ),
+    ).toMatchObject({ tokens: 40_000, high: 40_000 });
+  });
+
   it("reports the plan's model limit in the preview, like the start refuses it (#173)", async () => {
     const c = council({ m1: { title: "Monolith" }, m2: { title: "Microservices" }, m3: { title: "Serverless" }, m4: { title: "Event sourcing" } });
     const input = { mode: "independent_expert" as const, participants: c.participants };
@@ -1134,7 +1161,7 @@ describe("council engine", () => {
 
 describe("documents and session rules", () => {
   it("freezes attached documents into the brief and appends user rules to every system prompt", async () => {
-    const { addDocument } = await import("@consyrion/db");
+    const { addDocument } = await import("@consyrium/db");
     await addDocument(handle.db, actor, projectId, {
       name: "requirements.md",
       mimeType: "text/markdown",

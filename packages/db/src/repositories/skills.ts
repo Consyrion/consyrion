@@ -13,7 +13,7 @@ import {
   type SkillSessionRef,
   type SkillReviewStatus,
   type SkillVisibility,
-} from "@consyrion/core";
+} from "@consyrium/core";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "../client";
 import { newId } from "../ids";
@@ -53,12 +53,15 @@ function checkedChangelog(input: unknown): string | null {
   return result.changelog;
 }
 
+/** Decision skills only – hub entries of other kinds (expert profiles, #368) are managed through their own feature. */
+const isSkill = eq(skill.kind, "skill");
+
 const visibleTo = (ctx: ActorContext) =>
-  and(eq(skill.organizationId, ctx.organizationId), isNull(skill.archivedAt), or(eq(skill.visibility, "team"), eq(skill.ownerUserId, ctx.userId)));
+  and(isSkill, eq(skill.organizationId, ctx.organizationId), isNull(skill.archivedAt), or(eq(skill.visibility, "team"), eq(skill.ownerUserId, ctx.userId)));
 
 /**
  * Validated content plus the input fields that were not stored (#419). A skill of a newer schema is refused with
- * `details.reason = "newer_schema"` so the UI can say "update CONSYRION" in the user's language.
+ * `details.reason = "newer_schema"` so the UI can say "update CONSYRIUM" in the user's language.
  */
 function checked(input: unknown): { content: SkillContent; ignoredFields: string[] } {
   const result = validateSkillContent(input);
@@ -150,7 +153,7 @@ export async function getSkillForUse(
   const [row] = await db
     .select()
     .from(skill)
-    .where(and(eq(skill.id, skillId), eq(skill.organizationId, ctx.organizationId), or(eq(skill.visibility, "team"), eq(skill.ownerUserId, ctx.userId))));
+    .where(and(isSkill, eq(skill.id, skillId), eq(skill.organizationId, ctx.organizationId), or(eq(skill.visibility, "team"), eq(skill.ownerUserId, ctx.userId))));
   if (!row) throw new DomainError("NOT_FOUND", "Skill not found");
   // An archived skill is no longer listed and cannot pre-fill a new council. Only callers that read the version an
   // existing council already pinned (report, session view) pass allowArchived.
@@ -192,7 +195,7 @@ async function assertCanKeepAnother(db: Database, ctx: ActorContext) {
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(skill)
-    .where(and(eq(skill.organizationId, ctx.organizationId), isNull(skill.archivedAt)));
+    .where(and(isSkill, eq(skill.organizationId, ctx.organizationId), isNull(skill.archivedAt)));
   if ((count?.n ?? 0) >= entitlements.maxSkills)
     throw new DomainError("FORBIDDEN", `Your plan allows ${entitlements.maxSkills} own skill(s) (plan: ${plan}). Upgrade under Settings → Billing.`);
 }
@@ -269,7 +272,7 @@ async function ownSkill(db: Database, ctx: ActorContext, skillId: string) {
   const [row] = await db
     .select()
     .from(skill)
-    .where(and(eq(skill.id, skillId), eq(skill.organizationId, ctx.organizationId), isNull(skill.archivedAt)));
+    .where(and(isSkill, eq(skill.id, skillId), eq(skill.organizationId, ctx.organizationId), isNull(skill.archivedAt)));
   // Same answer for "not there" and "not yours": a private skill of someone else is invisible.
   if (!row || (row.ownerUserId !== ctx.userId && row.visibility !== "team")) throw new DomainError("NOT_FOUND", "Skill not found");
   if (row.ownerUserId !== ctx.userId) throw new DomainError("FORBIDDEN", "Only the author can change this skill");

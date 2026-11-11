@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { createApiToken, createDatabase, ensurePersonalOrganization, resolveActor, schema, type DatabaseHandle } from "@consyrion/db";
+import { createApiToken, createDatabase, ensurePersonalOrganization, resolveActor, schema, type DatabaseHandle } from "@consyrium/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -82,6 +82,7 @@ describe("API token scopes (#101)", () => {
         "POST /sessions/[id]/cancel",
         "GET /sessions/[id]/events",
         "GET /sessions/[id]/report",
+        "GET /sessions/[id]/timeline",
       ].sort(),
     );
   });

@@ -83,7 +83,7 @@ API: `GET /api/projects/{id}/repository/context` (files, suggestion, current con
 
 ## Files sent by an MCP client (#331)
 
-`ask_consyrion` may carry file excerpts (`files: [{ path, content }]`, ≤ 20 files, ≤ 200 kB together). They are stored
+`ask_consyrium` may carry file excerpts (`files: [{ path, content }]`, ≤ 20 files, ≤ 200 kB together). They are stored
 like the repository context – one generated Markdown document with a section per file, `role: "context"`, never a
 source of requirements – with origin `{ kind: "client", client: "mcp", paths }` (`addClientFileContext` in
 `packages/db/src/repositories/documents.ts`). It counts toward the 10 documents per project. See `docs/mcp.md`.

@@ -119,7 +119,7 @@ export function AmbientBackground({ className = "", intensity = 1 }: { className
           maskImage: "radial-gradient(70% 60% at 50% 40%, black 30%, transparent 80%)",
           WebkitMaskImage: "radial-gradient(70% 60% at 50% 40%, black 30%, transparent 80%)",
           opacity: 0.6,
-          animation: "consyrion-drift 48s linear infinite",
+          animation: "consyrium-drift 48s linear infinite",
         }}
       />
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ opacity: 0.9 * intensity }} />

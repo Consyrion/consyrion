@@ -1,4 +1,4 @@
-import { createApiToken, createDatabase, ensurePersonalOrganization, resolveActor, schema, setSubscriptionPlan, type DatabaseHandle } from "@consyrion/db";
+import { createApiToken, createDatabase, ensurePersonalOrganization, resolveActor, schema, setSubscriptionPlan, type DatabaseHandle } from "@consyrium/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -80,6 +80,17 @@ describe("MCP protocol", () => {
     expect(failed.result.isError).toBe(true);
     expect(failed.result.content[0]!.text).not.toContain("internal detail");
   });
+
+  it("still runs the tool under its name from before the rename (ask_consyrion → ask_consyrium), but lists only the new name", async () => {
+    const ask = { ...tool, name: "ask_consyrium" };
+    const called = (await handleMcpMessage({ jsonrpc: "2.0", id: 8, method: "tools/call", params: { name: "ask_consyrion", arguments: { q: 1 } } }, [ask])) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    expect(called.result.isError).toBeFalsy();
+    expect(called.result.content[0]!.text).toContain('"q"');
+    const listed = (await handleMcpMessage({ jsonrpc: "2.0", id: 9, method: "tools/list" }, [ask])) as { result: { tools: Array<{ name: string }> } };
+    expect(listed.result.tools.map((x) => x.name)).toEqual(["ask_consyrium"]);
+  });
 });
 
 describe("MCP endpoint", () => {
@@ -102,7 +113,7 @@ describe("MCP endpoint", () => {
     const readTools = await names(tokens.read);
     expect(readTools).toEqual(["list_projects", "list_decisions", "get_decision", "list_open_steps", "list_models", "get_requirements", "preview_council", "list_skills"]);
     const all = await names(tokens.integration);
-    expect(all).toEqual([...readTools, "ask_consyrion", "create_project_draft", "update_brief", "propose_requirements", "start_council"]);
+    expect(all).toEqual([...readTools, "ask_consyrium", "create_project_draft", "update_brief", "propose_requirements", "start_council"]);
     expect(all.some((n) => /approve|reject|build|delete|archive|key|billing|member|confirm/.test(n))).toBe(false);
     const notification = await rpc(tokens.read, { jsonrpc: "2.0", method: "notifications/initialized" });
     expect(notification.status).toBe(202);
@@ -124,24 +135,24 @@ describe("MCP endpoint", () => {
     await expect(start.run({ projectId: "prj_x", mode: "consensus", participants: [], tokenBudget: 5_000_000 })).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
-  it("ask_consyrion needs a budget and models: without participants and without an earlier council it refuses before creating anything", async () => {
+  it("ask_consyrium needs a budget and models: without participants and without an earlier council it refuses before creating anything", async () => {
     const actor = await resolveActor(handle.db, "u", orgId);
-    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrion")!;
+    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrium")!;
     await expect(ask.run({ question: "Postgres oder SQLite?", context: "Sync-Dienst" })).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(ask.run({ question: "Postgres oder SQLite?", context: "Sync-Dienst", tokenBudget: 100_000 })).rejects.toThrow(/participants/);
   });
 
-  it("ask_consyrion accepts file excerpts (#331): path + content, at most 20, no other fields", async () => {
+  it("ask_consyrium accepts file excerpts (#331): path + content, at most 20, no other fields", async () => {
     const actor = await resolveActor(handle.db, "u", orgId);
-    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrion")!;
+    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrium")!;
     const files = (ask.inputSchema.properties as Record<string, { maxItems?: number; items?: { required?: string[]; additionalProperties?: boolean } }>).files!;
     expect(files.maxItems).toBe(20);
     expect(files.items).toMatchObject({ required: ["path", "content"], additionalProperties: false });
   });
 
-  it("a refused ask_consyrion start leaves no active project behind (QA 07.11.26)", async () => {
+  it("a refused ask_consyrium start leaves no active project behind (QA 07.11.26)", async () => {
     const actor = await resolveActor(handle.db, "u", orgId);
-    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrion")!;
+    const ask = mcpTools(handle.db, actor, "integration", "http://x").find((t) => t.name === "ask_consyrium")!;
     const active = async () => (await handle.db.select().from(schema.project)).filter((p) => p.status !== "archived").length;
     const before = await active();
     await expect(

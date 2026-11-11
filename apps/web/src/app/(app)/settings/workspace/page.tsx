@@ -1,5 +1,5 @@
-import { can } from "@consyrion/core";
-import { listOrganizationsForUser } from "@consyrion/db";
+import { can } from "@consyrium/core";
+import { listOrganizationsForUser } from "@consyrium/db";
 import { getTranslations } from "next-intl/server";
 import { DeletionNotice } from "@/components/deletion-notice";
 import { DangerDelete, WorkspaceSwitcher } from "@/components/saas";

@@ -10,7 +10,7 @@ import { SelectField, TextAreaField, TextField } from "./ui/field";
 import { Select } from "./ui/select";
 import { Alert } from "./ui/surface";
 
-/** Kinds, states and limits of the feedback inbox (#295) – same values as the repository in @consyrion/db. */
+/** Kinds, states and limits of the feedback inbox (#295) – same values as the repository in @consyrium/db. */
 export const FEEDBACK_KIND_KEYS = ["bug", "feature", "contact"] as const;
 export const FEEDBACK_STATE_KEYS = ["new", "in_progress", "done"] as const;
 const SUBJECT_MAX = 120;

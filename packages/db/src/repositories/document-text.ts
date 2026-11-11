@@ -1,4 +1,4 @@
-import { DomainError } from "@consyrion/core";
+import { DomainError } from "@consyrium/core";
 import JSZip from "jszip";
 import { extractText, getDocumentProxy } from "unpdf";
 

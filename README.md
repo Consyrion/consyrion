@@ -111,6 +111,14 @@ no locale in the URL): the user's choice is stored in the `consyrium-locale` coo
 is used. Adding a language = one messages file plus an entry in `apps/web/src/i18n/locales.ts`; a test checks that
 every file has the same keys, placeholders and list lengths as English. The seven phase names stay the canonical
 product names in every language. The language the models write in is a separate per-council setting (planned).
+German texts use "ß" (standard German, QA 12.11.26 normalised the mixed "ss"/"ß"); addresses keep their own
+spelling. Page titles and descriptions follow the page language too, and an unknown address shows a translated 404 page
+with a way back (`app/not-found.tsx`).
+
+**Long lists (QA 12.11.26).** Projects and Decisions have a search (name; for sessions also the mode) and filter chips
+(project type / session status) with counts that follow the search – a plain GET form (`components/list-filter.tsx`),
+so a filtered view has its own URL. The dashboard tiles "Awaiting approval" and "Running" open the filtered list
+(`/decisions?status=awaiting_approval`), or the session itself when there is exactly one.
 
 ## AI assistant
 

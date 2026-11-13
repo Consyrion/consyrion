@@ -242,6 +242,9 @@ A second signal after the static scan, run by `runSkillAiReview` (`apps/web/src/
 - **`/skills`** – public, no login, cached for five minutes: listed skills whose version an admin (or the opt-in
   auto-approval) published, never hidden, archived or of a suspended publisher. Search over name, summary and handle,
   category filter. **`/skills/@handle/slug`** – one skill, also unlisted ones by link (those are `noindex`).
+- **Pages (11.11.26):** the catalog shows 60 community entries per page (`CATALOG_PAGE_SIZE`, `listPublicSkillsPage`),
+  newest first, with "Back" / "More skills" links that keep search and filters (`?page=n`). Official skills lead page 1
+  and do not count towards the page size. Before this, only the newest 50 entries were reachable without a search.
 - Every text is rendered as plain text (React escaping, no Markdown, no links from skill content). The page shows the
   review badge, version, publication date, licence (CC BY 4.0 with author), content hash, a changelog and the
   disclaimer "community skill – no legal, medical or financial advice; a skill never changes the gate, the reviews or

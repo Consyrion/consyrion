@@ -76,6 +76,20 @@ export function useEnumText(namespace: string) {
   return (value: string | null | undefined) => (value ? (t.has(value) ? t(value) : value.replaceAll("_", " ")) : "");
 }
 
+/**
+ * An author's stored answer to an objection carries its evidence after a fixed English marker (council phases:
+ * `response + "\nEvidence: " + evidence`). QA 12.11.26: the marker showed as English inside German text – the screen
+ * shows the localized word instead; the stored text stays as the model wrote it.
+ */
+export function localizeResponse(text: string, evidenceWord: string): string {
+  return text.replace(/\s*\n?Evidence:\s/g, ` · ${evidenceWord}: `);
+}
+
+export function useResponseText() {
+  const t = useTranslations("verdict.cruxes");
+  return (text: string) => localizeResponse(text, t("evidenceInline"));
+}
+
 export const SEVERITY_TONE = { low: "neutral", medium: "warning", high: "danger", critical: "danger" } as const;
 export const STATUS_TONE = { open: "warning", refuted: "success", resolved: "success", accepted: "danger", unresolved: "warning" } as const;
 
@@ -194,7 +208,8 @@ export function useVerdictReason() {
     if (!reason) return reason ?? null;
     const key = VERDICT_REASONS.find(([prefix]) => reason.startsWith(prefix))?.[1];
     // #511: the architecture candidate reason names the open measurement requirements ("R1, R3").
-    if (key === "architectureCandidate") return t("architectureCandidate", { ids: /^Architecture candidate – performance proof open: ([A-Z]\d+(?:, [A-Z]\d+)*) /.exec(reason)?.[1] ?? "–" });
+    if (key === "architectureCandidate")
+      return t("architectureCandidate", { ids: /^Architecture candidate – performance proof open: ([A-Z]\d+(?:, [A-Z]\d+)*) /.exec(reason)?.[1] ?? "–" });
     return key ? t(key as never) : reason;
   };
 }

@@ -40,7 +40,10 @@ Consyrium charges a **platform subscription** (hosting, database, workers, sandb
 
 `/settings/billing` shows platform usage against the limits and observed AI tokens per model (calls, failures,
 input/output tokens). An approximate cost appears only for models where the workspace entered its own price;
-the provider invoice is authoritative.
+the provider invoice is authoritative. Since QA 12.11.26 an empty cost cell says "enter price" and jumps to the price form
+(`#price-hints`) instead of a bare "–" that read as free; no price is ever invented. The plan price stored by the Stripe
+setup ("4.99 € / month") is shown in the page language ("4,99 € pro Monat"); a label the admin typed by hand stays as
+written, and a free plan no longer reads "Free · Free".
 
 **Prompt cache (#244).** Every call also records how many of its input tokens the provider served from its prompt
 cache (`usage_record.cached_input_tokens`: Anthropic `cache_read_input_tokens`, OpenAI `cached_tokens`, Gemini
@@ -108,7 +111,8 @@ verification on, see `docs/security.md`) the admin address must also be verified
 ## Legal pages (05.11.26)
 
 `/impressum`, `/agb`, `/datenschutz` (German, public, linked in the landing footer and on sign-up). The operator data
-lives in `apps/web/src/lib/legal.ts` (`OPERATOR`): the hosted service is offered by DEVREMOTE. While a value still
+lives in `apps/web/src/lib/legal.ts` (`OPERATOR`): the hosted service names only "CONSYRIUM AI" as operator (owner decision
+11.11.26). While a value still
 contains a `[placeholder]`, every legal page shows a draft notice – fill them in before live Stripe sales.
 Self-hosted operators replace `OPERATOR` with their own data. Container logs are size-limited in
 `deploy/hetzner/compose.yml` (10 MB × 3 per service), as the privacy policy states.

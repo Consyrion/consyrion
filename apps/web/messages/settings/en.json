@@ -103,7 +103,9 @@
       "downgrade": "Back to {name}",
       "downgradeHint": "Ends at the end of the paid period – until then everything stays available.",
       "downgradeScheduled": "Back to {name} on {date} – the cancellation is scheduled.",
-      "downgradeManual": "This plan was assigned by the platform team. To change it, <contact>contact us</contact>."
+      "downgradeManual": "This plan was assigned by the platform team. To change it, <contact>contact us</contact>.",
+      "perMonth": "{price} per month",
+      "costMissing": "enter price"
     },
     "providers": {
       "needKey": "Need a key? Create one in the provider console:",
@@ -159,9 +161,10 @@
         "title": "MCP server – use CONSYRIUM from Claude, Cursor or VS Code",
         "intro": "Connect an MCP-capable AI client to your workspace. It can read decisions, prepare projects and requirements, and start councils on your own keys. Approving, builds and deleting stay in the app.",
         "address": "Address:",
-        "claudeCode": "Claude Code (create a token above and insert it):",
+        "claudeCode": "Claude Code (then type /mcp in Claude Code and sign in in the browser – no token):",
         "scopes": "“Read only” shows read tools only. “Councils only” or “Full access” may also prepare projects and start councils – this costs tokens on your key, at most 1,000,000 per council.",
-        "proOnly": "The MCP server is included in the Pro plan. Upgrade under Settings → Billing."
+        "proOnly": "The MCP server is included in the Pro plan. Upgrade under Settings → Billing.",
+        "guides": "Guides for all clients (Cursor, VS Code, Claude, ChatGPT …)"
       }
     },
     "saas": {
@@ -227,7 +230,7 @@
       "errorSave": "Could not save the connection",
       "errorDelete": "Could not delete the connection",
       "title": "Send decisions",
-      "text": "Where a verdict can go besides the PDF and Word download. Tokens are encrypted like your AI keys and never shown again. Obsidian follows with its own plugin (planned).",
+      "text": "Where a verdict can go besides the PDF and Word download. Tokens are encrypted like your AI keys and never shown again. Obsidian connects through its own plugin (see “Apps” above).",
       "emailToMembers": "E-mail to workspace members:",
       "available": "available",
       "smtpMissing": "not configured on this server (SMTP)",
@@ -308,7 +311,7 @@
       },
       "intake": {
         "title": "Requirement intake",
-        "description": "Counts only, no text – requirement lists and verdicts of the last {days} days (#245).",
+        "description": "Counts only, no text – requirement lists and verdicts of the last {days} days.",
         "ratio": "Proposed : kept",
         "ratioDetail": "{proposed} statements found, {kept} taken over, in {lists} lists – target at most 2 : 1",
         "added": "Added by users",
@@ -465,9 +468,8 @@
           "summary": "Ask CONSYRIUM AI right in the terminal when a decision comes up while coding.",
           "what": "Claude Code calls ask_consyrium, starts a council on your keys and fetches the result with get_decision, including an implementation brief – without leaving the terminal.",
           "steps": {
-            "token": "Create a token under <link>Settings → API tokens</link> (\"Councils only\" is enough) and put it in the command below instead of the placeholder.",
-            "add": "Add the server in your terminal:",
-            "check": "In Claude Code, run <code>/mcp</code> and check that \"consyrium\" is connected.",
+            "add": "Add the server in the terminal:",
+            "signin": "In Claude Code type <code>/mcp</code>, choose \"consyrium\" and sign in in the browser – click \"Allow\" there. There is no token to copy.",
             "ask": "Just ask: \"Ask CONSYRIUM whether we should use PostgreSQL or SQLite.\" Claude shows you the requirements and budget first."
           }
         },
@@ -477,9 +479,7 @@
           "summary": "CONSYRIUM AI as a tool in the Cursor agent – get decisions without switching apps.",
           "what": "The Cursor agent can prepare projects, start councils and use the result as an implementation brief right in your project.",
           "steps": {
-            "token": "Create a token under <link>Settings → API tokens</link> and put it below instead of the placeholder.",
-            "open": "In Cursor, open Settings → MCP → \"Add new MCP server\", or the file <code>~/.cursor/mcp.json</code> directly.",
-            "paste": "Paste this configuration and save:",
+            "install": "Click the button – or add the server yourself to <code>~/.cursor/mcp.json</code>:",
             "ask": "\"consyrium\" appears with its tools in the agent chat. Try: \"Let CONSYRIUM decide: queue or cron?\""
           }
         },
@@ -489,22 +489,18 @@
           "summary": "Use CONSYRIUM AI in Copilot Chat agent mode.",
           "what": "In agent mode, Copilot Chat can call the CONSYRIUM tools: read decisions, start councils and implement the result in your project.",
           "steps": {
-            "token": "Create a token under <link>Settings → API tokens</link> and put it below instead of the placeholder.",
-            "paste": "Create the file <code>.vscode/mcp.json</code> in your project:",
-            "start": "Click \"Start\" above \"consyrium\" in the file (or Command Palette → \"MCP: List Servers\").",
+            "install": "Click the button – or create the file <code>.vscode/mcp.json</code> in your project:",
             "ask": "Switch Copilot Chat to agent mode; \"consyrium\" appears under the tools."
           }
         },
         "claude-desktop": {
-          "name": "Claude Desktop",
-          "by": "Desktop app · MCP",
-          "summary": "CONSYRIUM AI in the Claude app on Mac or Windows.",
-          "what": "Claude Desktop connects to your workspace through the small mcp-remote bridge (needs Node.js) and can use the same tools as Claude Code.",
+          "name": "Claude (claude.ai & desktop)",
+          "by": "Connector · sign-in",
+          "summary": "CONSYRIUM AI as a custom connector in claude.ai and the Claude app.",
+          "what": "In a chat Claude can prepare projects, start councils on your keys and fetch the result – in the browser, the desktop app and on mobile.",
           "steps": {
-            "token": "Create a token under <link>Settings → API tokens</link> and put it below instead of the placeholder.",
-            "open": "In Claude Desktop, open Settings → Developer → \"Edit Config\".",
-            "paste": "Add the server to <code>claude_desktop_config.json</code>:",
-            "restart": "Restart Claude Desktop; \"consyrium\" appears under the tools."
+            "open": "In Claude open Customize → Connectors → Add → \"Add custom connector\".",
+            "enter": "Enter a name (e.g. CONSYRIUM AI) and this address, keep the detected sign-in settings, confirm with \"Add\" and then \"Connect\":"
           }
         },
         "telegram": {
@@ -526,24 +522,18 @@
           "summary": "Send selected text from a note to a council and save the report as a new note.",
           "what": "The CONSYRIUM plugin for Obsidian (desktop) sends only the text you select, shows the cost estimate before the start and saves the finished report as a new note in your vault. Existing notes are never overwritten.",
           "steps": {
-            "token": "Create a token with the scope \"Councils only\" under <link>Settings → API tokens</link>.",
-            "download": "Download the two plugin files: <main>main.js</main> and <manifest>manifest.json</manifest>.",
+            "download": "Until the plugin is listed in the Obsidian directory, download two files: <main>main.js</main> and <manifest>manifest.json</manifest>.",
             "folder": "Create this folder in your vault and copy both files into it (the <code>.obsidian</code> folder is hidden):",
             "enable": "In Obsidian open Settings → Community plugins, turn community plugins on and enable \"CONSYRIUM AI\".",
-            "settings": "Under Settings → CONSYRIUM AI enter the server address and your token, then click \"Test connection\". The token is stored as plain text in the vault – give it an expiry date.",
-            "use": "Select text in a note and run \"Consult CONSYRIUM AI on the selection\" from the command palette. The council can only be started after \"Check cost\".",
-            "mcp": "Alternatively via MCP: Obsidian itself has no MCP client. If you use a community plugin with an MCP client (HTTP server with a custom header), enter these details there. The MCP server is included from the Pro plan when hosted."
+            "connect": "Open Settings → CONSYRIUM AI and click \"Connect with CONSYRIUM AI\". Your browser opens this site – click \"Allow\" there and let the browser open Obsidian. Done, there is no token to copy. (If you prefer to enter a token: <link>Settings → API tokens</link>, scope \"Councils only\".)",
+            "use": "Select text in a note and right-click it → \"Consult CONSYRIUM AI on the selection\". The icon in the left ribbon and the command palette do the same. The council can only be started after \"Check cost\", which also checks that every chosen model answers.",
+            "mcp": "Alternatively via MCP: Obsidian itself has no MCP client. If you use a community plugin with an MCP client, enter this address there; if that plugin supports signing in in the browser, you need no token. The MCP server is included from the Pro plan when hosted."
           }
         },
         "vscode-extension": {
           "name": "VS Code extension",
           "by": "Extension",
           "summary": "Decisions, approvals and generated changes right in VS Code. Marketplace release planned."
-        },
-        "chat-connectors": {
-          "name": "claude.ai & ChatGPT",
-          "by": "Connector · OAuth",
-          "summary": "OAuth sign-in for the claude.ai and ChatGPT web connectors – the next stage."
         },
         "github": {
           "name": "GitHub",
@@ -559,12 +549,72 @@
           "name": "Confluence",
           "by": "Delivery",
           "summary": "Store decisions as a page in your Confluence space."
+        },
+        "chatgpt": {
+          "name": "ChatGPT",
+          "by": "Plugin · sign-in",
+          "summary": "CONSYRIUM AI as a custom MCP server in ChatGPT.",
+          "what": "ChatGPT can request a council in a chat and fetch the verdict. ChatGPT asks you to confirm every writing action.",
+          "steps": {
+            "open": "Open chatgpt.com/plugins, click \"Add\" at the top right and choose \"Add custom MCP server\".",
+            "enter": "Enter name, description and this address (sign-in: OAuth, detected automatically), confirm the notice, create the plugin and click \"Connect CONSYRIUM AI\":",
+            "use": "Type <code>@</code> in a chat and choose CONSYRIUM AI.",
+            "plans": "Which ChatGPT plans allow custom MCP servers and writing actions is decided by OpenAI and changes often – check OpenAI's current help."
+          }
+        },
+        "codex": {
+          "name": "Codex CLI",
+          "by": "Terminal · MCP",
+          "summary": "CONSYRIUM AI as a tool in OpenAI Codex.",
+          "what": "While coding, Codex can request a council and use the result as an implementation brief.",
+          "steps": {
+            "config": "Add the server to <code>~/.codex/config.toml</code>:",
+            "login": "Start the sign-in in the terminal:"
+          }
+        },
+        "gemini-cli": {
+          "name": "Gemini CLI",
+          "by": "Terminal · MCP",
+          "summary": "CONSYRIUM AI as a tool in the Gemini CLI.",
+          "what": "The Gemini CLI can request a council while you work and fetch the verdict.",
+          "steps": {
+            "config": "Add the server to <code>~/.gemini/settings.json</code>:",
+            "login": "Start the Gemini CLI and type (with a personal Google account choose \"Use Gemini API Key\" at sign-in – Google now rejects \"Sign in with Google\" for personal accounts, as of 12 Nov 2026):"
+          }
+        },
+        "hermes": {
+          "name": "Hermes Agent",
+          "by": "Agent · MCP",
+          "summary": "Your Hermes agent gets an independent second opinion before important steps.",
+          "what": "Hermes can start a council on your keys, poll its status and fetch the verdict. Approving and building stay with you in the app.",
+          "steps": {
+            "config": "Add the server to <code>~/.hermes/config.yaml</code>:",
+            "login": "Start the sign-in in the terminal:"
+          }
+        },
+        "openclaw": {
+          "name": "OpenClaw",
+          "by": "Agent · MCP",
+          "summary": "OpenClaw can hand decisions to a council and collect the result later.",
+          "what": "OpenClaw uses the CONSYRIUM tools in its flows: prepare a project, start a council, read the verdict. Approving and building stay with you in the app.",
+          "steps": {
+            "add": "Add the server in the terminal (the transport must be \"streamable-http\" explicitly):",
+            "login": "Start the sign-in:"
+          }
         }
       },
       "publicTitle": "Integrations",
-      "publicDescription": "What you can connect CONSYRIUM AI to: Claude Code, Cursor, VS Code, Claude Desktop, Telegram, Obsidian, GitHub, e-mail and Confluence – with setup steps.",
+      "publicDescription": "What you can connect CONSYRIUM AI to: Claude Code, Cursor, VS Code, Claude, ChatGPT, Codex, Gemini CLI, Hermes, OpenClaw, Telegram, Obsidian, GitHub, e-mail and Confluence – with setup steps.",
       "signIn": "Sign in",
-      "dashboard": "Open dashboard"
+      "dashboard": "Open dashboard",
+      "shared": {
+        "signIn": "On the first connection your browser opens CONSYRIUM AI: sign in, click \"Allow\", done. There is no token to copy; the access is valid for 90 days and can be revoked under Settings → API tokens.",
+        "askAgent": "Then ask, for example: \"Let CONSYRIUM have several models check this decision.\" Before every council you see the requirements and the budget.",
+        "tokenAlt": "Without a browser (server, CI) or if the sign-in does not start: create a token under <link>Settings → API tokens</link> (\"Councils only\" is enough) and put it in place of the placeholder:",
+        "addButton": "Add to {name}",
+        "untested": "This guide follows the documentation of {name} (as of 12 Nov 2026). We checked the sign-in with the official MCP client but have not walked through it completely inside {name} yet – tell us if a step looks different for you.",
+        "tested": "Walked through completely with {name} on 12 Nov 2026: server added without a token, \"Allow\" clicked in the browser, tools called."
+      }
     }
   },
   "executionScreen": {
@@ -853,6 +903,41 @@
       "title": "You were invited to a workspace",
       "signedInAs": "Signed in as {email}. The invitation only works for the address it was sent to.",
       "signedOut": "<signIn>Sign in</signIn> or <signUp>create an account</signUp> with the invited e-mail address, then open this link again."
+    },
+    "oauth": {
+      "metaTitle": "Connect an app",
+      "title": "Allow {client} to use your CONSYRIUM AI workspace?",
+      "signedInAs": "Signed in as {email}.",
+      "targetLabel": "The access goes to",
+      "targetFirstParty": "Official CONSYRIUM AI app.",
+      "targetUnverified": "This app registered itself and is not verified by CONSYRIUM AI. Allow it only if you started this connection yourself and recognise this address.",
+      "workspaceLabel": "Workspace",
+      "scopeLabel": "What the app may do",
+      "scope": {
+        "councils": "Start, read and cancel councils on your own AI keys (councils cost tokens at your providers). No approvals, no builds, no deletions.",
+        "read": "Read projects, decisions and requirements through the MCP server. It cannot start or change anything."
+      },
+      "validity": "Valid for {days} days. You can revoke the access at any time under Settings → API tokens.",
+      "allow": "Allow",
+      "deny": "Deny",
+      "pleaseWait": "Please wait…",
+      "returning": "Returning to {target} … Once the app confirms the connection you can close this tab.",
+      "continue": "Continue to the app",
+      "errorTitle": "This connection request cannot be processed",
+      "errorHint": "Nothing was shared. Go back to the app and start the connection again.",
+      "problem": {
+        "client": "This server does not know the app (unknown client_id).",
+        "redirect_uri": "The return address is not registered for this app (redirect_uri).",
+        "response_type": "Only the authorization code flow is supported (response_type=code).",
+        "pkce": "The request must carry a PKCE code challenge with the method S256.",
+        "scope": "The requested scope is unknown. Supported: councils, read.",
+        "state": "The state parameter is too long or malformed."
+      },
+      "actionError": {
+        "invalid": "The request is no longer valid. Go back to the app and start the connection again.",
+        "session": "You are no longer signed in to this workspace. Reload the page and sign in.",
+        "failed": "That did not work. Wait a moment and try again."
+      }
     }
   },
   "skills": {

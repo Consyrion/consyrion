@@ -1,5 +1,5 @@
 import { SKILL_CATEGORIES } from "@consyrium/core";
-import { listPublicSkills } from "@consyrium/db";
+import { listPublicSkillsPage } from "@consyrium/db";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Select } from "@/components/ui/select";
@@ -14,12 +14,22 @@ export async function generateMetadata() {
 }
 
 /** Public SkillHub catalog (#368 PR 6): reviewed community skills, no login needed. */
-export default async function SkillCatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string; kind?: string }> }) {
-  const { q, category, kind } = await searchParams;
+export default async function SkillCatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string; kind?: string; page?: string }> }) {
+  const { q, category, kind, page: pageParam } = await searchParams;
   const t = await getTranslations("skillHub");
   const tCategory = await getTranslations("skills.category");
   const tRoles = await getTranslations("roleSuggestion.names");
-  const skills = await listPublicSkills(await getDb(), { q, category, kind });
+  const { skills, page, hasMore } = await listPublicSkillsPage(await getDb(), { q, category, kind, page: Number(pageParam) });
+  // Links to the neighbouring pages keep the search and the filters.
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (category) params.set("category", category);
+    if (kind) params.set("kind", kind);
+    if (n > 1) params.set("page", String(n));
+    const query = params.toString();
+    return query ? `/skills?${query}` : "/skills";
+  };
   return (
     <>
       <h1 className="text-2xl font-semibold">{t("catalog.title")}</h1>
@@ -60,7 +70,7 @@ export default async function SkillCatalogPage({ searchParams }: { searchParams:
         </button>
       </form>
       {skills.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">{q || category || kind ? t("catalog.noResults") : t("catalog.empty")}</p>
+        <p className="mt-8 text-sm text-muted">{q || category || kind || page > 1 ? t("catalog.noResults") : t("catalog.empty")}</p>
       ) : (
         <ul className="mt-6 grid gap-3 md:grid-cols-2">
           {skills.map((s) => (
@@ -77,6 +87,25 @@ export default async function SkillCatalogPage({ searchParams }: { searchParams:
           ))}
         </ul>
       )}
+      {page > 1 || hasMore ? (
+        <nav className="mt-6 flex items-center justify-between gap-3 text-sm" aria-label={t("catalog.pages")}>
+          {page > 1 ? (
+            <Link href={pageHref(page - 1)} rel="prev" className="rounded-lg border border-line px-4 py-2 hover:border-primary/50">
+              {t("catalog.previousPage")}
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-muted">{t("catalog.pageNumber", { page })}</span>
+          {hasMore ? (
+            <Link href={pageHref(page + 1)} rel="next" className="rounded-lg border border-line px-4 py-2 hover:border-primary/50">
+              {t("catalog.nextPage")}
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
       <p className="mt-10 text-xs text-muted">{t("disclaimer")}</p>
     </>
   );

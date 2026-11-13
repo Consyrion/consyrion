@@ -85,7 +85,8 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
             <ConsyriumWordmark className="text-sm" />
           </Link>
           <div className="hidden items-center gap-5 whitespace-nowrap text-sm text-muted md:flex">
-            <a href="#how" className="hover:text-text">
+            {/* QA 12.11.26: "#how" is the top of the story – the link barely moved; it opens the first chapter instead. */}
+            <a href={LANDING_CTAS.how.href} className="hover:text-text">
               {t("nav.how")}
             </a>
             <a href="#overview" className="hover:text-text max-2xl:hidden">
@@ -111,7 +112,11 @@ export async function LandingPage({ signedIn }: { signedIn: boolean }) {
             {/* Narrow screens: the section links, language and sign-in live in this menu (ChatGPT QA 07.11.26). */}
             <MobileMenu label={t("nav.menu")} summaryClassName={buttonClasses("secondary", "cursor-pointer list-none px-3 [&::-webkit-details-marker]:hidden")}>
               {(["how", "overview", "byok", "delivery", "open-source", "pricing"] as const).map((id) => (
-                <a key={id} href={`#${id}`} className="rounded-lg px-3 py-2 text-muted hover:bg-surface-2 hover:text-text">
+                <a
+                  key={id}
+                  href={id === "how" ? LANDING_CTAS.how.href : `#${id}`}
+                  className="rounded-lg px-3 py-2 text-muted hover:bg-surface-2 hover:text-text"
+                >
                   {t(`nav.${{ how: "how", overview: "overview", byok: "keys", delivery: "delivery", "open-source": "openSource", pricing: "pricing" }[id]}`)}
                 </a>
               ))}

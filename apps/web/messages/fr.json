@@ -377,7 +377,18 @@
         "versions": "Version de la proposition",
         "versionsText": "alors : {then} · maintenant : {now}",
         "review": "Relecture"
-      }
+      },
+      "showAll": "Afficher les {n} points de désaccord",
+      "showFewer": "N'afficher que les {n} premiers",
+      "category": {
+        "security": "sécurité",
+        "functional": "fonction",
+        "performance": "performance",
+        "cost": "coûts",
+        "maintainability": "maintenabilité",
+        "other": "autre"
+      },
+      "evidenceInline": "Preuve"
     },
     "dashboard": {
       "aria": "Le verdict en un coup d'œil",
@@ -514,7 +525,24 @@
         "approve_after_measurement": "approuvée après mesure"
       },
       "unmetByAll": "Aucune proposition ne remplit {list}. {n, plural, one {Cette exigence n’est peut-être pas réalisable} other {Ces exigences se contredisent peut-être}} – modifie le brief et lance un nouveau conseil.",
-      "openByAll": "Confirmée pour aucune proposition : {list}. Ajoute au brief ce qui est établi à ce sujet, ou demande des propositions qui {n, plural, one {démontrent explicitement cette exigence} other {démontrent explicitement ces exigences}}."
+      "openByAll": "Confirmée pour aucune proposition : {list}. Ajoute au brief ce qui est établi à ce sujet, ou demande des propositions qui {n, plural, one {démontrent explicitement cette exigence} other {démontrent explicitement ces exigences}}.",
+      "caution": {
+        "lowConfidence": "Avec réserves : confiance faible – le verdict repose sur des éléments incomplets.",
+        "read": "Lire d'abord les points de désaccord",
+        "critical": "{n, plural, one {# objection critique} other {# objections critiques}}",
+        "high": "{n, plural, one {# objection importante} other {# objections importantes}}",
+        "and": "et",
+        "objectionsOne": "Avec réserves : {list} contre cette recommandation reste ouverte.",
+        "objectionsMany": "Avec réserves : {list} contre cette recommandation restent ouvertes.",
+        "objectionsLowOne": "Avec réserves : {list} contre cette recommandation reste ouverte et la confiance est faible.",
+        "objectionsLowMany": "Avec réserves : {list} contre cette recommandation restent ouvertes et la confiance est faible."
+      },
+      "answer": {
+        "title": "La réponse",
+        "note": "Tel qu'écrit par l'auteur de la proposition recommandée – déclaration d'un modèle, pas une vérification des faits.",
+        "chosenTitle": "La réponse choisie"
+      },
+      "riskAccepted": "risque accepté pour {n, plural, one {# objection ouverte} other {# objections ouvertes}}"
     },
     "process": {
       "proposal": "Proposition {label}",
@@ -1038,5 +1066,16 @@
     "councilTitle": "Question au council",
     "councilNote": "Chaque modèle répond une fois sur sa propre proposition. Les réponses sont une annexe – elles ne changent ni note, ni vérification, ni vote, ni le verdict.",
     "cruxCount": "Questions humaines : {questions} · marqués : {marks}"
+  },
+  "meta": {
+    "homeTitle": "CONSYRIUM AI – Débattre. Décider. Livrer.",
+    "homeDescription": "Plusieurs modèles d'IA réfléchissent indépendamment, se remettent en question et aboutissent à un verdict documenté. Tu approuves – puis CONSYRIUM AI le réalise sous forme de pull request vérifiée.",
+    "defaultDescription": "Plusieurs IA. De meilleures décisions. Une vraie mise en œuvre."
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "text": "Cette page n'existe pas ou n'est plus disponible. Vérifie l'adresse ou continue d'ici.",
+    "home": "Vers l'accueil",
+    "dashboard": "Vers le tableau de bord"
   }
 }

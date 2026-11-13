@@ -10,6 +10,12 @@
   lists the steps (texts: `settings.connect.items.obsidian`, catalog: `apps/web/src/lib/connect-catalog.ts`).
 - From source: `pnpm --filter consyrium-obsidian build` → `apps/obsidian/dist/`.
 - The plugin uses the REST API with a "Councils only" token and needs no MCP entitlement (works on the Free plan).
+- Connecting (plugin 0.3.0, 11.11.26): **Connect with CONSYRIUM AI** in the plugin settings opens
+  `<server>/oauth/authorize` in the browser (built-in public client `consyrium-obsidian`, redirect URI exactly
+  `obsidian://consyrium-auth`, PKCE S256, scope `councils`). After "Allow" the browser opens the Obsidian link, the
+  plugin checks the `state`, redeems the code at `POST /api/oauth/token` and stores the token like a pasted one. State
+  and PKCE verifier stay in memory for ten minutes and never reach `data.json`. Pasting a token stays possible. Flow and
+  rules: `docs/mcp.md` → "Sign-in (OAuth)"; pure parts in `apps/obsidian/src/connect.ts`.
 - MCP: Obsidian has no MCP client of its own (checked up to 1.15). Community plugins with an MCP client that speak
   Streamable HTTP with a custom `Authorization` header can use `/api/mcp` (see `docs/mcp.md`); the setup page shows
   the address and header. Not verified by us inside a specific community plugin.
@@ -51,4 +57,5 @@ No new endpoint was needed. The token cannot approve, build, merge or read keys 
 `apps/obsidian/test/plugin.test.ts` (fake server, no real model calls): server address rules, error kinds incl.
 offline, token only in the header, idempotent start, status with partial failures, brief = exactly the selected text,
 only the user's requirements confirmed, instruction-like lines refused, free file names, note front matter without
-token, texts in en/de. A real end-to-end run in Obsidian is listed separately in the PR (manual, ≤ 0.10 $).
+token, texts in en/de, connecting by sign-in (PKCE helpers, consent address, answers with a foreign or missing state
+ignored, code exchange). A real end-to-end run in Obsidian is listed separately in the PR (manual, ≤ 0.10 $).

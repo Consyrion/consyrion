@@ -75,6 +75,8 @@ export const EXPORT_COVERAGE: Record<string, { exported: string } | { excluded: 
   verification: { excluded: "e-mail verification and reset tokens (auth secrets)" },
   job: { excluded: "internal work queue, transient" },
   idempotency_key: { excluded: "request de-duplication, transient" },
+  oauth_client: { excluded: "apps registered for the OAuth sign-in (platform, no workspace data)" },
+  oauth_code: { excluded: "one-time authorization codes of the OAuth sign-in (auth secrets, valid two minutes)" },
   ai_model: { excluded: "platform model catalogue, not workspace data" },
   model_strength_sync: { excluded: "platform model data" },
   plan_definition: { excluded: "platform plans" },

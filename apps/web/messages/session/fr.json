@@ -362,14 +362,16 @@
     },
     "formulaText": {
       "text": "total = somme sur tous les critères de la moyenne {weighted, select, yes {pondérée par les votes } other {}}des notes indépendantes × poids / 100 ; poids : {weights}{weighted, select, yes { ; poids des votes : {votes}} other {}}"
-    }
+    },
+    "hintReview": "Lis les objections ouvertes sous « Points de désaccord décisifs » et compare les alternatives avant d'approuver. « Demander plus de débat » permet au conseil de rediscuter ces points."
   },
   "verdictScreen": {
     "participation": {
       "label": "Participation valide :",
       "short": "manquant : {list}",
       "noValid": "aucune contribution valide",
-      "all": "chaque modèle a fourni dans chaque phase où il a été appelé."
+      "all": "chaque modèle a livré au moins une fois dans chaque phase où il a été appelé.",
+      "failedCalls": "{n, plural, one {# appel a échoué} other {# appels ont échoué}} : {list}"
     },
     "waiting": "Le verdict est calculé de manière déterministe à partir des notes indépendantes, des seuils et des objections.",
     "recordError": "Impossible d'enregistrer la décision",
@@ -380,7 +382,7 @@
       "qualifiedBlocked": "remplit les exigences confirmées, mais ne peut pas être approuvée dans ce Council",
       "architectureCandidate": "candidat d’architecture – preuve de performance en attente ({ids})"
     },
-    "voteWeights": "Poids de vote (fixés au départ, #140) : {list}. Sont pondérés les notes et le classement de chaque modèle, pas sa propre proposition ; le contrôle de faisabilité compte chaque modèle une fois.",
+    "voteWeights": "Poids de vote (fixés au départ) : {list}. Sont pondérés les notes et le classement de chaque modèle, pas sa propre proposition ; le contrôle de faisabilité compte chaque modèle une fois.",
     "notApprovableHint": "Vous pouvez demander des modifications du brief ou rejeter ; un brief modifié nécessite un nouveau council.",
     "otherGateOne": "{proposals} remplit les exigences confirmées mais n'a pas passé un autre seuil (minimum de sécurité, score minimum ou objection bloquante) – voir Evaluation.",
     "otherGateMany": "{proposals} remplissent les exigences confirmées mais n'ont pas passé un autre seuil (minimum de sécurité, score minimum ou objection bloquante) – voir Evaluation.",
@@ -518,6 +520,12 @@
     "mark": {
       "favorite": "La proposition {label} est marquée comme favorite – non approuvée ; le verdict doit encore être vérifié.",
       "prototype": "La proposition {label} a un build de prototype / mesure approuvé – pas une solution terminée ni une approbation régulière."
+    },
+    "risk": {
+      "title": "{n, plural, one {# objection critique ou importante contre la proposition {label} reste ouverte :} other {# objections critiques ou importantes contre la proposition {label} restent ouvertes :}}",
+      "accept": "J'ai lu ces objections et j'accepte le risque restant de cette décision.",
+      "criticalReason": "Une objection critique est ouverte : écris dans le champ ci-dessus pourquoi tu approuves quand même.",
+      "note": "Enregistré avec ta décision : qui a accepté quelles objections, et quand. Le verdict lui-même reste inchangé."
     }
   },
   "requirementGate": {

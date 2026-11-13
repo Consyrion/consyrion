@@ -336,3 +336,48 @@ describe("requirements no proposal meets (night test 07.11.26)", () => {
     expect(render()).not.toContain("Confirmed for no proposal");
   });
 });
+
+describe("verdict hero – answer and reservations (QA 12.11.26)", () => {
+  it("shows the recommended proposal's own answer in the hero", () => {
+    const html = render({ answer: { title: "Ten topics", summary: "Start with tutorials.", recommendations: ["1) AI tutorials", "2) Science explained"] } });
+    expect(html).toContain('data-testid="verdict-answer"');
+    expect(html).toContain("The answer");
+    expect(html).toContain("1) AI tutorials");
+    expect(html).toContain("2) Science explained");
+  });
+
+  it("turns the green hero amber and says why when high objections against the recommendation are open", () => {
+    const html = render({ caution: { openCritical: 1, openHigh: 2, lowConfidence: true } });
+    expect(html).toContain('data-testid="verdict-caution"');
+    // Critical ones named first and apart (ChatGPT review of #631).
+    expect(html).toContain("1 critical objection and 2 high objections against this recommendation are still open, and confidence is low");
+    expect(html).toContain('href="#key-disputes"');
+    expect(html).toContain("lg:col-span-2 border-warning/60");
+    expect(html).not.toContain("lg:col-span-2 border-success/60");
+  });
+
+  it("stays green without reservations", () => {
+    const html = render({ caution: { openCritical: 0, openHigh: 0, lowConfidence: false } });
+    expect(html).not.toContain('data-testid="verdict-caution"');
+    expect(html).toContain("lg:col-span-2 border-success/60");
+  });
+
+  it("keeps the chosen answer in the hero after the human decided", () => {
+    const decidedView = { ...view, approvals: [{ action: "approve", selectedProposalId: null, comment: null }] } as unknown as View;
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <VerdictDashboard
+          view={decidedView}
+          matrix={matrix}
+          outcome={{ title: "Recommended solution", tone: "success" }}
+          reason={null}
+          approvableIds={new Set(["pro_a"])}
+          recommendedId="pro_a"
+          answer={{ title: "Ten topics", summary: "", recommendations: ["1) AI tutorials"] }}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("The answer you chose");
+    expect(html).toContain("1) AI tutorials");
+  });
+});

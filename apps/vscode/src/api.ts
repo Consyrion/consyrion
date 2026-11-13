@@ -90,10 +90,11 @@ export class ConsyriumApi {
     return this.request<string>(`/api/sessions/${encodeURIComponent(sessionId)}/report${lang}`, {}, true);
   }
 
-  approve(sessionId: string, action: ApprovalAction, comment: string, selectedProposalId?: string) {
+  /** `acceptRisk`: the person confirmed the open critical/high objections against the proposal (owner decision 13.11.26). */
+  approve(sessionId: string, action: ApprovalAction, comment: string, selectedProposalId?: string, acceptRisk = false) {
     return this.request<{ status: string }>(`/api/sessions/${encodeURIComponent(sessionId)}/approval`, {
       method: "POST",
-      body: JSON.stringify({ action, comment, selectedProposalId }),
+      body: JSON.stringify({ action, comment, selectedProposalId, acceptRisk }),
     });
   }
 

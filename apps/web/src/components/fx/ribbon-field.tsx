@@ -22,10 +22,46 @@ interface Bundle {
 }
 
 const BUNDLES: Bundle[] = [
-  { colors: [STAGE_COLORS.blue, STAGE_COLORS.cyan, STAGE_COLORS.violet], base: 0.6, amplitude: 0.14, wavelength: 0.85, spread: 0.05, phase: 2.3, speed: 0.22, alpha: 0.2 },
-  { colors: [STAGE_COLORS.violet, STAGE_COLORS.blue, STAGE_COLORS.cyan], base: 0.63, amplitude: 0.11, wavelength: 0.7, spread: 0.035, phase: 3.1, speed: 0.3, alpha: 0.18 },
-  { colors: [STAGE_COLORS.cyan, STAGE_COLORS.violet, STAGE_COLORS.blue], base: 0.56, amplitude: 0.07, wavelength: 1.1, spread: 0.03, phase: 1.0, speed: 0.18, alpha: 0.16 },
-  { colors: [STAGE_COLORS.blue, STAGE_COLORS.blue, STAGE_COLORS.violet], base: 0.7, amplitude: 0.05, wavelength: 0.9, spread: 0.075, phase: 4.2, speed: 0.15, alpha: 0.08 },
+  {
+    colors: [STAGE_COLORS.blue, STAGE_COLORS.cyan, STAGE_COLORS.violet],
+    base: 0.6,
+    amplitude: 0.14,
+    wavelength: 0.85,
+    spread: 0.05,
+    phase: 2.3,
+    speed: 0.22,
+    alpha: 0.2,
+  },
+  {
+    colors: [STAGE_COLORS.violet, STAGE_COLORS.blue, STAGE_COLORS.cyan],
+    base: 0.63,
+    amplitude: 0.11,
+    wavelength: 0.7,
+    spread: 0.035,
+    phase: 3.1,
+    speed: 0.3,
+    alpha: 0.18,
+  },
+  {
+    colors: [STAGE_COLORS.cyan, STAGE_COLORS.violet, STAGE_COLORS.blue],
+    base: 0.56,
+    amplitude: 0.07,
+    wavelength: 1.1,
+    spread: 0.03,
+    phase: 1.0,
+    speed: 0.18,
+    alpha: 0.16,
+  },
+  {
+    colors: [STAGE_COLORS.blue, STAGE_COLORS.blue, STAGE_COLORS.violet],
+    base: 0.7,
+    amplitude: 0.05,
+    wavelength: 0.9,
+    spread: 0.075,
+    phase: 4.2,
+    speed: 0.15,
+    alpha: 0.08,
+  },
 ];
 
 const STRANDS = 28;
@@ -152,7 +188,8 @@ export function RibbonField({
       }
       // Narrow screens get calmer ribbons so the form stays the focus.
       calm += (calmTarget - calm) * 0.06;
-      const strength = (w < 768 ? 0.55 : 1) * intensity * (1 - 0.68 * calm);
+      // QA 12.11.26 (phone): below the story the wave still ran through headings and text – calmer on small screens.
+      const strength = (w < 768 ? 0.55 : 1) * intensity * (1 - (w < 768 ? 0.88 : 0.68) * calm);
       for (const bundle of BUNDLES) {
         const gradient = ctx.createLinearGradient(0, 0, w, 0);
         bundle.colors.forEach((color, i) => gradient.addColorStop(i / (bundle.colors.length - 1), color));
@@ -229,5 +266,12 @@ export function RibbonField({
     };
   }, [running, intensity, interactive, calmBelow]);
 
-  return <canvas ref={canvasRef} aria-hidden="true" className={`pointer-events-none fixed inset-0 -z-10 size-full ${className}`} data-ribbons={running ? "on" : "off"} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className={`pointer-events-none fixed inset-0 -z-10 size-full ${className}`}
+      data-ribbons={running ? "on" : "off"}
+    />
+  );
 }

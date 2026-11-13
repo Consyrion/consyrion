@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { CodeWindow } from "@/components/connect/code-window";
 import { ConnectIcon } from "@/components/connect/connect-icon";
 import { Card } from "@/components/ui/surface";
-import { OBSIDIAN_DOWNLOADS, connectItem, connectSteps, isDetailSlug } from "@/lib/connect-catalog";
+import { OBSIDIAN_DOWNLOADS, SIGN_IN_SLUGS, TESTED_SIGN_IN_SLUGS, connectItem, connectSteps, isDetailSlug } from "@/lib/connect-catalog";
 
 type Params = { params: Promise<{ client: string }> };
 
@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Params) {
 
 /** Where a <link> inside a step text points to. */
 function stepLink(step: string): string {
-  if (step === "token") return "/settings/api-tokens";
+  if (step === "token" || step === "connect" || step === "tokenAlt") return "/settings/api-tokens";
   return "/settings/integrations#delivery";
 }
 
@@ -36,7 +36,7 @@ export default async function ConnectClientPage({ params }: Params) {
         ← {t("back")}
       </Link>
       <header className="mt-4 flex items-start gap-4">
-        <ConnectIcon name={item.icon} className="size-12" />
+        <ConnectIcon name={item.icon} brand={item.brand} className="size-12" />
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight">{t(`${key}.name`)}</h1>
           <p className="mt-1 text-muted">{t(`${key}.summary`)}</p>
@@ -75,7 +75,7 @@ export default async function ConnectClientPage({ params }: Params) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm">
-                  {t.rich(`${key}.steps.${step.key}`, {
+                  {t.rich(step.shared ? `shared.${step.key}` : `${key}.steps.${step.key}`, {
                     link: (chunks) => (
                       <Link href={stepLink(step.key)} className="text-primary underline">
                         {chunks}
@@ -94,6 +94,14 @@ export default async function ConnectClientPage({ params }: Params) {
                     code: (chunks) => <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-xs">{chunks}</code>,
                   })}
                 </p>
+                {step.install ? (
+                  <a
+                    href={step.install}
+                    className="mt-3 inline-flex items-center rounded-lg border border-primary/60 bg-surface-2 px-3 py-1.5 text-sm font-medium text-text hover:border-primary focus-visible:outline-2 focus-visible:outline-focus"
+                  >
+                    {t("shared.addButton", { name: t(`${key}.name`) })}
+                  </a>
+                ) : null}
                 {step.code ? <CodeWindow label={step.code.label} text={step.code.text} /> : null}
               </div>
             </li>
@@ -101,7 +109,10 @@ export default async function ConnectClientPage({ params }: Params) {
         </ol>
       </section>
 
-      <p className="mt-10 border-t border-glass-line pt-4 text-xs text-muted">{t("safety")}</p>
+      {SIGN_IN_SLUGS.includes(client) ? (
+        <p className="mt-10 text-xs text-muted">{t(TESTED_SIGN_IN_SLUGS.includes(client) ? "shared.tested" : "shared.untested", { name: t(`${key}.name`) })}</p>
+      ) : null}
+      <p className={`${SIGN_IN_SLUGS.includes(client) ? "mt-3" : "mt-10 border-t border-glass-line"} pt-4 text-xs text-muted`}>{t("safety")}</p>
     </div>
   );
 }

@@ -101,3 +101,26 @@ export function sameObjectionPoint(a: string, b: string): boolean {
   for (const word of smaller) if (larger.has(word)) shared++;
   return shared / smaller.size >= SAME_POINT_OVERLAP;
 }
+
+/**
+ * Collapses entries that make the same point (see `sameObjectionPoint`) into one. Each group keeps the entry with the
+ * lowest rank (the first one on a tie) and stands where its first entry stood. For reader-facing summaries such as
+ * the report's remaining risks, where the consensus, the proposal's own risk list and several objections often name
+ * the same risk (11.11.26: "file copy in WAL mode" three times in one report). The full objection list is not
+ * touched – there every model stays a separate voice.
+ */
+export function dedupeSamePoint<T>(items: readonly T[], statement: (item: T) => string, rank: (item: T) => number = () => 0): T[] {
+  const groups: Array<{ statements: string[]; best: T }> = [];
+  for (const item of items) {
+    const text = statement(item);
+    if (!normalizeStatement(text)) continue;
+    const group = groups.find((g) => g.statements.some((s) => sameObjectionPoint(s, text)));
+    if (!group) {
+      groups.push({ statements: [text], best: item });
+      continue;
+    }
+    group.statements.push(text);
+    if (rank(item) < rank(group.best)) group.best = item;
+  }
+  return groups.map((g) => g.best);
+}

@@ -83,11 +83,13 @@ interface RevisionLike {
  * Splits objections against a proposal into those that still apply to its current revision and those raised against
  * an earlier revision whose subject the current one no longer contains (#150). The second group is not a remaining
  * risk of the recommendation: it is reported as made moot by the revision, not independently re-reviewed.
+ * An objection that still applies but was written about an earlier revision carries both versions too, so a reader
+ * knows why it may quote details the current revision no longer shows (11.11.26: "priority 4" against v1, v2 says 9).
  */
 export function splitObjections<O extends { claim: string; createdAt: Date | string }>(objections: ReadonlyArray<O>, revisions: ReadonlyArray<RevisionLike>) {
   const ordered = [...revisions].sort((x, y) => x.version - y.version);
   const latest = ordered.at(-1);
-  const current: O[] = [];
+  const current: Array<O & { againstVersion?: number; currentVersion?: number }> = [];
   const moot: Array<O & { againstVersion: number; currentVersion: number }> = [];
   for (const objection of objections) {
     const raised = new Date(objection.createdAt).getTime();
@@ -95,7 +97,10 @@ export function splitObjections<O extends { claim: string; createdAt: Date | str
     const target = [...ordered].reverse().find((r) => new Date(r.createdAt).getTime() <= raised) ?? ordered[0];
     if (latest && target && target.version < latest.version && objectionMoot(objection.claim, target.content, latest.content)) {
       moot.push({ ...objection, againstVersion: target.version, currentVersion: latest.version });
-    } else current.push(objection);
+    } else
+      current.push(
+        latest && target && target.version < latest.version ? { ...objection, againstVersion: target.version, currentVersion: latest.version } : objection,
+      );
   }
   return { current, moot };
 }

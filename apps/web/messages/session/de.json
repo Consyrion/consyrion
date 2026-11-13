@@ -163,7 +163,7 @@
     "proposal": "Vorschlag {label}",
     "proposalField": "Vorschlag",
     "proposalTitle": "Vorschlag {label} – {title}",
-    "close": "Schliessen",
+    "close": "Schließen",
     "evidenceLabel": "Beleg:",
     "notDefended": "Nicht verteidigt – {reason}. Der Autor konnte nicht antworten; das ist keine unwidersprochene Kritik.",
     "objectionStatus": {
@@ -217,7 +217,7 @@
       "cost": "Kosten",
       "confidence": "Zuversicht"
     },
-    "riskItem": "{risk} ({severity}) – Gegenmassnahme: {mitigation}",
+    "riskItem": "{risk} ({severity}) – Gegenmaßnahme: {mitigation}",
     "ownClaims": "Die Aussagen sind Behauptungen des Modells; sie werden im 12 Minds Council und im Minority Review geprüft.",
     "authorSentence": "Autor: {model}.",
     "open": {
@@ -325,12 +325,12 @@
     "hintDebate": "Erwäge «Weitere Debatte anfordern», um die fehlenden Bewertungen erneut auszuführen, oder vergleiche die Alternativen vor der Freigabe.",
     "mainReason": {
       "title": "Hauptgrund: Die Bewertung ist unvollständig.",
-      "body": "{names} konnte die Prüfung nicht abschliessen. Das ist eine technische Lücke, kein Befund, dass ein Vorschlag eine Anforderung verfehlt.",
-      "bodyOpen": "{names} konnte die Prüfung nicht abschliessen, daher {open, plural, one {konnte # Vorschlag} other {konnten # Vorschläge}} nicht bestätigt werden. Das ist eine technische Lücke, kein Befund, dass ein Vorschlag eine Anforderung verfehlt.",
+      "body": "{names} konnte die Prüfung nicht abschließen. Das ist eine technische Lücke, kein Befund, dass ein Vorschlag eine Anforderung verfehlt.",
+      "bodyOpen": "{names} konnte die Prüfung nicht abschließen, daher {open, plural, one {konnte # Vorschlag} other {konnten # Vorschläge}} nicht bestätigt werden. Das ist eine technische Lücke, kein Befund, dass ein Vorschlag eine Anforderung verfehlt.",
       "nextRepeat": "Nächster Schritt: «Bewertung wiederholen» unten fragt nur das fehlende Modell erneut, mit deinem API-Schlüssel und innerhalb des Budgets dieses Councils. Schlägt es wieder fehl, starte einen neuen Council – zum Beispiel mit weniger Anforderungen oder einem anderen Modell.",
       "next": "Nächster Schritt: Schlägt es wieder fehl, starte einen neuen Council – zum Beispiel mit weniger Anforderungen oder einem anderen Modell."
     },
-    "waiting": "Jedes Modell bewertet alle Vorschläge ausser seinem eigenen. Die Matrix wird aus diesen gespeicherten Punkten berechnet.",
+    "waiting": "Jedes Modell bewertet alle Vorschläge außer seinem eigenen. Die Matrix wird aus diesen gespeicherten Punkten berechnet.",
     "notShown": "Bewertung nicht angezeigt",
     "caption": "Mittelwert der unabhängigen Punkte (0–10); ± zeigt die Streuung zwischen den Bewertern.",
     "criterionWeight": "Kriterium (Gewicht)",
@@ -362,14 +362,16 @@
     },
     "formulaText": {
       "text": "Gesamtwert = Summe über alle Kriterien aus {weighted, select, yes {stimmgewichtetem } other {}}Durchschnitt der unabhängigen Bewertungen × Gewicht / 100; Gewichte: {weights}{weighted, select, yes {; Stimmgewichte: {votes}} other {}}"
-    }
+    },
+    "hintReview": "Lies die offenen Einwände unter „Entscheidende Streitpunkte“ und vergleiche die Alternativen, bevor du freigibst. Mit «Weitere Debatte anfordern» verhandelt der Council diese Punkte erneut."
   },
   "verdictScreen": {
     "participation": {
       "label": "Gültige Beteiligung:",
       "short": "fehlend: {list}",
       "noValid": "kein gültiger Beitrag",
-      "all": "jedes Modell hat in jeder Phase geliefert, in der es aufgerufen wurde."
+      "all": "jedes Modell hat in jeder Phase, in der es aufgerufen wurde, mindestens einmal verwertbar geliefert.",
+      "failedCalls": "{n, plural, one {# Aufruf ist} other {# Aufrufe sind}} fehlgeschlagen: {list}"
     },
     "waiting": "Das Urteil wird deterministisch aus unabhängigen Punkten, Schwellen und Einwänden berechnet.",
     "recordError": "Die Entscheidung konnte nicht gespeichert werden",
@@ -380,7 +382,7 @@
       "qualifiedBlocked": "erfüllt die bestätigten Anforderungen, kann in diesem Council aber nicht freigegeben werden",
       "architectureCandidate": "Architektur-Kandidat – Leistungsnachweis offen ({ids})"
     },
-    "voteWeights": "Stimmgewichte (beim Start festgelegt, #140): {list}. Gewichtet werden die Punkte und die Rangfolge jedes Modells, nicht sein eigener Vorschlag; die Machbarkeitsprüfung zählt jedes Modell einmal.",
+    "voteWeights": "Stimmgewichte (beim Start festgelegt): {list}. Gewichtet werden die Punkte und die Rangfolge jedes Modells, nicht sein eigener Vorschlag; die Machbarkeitsprüfung zählt jedes Modell einmal.",
     "notApprovableHint": "Du kannst Änderungen am Auftrag anfordern oder ablehnen; ein geänderter Auftrag braucht einen neuen Council.",
     "otherGateOne": "{proposals} erfüllt die bestätigten Anforderungen, hat aber eine andere Schwelle nicht bestanden (Sicherheitsminimum, Mindestpunktzahl oder ein blockierender Einwand) – siehe Evaluation.",
     "otherGateMany": "{proposals} erfüllen die bestätigten Anforderungen, haben aber eine andere Schwelle nicht bestanden (Sicherheitsminimum, Mindestpunktzahl oder ein blockierender Einwand) – siehe Evaluation.",
@@ -392,7 +394,7 @@
     "mainStrengths": "Wichtigste Stärken",
     "mainWeaknesses": "Wichtigste Schwächen",
     "remainingRisks": "Verbleibende Risiken",
-    "riskMitigation": "{risk} ({severity}; Gegenmassnahme: {mitigation})",
+    "riskMitigation": "{risk} ({severity}; Gegenmaßnahme: {mitigation})",
     "openObjectionAccepted": "{claim} (bestätigter Einwand)",
     "openObjectionUnresolved": "{claim} (ungeklärter Einwand)",
     "mootSummary": "{n, plural, one {# Einwand gegen eine frühere Revision gilt nicht mehr} other {# Einwände gegen eine frühere Revision gelten nicht mehr}}",
@@ -518,6 +520,12 @@
     "mark": {
       "favorite": "Vorschlag {label} ist als Favorit markiert – nicht freigegeben; das Urteil muss weiter geprüft werden.",
       "prototype": "Für Vorschlag {label} ist ein Prototyp-/Mess-Build freigegeben – keine fertige Lösung und keine reguläre Freigabe."
+    },
+    "risk": {
+      "title": "{n, plural, one {Gegen Vorschlag {label} ist noch # kritischer oder hoher Einwand offen:} other {Gegen Vorschlag {label} sind noch # kritische oder hohe Einwände offen:}}",
+      "accept": "Ich habe diese Einwände gelesen und übernehme das verbleibende Risiko dieser Entscheidung.",
+      "criticalReason": "Ein kritischer Einwand ist offen: Schreib oben im Feld, warum du trotzdem freigibst.",
+      "note": "Wird mit deiner Entscheidung gespeichert: wer wann welche Einwände akzeptiert hat. Das Urteil selbst bleibt unverändert."
     }
   },
   "requirementGate": {

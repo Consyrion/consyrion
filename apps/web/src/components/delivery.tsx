@@ -139,19 +139,40 @@ export function DeliveryConnections({
             name="label"
             required
             maxLength={60}
+            autoComplete="off"
             placeholder={kind === "telegram" ? t("namePlaceholderTelegram") : t("namePlaceholderConfluence")}
           />
           {kind === "telegram" ? (
             <>
-              <TextField label={t("chatId")} name="chatId" required hint={t("chatIdHint")} />
-              <PasswordField label={t("botToken")} name="secret" required autoComplete="off" hint={t("botTokenHint")} />
+              <TextField label={t("chatId")} name="chatId" required autoComplete="off" hint={t("chatIdHint")} />
+              <PasswordField
+                label={t("botToken")}
+                name="secret"
+                required
+                autoComplete="new-password"
+                data-1p-ignore
+                data-lpignore="true"
+                data-bwignore
+                data-form-type="other"
+                hint={t("botTokenHint")}
+              />
             </>
           ) : (
             <>
               <TextField label={t("siteUrl")} name="baseUrl" required placeholder="https://your-team.atlassian.net" />
               <TextField label={t("spaceKey")} name="spaceKey" required placeholder="DEC" />
               <TextField label={t("accountEmail")} name="email" type="email" required />
-              <PasswordField label={t("apiToken")} name="secret" required autoComplete="off" hint={t("apiTokenHint")} />
+              <PasswordField
+                label={t("apiToken")}
+                name="secret"
+                required
+                autoComplete="new-password"
+                data-1p-ignore
+                data-lpignore="true"
+                data-bwignore
+                data-form-type="other"
+                hint={t("apiTokenHint")}
+              />
             </>
           )}
           <div className="md:col-span-2">

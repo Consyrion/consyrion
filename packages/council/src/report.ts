@@ -4,12 +4,16 @@ import {
   independenceKey,
   COUNCIL_PHASE_LABELS,
   DECISION_MODE_LABELS,
+  dedupeSamePoint,
   dedupeStatements,
   describeConfidenceIssue,
   describeObjection,
   objectionStatusText,
   requirementVerification,
   splitObjections,
+  undefendedReasonText,
+  hasCaution,
+  verdictCaution,
   type ConfidenceIssue,
   type VerdictResult,
   councilPurpose,
@@ -128,6 +132,35 @@ export function buildDecisionReport(view: SessionView) {
           view.proposals.filter((p) => p.id !== recommendedProposal.id).map((p) => ({ label: p.label ?? "?", content: p.revisions[0]?.content })),
         )
       : null;
+  // One line per risk: the consensus, the proposal's own list and several objections often name the same point
+  // (11.11.26). The line with the mitigation wins, then a confirmed objection, then an open one, then the bare text.
+  const riskEntries = dedupeSamePoint(
+    [
+      ...(view.consensus?.outstandingRisks ?? []).map((text) => ({ statement: text, line: text, rank: 3, source: "consensus" as const })),
+      ...(recommendedContent?.risks ?? []).map((r) => ({
+        statement: r.risk,
+        line: `${r.risk} (${r.severity}; mitigation: ${r.mitigation})`,
+        rank: 0,
+        source: "proposal" as const,
+      })),
+      ...objectionsOfRecommended.current.map((o) => ({
+        statement: o.claim,
+        line: `${o.claim} (${o.status} objection${o.againstVersion ? `; raised against v${o.againstVersion}, the recommendation is v${o.currentVersion}` : ""})`,
+        rank: o.status === "accepted" ? 1 : 2,
+        source: "objections" as const,
+      })),
+    ],
+    (entry) => entry.statement,
+    (entry) => entry.rank,
+  );
+  // Still-open objections written about an earlier revision of their proposal, for the objection list.
+  const raisedAgainst = new Map<string, { version: number; current: number }>();
+  for (const p of view.proposals)
+    for (const o of splitObjections(
+      view.objections.filter((x) => x.proposalId === p.id),
+      p.revisions,
+    ).current)
+      if (o.againstVersion && o.currentVersion) raisedAgainst.set(o.id, { version: o.againstVersion, current: o.currentVersion });
   const scoreRationales = recommended
     ? view.scores
         .filter((s) => s.revisionId === latest(recommended)?.id)
@@ -190,6 +223,7 @@ export function buildDecisionReport(view: SessionView) {
           total: view.participation.total,
           percent: view.participation.percent,
           shortfalls: view.participation.shortfalls.map((s) => ({ model: modelOf(s.participantId), phases: s.phases })),
+          failedCalls: (view.participation.failedCalls ?? []).map((f) => ({ model: modelOf(f.participantId), phase: f.phase, calls: f.calls })),
         }
       : null,
     outcome: view.decision?.outcome ?? null,
@@ -344,11 +378,16 @@ export function buildDecisionReport(view: SessionView) {
           failedEvaluators: (matrix.failedEvaluators ?? []).map((f) => `${f.modelId}: ${f.outcome}`),
         }
       : null,
-    remainingRisks: [
-      ...(view.consensus?.outstandingRisks ?? []),
-      ...(recommendedContent?.risks ?? []).map((r) => `${r.risk} (${r.severity}; mitigation: ${r.mitigation})`),
-      ...objectionsOfRecommended.current.map((o) => `${o.claim} (${o.status} objection)`),
-    ],
+    remainingRisks: riskEntries.map((entry) => entry.line),
+    /**
+     * The same lines by who named the risk (owner decision 11.11.26): differently worded repeats then read as several
+     * voices on one point. Reports stored before this field print the flat list.
+     */
+    remainingRiskGroups: {
+      consensus: riskEntries.filter((entry) => entry.source === "consensus").map((entry) => entry.line),
+      proposal: riskEntries.filter((entry) => entry.source === "proposal").map((entry) => entry.line),
+      objections: riskEntries.filter((entry) => entry.source === "objections").map((entry) => entry.line),
+    },
     /** Objections against an earlier revision whose subject the recommendation no longer contains (#150). */
     mootObjections: objectionsOfRecommended.moot.map(
       (o) => `${o.claim} – raised against v${o.againstVersion}; no longer applies to v${o.currentVersion} (not independently re-reviewed)`,
@@ -385,6 +424,8 @@ export function buildDecisionReport(view: SessionView) {
       status: o.status,
       /** Raised against an earlier revision the current one no longer contains (#150) – not counted as open, as on screen. */
       moot: Boolean(o.moot),
+      /** Still applies, but was written about an earlier revision – it may quote details the current one no longer shows. */
+      raisedAgainst: raisedAgainst.get(o.id) ?? null,
       blocking: o.blocking,
       resolution: o.resolutionReason,
     })),
@@ -426,7 +467,8 @@ export type DecisionReport = ReturnType<typeof buildDecisionReport>;
 /** "5/6 (83 %); short: google/gemini-x – Open Council" (#182). */
 function participationLine(p: NonNullable<DecisionReport["validParticipation"]>, t: ReportT) {
   const short = p.shortfalls.map((s) => `${s.model}${s.phases.length ? ` – ${s.phases.join(", ")}` : ` – ${t("no valid contribution")}`}`);
-  return `${p.valid}/${p.total} (${p.percent} %)${short.length ? `; ${t("short: {list}", { list: short.join("; ") })}` : ""}`;
+  const failed = (p.failedCalls ?? []).map((f) => `${f.model} – ${f.phase} ×${f.calls}`);
+  return `${p.valid}/${p.total} (${p.percent} %)${short.length ? `; ${t("short: {list}", { list: short.join("; ") })}` : ""}${failed.length ? `; ${t("failed calls: {list}", { list: failed.join("; ") })}` : ""}`;
 }
 
 /** describeObjection (core) in the report language: who objected against which proposal, why, and how it was decided. */
@@ -561,8 +603,13 @@ const APPROVAL_ACTION: Record<string, string> = {
 function riskText(text: string, t: ReportT): string {
   const mitigation = /^([\s\S]*) \((low|medium|high|critical); mitigation: ([\s\S]*)\)$/.exec(text);
   if (mitigation) return t("{risk} ({severity}; mitigation: {mitigation})", { risk: mitigation[1]!, severity: t(mitigation[2]!), mitigation: mitigation[3]! });
-  const objection = /^([\s\S]*) \((\w+) objection\)$/.exec(text);
-  if (objection) return t("{claim} ({status})", { claim: objection[1]!, status: t(objectionStatusText(objection[2]! as never)) });
+  const objection = /^([\s\S]*) \((\w+) objection(?:; raised against v(\d+), the recommendation is v(\d+))?\)$/.exec(text);
+  if (objection) {
+    const values = { claim: objection[1]!, status: t(objectionStatusText(objection[2]! as never)) };
+    return objection[3]
+      ? t("{claim} ({status}; raised against v{from}, the recommendation is v{to})", { ...values, from: objection[3], to: objection[4]! })
+      : t("{claim} ({status})", values);
+  }
   const moot = /^([\s\S]*) – raised against v(\d+); no longer applies to v(\d+) \(not independently re-reviewed\)$/.exec(text);
   if (moot)
     return t("{claim} – raised against v{from}; no longer applies to v{to} (not independently re-reviewed)", { claim: moot[1]!, from: moot[2]!, to: moot[3]! });
@@ -740,6 +787,8 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
     outcomeLine(report, locale, t),
     "",
     ...ideaLines(report.ideaCheck, t),
+    ...answerLines(report, t),
+    ...cautionLines(report, t),
     ...(report.proposalOverview.length
       ? [
           `### ${t("The proposals")}`,
@@ -868,7 +917,19 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
     }
     lines.push("");
   }
-  lines.push(`## ${t("Remaining risks")}`, list(report.remainingRisks.map((r) => (locale === "en" ? r : riskText(r, t)))), "");
+  const risk = (r: string) => (locale === "en" ? r : riskText(r, t));
+  const riskGroups = report.remainingRiskGroups
+    ? (
+        [
+          ["From the consensus", report.remainingRiskGroups.consensus],
+          ["Risks named by the proposal itself", report.remainingRiskGroups.proposal],
+          ["Open objections", report.remainingRiskGroups.objections],
+        ] as const
+      ).filter(([, items]) => items.length)
+    : [];
+  lines.push(`## ${t("Remaining risks")}`);
+  if (riskGroups.length) for (const [title, items] of riskGroups) lines.push(`**${t(title)}**`, list(items.map(risk)), "");
+  else lines.push(list(report.remainingRisks.map(risk)), "");
   if (report.mootObjections.length)
     lines.push(`### ${t("No longer applicable after the revision")}`, list(report.mootObjections.map((r) => (locale === "en" ? r : riskText(r, t)))), "");
   // Objections, not minority opinions (#169): the status says how the objection was decided, not the proposal.
@@ -878,7 +939,7 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
       ? report.objections
           .map(
             (o) =>
-              `- ${objectionLine(o, t, locale)} [${categoryLabel(o.category, o.severity, t)}]${o.undefended ? ` – ${t("NOT DEFENDED")} – ${o.undefended}` : ""}`,
+              `- ${objectionLine(o, t, locale)} [${categoryLabel(o.category, o.severity, t)}]${o.undefended ? ` – ${t("NOT DEFENDED")} – ${undefendedReasonText(o.undefended, locale)}` : ""}${o.raisedAgainst ? ` – ${t("raised against v{from}; the proposal is now v{to}", { from: o.raisedAgainst.version, to: o.raisedAgainst.current })}` : ""}`,
           )
           .join("\n")
       : `- ${t("none")}`,
@@ -894,7 +955,8 @@ export function reportToMarkdown(report: DecisionReport, locale: ReportLocale = 
     ),
     "",
     `## ${t("Next steps")}`,
-    list(report.nextSteps.length ? report.nextSteps : [nextAction(report, t)]),
+    // The proposal's own steps stand at the top ("the answer in brief"); here they are not repeated.
+    list(report.nextSteps.length && !answerLines(report, t).length ? report.nextSteps : [nextAction(report, t)]),
     "",
   );
   if (report.consensus)
@@ -934,6 +996,58 @@ function ideaReading(view: SessionView, nothingApprovable: boolean, label: (prop
     toClarify: result.toClarify.map((id) => ({ requirement: number(id), text: items.find((i) => i.id === id)?.text ?? "" })),
     excluded: result.excluded.map((e) => ({ proposal: label(e.proposalId), requirements: e.requirementIds.map(number) })),
   };
+}
+
+/**
+ * The answer first (owner feedback 11.11.26: for a list or idea question the actual answer – the recommended steps –
+ * stood at the very end, after the whole debate): title, summary and steps of the proposal the report leads with,
+ * unchanged. A leading proposal that cannot be approved is named as such.
+ */
+/**
+ * QA 12.11.26: low confidence and open high objections against the recommendation stood only deep in the evaluation
+ * matrix – the same reservations the screen states in its hero now follow the answer at the top.
+ */
+function cautionLines(report: DecisionReport, t: ReportT): string[] {
+  const r = report.recommendedSolution;
+  if (!r) return [];
+  // Same rule as the Final Verdict hero (core verdictCaution); the report keys objections by proposal label.
+  const caution = verdictCaution({
+    recommendedProposalId: r.label,
+    objections: report.objections.map((o) => ({ proposalId: o.proposal, severity: o.severity, status: o.status, moot: o.moot || undefined })),
+    confidence: report.evaluationMatrix?.confidence ?? null,
+    legacyIssueCount: (report.evaluationMatrix?.confidenceIssues?.length ?? 0) + (report.evaluationMatrix?.failedEvaluators?.length ?? 0),
+  });
+  if (!hasCaution(caution)) return [];
+  const count = (n: number, one: string, many: string) => (n === 1 ? t(one) : t(many, { n }));
+  const list = [
+    caution.openCritical ? count(caution.openCritical, "1 critical objection", "{n} critical objections") : "",
+    caution.openHigh ? count(caution.openHigh, "1 high objection", "{n} high objections") : "",
+  ]
+    .filter(Boolean)
+    .join(` ${t("and")} `);
+  const open = caution.openCritical + caution.openHigh;
+  return [
+    `> **${t("With reservations:")}** ${[
+      open ? t(open === 1 ? "{list} against this recommendation is still open." : "{list} against this recommendation are still open.", { list }) : "",
+      caution.lowConfidence ? t("Low confidence – read this verdict with caution.") : "",
+    ]
+      .filter(Boolean)
+      .join(" ")}`,
+    "",
+  ];
+}
+
+function answerLines(report: DecisionReport, t: ReportT): string[] {
+  const r = report.recommendedSolution;
+  if (!r || (!r.summary && !r.recommendations.length)) return [];
+  const approvable = !report.decisionFormat || report.decisionFormat.approvable;
+  return [
+    `### ${t(approvable ? "The answer in brief" : "The leading proposal in brief (not approvable)")}`,
+    `**${t("Proposal {label}", { label: r.label ?? "?" })}${r.title ? ` – ${r.title}` : ""}** (${r.author})`,
+    "",
+    ...(r.summary ? [r.summary, ""] : []),
+    ...(r.recommendations.length ? [r.recommendations.map((step) => `- ${step}`).join("\n"), ""] : []),
+  ];
 }
 
 function ideaLines(idea: ReturnType<typeof ideaReading>, t: ReportT): string[] {

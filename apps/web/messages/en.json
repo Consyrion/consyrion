@@ -377,7 +377,18 @@
         "versions": "Proposal version",
         "versionsText": "then: {then} · now: {now}",
         "review": "Review"
-      }
+      },
+      "showAll": "Show all {n} disputes",
+      "showFewer": "Show only the first {n}",
+      "category": {
+        "security": "security",
+        "functional": "function",
+        "performance": "performance",
+        "cost": "cost",
+        "maintainability": "maintainability",
+        "other": "other"
+      },
+      "evidenceInline": "Evidence"
     },
     "dashboard": {
       "aria": "Verdict at a glance",
@@ -514,7 +525,24 @@
         "approve_after_measurement": "approved after measurement"
       },
       "unmetByAll": "No proposal meets {list}. {n, plural, one {This requirement may not be achievable} other {These requirements may contradict each other}} – change the brief and start a new council.",
-      "openByAll": "Confirmed for no proposal: {list}. Add to the brief what is known about it, or ask for proposals that show {n, plural, one {this requirement} other {these requirements}} explicitly."
+      "openByAll": "Confirmed for no proposal: {list}. Add to the brief what is known about it, or ask for proposals that show {n, plural, one {this requirement} other {these requirements}} explicitly.",
+      "caution": {
+        "lowConfidence": "With reservations: low confidence – the verdict rests on incomplete evidence.",
+        "read": "Read the key disputes first",
+        "critical": "{n, plural, one {# critical objection} other {# critical objections}}",
+        "high": "{n, plural, one {# high objection} other {# high objections}}",
+        "and": "and",
+        "objectionsOne": "With reservations: {list} against this recommendation is still open.",
+        "objectionsMany": "With reservations: {list} against this recommendation are still open.",
+        "objectionsLowOne": "With reservations: {list} against this recommendation is still open, and confidence is low.",
+        "objectionsLowMany": "With reservations: {list} against this recommendation are still open, and confidence is low."
+      },
+      "answer": {
+        "title": "The answer",
+        "note": "As written by the author of the recommended proposal – a model's statement, not a fact check.",
+        "chosenTitle": "The answer you chose"
+      },
+      "riskAccepted": "risk accepted for {n, plural, one {# open objection} other {# open objections}}"
     },
     "process": {
       "proposal": "Proposal {label}",
@@ -1038,5 +1066,16 @@
     "councilTitle": "Ask the council",
     "councilNote": "Each model answers once about its own proposal. The answers are an appendix – they change no score, check, vote or the verdict.",
     "cruxCount": "Human questions: {questions} · marked: {marks}"
+  },
+  "meta": {
+    "homeTitle": "CONSYRIUM AI – Debate. Decide. Deliver.",
+    "homeDescription": "Several AI models think independently, challenge each other and reach a documented verdict. You approve – then CONSYRIUM AI builds it as a reviewed pull request.",
+    "defaultDescription": "Multiple AI minds. Better decisions. Real execution."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "text": "This page does not exist or is no longer available. Check the address or continue from here.",
+    "home": "To the home page",
+    "dashboard": "To the dashboard"
   }
 }

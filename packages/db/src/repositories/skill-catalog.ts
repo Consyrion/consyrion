@@ -142,11 +142,10 @@ async function officialSkills(db: Database): Promise<PublicSkill[]> {
     .filter((s): s is PublicSkill => s !== null);
 }
 
-/** The public catalog: listed skills only, newest first, optional text search and category. */
-export async function listPublicSkills(
-  db: Database,
-  filter: { q?: string | null; category?: string | null; kind?: string | null; limit?: number; offset?: number } = {},
-): Promise<PublicSkillSummary[]> {
+type CatalogFilter = { q?: string | null; category?: string | null; kind?: string | null; limit?: number; offset?: number };
+
+/** Official skills (first page only) and one page of reviewed community entries, newest first. */
+async function queryPublicSkills(db: Database, filter: CatalogFilter): Promise<{ official: PublicSkill[]; rows: PublicSkill[] }> {
   const kind = isHubKind(filter.kind) ? filter.kind : null;
   const q = (filter.q ?? "").trim().slice(0, 100);
   const category = SKILL_CATEGORIES.includes(filter.category as never) ? filter.category : null;
@@ -161,8 +160,8 @@ export async function listPublicSkills(
         category ? sql`${skillVersion.content}->>'category' = ${category}` : undefined,
       ),
     )
-    .orderBy(desc(skillVersion.publishedAt))
-    .limit(Math.min(Math.max(filter.limit ?? 50, 1), 100))
+    .orderBy(desc(skillVersion.publishedAt), desc(skill.id))
+    .limit(Math.min(Math.max(filter.limit ?? 50, 1), 101))
     .offset(Math.max(filter.offset ?? 0, 0));
   const needle = q.toLowerCase();
   const official =
@@ -173,19 +172,41 @@ export async function listPublicSkills(
             (!category || o.category === category) &&
             (!needle || o.name.toLowerCase().includes(needle) || o.summary.toLowerCase().includes(needle) || OFFICIAL_SKILL_HANDLE.includes(needle)),
         );
-  return [...official, ...rows.map(toPublic).filter((s): s is PublicSkill => s !== null)].map(
-    ({ kind: k, handle, publisherName, slug, name, summary, category, version, publishedAt }) => ({
-      kind: k,
-      handle,
-      publisherName,
-      slug,
-      name,
-      summary,
-      category,
-      version,
-      publishedAt,
-    }),
-  );
+  return { official, rows: rows.map(toPublic).filter((s): s is PublicSkill => s !== null) };
+}
+
+const toSummary = ({ kind, handle, publisherName, slug, name, summary, category, version, publishedAt }: PublicSkill): PublicSkillSummary => ({
+  kind,
+  handle,
+  publisherName,
+  slug,
+  name,
+  summary,
+  category,
+  version,
+  publishedAt,
+});
+
+/** The public catalog: listed skills only, newest first, optional text search and category. */
+export async function listPublicSkills(db: Database, filter: CatalogFilter = {}): Promise<PublicSkillSummary[]> {
+  const { official, rows } = await queryPublicSkills(db, filter);
+  return [...official, ...rows].map(toSummary);
+}
+
+/** Community entries per catalog page (11.11.26: with 100 team skills the older half fell off the single page). */
+export const CATALOG_PAGE_SIZE = 60;
+
+/**
+ * One page of the public catalog. Official skills lead page 1 and do not count towards the page size; `hasMore` says
+ * whether another page of community entries follows.
+ */
+export async function listPublicSkillsPage(
+  db: Database,
+  filter: { q?: string | null; category?: string | null; kind?: string | null; page?: number } = {},
+): Promise<{ skills: PublicSkillSummary[]; page: number; hasMore: boolean }> {
+  const page = Number.isInteger(filter.page) && (filter.page as number) > 0 ? Math.min(filter.page as number, 1000) : 1;
+  const { official, rows } = await queryPublicSkills(db, { ...filter, limit: CATALOG_PAGE_SIZE + 1, offset: (page - 1) * CATALOG_PAGE_SIZE });
+  return { skills: [...official, ...rows.slice(0, CATALOG_PAGE_SIZE)].map(toSummary), page, hasMore: rows.length > CATALOG_PAGE_SIZE };
 }
 
 /** One public skill by `@handle/slug` (unlisted ones too – by link). Null when it is not public. */

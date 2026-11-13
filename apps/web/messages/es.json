@@ -377,7 +377,18 @@
         "versions": "Versión de la propuesta",
         "versionsText": "entonces: {then} · ahora: {now}",
         "review": "Revisión"
-      }
+      },
+      "showAll": "Mostrar los {n} puntos de desacuerdo",
+      "showFewer": "Mostrar solo los {n} primeros",
+      "category": {
+        "security": "seguridad",
+        "functional": "función",
+        "performance": "rendimiento",
+        "cost": "costes",
+        "maintainability": "mantenibilidad",
+        "other": "otro"
+      },
+      "evidenceInline": "Evidencia"
     },
     "dashboard": {
       "aria": "El veredicto de un vistazo",
@@ -514,7 +525,24 @@
         "approve_after_measurement": "aprobada tras la medición"
       },
       "unmetByAll": "Ninguna propuesta cumple {list}. {n, plural, one {Puede que este requisito no sea alcanzable} other {Puede que estos requisitos se contradigan}}: cambia el encargo e inicia un nuevo consejo.",
-      "openByAll": "No confirmado en ninguna propuesta: {list}. Añade al encargo lo que se sabe al respecto o pide propuestas que {n, plural, one {demuestren este requisito} other {demuestren estos requisitos}} de forma explícita."
+      "openByAll": "No confirmado en ninguna propuesta: {list}. Añade al encargo lo que se sabe al respecto o pide propuestas que {n, plural, one {demuestren este requisito} other {demuestren estos requisitos}} de forma explícita.",
+      "caution": {
+        "lowConfidence": "Con reservas: confianza baja – el veredicto se basa en pruebas incompletas.",
+        "read": "Leer primero los puntos de desacuerdo",
+        "critical": "{n, plural, one {# objeción crítica} other {# objeciones críticas}}",
+        "high": "{n, plural, one {# objeción alta} other {# objeciones altas}}",
+        "and": "y",
+        "objectionsOne": "Con reservas: {list} contra esta recomendación sigue abierta.",
+        "objectionsMany": "Con reservas: {list} contra esta recomendación siguen abiertas.",
+        "objectionsLowOne": "Con reservas: {list} contra esta recomendación sigue abierta y la confianza es baja.",
+        "objectionsLowMany": "Con reservas: {list} contra esta recomendación siguen abiertas y la confianza es baja."
+      },
+      "answer": {
+        "title": "La respuesta",
+        "note": "Tal como lo escribió el autor de la propuesta recomendada: afirmación de un modelo, no una comprobación de hechos.",
+        "chosenTitle": "La respuesta elegida"
+      },
+      "riskAccepted": "riesgo aceptado para {n, plural, one {# objeción abierta} other {# objeciones abiertas}}"
     },
     "process": {
       "proposal": "Propuesta {label}",
@@ -1038,5 +1066,16 @@
     "councilTitle": "Pregunta al council",
     "councilNote": "Cada modelo responde una vez sobre su propia propuesta. Las respuestas son un anexo: no cambian ninguna puntuación, comprobación, voto ni el veredicto.",
     "cruxCount": "Preguntas humanas: {questions} · marcados: {marks}"
+  },
+  "meta": {
+    "homeTitle": "CONSYRIUM AI – Debatir. Decidir. Entregar.",
+    "homeDescription": "Varios modelos de IA piensan de forma independiente, se cuestionan entre sí y llegan a un veredicto documentado. Tú apruebas y CONSYRIUM AI lo implementa como un pull request revisado.",
+    "defaultDescription": "Varias IA. Mejores decisiones. Ejecución real."
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "text": "Esta página no existe o ya no está disponible. Comprueba la dirección o continúa desde aquí.",
+    "home": "Ir al inicio",
+    "dashboard": "Ir al panel"
   }
 }

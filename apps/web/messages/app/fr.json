@@ -176,7 +176,14 @@
     "showArchived": "Afficher {n} sessions de projets archivés",
     "hideArchived": "Masquer les sessions des projets archivés",
     "archivedBadge": "archivé",
-    "qualityLink": "Qualité du processus"
+    "qualityLink": "Qualité du processus",
+    "filter": {
+      "search": "Rechercher par nom",
+      "submit": "Rechercher",
+      "all": "Tous",
+      "shown": "{n} sur {of} affichés",
+      "none": "Rien ne correspond à cette recherche ou à ce filtre."
+    }
   },
   "projects": {
     "metaTitle": "Projets",
@@ -277,7 +284,14 @@
       "listTitle": "Archives ({n})",
       "startBlocked": "Le projet est archivé – restaurez-le d’abord"
     },
-    "deleteCounts": "Ce projet : {sessions, plural, one {# session de Council} other {# sessions de Council}} ({running} en cours ou en attente), {documents, plural, one {# document} other {# documents}}."
+    "deleteCounts": "Ce projet : {sessions, plural, one {# session de Council} other {# sessions de Council}} ({running} en cours ou en attente), {documents, plural, one {# document} other {# documents}}.",
+    "filter": {
+      "search": "Rechercher par nom",
+      "submit": "Rechercher",
+      "all": "Tous",
+      "shown": "{n} sur {of} affichés",
+      "none": "Rien ne correspond à cette recherche ou à ce filtre."
+    }
   },
   "councilSetup": {
     "metaTitle": "Configurer l’équipe IA",
@@ -645,6 +659,10 @@
       "searchButton": "Rechercher",
       "empty": "Aucun skill public pour l'instant.",
       "noResults": "Aucun skill ne correspond à votre recherche.",
+      "pages": "Pages",
+      "previousPage": "Retour",
+      "nextPage": "Plus de skills",
+      "pageNumber": "Page {page}",
       "type": "Type",
       "allTypes": "Tous les types"
     },

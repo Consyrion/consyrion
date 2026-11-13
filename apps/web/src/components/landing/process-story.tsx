@@ -169,7 +169,9 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
       aria-label={t("chaptersLabel")}
       className={
         stage
-          ? "pointer-events-auto absolute inset-x-0 top-[64px] flex gap-2 overflow-x-auto px-4 py-2 md:inset-x-auto md:top-1/2 md:right-6 md:-translate-y-1/2 md:flex-col md:gap-1 md:overflow-visible md:p-0"
+          ? // QA 12.11.26 (phone): the chapter chips stood above the headline – on small screens they appear once the reader
+            // has scrolled past the intro.
+            `pointer-events-auto absolute inset-x-0 top-[64px] flex gap-2 overflow-x-auto px-4 py-2 md:inset-x-auto md:top-1/2 md:right-6 md:-translate-y-1/2 md:flex-col md:gap-1 md:overflow-visible md:p-0 ${active === 0 ? "max-md:hidden" : ""}`
           : "mx-auto flex max-w-6xl flex-wrap gap-2 px-4 pt-10 md:px-8"
       }
     >
@@ -180,13 +182,17 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
           aria-current={stage && active === index ? "step" : undefined}
           className="group flex shrink-0 items-center gap-2 rounded-full border border-glass-line bg-bg/70 px-3 py-1.5 text-xs text-muted backdrop-blur hover:text-text aria-[current=step]:border-[#22d3ee]/70 aria-[current=step]:text-text md:justify-end md:border-transparent md:bg-transparent md:px-1 md:py-0.5 md:backdrop-blur-none"
         >
-          <span className={stage ? "md:sr-only md:group-hover:not-sr-only md:group-focus-visible:not-sr-only md:group-aria-[current=step]:not-sr-only" : ""}>{SHORT_IDS.has(chapter.id) ? t(`short.${chapter.id}`) : chapter.title}</span>
-          <span aria-hidden="true" className={`${stage ? "md:block" : ""} hidden size-2.5 rounded-full border border-[#9fc4ff]/60 group-aria-[current=step]:border-[#22d3ee] group-aria-[current=step]:bg-[#22d3ee] group-aria-[current=step]:shadow-[0_0_10px_#22d3ee]`} />
+          <span className={stage ? "md:sr-only md:group-hover:not-sr-only md:group-focus-visible:not-sr-only md:group-aria-[current=step]:not-sr-only" : ""}>
+            {SHORT_IDS.has(chapter.id) ? t(`short.${chapter.id}`) : chapter.title}
+          </span>
+          <span
+            aria-hidden="true"
+            className={`${stage ? "md:block" : ""} hidden size-2.5 rounded-full border border-[#9fc4ff]/60 group-aria-[current=step]:border-[#22d3ee] group-aria-[current=step]:bg-[#22d3ee] group-aria-[current=step]:shadow-[0_0_10px_#22d3ee]`}
+          />
         </a>
       ))}
     </nav>
   );
-
 
   return (
     <section id="how" ref={sectionRef} aria-labelledby="story-title" className="relative" data-story={mode}>
@@ -198,16 +204,20 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
         // The absolute frame spans the whole story; the sticky stage inside it ends exactly where the story ends.
         <div className="pointer-events-none absolute inset-0">
           <div className="sticky top-0 h-svh overflow-hidden">
-            <div aria-hidden="true" className="absolute inset-0 transition-[background] duration-700" style={{ background: MOOD[STORY_CHAPTERS[active]?.id ?? ""] ?? "transparent" }} />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 transition-[background] duration-700"
+              style={{ background: MOOD[STORY_CHAPTERS[active]?.id ?? ""] ?? "transparent" }}
+            />
             <canvas ref={canvasRef} aria-hidden="true" className="relative size-full" />
-            <p className="absolute top-[116px] left-4 rounded-full border border-glass-line bg-bg/70 px-3 py-1 text-xs text-muted backdrop-blur md:top-auto md:bottom-6 md:left-10">
+            <p className="absolute top-[72px] left-4 rounded-full border border-glass-line bg-bg/70 px-3 py-1 text-xs text-muted backdrop-blur md:top-auto md:bottom-6 md:left-10">
               {t("illustration")}
             </p>
             <button
               type="button"
               onClick={() => setPaused((p) => !p)}
               aria-pressed={paused}
-              className="pointer-events-auto absolute top-[108px] right-4 min-h-11 rounded-lg border border-glass-line bg-bg/70 px-3 py-2 text-xs text-muted backdrop-blur hover:text-text md:top-auto md:right-6 md:bottom-6"
+              className="pointer-events-auto absolute top-[64px] right-4 min-h-11 rounded-lg border border-glass-line bg-bg/70 px-3 py-2 text-xs text-muted backdrop-blur hover:text-text md:top-auto md:right-6 md:bottom-6"
             >
               {paused ? t("play") : t("pause")}
             </button>
@@ -242,7 +252,9 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
               <article
                 className={`pointer-events-auto w-full rounded-3xl border border-glass-line bg-[rgb(6_12_26/0.6)] p-5 backdrop-blur-md md:p-8 ${stage ? (intro ? "max-w-[620px] md:ml-[2vw]" : "sticky top-[50svh] max-w-[460px] md:top-[24svh] md:ml-[3vw]") : ""} ${chapter.phase || chapter.id === "approval" ? "shadow-[0_0_40px_-18px_rgb(34_211_238/0.6)]" : ""}`}
               >
-                <p className={`text-xs font-semibold tracking-[0.25em] ${chapter.id === "approval" ? "text-warning" : chapter.id === "build" ? "text-accent-text" : "text-primary"}`}>
+                <p
+                  className={`text-xs font-semibold tracking-[0.25em] ${chapter.id === "approval" ? "text-warning" : chapter.id === "build" ? "text-accent-text" : "text-primary"}`}
+                >
                   {stage ? null : <span className="mr-2 text-muted">{String(index + 1).padStart(2, "0")}</span>}
                   {chapter.kicker.toUpperCase()}
                 </p>
@@ -250,13 +262,21 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
                   <h1 className="mt-3 font-[family-name:var(--font-display)] text-[clamp(40px,6vw,84px)] leading-[1.02] font-semibold tracking-[-0.035em]">
                     <span className="sr-only">{chapter.title}</span>
                     {chapter.title.split(" ").map((word, i) => (
-                      <span key={word} aria-hidden="true" className={i === 2 ? "block bg-[linear-gradient(90deg,#22d3ee,#2ee6a8)] bg-clip-text text-transparent" : "block"}>
+                      <span
+                        key={word}
+                        aria-hidden="true"
+                        className={i === 2 ? "block bg-[linear-gradient(90deg,#22d3ee,#2ee6a8)] bg-clip-text text-transparent" : "block"}
+                      >
                         {word}
                       </span>
                     ))}
                   </h1>
                 ) : (
-                  <h3 className={`mt-2 font-[family-name:var(--font-display)] font-semibold tracking-tight ${closing ? "text-2xl md:text-3xl" : "text-2xl md:text-[32px]"}`}>{chapter.title}</h3>
+                  <h3
+                    className={`mt-2 font-[family-name:var(--font-display)] font-semibold tracking-tight ${closing ? "text-2xl md:text-3xl" : "text-2xl md:text-[32px]"}`}
+                  >
+                    {chapter.title}
+                  </h3>
                 )}
                 <p className={`mt-3 text-muted ${intro ? "md:text-lg" : "text-sm md:text-base"}`}>{chapter.text}</p>
                 {chapter.example ? (
@@ -277,7 +297,13 @@ export function ProcessStory({ start, secondary, signIn }: { start: Cta; seconda
                 ) : null}
                 {intro || closing ? (
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <Link href={start.href} className={buttonClasses("primary", "h-12 rounded-xl bg-[linear-gradient(90deg,#1cc8ff,#5ef0c8)] px-6 text-base font-semibold text-[#03121c]")}>
+                    <Link
+                      href={start.href}
+                      className={buttonClasses(
+                        "primary",
+                        "h-12 rounded-xl bg-[linear-gradient(90deg,#1cc8ff,#5ef0c8)] px-6 text-base font-semibold text-[#03121c]",
+                      )}
+                    >
                       {start.label}
                     </Link>
                     {intro ? (

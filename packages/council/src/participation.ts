@@ -20,6 +20,12 @@ export interface ValidParticipation {
   /** Participants that fell short, with the phases in which no call succeeded (empty: never called / dropped). */
   /** `notCalled`: phases in which the model was never asked (shortened by the budget), as opposed to failing calls. */
   shortfalls: { participantId: string; phases: string[]; notCalled?: string[] }[];
+  /**
+   * Calls that did not end "ok", per participant and phase (QA 12.11.26: "4/4 (100 %)" next to two failed calls and an
+   * unusable defence read as a clean run). A retry that succeeded still shows its failed attempt here; absent in older
+   * stored values.
+   */
+  failedCalls?: { participantId: string; phase: string; calls: number }[];
 }
 
 /**
@@ -52,5 +58,18 @@ export function validParticipation(
     ];
   });
   const valid = participants.length - shortfalls.length;
-  return { valid, total: participants.length, percent: Math.round((valid / participants.length) * 100), shortfalls };
+  const failed = new Map<string, { participantId: string; phase: string; calls: number }>();
+  for (const r of rows.filter((x) => x.outcome !== "ok")) {
+    const key = `${r.participantId}|${r.phase}`;
+    const entry = failed.get(key) ?? { participantId: r.participantId!, phase: COUNCIL_PHASE_LABELS[r.phase!], calls: 0 };
+    entry.calls += r.calls;
+    failed.set(key, entry);
+  }
+  return {
+    valid,
+    total: participants.length,
+    percent: Math.round((valid / participants.length) * 100),
+    shortfalls,
+    failedCalls: [...failed.values()],
+  };
 }

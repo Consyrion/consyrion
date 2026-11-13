@@ -11,7 +11,9 @@ import {
   getPublicSkill,
   listOfficialSkillsForAdmin,
   listOpenSkillReports,
+  CATALOG_PAGE_SIZE,
   listPublicSkills,
+  listPublicSkillsPage,
   reportPublicSkill,
   resolveSkillReport,
   setOfficialSkillHidden,
@@ -212,5 +214,36 @@ describe("expert profiles in the hub – live check 09.11.2026", () => {
     expect((await getPublicSkill(handle.db, "alice", "hub-cost-profile"))?.uses).toBe(1);
     const mine = (await listRoleProfiles(handle.db, bob)).find((p) => p.id === copy.id);
     expect(mine?.forkedFromName).toBe("@alice/hub-cost-profile");
+  });
+});
+
+describe("catalog pages (11.11.26: the older half of 100 team skills fell off the single page)", () => {
+  it("shows every listed skill across pages, official skills only on page 1", async () => {
+    for (let i = 0; i < CATALOG_PAGE_SIZE + 3; i++) await published(`Paging skill ${String(i).padStart(3, "0")}`);
+    const all = (await listPublicSkills(handle.db, { q: "Paging skill", limit: 100 })).length;
+    expect(all).toBe(CATALOG_PAGE_SIZE + 3);
+    const first = await listPublicSkillsPage(handle.db);
+    const community = first.skills.filter((s) => s.handle !== "consyrium");
+    expect(first.skills.some((s) => s.handle === "consyrium")).toBe(true);
+    expect(community).toHaveLength(CATALOG_PAGE_SIZE);
+    expect(first).toMatchObject({ page: 1, hasMore: true });
+    const seen = new Set(community.map((s) => s.slug));
+    let page = 1;
+    let more = first.hasMore;
+    while (more) {
+      const next = await listPublicSkillsPage(handle.db, { page: ++page });
+      expect(next.skills.some((s) => s.handle === "consyrium")).toBe(false);
+      for (const s of next.skills) {
+        expect(seen.has(s.slug), s.slug).toBe(false);
+        seen.add(s.slug);
+      }
+      more = next.hasMore;
+    }
+    const paging = [...seen].filter((slug) => slug.startsWith("paging-skill-"));
+    expect(paging).toHaveLength(CATALOG_PAGE_SIZE + 3);
+    // A search keeps its filter on every page; an out-of-range or invalid page is handled.
+    expect((await listPublicSkillsPage(handle.db, { q: "Paging skill", page: 2 })).skills).toHaveLength(3);
+    expect((await listPublicSkillsPage(handle.db, { page: 999 })).skills).toEqual([]);
+    expect((await listPublicSkillsPage(handle.db, { page: Number("abc") })).page).toBe(1);
   });
 });

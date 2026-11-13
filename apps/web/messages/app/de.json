@@ -176,7 +176,14 @@
     "showArchived": "{n} Sessions archivierter Projekte anzeigen",
     "hideArchived": "Sessions archivierter Projekte ausblenden",
     "archivedBadge": "archiviert",
-    "qualityLink": "Prozessqualität"
+    "qualityLink": "Prozessqualität",
+    "filter": {
+      "search": "Nach Name suchen",
+      "submit": "Suchen",
+      "all": "Alle",
+      "shown": "{n} von {of} angezeigt",
+      "none": "Nichts passt zu dieser Suche oder diesem Filter."
+    }
   },
   "projects": {
     "metaTitle": "Projekte",
@@ -277,7 +284,14 @@
       "listTitle": "Archiv ({n})",
       "startBlocked": "Projekt ist archiviert – zuerst wiederherstellen"
     },
-    "deleteCounts": "Dieses Projekt: {sessions, plural, one {# Council-Session} other {# Council-Sessions}} ({running} laufend oder wartend), {documents, plural, one {# Dokument} other {# Dokumente}}."
+    "deleteCounts": "Dieses Projekt: {sessions, plural, one {# Council-Session} other {# Council-Sessions}} ({running} laufend oder wartend), {documents, plural, one {# Dokument} other {# Dokumente}}.",
+    "filter": {
+      "search": "Nach Name suchen",
+      "submit": "Suchen",
+      "all": "Alle",
+      "shown": "{n} von {of} angezeigt",
+      "none": "Nichts passt zu dieser Suche oder diesem Filter."
+    }
   },
   "councilSetup": {
     "metaTitle": "KI-Team konfigurieren",
@@ -645,6 +659,10 @@
       "searchButton": "Suchen",
       "empty": "Noch keine öffentlichen Skills.",
       "noResults": "Keine Skills passen zu deiner Suche.",
+      "pages": "Seiten",
+      "previousPage": "Zurück",
+      "nextPage": "Weitere Skills",
+      "pageNumber": "Seite {page}",
       "type": "Typ",
       "allTypes": "Alle Typen"
     },

@@ -49,6 +49,21 @@ export interface CouncilPreview {
   finalVerdictSize?: { message?: string | null } | null;
   modelWarnings?: Array<{ message?: string } | string>;
   voteWeightWarnings?: Array<{ message?: string } | string>;
+  /** Models the provider lists but refuses to run with this key (asked for with `?checkModels=1`). */
+  unusableModels?: Array<{ credentialId: string; modelId: string }>;
+}
+
+/** The model names from the server's "provider refuses these models" start error, or null for any other message. */
+export function refusedModels(message: string): string | null {
+  return /refuses calls with your key \(HTTP 404\): (.+?)\. Choose another model/.exec(message)?.[1] ?? null;
+}
+
+export interface Recommendation {
+  label?: string;
+  author?: string;
+  title?: string;
+  summary?: string;
+  recommendations?: string[];
 }
 
 export interface SessionStatus {
@@ -167,7 +182,7 @@ export class ConsyriumApi {
   }
 
   preview(projectId: string, input: { mode: Mode; participants: Participant[]; tokenBudget: number }) {
-    return this.call<CouncilPreview>("POST", `/projects/${projectId}/sessions/preview`, input);
+    return this.call<CouncilPreview>("POST", `/projects/${projectId}/sessions/preview?checkModels=1`, input);
   }
 
   /** Starts the council with an Idempotency-Key: a retry or double click returns the same session instead of a second paid run. */
@@ -197,6 +212,13 @@ export class ConsyriumApi {
 
   report(sessionId: string): Promise<string> {
     return this.call<string>("GET", `/sessions/${sessionId}/report`, undefined, {}, true);
+  }
+
+  /** The recommended solution from the structured report – what the note shows first. Null when nothing is recommended. */
+  async recommendation(sessionId: string): Promise<Recommendation | null> {
+    const report = await this.call<{ recommendedSolution?: Recommendation | null }>("GET", `/sessions/${sessionId}/report?format=json`);
+    const solution = report.recommendedSolution;
+    return solution && typeof solution === "object" ? solution : null;
   }
 
   cancel(sessionId: string) {

@@ -86,7 +86,7 @@ display `Avenir Next, Segoe UI Variable Display…`.
 | `LandingPage`, `HeroCouncil`         | `landing/`                       | public home at `/`                                                                                                                                                                                                                          |
 | `AuthShell`                          | `auth-shell.tsx`                 | sign-in, sign-up, invitation                                                                                                                                                                                                                |
 
-Component gallery: **`/design`** (public, `noindex`, all values demo fixtures).
+Component gallery: **`/design`** (signed-in users only since QA 12.11.26, `noindex`, all values demo fixtures).
 
 ## Animation policy
 
@@ -132,7 +132,7 @@ Not implemented (no backend yet, so no fake UI): global search, worker health be
 | Unit/component tests  | `pnpm --filter @consyrium/web test`                                   | 81 passed (59 token contrast + motion policy, 17 design-system, 5 existing) |
 | Whole repo tests      | `pnpm -r test`                                                        | 214 passed, 1 skipped (Docker sandbox test, runs in CI)                     |
 | Typecheck / lint      | `pnpm -r typecheck`, `pnpm lint`                                      | clean                                                                       |
-| Production build      | `pnpm --filter @consyrium/web build`                                  | succeeds; `/design`, `/icon.svg` static                                     |
+| Production build      | `pnpm --filter @consyrium/web build`                                  | succeeds; `/icon.svg` static (`/design` is dynamic: it checks the sign-in)  |
 | Browser, no JS errors | Playwright (Chromium) on `/`, `/design`, `/sign-in`, desktop + mobile | 0 page errors                                                               |
 | Reduced motion        | Playwright `reducedMotion: "reduce"`                                  | Electric Logo off on all instances                                          |
 | Keyboard              | Tab through landing                                                   | skip link first, visible focus outline on every stop                        |

@@ -717,6 +717,50 @@ describe("council engine", () => {
     await expect(submitApproval(handle.db, actor, id, { action: "approve" })).rejects.toMatchObject({ code: "CONFLICT" });
   });
 
+  it("owner decision 13.11.26: approving against open critical/high objections needs an explicit, recorded risk acceptance", async () => {
+    const c = council({
+      m1: { title: "Monolith", score: (t) => (t === "Monolith" ? 9 : 5) },
+      m2: { title: "Microservices", score: (t) => (t === "Monolith" ? 9 : 5) },
+    });
+    const id = await startV1(c.participants);
+    await runSession(c.deps, id);
+    const view = await getSessionView(handle.db, actor, id);
+    const recommended = view.decision!.recommendedProposalId!;
+    const raiser = view.participants.find((p) => p.id !== view.proposals.find((x) => x.id === recommended)!.authorParticipantId)!.id;
+    // Test data: one upheld high objection against the recommendation (not a real model run).
+    await handle.db.insert(schema.minorityObjection).values({
+      id: "obj_risk_high",
+      organizationId: actor.organizationId,
+      sessionId: id,
+      proposalId: recommended,
+      raisedByParticipantId: raiser,
+      category: "cost",
+      severity: "high",
+      claim: "The budget is unrealistic",
+      status: "accepted",
+    });
+    await expect(submitApproval(handle.db, actor, id, { action: "approve" })).rejects.toThrow(/accept the risk/);
+
+    // A critical one also needs a written reason – the checkbox alone is not enough.
+    await handle.db.insert(schema.minorityObjection).values({
+      id: "obj_risk_critical",
+      organizationId: actor.organizationId,
+      sessionId: id,
+      proposalId: recommended,
+      raisedByParticipantId: raiser,
+      category: "functional",
+      severity: "critical",
+      claim: "The core flow cannot work",
+      status: "unresolved",
+    });
+    await expect(submitApproval(handle.db, actor, id, { action: "approve", acceptRisk: true })).rejects.toMatchObject({ code: "VALIDATION" });
+
+    const approved = await submitApproval(handle.db, actor, id, { action: "approve", acceptRisk: true, comment: "Checked with the team, we accept it" });
+    expect(approved.status).toBe("approved");
+    const audit = await handle.db.select().from(schema.auditEvent).where(eq(schema.auditEvent.action, "council.approve"));
+    expect(audit.at(-1)!.metadata).toMatchObject({ acceptedRisk: { objectionIds: expect.arrayContaining(["obj_risk_high", "obj_risk_critical"]) } });
+  });
+
   it("approves only decisions whose format version it knows; legacy version 1 behaves as before (#181, stage 1)", async () => {
     const c = council({
       m1: { title: "Monolith", score: (t) => (t === "Monolith" ? 9 : 5) },

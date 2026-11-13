@@ -15,6 +15,7 @@ export * from "./repositories/team";
 export * from "./repositories/privacy";
 export * from "./repositories/pricing";
 export * from "./repositories/api-tokens";
+export * from "./repositories/oauth";
 export * from "./repositories/idempotency";
 export * from "./repositories/delivery";
 export * from "./repositories/requirements";

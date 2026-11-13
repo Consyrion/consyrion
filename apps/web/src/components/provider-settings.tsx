@@ -20,7 +20,13 @@ export interface CredentialView {
 }
 
 interface ModelsResponse {
-  credentials: { credentialId: string; provider: Provider; label: string; models: { modelId: string; displayName: string; contextWindow: number | null }[]; error: string | null }[];
+  credentials: {
+    credentialId: string;
+    provider: Provider;
+    label: string;
+    models: { modelId: string; displayName: string; contextWindow: number | null }[];
+    error: string | null;
+  }[];
 }
 
 const LABELS: Record<Provider, string> = {
@@ -142,9 +148,7 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
 
   return (
     <div className="space-y-6">
-      {!keysConfigured ? (
-        <Alert tone="warning">{t("noMasterKey")}</Alert>
-      ) : null}
+      {!keysConfigured ? <Alert tone="warning">{t("noMasterKey")}</Alert> : null}
       {error ? <Alert>{error}</Alert> : null}
       {notice ? <Alert tone="success">{notice}</Alert> : null}
 
@@ -163,8 +167,31 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
               <option value="qwen">Alibaba (Qwen)</option>
               <option value="xai">xAI (Grok)</option>
             </SelectField>
-            <TextField label={t("label")} name="label" placeholder="default" maxLength={60} />
-            <TextField label={t("apiKey")} name="secret" type="password" autoComplete="off" required minLength={10} />
+            {/* QA 12.11.26: Chrome filled a saved login (e-mail + password) into this form – a label and an API key are no
+                login, so password managers are told to stay out (new-password + ignore hints). */}
+            <TextField
+              label={t("label")}
+              name="label"
+              placeholder="default"
+              maxLength={60}
+              autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-bwignore
+              data-form-type="other"
+            />
+            <TextField
+              label={t("apiKey")}
+              name="secret"
+              type="password"
+              autoComplete="new-password"
+              data-1p-ignore
+              data-lpignore="true"
+              data-bwignore
+              data-form-type="other"
+              required
+              minLength={10}
+            />
             <Button type="submit" disabled={busy === "add"}>
               {busy === "add" ? t("saving") : t("saveKey")}
             </Button>
@@ -193,7 +220,11 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
                 </div>
                 <div className="flex items-center gap-2">
                   {credential.lastValidatedAt ? (
-                    credential.lastValidationError ? <Badge tone="danger">{t("checkFailed")}</Badge> : <Badge tone="success">{t("verified")}</Badge>
+                    credential.lastValidationError ? (
+                      <Badge tone="danger">{t("checkFailed")}</Badge>
+                    ) : (
+                      <Badge tone="success">{t("verified")}</Badge>
+                    )
                   ) : (
                     <Badge>{t("notChecked")}</Badge>
                   )}
@@ -202,7 +233,12 @@ export function ProviderSettings({ initial, canWrite, keysConfigured }: { initia
                   </Button>
                   {canWrite ? <RotateKey id={credential.id} /> : null}
                   {canWrite ? (
-                    <Button variant="danger" onClick={() => onDelete(credential.id)} disabled={busy === credential.id} aria-label={t("deleteAria", { provider: LABELS[credential.provider], label: credential.label })}>
+                    <Button
+                      variant="danger"
+                      onClick={() => onDelete(credential.id)}
+                      disabled={busy === credential.id}
+                      aria-label={t("deleteAria", { provider: LABELS[credential.provider], label: credential.label })}
+                    >
                       {t("delete")}
                     </Button>
                   ) : null}

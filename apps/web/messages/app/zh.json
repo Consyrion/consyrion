@@ -176,7 +176,14 @@
     "showArchived": "显示归档项目的 {n} 个会话",
     "hideArchived": "隐藏归档项目的会话",
     "archivedBadge": "已归档",
-    "qualityLink": "过程质量"
+    "qualityLink": "过程质量",
+    "filter": {
+      "search": "按名称搜索",
+      "submit": "搜索",
+      "all": "全部",
+      "shown": "显示 {n} / {of}",
+      "none": "没有符合此搜索或筛选的结果。"
+    }
   },
   "projects": {
     "metaTitle": "项目",
@@ -277,7 +284,14 @@
       "listTitle": "归档（{n}）",
       "startBlocked": "项目已归档——请先恢复"
     },
-    "deleteCounts": "此项目：{sessions, plural, other {# 个委员会会话}}（{running} 个正在运行或排队），{documents, plural, other {# 个文档}}。"
+    "deleteCounts": "此项目：{sessions, plural, other {# 个委员会会话}}（{running} 个正在运行或排队），{documents, plural, other {# 个文档}}。",
+    "filter": {
+      "search": "按名称搜索",
+      "submit": "搜索",
+      "all": "全部",
+      "shown": "显示 {n} / {of}",
+      "none": "没有符合此搜索或筛选的结果。"
+    }
   },
   "councilSetup": {
     "metaTitle": "配置 AI 团队",
@@ -645,6 +659,10 @@
       "searchButton": "搜索",
       "empty": "暂无公开技能。",
       "noResults": "没有符合搜索条件的技能。",
+      "pages": "分页",
+      "previousPage": "上一页",
+      "nextPage": "更多技能",
+      "pageNumber": "第 {page} 页",
       "type": "类型",
       "allTypes": "所有类型"
     },

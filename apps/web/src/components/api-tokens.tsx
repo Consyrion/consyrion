@@ -70,7 +70,12 @@ export function ApiTokens({
             <p className="mt-2 text-xs text-muted">{t("mcp.address")}</p>
             <code className="block break-all rounded-lg bg-surface-2 px-2 py-1 text-xs">{mcp.url}</code>
             <p className="mt-2 text-xs text-muted">{t("mcp.claudeCode")}</p>
-            <code className="block break-all rounded-lg bg-surface-2 px-2 py-1 text-xs">{`claude mcp add --transport http consyrium ${mcp.url} --header "Authorization: Bearer <TOKEN>"`}</code>
+            <code className="block break-all rounded-lg bg-surface-2 px-2 py-1 text-xs">{`claude mcp add --transport http consyrium ${mcp.url}`}</code>
+            <p className="mt-2 text-xs">
+              <a href="/integrations" className="text-primary underline">
+                {t("mcp.guides")}
+              </a>
+            </p>
             <p className="mt-2 text-xs text-muted">{t("mcp.scopes")}</p>
           </>
         ) : (

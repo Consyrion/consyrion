@@ -10,6 +10,8 @@ import { Select } from "@/components/ui/select";
 import { GlassPanel, NeonBorder } from "@/components/ui/glass";
 import { Alert, Badge, EmptyState } from "@/components/ui/surface";
 import { VoteWeightsDemo } from "@/components/vote-weights";
+import { getSessionUser } from "@/lib/server/actor";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Design system", robots: { index: false } };
 
@@ -29,7 +31,9 @@ const SWATCHES = [
 ];
 
 /** Component gallery for review (issue #67). Every value on this page is a fixture and labelled as such. */
-export default function DesignGalleryPage() {
+export default async function DesignGalleryPage() {
+  // QA 12.11.26: the internal component gallery was open to anyone on the hosted app – signed-in users only now.
+  if (!(await getSessionUser())) redirect("/sign-in");
   return (
     <div className="relative isolate min-h-screen">
       <AmbientBackground className="fixed" intensity={0.7} />

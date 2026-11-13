@@ -20,7 +20,17 @@ describe("valid participation rate (#182)", () => {
       { participantId: "c", phase: "independent_thinking", outcome: "ok", calls: 1 },
       { participantId: "c", phase: "open_council", outcome: "error", calls: 3 },
     ]);
-    expect(result).toEqual({ valid: 2, total: 3, percent: 67, shortfalls: [{ participantId: "c", phases: ["Open Council"] }] });
+    expect(result).toEqual({
+      valid: 2,
+      total: 3,
+      percent: 67,
+      shortfalls: [{ participantId: "c", phases: ["Open Council"] }],
+      // QA 12.11.26: failed calls are named beside the rate – b's failed attempts count even though its retry succeeded.
+      failedCalls: [
+        { participantId: "b", phase: "Independent Thinking", calls: 2 },
+        { participantId: "c", phase: "Open Council", calls: 3 },
+      ],
+    });
   });
 
   it("counts dropped models and models without any call as short, and has no rate before any call", () => {

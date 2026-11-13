@@ -249,14 +249,15 @@ export default async function DashboardPage() {
         <Metric href="/projects" icon="folder" label={t("metrics.projects")} value={activeProjects.length} tone="var(--primary)" />
         <Metric href="/decisions" icon="team" label={t("metrics.sessions")} value={sessions.length} tone="var(--accent)" className="max-md:hidden" />
         <Metric
-          href={awaiting[0] ? `/sessions/${awaiting[0].id}` : "/decisions"}
+          // QA 12.11.26: "43 awaiting approval" opened one session – a count leads to the list it counts (one: that session).
+          href={awaiting.length === 1 ? `/sessions/${awaiting[0]!.id}` : "/decisions?status=awaiting_approval"}
           icon="clock"
           label={t("metrics.awaiting")}
           value={awaiting.length}
           tone="var(--warning)"
         />
         <Metric
-          href={running[0] ? `/sessions/${running[0].id}` : "/decisions"}
+          href={running.length === 1 ? `/sessions/${running[0]!.id}` : "/decisions?status=running"}
           icon="pulse"
           label={t("metrics.running")}
           value={running.length}
@@ -292,7 +293,7 @@ export default async function DashboardPage() {
           <section aria-label={t("metrics.more")} className="grid grid-cols-2 gap-3 md:hidden">
             <Metric href="/decisions" icon="team" label={t("metrics.sessions")} value={sessions.length} tone="var(--accent)" />
             <Metric
-              href={running[0] ? `/sessions/${running[0].id}` : "/decisions"}
+              href={running.length === 1 ? `/sessions/${running[0]!.id}` : "/decisions?status=running"}
               icon="pulse"
               label={t("metrics.running")}
               value={running.length}

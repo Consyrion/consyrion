@@ -98,6 +98,13 @@ describe("MCP endpoint", () => {
     const anonymous = await rpc(null, { jsonrpc: "2.0", id: 1, method: "ping" });
     expect(anonymous.status).toBe(401);
     expect(anonymous.headers.get("www-authenticate")).toContain("Bearer");
+    // The challenge names the protected-resource metadata, so MCP clients can start the OAuth sign-in (RFC 9728).
+    expect(anonymous.headers.get("www-authenticate")).toBe(
+      'Bearer realm="consyrium", resource_metadata="http://localhost:3000/.well-known/oauth-protected-resource"',
+    );
+    const expired = await rpc("cni_unknown-or-expired", { jsonrpc: "2.0", id: 1, method: "ping" });
+    expect(expired.status).toBe(401);
+    expect(expired.headers.get("www-authenticate")).toContain("resource_metadata=");
     const free = await rpc(tokens.integration, { jsonrpc: "2.0", id: 1, method: "ping" });
     expect(free.status).toBe(403);
     expect(((await free.json()) as { error: { message: string } }).error.message).toContain("Pro");

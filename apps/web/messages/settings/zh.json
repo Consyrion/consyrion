@@ -103,7 +103,9 @@
       "downgrade": "返回 {name}",
       "downgradeHint": "在已付费周期结束时终止，在此之前一切照常可用。",
       "downgradeScheduled": "将于 {date} 返回 {name} – 已安排取消。",
-      "downgradeManual": "此方案由平台团队分配。如需更改，请<contact>联系我们</contact>。"
+      "downgradeManual": "此方案由平台团队分配。如需更改，请<contact>联系我们</contact>。",
+      "perMonth": "每月 {price}",
+      "costMissing": "填写价格"
     },
     "providers": {
       "needKey": "需要密钥？请在提供商控制台中创建：",
@@ -159,9 +161,10 @@
         "title": "MCP 服务器——在 Claude、Cursor 或 VS Code 中使用 CONSYRIUM",
         "intro": "将支持 MCP 的 AI 客户端连接到你的工作区。它可以读取决策、准备项目和需求，并使用你自己的密钥启动 Council。批准、构建和删除仍在应用中完成。",
         "address": "地址：",
-        "claudeCode": "Claude Code（在上方创建令牌并填入）：",
+        "claudeCode": "Claude Code（然后在 Claude Code 中输入 /mcp 并在浏览器中登录——无需令牌）：",
         "scopes": "“只读”仅显示读取工具。“仅 Council”或“完全访问”还可以准备项目并启动 Council——这会消耗你密钥上的令牌，每个 Council 最多 1,000,000。",
-        "proOnly": "MCP 服务器包含在 Pro 套餐中。请在 设置 → 账单 中升级。"
+        "proOnly": "MCP 服务器包含在 Pro 套餐中。请在 设置 → 账单 中升级。",
+        "guides": "所有程序的指南（Cursor、VS Code、Claude、ChatGPT …）"
       }
     },
     "saas": {
@@ -227,7 +230,7 @@
       "errorSave": "无法保存连接",
       "errorDelete": "无法删除连接",
       "title": "发送决策",
-      "text": "除 PDF 和 Word 下载外，裁决还可以发送到哪里。Token 与你的 AI 密钥一样加密，之后不再显示。Obsidian 将通过独立插件支持（计划中）。",
+      "text": "除 PDF 和 Word 下载外，裁决还可以发送到哪里。Token 与你的 AI 密钥一样加密，之后不再显示。Obsidian 通过其独立插件连接（见上方“应用”）。",
       "emailToMembers": "发送电子邮件给工作区成员：",
       "available": "可用",
       "smtpMissing": "此服务器未配置（SMTP）",
@@ -308,7 +311,7 @@
       },
       "intake": {
         "title": "需求采集",
-        "description": "仅统计数量，不含文本——最近 {days} 天的需求列表和裁决（#245）。",
+        "description": "仅统计数量，不含文本——最近 {days} 天的需求列表和裁决。",
         "ratio": "提议 : 采用",
         "ratioDetail": "共发现 {proposed} 条陈述，采用 {kept} 条，涉及 {lists} 个列表——目标不超过 2 : 1",
         "added": "用户补充",
@@ -465,9 +468,8 @@
           "summary": "编程时遇到需要决策的问题，直接在终端中询问 CONSYRIUM AI。",
           "what": "Claude Code 调用 ask_consyrium，用你的密钥启动 council，并通过 get_decision 获取结果和实施说明——无需离开终端。",
           "steps": {
-            "token": "在<link>设置 → API 令牌</link>中创建令牌（“仅 council”即可），并在下方命令中替换占位符。",
             "add": "在终端中添加服务器：",
-            "check": "在 Claude Code 中运行 <code>/mcp</code>，确认“consyrium”已连接。",
+            "signin": "在 Claude Code 中输入 <code>/mcp</code>，选择“consyrium”，在浏览器中登录并点击“允许”。无需复制令牌。",
             "ask": "直接提问：“问问 CONSYRIUM 我们该用 PostgreSQL 还是 SQLite。”Claude 会先向你展示需求和预算。"
           }
         },
@@ -477,9 +479,7 @@
           "summary": "将 CONSYRIUM AI 作为 Cursor 代理的工具——无需切换应用即可获得决策。",
           "what": "Cursor 代理可以准备项目、启动 council，并在你的项目中直接使用结果作为实施说明。",
           "steps": {
-            "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
-            "open": "在 Cursor 中打开 设置 → MCP → “Add new MCP server”，或直接打开文件 <code>~/.cursor/mcp.json</code>。",
-            "paste": "粘贴以下配置并保存：",
+            "install": "点击按钮，或自行把服务器写入 <code>~/.cursor/mcp.json</code>：",
             "ask": "代理聊天中会出现“consyrium”及其工具。试试：“让 CONSYRIUM 决定：队列还是 cron？”"
           }
         },
@@ -489,22 +489,18 @@
           "summary": "在 Copilot Chat 的代理模式中使用 CONSYRIUM AI。",
           "what": "在代理模式下，Copilot Chat 可以调用 CONSYRIUM 工具：读取决策、启动 council，并在你的项目中实施结果。",
           "steps": {
-            "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
-            "paste": "在项目中创建文件 <code>.vscode/mcp.json</code>：",
-            "start": "在文件中点击“consyrium”上方的“Start”（或命令面板 → “MCP: List Servers”）。",
+            "install": "点击按钮，或在项目中创建文件 <code>.vscode/mcp.json</code>：",
             "ask": "将 Copilot Chat 切换到代理模式；工具列表中会出现“consyrium”。"
           }
         },
         "claude-desktop": {
-          "name": "Claude Desktop",
-          "by": "桌面应用 · MCP",
-          "summary": "在 Mac 或 Windows 上的 Claude 应用中使用 CONSYRIUM AI。",
-          "what": "Claude Desktop 通过小型桥接工具 mcp-remote（需要 Node.js）连接到你的工作区，可使用与 Claude Code 相同的工具。",
+          "name": "Claude（claude.ai 与桌面版）",
+          "by": "连接器 · 登录",
+          "summary": "在 claude.ai 和 Claude 应用中把 CONSYRIUM AI 作为自定义连接器。",
+          "what": "Claude 可以在对话中准备项目、用你的密钥启动 council 并取回结果——浏览器、桌面应用和移动端均可。",
           "steps": {
-            "token": "在<link>设置 → API 令牌</link>中创建令牌，并在下方替换占位符。",
-            "open": "在 Claude Desktop 中打开 设置 → 开发者 → “编辑配置”。",
-            "paste": "将服务器添加到 <code>claude_desktop_config.json</code>：",
-            "restart": "重启 Claude Desktop；工具中会出现“consyrium”。"
+            "open": "在 Claude 中打开 Customize → Connectors → Add →“Add custom connector”。",
+            "enter": "填写名称（例如 CONSYRIUM AI）和此地址，保留检测到的登录设置，点击“Add”，然后点击“Connect”："
           }
         },
         "telegram": {
@@ -526,24 +522,18 @@
           "summary": "把笔记中选中的文字发送给 council，并将报告保存为新笔记。",
           "what": "CONSYRIUM 的 Obsidian 插件（桌面版）只发送你选中的文字，在启动前显示费用估算，并把完成的报告保存为库中的新笔记。现有笔记绝不会被覆盖。",
           "steps": {
-            "token": "在<link>设置 → API 令牌</link>中创建范围为“仅 council”的令牌。",
-            "download": "下载两个插件文件：<main>main.js</main> 和 <manifest>manifest.json</manifest>。",
+            "download": "在插件上架 Obsidian 插件目录之前，请下载两个文件：<main>main.js</main> 和 <manifest>manifest.json</manifest>。",
             "folder": "在你的库中创建此文件夹，并把两个文件复制进去（<code>.obsidian</code> 文件夹是隐藏的）：",
             "enable": "在 Obsidian 中打开 设置 → 第三方插件，开启第三方插件并启用“CONSYRIUM AI”。",
-            "settings": "在 设置 → CONSYRIUM AI 中填写服务器地址和你的令牌，然后点击“Test connection”。令牌以明文保存在库中——请设置过期日期。",
-            "use": "在笔记中选中文字，从命令面板运行“Consult CONSYRIUM AI on the selection”。只有在“Check cost”之后才能启动 council。",
-            "mcp": "也可以通过 MCP：Obsidian 本身没有 MCP 客户端。如果你使用带 MCP 客户端的第三方插件（支持自定义请求头的 HTTP 服务器），请在其中填写以下信息。托管版从 Pro 套餐起包含 MCP 服务器。"
+            "connect": "打开 设置 → CONSYRIUM AI，点击“Connect with CONSYRIUM AI”。浏览器会打开本站——点击“允许”，并让浏览器打开 Obsidian。完成，无需复制令牌。（如果你更想手动填写令牌：<link>设置 → API 令牌</link>，范围“仅 council”。）",
+            "use": "在笔记中选中文字并右键点击 →“Consult CONSYRIUM AI on the selection”。左侧功能区的图标和命令面板也可以。只有在“Check cost”之后才能启动 council，该步骤还会检查所选的每个模型是否有响应。",
+            "mcp": "也可以通过 MCP：Obsidian 本身没有 MCP 客户端。如果你使用带 MCP 客户端的第三方插件，请在其中填写此地址；如果该插件支持在浏览器中登录，则无需令牌。托管版从 Pro 套餐起包含 MCP 服务器。"
           }
         },
         "vscode-extension": {
           "name": "VS Code 扩展",
           "by": "扩展",
           "summary": "直接在 VS Code 中查看决策、审批和生成的更改。计划在 Marketplace 发布。"
-        },
-        "chat-connectors": {
-          "name": "claude.ai 和 ChatGPT",
-          "by": "连接器 · OAuth",
-          "summary": "为 claude.ai 和 ChatGPT 网页连接器提供 OAuth 登录——下一阶段。"
         },
         "github": {
           "name": "GitHub",
@@ -559,12 +549,72 @@
           "name": "Confluence",
           "by": "交付",
           "summary": "将决策作为页面保存到你的 Confluence 空间。"
+        },
+        "chatgpt": {
+          "name": "ChatGPT",
+          "by": "插件 · 登录",
+          "summary": "在 ChatGPT 中把 CONSYRIUM AI 作为自定义 MCP 服务器。",
+          "what": "ChatGPT 可以在对话中发起 council 并取回裁决。每个写入操作 ChatGPT 都会请你确认。",
+          "steps": {
+            "open": "打开 chatgpt.com/plugins，点击右上角的“添加”并选择“Add custom MCP server”。",
+            "enter": "填写名称、描述和此地址（登录方式：OAuth，会自动识别），确认提示，创建插件，然后点击“连接 CONSYRIUM AI”：",
+            "use": "在对话中输入 <code>@</code> 并选择 CONSYRIUM AI。",
+            "plans": "哪些 ChatGPT 套餐允许自定义 MCP 服务器和写入操作由 OpenAI 决定且经常变化——请查看 OpenAI 的最新帮助。"
+          }
+        },
+        "codex": {
+          "name": "Codex CLI",
+          "by": "终端 · MCP",
+          "summary": "在 OpenAI Codex 中把 CONSYRIUM AI 作为工具。",
+          "what": "编码时，Codex 可以发起 council，并把结果用作实施说明。",
+          "steps": {
+            "config": "把服务器写入 <code>~/.codex/config.toml</code>：",
+            "login": "在终端中开始登录："
+          }
+        },
+        "gemini-cli": {
+          "name": "Gemini CLI",
+          "by": "终端 · MCP",
+          "summary": "在 Gemini CLI 中把 CONSYRIUM AI 作为工具。",
+          "what": "Gemini CLI 可以在你工作时发起 council 并取回裁决。",
+          "steps": {
+            "config": "把服务器写入 <code>~/.gemini/settings.json</code>：",
+            "login": "启动 Gemini CLI 并输入（使用个人 Google 账号时，登录请选择“Use Gemini API Key”——Google 现已拒绝个人账号使用“Sign in with Google”，截至 2026-11-12）："
+          }
+        },
+        "hermes": {
+          "name": "Hermes Agent",
+          "by": "智能体 · MCP",
+          "summary": "你的 Hermes 智能体在重要步骤前获取独立的第二意见。",
+          "what": "Hermes 可以用你的密钥启动 council、查询状态并取回裁决。批准和构建仍由你在应用中完成。",
+          "steps": {
+            "config": "把服务器写入 <code>~/.hermes/config.yaml</code>：",
+            "login": "在终端中开始登录："
+          }
+        },
+        "openclaw": {
+          "name": "OpenClaw",
+          "by": "智能体 · MCP",
+          "summary": "OpenClaw 可以把决定交给 council，稍后取回结果。",
+          "what": "OpenClaw 在其流程中使用 CONSYRIUM 工具：准备项目、启动 council、读取裁决。批准和构建仍由你在应用中完成。",
+          "steps": {
+            "add": "在终端中添加服务器（传输方式必须明确为“streamable-http”）：",
+            "login": "开始登录："
+          }
         }
       },
       "publicTitle": "集成",
-      "publicDescription": "CONSYRIUM AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude Desktop、Telegram、Obsidian、GitHub、电子邮件和 Confluence——附设置步骤。",
+      "publicDescription": "CONSYRIUM AI 可以连接的工具：Claude Code、Cursor、VS Code、Claude、ChatGPT、Codex、Gemini CLI、Hermes、OpenClaw、Telegram、Obsidian、GitHub、电子邮件和 Confluence——附设置步骤。",
       "signIn": "登录",
-      "dashboard": "打开仪表板"
+      "dashboard": "打开仪表板",
+      "shared": {
+        "signIn": "首次连接时，浏览器会打开 CONSYRIUM AI：登录，点击“允许”即可。无需复制令牌；访问权限有效期 90 天，可在 设置 → API 令牌 中撤销。",
+        "askAgent": "然后可以这样提问：“让 CONSYRIUM 用多个模型审查这个决定。”每次 council 之前你都会看到需求和预算。",
+        "tokenAlt": "没有浏览器（服务器、CI）或登录未启动时：在<link>设置 → API 令牌</link>中创建令牌（“仅 council”即可），并替换占位符：",
+        "addButton": "添加到 {name}",
+        "untested": "本指南依据 {name} 的官方文档编写（截至 2026-11-12）。我们已用官方 MCP 客户端验证了登录流程，但尚未在 {name} 中完整走通——如果某一步与你看到的不同，请告诉我们。",
+        "tested": "已于 2026-11-12 在 {name} 中完整走通：无令牌添加服务器，在浏览器中点击“允许”，并调用了工具。"
+      }
     }
   },
   "executionScreen": {
@@ -853,6 +903,41 @@
       "title": "你已被邀请加入一个工作区",
       "signedInAs": "当前登录为 {email}。邀请仅对其发送到的地址有效。",
       "signedOut": "请使用受邀的电子邮件地址<signIn>登录</signIn>或<signUp>创建账户</signUp>，然后重新打开此链接。"
+    },
+    "oauth": {
+      "metaTitle": "连接应用",
+      "title": "允许 {client} 使用你的 CONSYRIUM AI 工作区吗？",
+      "signedInAs": "当前登录为 {email}。",
+      "targetLabel": "访问权限将发送到",
+      "targetFirstParty": "CONSYRIUM AI 官方应用。",
+      "targetUnverified": "此应用是自行注册的，未经 CONSYRIUM AI 验证。只有在你亲自发起此连接并认识这个地址时才允许。",
+      "workspaceLabel": "工作区",
+      "scopeLabel": "应用可以做什么",
+      "scope": {
+        "councils": "使用你自己的 AI 密钥启动、读取和取消 Council（Council 会在你的服务商处消耗 Token）。不能批准、不能构建、不能删除。",
+        "read": "通过 MCP 服务器读取项目、决策和需求。它不能启动或更改任何内容。"
+      },
+      "validity": "有效期 {days} 天。你可以随时在 设置 → API Token 中撤销访问权限。",
+      "allow": "允许",
+      "deny": "拒绝",
+      "pleaseWait": "请稍候…",
+      "returning": "正在返回 {target} … 应用确认连接后，你可以关闭此标签页。",
+      "continue": "继续前往应用",
+      "errorTitle": "无法处理此连接请求",
+      "errorHint": "没有共享任何内容。请返回应用并重新发起连接。",
+      "problem": {
+        "client": "此服务器不认识该应用（未知的 client_id）。",
+        "redirect_uri": "返回地址未为该应用注册（redirect_uri）。",
+        "response_type": "仅支持授权码流程（response_type=code）。",
+        "pkce": "请求必须包含使用 S256 方法的 PKCE code challenge。",
+        "scope": "请求的 scope 未知。支持：councils、read。",
+        "state": "参数 state 过长或格式不正确。"
+      },
+      "actionError": {
+        "invalid": "请求已失效。请返回应用并重新发起连接。",
+        "session": "你已不再登录此工作区。请重新加载页面并登录。",
+        "failed": "操作未成功。请稍等片刻后重试。"
+      }
     }
   },
   "skills": {

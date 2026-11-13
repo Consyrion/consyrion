@@ -237,3 +237,139 @@ describe("decision report in the interface language (#322)", () => {
     expect(reportTranslator("fr")("A text without translation")).toBe("A text without translation");
   });
 });
+
+describe("remaining risks name every point once (11.11.26)", () => {
+  it("merges the consensus risk, the proposal's own risk and objections about the same point into one line", () => {
+    const wal = "Eine reine Dateikopie der SQLite-Datenbank im WAL-Modus kann ein inkonsistentes Backup erzeugen";
+    const failover = view.objections[view.objections.length - 1]!;
+    const withRisks = structuredClone(view) as SessionView;
+    const b = withRisks.proposals.find((p) => p.id === "B")!;
+    (b.revisions[b.revisions.length - 1]!.content as { risks: unknown[] }).risks = [
+      { risk: `${wal}, solange kein Checkpoint läuft`, severity: "medium", mitigation: "sqlite3 .backup verwenden" },
+    ];
+    (withRisks as { consensus: unknown }).consensus = {
+      status: "partial_consensus",
+      basedOn: [],
+      agreements: [],
+      disagreements: [],
+      outstandingRisks: [`${wal}.`, failover.claim],
+    };
+    withRisks.objections.push(
+      { ...failover, id: "o3", claim: `${wal}.`, status: "accepted" },
+      { ...failover, id: "o4", claim: `${wal} und ist damit unbrauchbar.`, raisedByParticipantId: "p2" },
+    );
+    const report = buildDecisionReport(withRisks);
+    expect(report.remainingRisks).toEqual([
+      `${wal}, solange kein Checkpoint läuft (medium; mitigation: sqlite3 .backup verwenden)`,
+      `${failover.claim} (unresolved objection)`,
+    ]);
+    // The objection list itself keeps every voice.
+    expect(report.objections.filter((o) => o.claim.startsWith(wal))).toHaveLength(2);
+  });
+});
+
+describe("report wording found in a German report (11.11.26)", () => {
+  it("words the reason an author did not answer in the report language", () => {
+    const undefended = structuredClone(view) as SessionView;
+    Object.assign(undefended.objections[undefended.objections.length - 1]!, { response: null, undefendedReason: "the author's answer was unusable (schema)" });
+    const german = reportToMarkdown(buildDecisionReport(undefended), "de");
+    expect(german).toContain("NICHT VERTEIDIGT – die Antwort des Autors war nicht verwertbar (nicht im erwarteten Format)");
+    expect(german).not.toContain("the author's answer");
+    expect(reportToMarkdown(buildDecisionReport(undefended))).toContain("NOT DEFENDED – the author's answer was unusable (schema)");
+  });
+
+  it("says which revision a still-open objection was written about when the recommendation has moved on", () => {
+    const older = structuredClone(view) as SessionView;
+    const failover = older.objections[older.objections.length - 1]!;
+    older.objections.push({ ...failover, id: "o5", claim: "Die PWA braucht ein Offline-Konzept", createdAt: new Date("2026-10-27T10:10:00Z") });
+    const report = buildDecisionReport(older);
+    expect(report.remainingRisks).toContain("Die PWA braucht ein Offline-Konzept (unresolved objection; raised against v1, the recommendation is v2)");
+    expect(report.remainingRisks).toContain("Der Warm-Standby braucht einen getesteten Failover (unresolved objection)");
+    expect(reportToMarkdown(report, "de")).toContain("Die PWA braucht ein Offline-Konzept (Einwand ungeklärt; erhoben gegen Fassung v1, empfohlen wird v2)");
+  });
+});
+
+describe("answer first, risks by source (owner decisions 11.11.26)", () => {
+  const build = () => {
+    const v = structuredClone(view) as SessionView;
+    const b = v.proposals.find((p) => p.id === "B")!;
+    Object.assign(b.revisions[b.revisions.length - 1]!.content as object, {
+      recommendations: ["Zuerst den Failover proben", "Danach die Buchung freischalten"],
+      risks: [{ risk: "Der Standby-Server kann beim Umschalten Buchungen verlieren", severity: "high", mitigation: "synchrone Replikation" }],
+    });
+    (v as { consensus: unknown }).consensus = {
+      status: "partial_consensus",
+      basedOn: [],
+      agreements: [],
+      disagreements: [],
+      outstandingRisks: ["Die Betriebskosten zweier Server sind nicht beziffert"],
+    };
+    v.objections.push({
+      ...v.objections[v.objections.length - 1]!,
+      id: "o6",
+      claim: "Die PWA braucht ein Offline-Konzept",
+      createdAt: new Date("2026-10-27T10:10:00Z"),
+    });
+    return buildDecisionReport(v);
+  };
+
+  it("puts the recommended proposal's summary and steps right under the outcome and does not repeat the steps at the end", async () => {
+    const de = reportToMarkdown(build(), "de");
+    if (process.env.PEEK) (await import("node:fs")).writeFileSync(process.env.PEEK, de);
+    const answer = de.indexOf("### Die Antwort in Kürze");
+    expect(answer).toBeGreaterThan(de.indexOf("## Ergebnis"));
+    expect(answer).toBeLessThan(de.indexOf("## Verbleibende Risiken"));
+    expect(answer).toBeLessThan(de.indexOf("### Die Vorschläge"));
+    expect(de.slice(answer, answer + 400)).toContain("**Vorschlag B – Django-PWA mit PostgreSQL-Exclusion-Constraint und Warm-Standby**");
+    expect(de.split("- Zuerst den Failover proben")).toHaveLength(2);
+    expect(de).toMatch(/## Nächste Schritte\n- (?!Zuerst)/);
+  });
+
+  it("QA 12.11.26: states open high objections against the recommendation right after the answer, not only deep in the matrix", () => {
+    const report = build();
+    const recommended = report.recommendedSolution!.label;
+    const open = report.objections.filter(
+      (o) =>
+        o.proposal === recommended && (o.severity === "high" || o.severity === "critical") && ["open", "accepted", "unresolved"].includes(o.status) && !o.moot,
+    ).length;
+    const de = reportToMarkdown(report, "de");
+    if (open) {
+      const caution = de.indexOf("> **Mit Vorbehalt:**");
+      expect(caution).toBeGreaterThan(de.indexOf("### Die Antwort in Kürze"));
+      expect(caution).toBeLessThan(de.indexOf("### Die Vorschläge"));
+    } else expect(de).not.toContain("Mit Vorbehalt");
+    // Same words as the screen: "Zuversicht", not a second term.
+    expect(de).not.toContain("Geringe Verlässlichkeit");
+  });
+
+  it("prints no answer block without a recommended proposal", () => {
+    const v = structuredClone(view) as SessionView;
+    (v as { decision: unknown }).decision = { outcome: "no_qualifying_solution", recommendedProposalId: null, matrix: null, gateVersion: 1 };
+    expect(reportToMarkdown(buildDecisionReport(v), "de")).not.toContain("Antwort in Kürze");
+  });
+
+  it("lists the remaining risks by who named them", () => {
+    const report = build();
+    expect(report.remainingRiskGroups).toEqual({
+      consensus: ["Die Betriebskosten zweier Server sind nicht beziffert"],
+      proposal: ["Der Standby-Server kann beim Umschalten Buchungen verlieren (high; mitigation: synchrone Replikation)"],
+      objections: [
+        "Der Warm-Standby braucht einen getesteten Failover (unresolved objection)",
+        "Die PWA braucht ein Offline-Konzept (unresolved objection; raised against v1, the recommendation is v2)",
+      ],
+    });
+    const de = reportToMarkdown(report, "de");
+    const risks = de.slice(de.indexOf("## Verbleibende Risiken"));
+    expect(risks.indexOf("**Aus dem Konsens**")).toBeLessThan(risks.indexOf("**Risiken laut Vorschlag**"));
+    expect(risks.indexOf("**Risiken laut Vorschlag**")).toBeLessThan(risks.indexOf("**Offene Einwände**"));
+    // A report stored before the groups existed keeps the flat list.
+    const old = { ...report, remainingRiskGroups: undefined } as unknown as typeof report;
+    expect(reportToMarkdown(old, "de")).not.toContain("**Aus dem Konsens**");
+  });
+
+  it("notes on an objection that it was written about an earlier revision", () => {
+    const de = reportToMarkdown(build(), "de");
+    expect(de).toMatch(/Die PWA braucht ein Offline-Konzept[^\n]*– erhoben gegen Fassung v1; der Vorschlag steht jetzt bei v2/);
+    expect(de).not.toMatch(/Der Warm-Standby braucht einen getesteten Failover –[^\n]*erhoben gegen Fassung/);
+  });
+});

@@ -23,6 +23,12 @@ Milestone 2 adds (migration `drizzle/0001_*`): `council_session` (WorkflowRun + 
 `job` (durable queue). WorkflowDefinition is code (`MODE_POLICIES`, versioned by `POLICY_VERSION`); each
 session also stores the `prompt_version` of the templates it ran with.
 
+OAuth sign-in (11.11.26, migration `drizzle/0057_*`, `docs/mcp.md`): `oauth_client` (clients registered over
+`POST /api/oauth/register`: random `client_id`, name, redirect URIs; public clients, no secret, no workspace) and
+`oauth_code` (one-time authorization codes: sha256 of the code, client, user, workspace, redirect URI, PKCE challenge,
+token scope, `expires_at` after 2 minutes, `used_at`; deleted with the user or the workspace). A redeemed code
+becomes an ordinary `api_token` row.
+
 Requirement intake (#190, migration `drizzle/0022_requirement_lists`): `requirement_list` stores each confirmed
 version of a project's hard requirements (items R1…Rn with source, excluded statements with reason, the brief id and
 the source state with document hashes). `council_session`, `final_decision` and `human_approval` reference the list

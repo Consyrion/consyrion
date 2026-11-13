@@ -377,7 +377,18 @@
         "versions": "方案版本",
         "versionsText": "当时：{then} · 现在：{now}",
         "review": "审查"
-      }
+      },
+      "showAll": "显示全部 {n} 个争议点",
+      "showFewer": "只显示前 {n} 个",
+      "category": {
+        "security": "安全",
+        "functional": "功能",
+        "performance": "性能",
+        "cost": "成本",
+        "maintainability": "可维护性",
+        "other": "其他"
+      },
+      "evidenceInline": "证据"
     },
     "dashboard": {
       "aria": "裁决一览",
@@ -514,7 +525,24 @@
         "approve_after_measurement": "测量后已批准"
       },
       "unmetByAll": "没有任何方案满足 {list}。{n, plural, one {该要求可能无法实现} other {这些要求可能相互矛盾}}——请修改需求说明并开始新的委员会。",
-      "openByAll": "没有任何方案确认：{list}。请在任务说明中补充已知信息，或要求方案明确证明{n, plural, other {这些需求}}。"
+      "openByAll": "没有任何方案确认：{list}。请在任务说明中补充已知信息，或要求方案明确证明{n, plural, other {这些需求}}。",
+      "caution": {
+        "lowConfidence": "有保留：置信度低——裁决依据不完整。",
+        "read": "先阅读争议点",
+        "critical": "{n, plural, other {# 项严重异议}}",
+        "high": "{n, plural, other {# 项高级别异议}}",
+        "and": "和",
+        "objectionsOne": "有保留：针对此建议仍有{list}未解决。",
+        "objectionsMany": "有保留：针对此建议仍有{list}未解决。",
+        "objectionsLowOne": "有保留：针对此建议仍有{list}未解决，且置信度低。",
+        "objectionsLowMany": "有保留：针对此建议仍有{list}未解决，且置信度低。"
+      },
+      "answer": {
+        "title": "答案",
+        "note": "按推荐方案作者原文显示——这是模型的陈述，不是事实核查。",
+        "chosenTitle": "你选择的答案"
+      },
+      "riskAccepted": "已接受 {n, plural, other {# 项未解决异议}}的风险"
     },
     "process": {
       "proposal": "方案 {label}",
@@ -1038,5 +1066,16 @@
     "councilTitle": "向 council 提问",
     "councilNote": "每个模型就其自己的方案回答一次。回答只是附录——不会改变任何评分、核查、投票或裁决。",
     "cruxCount": "人工提问：{questions} · 已标记：{marks}"
+  },
+  "meta": {
+    "homeTitle": "CONSYRIUM AI – 辩论。决策。交付。",
+    "homeDescription": "多个 AI 模型独立思考、相互质疑，并得出有据可查的裁决。你批准后，CONSYRIUM AI 会将其实现为经过审查的拉取请求。",
+    "defaultDescription": "多个 AI 思维。更好的决策。真正的执行。"
+  },
+  "notFound": {
+    "title": "找不到页面",
+    "text": "此页面不存在或已不可用。请检查地址，或从这里继续。",
+    "home": "返回首页",
+    "dashboard": "前往控制台"
   }
 }

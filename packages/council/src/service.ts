@@ -683,6 +683,18 @@ function architectureChangeOf(
   return architectureChange(own[0]!.content, own.at(-1)!.content, others);
 }
 
+/** Open critical and high objections against one proposal (open/accepted/unresolved, not moot) – the risk to accept. */
+export function openRiskObjections(
+  objections: ReadonlyArray<{ id: string; proposalId: string; severity: string; status: string; moot: unknown }>,
+  proposalId: string,
+) {
+  const open = objections.filter(
+    (o) =>
+      o.proposalId === proposalId && ["open", "accepted", "unresolved"].includes(o.status) && !o.moot && (o.severity === "critical" || o.severity === "high"),
+  );
+  return { ids: open.map((o) => o.id), critical: open.filter((o) => o.severity === "critical").length };
+}
+
 /**
  * Marks objections raised against an earlier revision whose subject is gone (#150) – computed here so the rule stays
  * out of the browser (#189). null: the objection still applies to the current revision.
@@ -977,7 +989,15 @@ export const approvalInput = z.object({
   ]),
   comment: z.string().trim().max(5_000).default(""),
   selectedProposalId: z.string().optional(),
+  /**
+   * Owner decision 13.11.26: approving a proposal against which critical or high objections are still open needs the
+   * explicit statement that the person read them and accepts the risk; a critical one also needs a written reason.
+   */
+  acceptRisk: z.boolean().default(false),
 });
+
+/** Actions that lead to a build of the named proposal – the ones that need an explicit risk acceptance. */
+const BUILD_ACTIONS = new Set(["approve", "select_alternative", "approve_after_measurement", "approve_prototype"]);
 
 /**
  * A release that only knows older gate versions must not start a re-evaluation of a council whose verdict was
@@ -1134,6 +1154,33 @@ export async function submitApproval(db: Database, ctx: ActorContext, sessionId:
       break;
     }
   }
+  // Owner decision 13.11.26: open critical/high objections against the proposal that will be built must be accepted
+  // explicitly (and a critical one with a reason) – enforced here, so API, MCP and Telegram cannot skip it. The verdict
+  // and the existing blocks (blocking security objection, requirement gate) are unchanged; this only adds a human
+  // statement. Objections against a replaced revision (moot, #150) do not count, as on screen.
+  let acceptedObjectionIds: string[] = [];
+  if (selected && BUILD_ACTIONS.has(data.action)) {
+    const revisions = await db
+      .select({
+        proposalId: schema.proposalRevision.proposalId,
+        version: schema.proposalRevision.version,
+        content: schema.proposalRevision.content,
+        createdAt: schema.proposalRevision.createdAt,
+      })
+      .from(schema.proposalRevision)
+      .innerJoin(schema.proposal, eq(schema.proposal.id, schema.proposalRevision.proposalId))
+      .where(and(eq(schema.proposal.sessionId, sessionId), eq(schema.proposal.id, selected)));
+    const caution = openRiskObjections(withMootness(objections, revisions), selected);
+    if (caution.ids.length && !data.acceptRisk)
+      throw new DomainError(
+        "CONFLICT",
+        `${caution.ids.length} critical or high objection(s) against this proposal are still open. Read them and confirm that you accept the risk.`,
+      );
+    if (caution.critical && !data.comment)
+      throw new DomainError("VALIDATION", "Explain why you approve this proposal although a critical objection against it is still open");
+    acceptedObjectionIds = caution.ids;
+  }
+
   // A mark keeps the status; every other action is a transition of the state machine.
   if (nextStatus !== session.status) assertTransition(session.status as SessionStatus, nextStatus);
 
@@ -1168,7 +1215,8 @@ export async function submitApproval(db: Database, ctx: ActorContext, sessionId:
       action: `council.${data.action}`,
       targetType: "council_session",
       targetId: sessionId,
-      metadata: { selectedProposalId: selected },
+      // The accepted risk is part of the record: which open objections the person approved against (13.11.26).
+      metadata: { selectedProposalId: selected, ...(acceptedObjectionIds.length ? { acceptedRisk: { objectionIds: acceptedObjectionIds } } : {}) },
     });
     if (data.action === "repeat_evaluation") {
       await tx

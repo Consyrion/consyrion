@@ -36,6 +36,10 @@ export function reportNote(input: {
   sourcePath: string | null;
   models: string[];
   status: string;
+  /** Shown before the full report: the answer in short (see `answerBlock`). */
+  answer?: string;
+  /** The status in words for the visible header; the front matter keeps the machine value. */
+  statusLabel?: string;
   date: Date;
   labels: { source: string; run: string; models: string; date: string; status: string };
 }): string {
@@ -56,9 +60,51 @@ export function reportNote(input: {
     ...(input.sourcePath ? [`- ${input.labels.source}: [[${input.sourcePath.replace(/\.md$/, "")}]]`] : []),
     `- ${input.labels.run}: [${input.sessionId}](${runUrl})`,
     `- ${input.labels.models}: ${input.models.join(", ") || "–"}`,
-    `- ${input.labels.status}: ${input.status}`,
+    `- ${input.labels.status}: ${input.statusLabel ?? input.status}`,
     `- ${input.labels.date}: ${input.date.toISOString().slice(0, 16).replace("T", " ")} UTC`,
     "",
   ];
-  return `${front.join("\n")}${meta.join("\n")}\n${input.report.trim()}\n`;
+  return `${front.join("\n")}${meta.join("\n")}\n${input.answer ? `${input.answer.trim()}\n\n---\n\n` : ""}${input.report.trim()}\n`;
+}
+
+/**
+ * "The answer first" (owner feedback 11.11.26: a list of ideas was buried under the whole debate): title, summary and
+ * the recommended steps of the solution the council recommends, taken unchanged from the structured report. Empty when
+ * there is nothing to show – the full report below is never shortened or replaced.
+ */
+export function answerBlock(
+  solution: { label?: string; author?: string; title?: string; summary?: string; recommendations?: string[] } | null,
+  labels: { heading: string; proposal: string; fullReport: string },
+): string {
+  if (!solution) return "";
+  const clean = (value: unknown) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "");
+  const steps = (Array.isArray(solution.recommendations) ? solution.recommendations : []).map(clean).filter(Boolean);
+  const title = clean(solution.title);
+  const summary = clean(solution.summary);
+  if (!title && !summary && !steps.length) return "";
+  const head = [clean(solution.label) ? `${labels.proposal} ${clean(solution.label)}` : "", title].filter(Boolean).join(" – ");
+  return [
+    `## ${labels.heading}`,
+    "",
+    ...(head ? [`**${head}**${clean(solution.author) ? ` (${clean(solution.author)})` : ""}`, ""] : []),
+    ...(summary ? [summary, ""] : []),
+    ...steps.map((step) => `- ${step}`),
+    ...(steps.length ? [""] : []),
+    `_${labels.fullReport}_`,
+  ].join("\n");
+}
+
+/**
+ * True when the server's report already starts with the answer (servers since 12.11.26 print "The answer in brief"
+ * under the result): the first recommended step stands in the first quarter of the report. Older servers list the
+ * steps only at the end under "Next steps" – then the plugin adds its own block. Checked by content, so it works in
+ * every report language.
+ */
+export function reportLeadsWithAnswer(report: string, solution: { recommendations?: string[] } | null): boolean {
+  const first = (Array.isArray(solution?.recommendations) ? solution.recommendations : [])
+    .map((step) => (typeof step === "string" ? step.trim() : ""))
+    .find(Boolean);
+  if (!first) return false;
+  const at = report.indexOf(first.slice(0, 80));
+  return at >= 0 && at < report.length / 4;
 }

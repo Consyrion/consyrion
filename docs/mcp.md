@@ -7,9 +7,64 @@ CONSYRIUM AI can be used from any MCP client – Claude Code, Claude Desktop, Cu
 ## Connect
 
 - Address: `https://<your domain>/api/mcp` (Streamable HTTP, stateless; POST with JSON-RPC, answers as JSON).
-- Auth: an API token from **Settings → API tokens** as `Authorization: Bearer …`.
-- Claude Code: `claude mcp add --transport http consyrium https://app.consyrium.com/api/mcp --header "Authorization: Bearer <TOKEN>"`
-- OAuth sign-in (needed for claude.ai and ChatGPT connectors) is the next stage and not built yet.
+- Auth, two ways that end in the same kind of API token:
+  - **Sign in (OAuth):** give the client only the address. It gets a 401, finds the sign-in through the metadata
+    documents, opens the consent page in the browser and receives its token – see "Sign-in (OAuth)" below.
+  - **Token:** an API token from **Settings → API tokens** as `Authorization: Bearer …`. Works unchanged.
+- Claude Code with a token: `claude mcp add --transport http consyrium https://app.consyrium.com/api/mcp --header "Authorization: Bearer <TOKEN>"`
+- Claude Code with sign-in: `claude mcp add --transport http consyrium https://app.consyrium.com/api/mcp`, then `/mcp` → authenticate.
+
+## Sign-in (OAuth) (11.11.26)
+
+"Connect by signing in instead of copying a token": the MCP authorization flow – OAuth 2.1 authorization code with
+PKCE for public clients, protected-resource metadata (RFC 9728), authorization-server metadata (RFC 8414) and dynamic
+client registration (RFC 7591). The Obsidian plugin uses the same flow as a built-in client (`docs/obsidian.md`).
+
+| Step                                                 | Endpoint                                                                                                                         | Notes                                                                                                                                                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. The client calls the MCP endpoint without a token | `POST /api/mcp` → 401                                                                                                            | `WWW-Authenticate: Bearer realm="consyrium", resource_metadata="<origin>/.well-known/oauth-protected-resource"`                                                                                           |
+| 2. Which server signs users in?                      | `GET /.well-known/oauth-protected-resource` (also `…/oauth-protected-resource/api/mcp`)                                          | `resource: <origin>/api/mcp`, `authorization_servers: [<origin>]`, `scopes_supported: ["councils","read"]`                                                                                                |
+| 3. Where are its endpoints?                          | `GET /.well-known/oauth-authorization-server`                                                                                    | issuer `<origin>`; `response_types_supported: ["code"]`, `grant_types_supported: ["authorization_code"]`, `code_challenge_methods_supported: ["S256"]`, `token_endpoint_auth_methods_supported: ["none"]` |
+| 4. The client registers itself                       | `POST /api/oauth/register` (JSON: `client_name`, `redirect_uris`) → 201 `client_id`                                              | open, 20 per hour and address; public clients only – never a secret                                                                                                                                       |
+| 5. The user consents in the browser                  | `GET /oauth/authorize?response_type=code&client_id=…&redirect_uri=…&code_challenge=…&code_challenge_method=S256&state=…&scope=…` | signed-out visitors sign in first (`/sign-in?next=…`) and come back; "Allow" redirects to the redirect URI with `code` and `state`, "Deny" with `error=access_denied`                                     |
+| 6. The client exchanges the code                     | `POST /api/oauth/token` (form or JSON: `grant_type=authorization_code`, `code`, `redirect_uri`, `client_id`, `code_verifier`)    | → `{ access_token, token_type: "Bearer", expires_in, scope }`, `Cache-Control: no-store`; 30 per minute and address                                                                                       |
+
+`<origin>` is `BETTER_AUTH_URL` without a trailing slash (the request origin in local development) – the same value
+the MCP endpoint uses for its links.
+
+- **Scopes:** `councils` (default; also what `councils read` becomes) → a "Councils only" token (`cni_`): read tools
+  plus preparing projects and starting councils on the workspace's own keys. `read` → a read-only token (`cnr_`).
+  Anything else is refused. Full access (`cns_`) cannot be obtained by signing in.
+- **The access token is an ordinary API token:** named "Connected: <client name>", bound to the user and the
+  workspace shown on the consent page, **valid 90 days**, listed and revocable under Settings → API tokens, membership
+  re-checked on every request. Audit: `oauth.authorized` (consent: client, redirect target, scope) and
+  `api_token.created` (`via: "oauth:<client id>"`).
+- **Plan:** signing in does not need the `mcp` entitlement (the Obsidian plugin uses the REST API on the Free plan);
+  `/api/mcp` keeps checking it and answers 403 without it.
+- **Redirect URIs** a client may register (at most 5, 300 characters each, no fragment): `https://…`; `http://` only on
+  `localhost`, `127.0.0.1` or `[::1]` (any port); and of the app schemes only `cursor://`, `vscode://`,
+  `vscode-insiders://`, `claude://` and exactly `obsidian://consyrium-auth`. The redirect URI of an authorization
+  request must equal a registered one character for character (also the port of a loopback address).
+- **Codes:** valid 2 minutes, usable once. The first exchange attempt consumes the code – a wrong verifier, client or
+  redirect URI fails with the same `invalid_grant` and the code is gone.
+- **Errors** of the register and token endpoints are RFC shaped: `{ "error", "error_description" }` (400; 429 with
+  `temporarily_unavailable` when limited). An invalid authorization request is explained on the page and never
+  redirected.
+- **CORS:** the two metadata documents, register and token answer `OPTIONS` and send
+  `Access-Control-Allow-Origin: *` (they read no cookie). `/api/mcp` itself is unchanged.
+- **Not implemented:** refresh tokens (after 90 days the MCP endpoint answers 401 again and the client asks the user to
+  sign in again), client secrets / confidential clients, a revocation endpoint (revoke under Settings → API tokens),
+  OpenID Connect (`/.well-known/openid-configuration` does not exist), the `resource` parameter (RFC 8707) is accepted
+  and ignored – this server has one protected resource.
+- **Verified so far:** unit and route tests only (below). Not yet tried against real clients (Claude Code, claude.ai
+  and ChatGPT connectors, Cursor); the setup pages under `/integrations` still describe the token way.
+- **Former domain:** the metadata names the current address (`BETTER_AUTH_URL`). A client configured with the former
+  domain keeps working with a token; for sign-in use the current address.
+
+Code: `packages/core/src/oauth.ts` (redirect URI rules, scopes), `packages/db/src/repositories/oauth.ts` (clients,
+codes, exchange; tables `oauth_client`, `oauth_code`, migration 0057), `apps/web/src/lib/server/oauth.ts` (metadata,
+request validation), `apps/web/src/app/oauth/authorize/` (consent page and action), `apps/web/src/app/api/oauth/`,
+`apps/web/src/app/.well-known/`. Threat notes: `docs/security.md`.
 
 ## Tokens and tools
 
@@ -73,12 +128,19 @@ that look like instructions to the models are refused, never auto-decided), star
 
 `apps/web/src/lib/server/mcp.ts`: `initialize` (versions 2025-11-25, 2025-06-18, 2025-03-26), `ping`, `tools/list`,
 `tools/call`; notifications → 202. No sessions, no SSE stream (GET → 405), no resources/prompts. Errors: 401 with
-`WWW-Authenticate: Bearer`, 403 without Pro. Tool errors come back as `isError` results with the domain message only.
+`WWW-Authenticate: Bearer realm="consyrium", resource_metadata="…"` (start of the OAuth sign-in), 403 without Pro. Tool
+errors come back as `isError` results with the domain message only.
 
 ## Tests
 
-`apps/web/src/lib/server/mcp.test.ts` (protocol, 401/403, Pro gate, tool sets per scope, nothing that approves,
-builds or deletes, draft creation, budget limit), `actor.test.ts` (read-only token refused by REST endpoints).
+`apps/web/src/lib/server/mcp.test.ts` (protocol, 401/403 incl. the `resource_metadata` challenge, Pro gate, tool sets
+per scope, nothing that approves, builds or deletes, draft creation, budget limit), `actor.test.ts` (read-only token
+refused by REST endpoints). OAuth sign-in: `packages/core/src/oauth.test.ts` (redirect URI rules, scopes),
+`packages/db/src/repositories/oauth.test.ts` (register → code → token accepted by `resolveApiToken`; replay, parallel
+exchange, wrong verifier burns the code, wrong client/redirect URI, expiry, lost membership),
+`apps/web/src/lib/server/oauth.test.ts` (metadata documents, register and token routes, consent action incl. tampered
+forms), `apps/web/src/app/oauth/authorize/authorize-page.test.tsx` (consent page, no redirect for invalid requests),
+`apps/web/src/lib/safe-next.test.ts` (`/sign-in?next=`).
 
 ### Requirements of an `ask_consyrium` call (QA 07.11.26)
 
@@ -106,12 +168,34 @@ ask the user before implementing anything but an approved decision. Approval its
 ## Integrations page (08.11.26)
 
 Public overview at **`/integrations`** (linked in the homepage navigation and footer, no sign-in needed) and the same
-card grid at the top of **Settings → Integrations**: AI clients (Claude Code, Cursor, VS Code, Claude Desktop), apps
-(Telegram; VS Code extension and claude.ai/ChatGPT connectors marked "planned") and delivery & code (GitHub, e-mail,
-Confluence – these jump to their section in Settings → Integrations).
+card grid at the top of **Settings → Integrations**: AI clients (Claude Code, Cursor, VS Code, Claude via custom
+connector, ChatGPT, Codex CLI, Gemini CLI, Hermes Agent, OpenClaw), apps (Telegram, Obsidian; VS Code extension marked
+"planned") and delivery & code (GitHub, e-mail, Confluence – these jump to their section in Settings → Integrations).
 
 Each available client has a setup page `/integrations/<slug>` with numbered steps and copyable snippets built from this
-server's address (`BETTER_AUTH_URL` + `/api/mcp`); tokens appear only as the placeholder `<TOKEN>`. Structure and
-snippets: `apps/web/src/lib/connect-catalog.ts` (test `connect-catalog.test.ts`); texts: `settings.connect` in
-`apps/web/messages/settings/*.json`. Claude Desktop uses the `mcp-remote` bridge (needs Node.js) because its config file
-only starts local servers.
+server's address (`BETTER_AUTH_URL` + `/api/mcp`). Structure and snippets: `apps/web/src/lib/connect-catalog.ts` (test
+`connect-catalog.test.ts`); texts: `settings.connect` in `apps/web/messages/settings/*.json`.
+
+**Sign-in first (12.11.26):** every MCP client guide (`SIGN_IN_SLUGS`) uses the browser sign-in of this server (see
+"Sign-in (OAuth)"): add the address, sign in, click "Allow". A token appears only in the shared last step "token as the
+alternative" and only as the placeholder `<TOKEN>`. Steps that are the same for every client live under
+`settings.connect.shared` (`signIn`, `askAgent`, `tokenAlt`). Cursor and VS Code get a one-click install button built
+from their documented link formats (`cursor://anysphere.cursor-deeplink/mcp/install?name=…&config=<base64>`,
+`vscode:mcp/install?<url-encoded json>`).
+
+What was verified: the guides follow each vendor's documentation as read on 12.11.26 (Claude Code, Claude custom
+connectors, ChatGPT plugins, Codex `config.toml`, Cursor, VS Code, Gemini CLI `httpUrl`, Hermes `config.yaml`, OpenClaw
+`mcp add`); discovery, dynamic registration and the redirect to the consent page were run against production with the
+official MCP SDK client (1.32). Walked through completely on 12.11.26: Claude Code 2.1.322 (`claude mcp add` without a header → `claude mcp login` → consent → tool call answered; `TESTED_SIGN_IN_SLUGS`), Codex CLI 0.167.2 (`[mcp_servers.consyrium]` url only → `codex mcp login consyrium` → consent shows "Codex" → `list_projects` and `list_models` answered via `codex exec`), the Claude connector on claude.ai (Customize → Connectors → Add custom connector; OAuth "sign in now" + dynamic registration detected; consent names Claude; `List projects` answered in a chat – the desktop app uses the same account connector), ChatGPT on chatgpt.com/plugins (Add → custom MCP server, OAuth detected, "Create as plugin" → "Connect"; consent names ChatGPT; `@CONSYRIUM AI` → `list_projects` answered), Gemini CLI 0.68.0 (`httpUrl` only → `/mcp auth consyrium` → consent → `list_projects` answered via `gemini -p`; note: Google rejects "Sign in with Google" for personal accounts in Gemini CLI since Nov 2026 – the guide points to "Use Gemini API Key") and the Obsidian plugin (connect button, by the owner). The complete flow inside the other products has NOT been walked through yet – every such page
+says so (`settings.connect.shared.untested`). ChatGPT plan requirements could not be verified and are not stated.
+Redirect URIs the clients register (all accepted by `isAllowedRedirectUri`): claude.ai `https://claude.ai/api/mcp/auth_callback`,
+ChatGPT `https://chatgpt.com/connector_platform_oauth_redirect` or `…/connector/oauth/{id}`, Cursor
+`http://localhost:8787/callback`, VS Code `http://127.0.0.1:33418` and `https://vscode.dev/redirect`, the CLIs a
+loopback address with a random port.
+
+**Company marks (11.11.26):** cards and setup pages show the company's mark in its brand colour for Claude Code and
+Claude Desktop (Claude), Cursor, Telegram, Obsidian, GitHub and Confluence; the black/white marks (Cursor, GitHub)
+follow the text colour so they work in both themes. Paths are from Simple Icons (CC0) in
+`apps/web/src/components/connect/connect-brands.ts`; an item gets one through `brand` in the catalog. VS Code keeps its
+line glyph on purpose: Microsoft's brand guidelines (code.visualstudio.com/brand) forbid the icon on third-party
+product pages. E-mail and the planned claude.ai/ChatGPT card have no single company and keep their glyphs too.

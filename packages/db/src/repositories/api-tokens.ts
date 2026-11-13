@@ -16,8 +16,12 @@ export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
 const PREFIXES: Record<ApiTokenScope, string> = { full: "cns_", integration: "cni_", read: "cnr_" };
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 
-/** Creates a personal token for the current workspace. The plain token is returned exactly once. */
-export async function createApiToken(db: Database, ctx: ActorContext, input: { name: string; days: number; scope?: string }) {
+/**
+ * Creates a personal token for the current workspace. The plain token is returned exactly once. `via` names how the
+ * token came to be when it was not typed into Settings → API tokens (the OAuth sign-in: "oauth:<client id>") and is
+ * kept in the audit entry only.
+ */
+export async function createApiToken(db: Database, ctx: ActorContext, input: { name: string; days: number; scope?: string; via?: string }) {
   const scope = input.scope ?? "integration";
   if (!(API_TOKEN_SCOPES as readonly string[]).includes(scope)) throw new DomainError("VALIDATION", "Scope must be 'read', 'integration' or 'full'");
   const name = input.name.trim();
@@ -43,9 +47,9 @@ export async function createApiToken(db: Database, ctx: ActorContext, input: { n
     action: "api_token.created",
     targetType: "api_token",
     targetId: id,
-    metadata: { name, days: input.days, scope },
+    metadata: { name, days: input.days, scope, ...(input.via ? { via: input.via } : {}) },
   });
-  return { id, token, scope };
+  return { id, token, scope: scope as ApiTokenScope };
 }
 
 export async function listApiTokens(db: Database, ctx: ActorContext) {

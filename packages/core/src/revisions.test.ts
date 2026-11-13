@@ -53,6 +53,6 @@ describe("objections against an earlier revision (#150)", () => {
     const late = { claim: "Redis fehlt als Cache", createdAt: "2026-10-27T10:40:00Z" };
     const { current, moot } = splitObjections([redis, pwa, late], revisions);
     expect(moot).toEqual([{ ...redis, againstVersion: 1, currentVersion: 2 }]);
-    expect(current).toEqual([pwa, late]);
+    expect(current).toEqual([{ ...pwa, againstVersion: 1, currentVersion: 2 }, late]);
   });
 });

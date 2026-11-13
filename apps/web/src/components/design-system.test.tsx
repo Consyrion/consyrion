@@ -341,7 +341,7 @@ describe("council room voice states", () => {
 });
 
 describe("routes", () => {
-  it("exposes the public home and the component gallery", () => {
+  it("exposes the public home and the component gallery (signed-in only)", () => {
     const routes = pageRoutes();
     expect(routes).toContain("/");
     expect(routes).toContain("/design");

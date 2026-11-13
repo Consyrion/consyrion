@@ -478,7 +478,17 @@ export function RotateKey({ id }: { id: string }) {
     );
   return (
     <span className="flex flex-wrap items-end gap-2">
-      <TextField label={t("newApiKey")} type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} />
+      <TextField
+        label={t("newApiKey")}
+        type="password"
+        autoComplete="new-password"
+        data-1p-ignore
+        data-lpignore="true"
+        data-bwignore
+        data-form-type="other"
+        value={secret}
+        onChange={(e) => setSecret(e.target.value)}
+      />
       <Button
         disabled={busy || secret.length < 10}
         onClick={() =>
@@ -526,7 +536,11 @@ export function AdminStripeSetup({
         <TextField
           label={status.connected ? t("newSecretKey") : t("secretKey")}
           type="password"
-          autoComplete="off"
+          autoComplete="new-password"
+          data-1p-ignore
+          data-lpignore="true"
+          data-bwignore
+          data-form-type="other"
           placeholder={t("secretKeyPlaceholder")}
           value={secretKey}
           onChange={(e) => setSecretKey(e.target.value)}

@@ -1,6 +1,8 @@
-import type { ConnectIcon as IconName } from "@/lib/connect-catalog";
+import type { ConnectBrand, ConnectIcon as IconName } from "@/lib/connect-catalog";
+import { CONNECT_BRANDS } from "./connect-brands";
 
-// Simple line glyphs (own drawings, no third-party logos) so the grid stays neutral and works in both themes.
+// Simple line glyphs (own drawings) for everything without a company mark; tools of a known company show its mark
+// in brand colour instead (`brand`, see connect-brands.ts).
 const PATHS: Record<IconName, string> = {
   terminal: "M4 6l5 5-5 5M11 17h8",
   cursor: "M5 4l13 6-6 2-2 6z",
@@ -15,15 +17,22 @@ const PATHS: Record<IconName, string> = {
   note: "M5 4h14v11l-5 5H5zM14 20v-5h5M8 9h8M8 13h4",
 };
 
-export function ConnectIcon({ name, className = "" }: { name: IconName; className?: string }) {
+export function ConnectIcon({ name, brand, className = "" }: { name: IconName; brand?: ConnectBrand; className?: string }) {
+  const mark = brand ? CONNECT_BRANDS[brand] : null;
   return (
     <span
       aria-hidden
       className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-glass-line bg-surface-2 text-text ${className}`}
     >
-      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-        <path d={PATHS[name]} />
-      </svg>
+      {mark ? (
+        <svg viewBox="0 0 24 24" className="size-5" fill={mark.color ?? "currentColor"} data-brand={brand}>
+          <path d={mark.path} />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+          <path d={PATHS[name]} />
+        </svg>
+      )}
     </span>
   );
 }

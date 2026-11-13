@@ -38,7 +38,7 @@ async function ConnectCard({ item, mcpAllowed }: { item: ConnectItem; mcpAllowed
   const body = (
     <>
       <div className="flex items-start gap-3">
-        <ConnectIcon name={item.icon} />
+        <ConnectIcon name={item.icon} brand={item.brand} />
         <div className="min-w-0">
           <p className="font-medium leading-tight">{t(`items.${item.slug}.name`)}</p>
           <p className="mt-0.5 text-xs text-muted">{t(`items.${item.slug}.by`)}</p>

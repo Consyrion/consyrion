@@ -1,8 +1,8 @@
 "use client";
 
-import type { CouncilPhase } from "@consyrium/core/browser";
-import { useEngineText } from "./engine-text";
-import { createTranslator, useTranslations } from "next-intl";
+import { callErrorKindText, type CouncilPhase } from "@consyrium/core/browser";
+import { useEngineText, useUndefendedReasonText } from "./engine-text";
+import { createTranslator, useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import sessionEn from "../../../messages/session/en.json";
 import { MarkShapes } from "../brand/consyrium-logo";
@@ -12,7 +12,18 @@ import { ease, pointerPull, svgPoint } from "../dashboard/pointer-field";
 import { buttonClasses } from "../ui/button";
 import { GlassPanel } from "../ui/glass";
 import { Badge } from "../ui/surface";
-import { contentOf, modelName, PROVIDER_LABELS, proposalLabel, SEVERITY_TONE, STATUS_TONE, useEnumText, useRoleLabel, type View } from "./helpers";
+import {
+  contentOf,
+  modelName,
+  PROVIDER_LABELS,
+  proposalLabel,
+  SEVERITY_TONE,
+  STATUS_TONE,
+  useEnumText,
+  useResponseText,
+  useRoleLabel,
+  type View,
+} from "./helpers";
 import { Select } from "../ui/select";
 import { PARTICIPATION_PHASES, participationMatrix, silentIn } from "./participation";
 
@@ -54,10 +65,10 @@ function roleProgress(view: View, participantId: string) {
 }
 
 /** Failed calls of a model and the kind of the last failure, e.g. "8 failed calls · last: overloaded (HTTP 503)" (#175). */
-export function failureSummary(view: View, participantId: string, t: RoomT = EN): string | null {
+export function failureSummary(view: View, participantId: string, t: RoomT = EN, locale = "en"): string | null {
   const f = view.callFailures.find((x) => x.participantId === participantId);
   if (!f) return null;
-  const kind = f.lastErrorKind.replaceAll("_", " ");
+  const kind = callErrorKindText(f.lastErrorKind, locale);
   return f.lastHttpStatus ? t("failuresHttp", { n: f.failed, kind, status: f.lastHttpStatus }) : t("failures", { n: f.failed, kind });
 }
 const LIVE = new Set(["queued", "running", "cancel_requested"]);
@@ -113,6 +124,7 @@ function chip(label: string) {
  */
 function VoicesNetwork({ view, states }: { view: View; states: Record<string, VoiceState> }) {
   const t = useTranslations("councilRoom");
+  const locale = useLocale();
   const roleLabel = useRoleLabel();
   const voiceText = (state: VoiceState) => t(`voice.${state}`);
   const W = 900;
@@ -302,7 +314,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
               : states[p.id] === "evaluation_failed" || states[p.id] === "roles_failed"
                 ? "var(--warning)"
                 : (PROVIDER_COLOR[p.provider] ?? "#22d3ee");
-          const failures = failureSummary(view, p.id, t as unknown as RoomT);
+          const failures = failureSummary(view, p.id, t as unknown as RoomT, locale);
           const roles = view.roles.filter((r) => r.participantId === p.id).map((r) => roleLabel(r.role));
           const shown = roles.slice(0, maxChips);
           const extra = roles.length - shown.length;
@@ -351,10 +363,15 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
                 {voiceText(state)}
               </text>
               {failures ? (
-                <text x={p.x} y={p.y + 96} textAnchor="middle" fontSize="12" fill="var(--warning)">
+                // QA 12.11.26: the full line under the node ran into the centre disc – a small badge on the node instead,
+                // the sentence as its tooltip and in the participation table below.
+                <g data-testid="node-failures">
                   <title>{failures}</title>
-                  {failures.length > 44 ? `${failures.slice(0, 43)}…` : failures}
-                </text>
+                  <circle cx={p.x + 36} cy={p.y - 36} r="13" fill="#081226" stroke="var(--warning)" strokeWidth="2" />
+                  <text x={p.x + 36} y={p.y - 31.5} textAnchor="middle" fontSize="12.5" fontWeight="700" fill="var(--warning)">
+                    {view.callFailures.find((x) => x.participantId === p.id)?.failed ?? "!"}
+                  </text>
+                </g>
               ) : null}
             </g>
           );
@@ -382,7 +399,7 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
                 <span className="min-w-0 flex-1 font-medium break-words">{modelName(view, p.id)}</span>
                 <Badge tone={VOICE_TONE[state]}>{voiceText(state)}</Badge>
               </div>
-              {failureSummary(view, p.id) ? <p className="mt-1 text-xs text-warning">{failureSummary(view, p.id, t as unknown as RoomT)}</p> : null}
+              {failureSummary(view, p.id) ? <p className="mt-1 text-xs text-warning">{failureSummary(view, p.id, t as unknown as RoomT, locale)}</p> : null}
               {roles.length ? (
                 <details className="mt-2 text-sm">
                   <summary className="cursor-pointer text-muted">{t("perspectives", { n: roles.length })}</summary>
@@ -410,8 +427,11 @@ function VoicesNetwork({ view, states }: { view: View; states: Record<string, Vo
 function Objections({ view }: { view: View }) {
   const [category, setCategory] = useState("all");
   const t = useTranslations("councilRoom");
+  const reasonText = useUndefendedReasonText();
   const engine = useEngineText();
   const severityText = useEnumText("verdict.cruxes.severity");
+  const categoryText = useEnumText("verdict.cruxes.category");
+  const responseText = useResponseText();
   const statusText = useEnumText("councilRoom.objectionStatus");
   const categories = [...new Set(view.objections.map((o) => o.category))];
   const order = { open: 0, accepted: 1, unresolved: 2, resolved: 3, refuted: 4 } as Record<string, number>;
@@ -435,7 +455,7 @@ function Objections({ view }: { view: View }) {
               <option value="all">{t("allTopics")}</option>
               {categories.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {categoryText(c)}
                 </option>
               ))}
             </Select>
@@ -475,11 +495,11 @@ function Objections({ view }: { view: View }) {
                 </li>
                 {o.response ? (
                   <li>
-                    <span className="text-muted">{t("author")}</span> {o.response}
+                    <span className="text-muted">{t("author")}</span> {responseText(o.response)}
                   </li>
                 ) : o.undefendedReason ? (
                   // The author's model failed (#175): unanswered, not uncontested.
-                  <li className="text-warning">{t("notDefendedText", { reason: o.undefendedReason })}</li>
+                  <li className="text-warning">{t("notDefendedText", { reason: reasonText(o.undefendedReason) })}</li>
                 ) : null}
                 {o.resolutionReason ? (
                   <li>

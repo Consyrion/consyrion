@@ -1,14 +1,16 @@
 import { themeScript } from "@/lib/theme-script";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: { default: "CONSYRIUM AI", template: "%s · CONSYRIUM AI" },
-  description: "Multiple AI minds. Better decisions. Real execution.",
-};
-
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
+    title: { default: "CONSYRIUM AI", template: "%s · CONSYRIUM AI" },
+    description: (await getTranslations("meta"))("defaultDescription"),
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();

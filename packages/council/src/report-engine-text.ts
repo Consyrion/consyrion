@@ -1,4 +1,4 @@
-import type { ConfidenceIssue } from "@consyrium/core";
+import { undefendedReasonText, type ConfidenceIssue } from "@consyrium/core";
 import type { ReportLocale } from "./report-i18n";
 
 /**
@@ -152,7 +152,11 @@ export function confidenceIssueText(issue: ConfidenceIssue, locale: ReportLocale
     case "no_debate_contribution":
       return fill(d.no_debate_contribution!, { model: issue.modelId });
     case "undefended_proposal":
-      return fill(plural(d.undefended_proposal!, issue.count), { label: issue.proposalId, reason: issue.reason, count: issue.count });
+      return fill(plural(d.undefended_proposal!, issue.count), {
+        label: issue.proposalId,
+        reason: undefendedReasonText(issue.reason, locale),
+        count: issue.count,
+      });
     case "phase_shortened":
       return fill(d.phase_shortened!, { phase: phaseName(issue.phase) });
     case "weighting_changed_winner":

@@ -35,7 +35,7 @@ everything outside the database (table above).
 ## Deleting a workspace (`deleteOrganization`)
 
 Removed by cascade: every table with an `organization_id` – projects and all of the above, provider keys (encrypted),
-GitHub integration, delivery connections and Telegram requests, invitations, API tokens, idempotency keys, jobs,
+GitHub integration, delivery connections and Telegram requests, invitations, API tokens (also those of connected apps), OAuth authorization codes, idempotency keys, jobs,
 subscriptions, model price hints, skills and role profiles of the workspace, assistant chats/usage/preferences, and the
 workspace's audit log. Memberships end; user accounts stay.
 

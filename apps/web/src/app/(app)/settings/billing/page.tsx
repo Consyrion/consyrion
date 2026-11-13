@@ -36,6 +36,12 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const actor = await requirePageActor();
   const t = await getTranslations("settings.billing");
   const format = await getFormatter();
+  // QA 12.11.26: the stored label "4.99 € / month" (billing setup) showed in English on German pages – a label in that
+  // fixed form is shown in the page language; a label the admin typed by hand stays as written.
+  const priceText = (label: string) => {
+    const m = /^(\d+(?:\.\d+)?) € \/ month$/.exec(label.trim());
+    return m ? t("perMonth", { price: format.number(Number(m[1]), { style: "currency", currency: "EUR" }) }) : label;
+  };
   if (isSelfHosted())
     return (
       <>
@@ -110,7 +116,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 return (
                   <li key={p.key} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-3 text-sm">
                     <span>
-                      <strong>{p.name}</strong> {p.priceLabel ? <span className="text-muted">· {p.priceLabel}</span> : null}
+                      <strong>{p.name}</strong>{" "}
+                      {p.priceLabel && p.priceLabel !== p.name ? <span className="text-muted">· {priceText(p.priceLabel)}</span> : null}
                       <span className="block text-muted">
                         {t("planLimits", {
                           members: ent.maxMembers,
@@ -189,7 +196,18 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <td>{format.number(m.inputTokens)}</td>
                     <td>{m.cachedInputTokens ? format.number(m.cachedInputTokens) : "–"}</td>
                     <td>{format.number(m.outputTokens)}</td>
-                    <td>{cost === null ? "–" : `${cost.toFixed(2)} ${hint!.currency}`}</td>
+                    <td>
+                      {cost !== null ? (
+                        `${cost.toFixed(2)} ${hint!.currency}`
+                      ) : can(actor.role, "credential:write") ? (
+                        // QA 12.11.26: an empty column read as "free" – no price is invented, the cell points to the form below.
+                        <a href="#price-hints" className="text-xs text-primary underline">
+                          {t("costMissing")}
+                        </a>
+                      ) : (
+                        "–"
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -197,7 +215,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           </table>
         )}
         {can(actor.role, "credential:write") ? (
-          <div className="mt-5">
+          <div className="mt-5 scroll-mt-6" id="price-hints">
             <h3 className="mb-2 text-sm font-medium">{t("pricesTitle")}</h3>
             <ul className="mb-3 space-y-1 text-sm">
               {hints.map((h) => (

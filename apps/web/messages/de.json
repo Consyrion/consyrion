@@ -377,7 +377,18 @@
         "versions": "Fassung des Vorschlags",
         "versionsText": "damals: {then} · aktuell: {now}",
         "review": "Prüfung"
-      }
+      },
+      "showAll": "Alle {n} Streitpunkte zeigen",
+      "showFewer": "Nur die ersten {n} zeigen",
+      "category": {
+        "security": "Sicherheit",
+        "functional": "Funktion",
+        "performance": "Leistung",
+        "cost": "Kosten",
+        "maintainability": "Wartbarkeit",
+        "other": "Sonstiges"
+      },
+      "evidenceInline": "Beleg"
     },
     "dashboard": {
       "aria": "Urteil auf einen Blick",
@@ -490,7 +501,7 @@
       },
       "cell": {
         "aria": "Begründungen der Bewerter zu dieser Anforderung",
-        "close": "Schliessen",
+        "close": "Schließen",
         "notCounted": "nicht gezählt: {reason}",
         "noChecks": "Keine gespeicherte Prüfung für diese Zelle.",
         "open": "Keine Antwort von: {models}",
@@ -514,7 +525,24 @@
         "approve_after_measurement": "nach Messung freigegeben"
       },
       "unmetByAll": "Kein Vorschlag erfüllt {list}. {n, plural, one {Diese Anforderung ist womöglich nicht erfüllbar} other {Diese Anforderungen widersprechen sich womöglich}} – ändere den Auftrag und starte einen neuen Council.",
-      "openByAll": "Bei keinem Vorschlag bestätigt: {list}. Ergänze im Auftrag, was dazu feststeht, oder fordere Vorschläge an, die {n, plural, one {diese Anforderung} other {diese Anforderungen}} ausdrücklich belegen."
+      "openByAll": "Bei keinem Vorschlag bestätigt: {list}. Ergänze im Auftrag, was dazu feststeht, oder fordere Vorschläge an, die {n, plural, one {diese Anforderung} other {diese Anforderungen}} ausdrücklich belegen.",
+      "caution": {
+        "lowConfidence": "Mit Vorbehalt: geringe Zuversicht – das Urteil stützt sich auf unvollständige Belege.",
+        "read": "Zuerst die Streitpunkte lesen",
+        "critical": "{n, plural, one {# kritischer Einwand} other {# kritische Einwände}}",
+        "high": "{n, plural, one {# hoher Einwand} other {# hohe Einwände}}",
+        "and": "und",
+        "objectionsOne": "Mit Vorbehalt: {list} gegen diese Empfehlung ist noch offen.",
+        "objectionsMany": "Mit Vorbehalt: {list} gegen diese Empfehlung sind noch offen.",
+        "objectionsLowOne": "Mit Vorbehalt: {list} gegen diese Empfehlung ist noch offen, und die Zuversicht ist gering.",
+        "objectionsLowMany": "Mit Vorbehalt: {list} gegen diese Empfehlung sind noch offen, und die Zuversicht ist gering."
+      },
+      "answer": {
+        "title": "Die Antwort",
+        "note": "So geschrieben vom Autor des empfohlenen Vorschlags – Aussage eines Modells, keine Faktenprüfung.",
+        "chosenTitle": "Die gewählte Antwort"
+      },
+      "riskAccepted": "Risiko übernommen für {n, plural, one {# offenen Einwand} other {# offene Einwände}}"
     },
     "process": {
       "proposal": "Vorschlag {label}",
@@ -525,7 +553,7 @@
         "legend": "Bewerter",
         "mean": "Mittelwert",
         "spread": "Spanne {n}",
-        "note": "Eine Spanne von 3 Punkten oder mehr (!) heisst: Die Modelle beurteilen dieses Kriterium sehr unterschiedlich – lies ihre Begründungen.",
+        "note": "Eine Spanne von 3 Punkten oder mehr (!) heißt: Die Modelle beurteilen dieses Kriterium sehr unterschiedlich – lies ihre Begründungen.",
         "none": "Für diesen Vorschlag sind keine unabhängigen Bewertungen gespeichert."
       },
       "timeline": {
@@ -561,7 +589,7 @@
         "title": "Stoppen und neu prüfen, wenn …",
         "source": "Hohe und kritische Risiken, die der Autor genannt hat",
         "empty": "Nicht angegeben – kein hohes oder kritisches Risiko genannt.",
-        "mitigation": "Geplante Gegenmassnahme: {text}"
+        "mitigation": "Geplante Gegenmaßnahme: {text}"
       },
       "revisit": {
         "title": "Council erneut fragen, wenn …",
@@ -750,7 +778,7 @@
       "security_expert": "Was kann schiefgehen – Daten, Zugriff, Missbrauch – und wie wird es verhindert?",
       "performance_engineer": "Ist es unter echter Last schnell genug, und wo ist der Engpass?",
       "backend_engineer": "Sind Serverteile, APIs und Jobs solide und testbar?",
-      "frontend_engineer": "Können Nutzer damit wirklich arbeiten, auf jeder Bildschirmgrösse?",
+      "frontend_engineer": "Können Nutzer damit wirklich arbeiten, auf jeder Bildschirmgröße?",
       "database_architect": "Halten Datenmodell, Abfragen und Migrationen?",
       "devops_engineer": "Wie wird es ausgeliefert, überwacht, gesichert und wiederhergestellt?",
       "cost_analyst": "Was kostet Bau und Betrieb, und passt das ins Budget?",
@@ -774,7 +802,7 @@
     "tab": "KI-Assistent",
     "title": "KI-Assistent",
     "subtitle": "Fragt deinen Workspace – auf deinem eigenen API-Key",
-    "close": "Assistent schliessen",
+    "close": "Assistent schließen",
     "tabs": {
       "chat": "Chat",
       "history": "Verläufe",
@@ -810,7 +838,7 @@
     "model": "Modell, das antwortet",
     "modelNote": "Nur Modelle deiner eigenen Keys. Jede Frage kostet ein paar Aufrufe auf diesem Key; die Tokens stehen unter jeder Antwort.",
     "readOnly": "Der Assistent liest deinen Workspace und kann Aktionen vorschlagen (Projekt oder Brief entwerfen, Anforderungen vorschlagen, Council vorbereiten, Text schreiben). Ohne deinen Klick passiert nichts – freigeben, Council oder Build starten, löschen oder Einstellungen ändern kann er nie.",
-    "shortcut": "Kürzel: ⌘/Ctrl + J öffnet und schliesst den Assistenten, Esc schliesst ihn.",
+    "shortcut": "Kürzel: ⌘/Ctrl + J öffnet und schließt den Assistenten, Esc schließt ihn.",
     "usedTools": "gelesen: {tools}",
     "tokens": "{n} Tokens",
     "cost": "≈ {amount}",
@@ -1038,5 +1066,16 @@
     "councilTitle": "Frage an den Council",
     "councilNote": "Jedes Modell antwortet einmal zu seinem eigenen Vorschlag. Die Antworten sind ein Anhang – sie ändern keine Bewertung, Prüfung, Stimme und nicht das Urteil.",
     "cruxCount": "Rückfragen des Menschen: {questions} · markiert: {marks}"
+  },
+  "meta": {
+    "homeTitle": "CONSYRIUM AI – Debattieren. Entscheiden. Umsetzen.",
+    "homeDescription": "Mehrere KI-Modelle denken unabhängig, prüfen sich gegenseitig und kommen zu einem dokumentierten Urteil. Du gibst frei – dann setzt CONSYRIUM AI es als geprüften Pull Request um.",
+    "defaultDescription": "Mehrere KI-Modelle. Bessere Entscheidungen. Echte Umsetzung."
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "text": "Diese Seite gibt es nicht oder nicht mehr. Prüfe die Adresse oder mach hier weiter.",
+    "home": "Zur Startseite",
+    "dashboard": "Zum Dashboard"
   }
 }

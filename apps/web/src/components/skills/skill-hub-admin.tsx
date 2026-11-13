@@ -404,7 +404,11 @@ function ReviewerSettings({ providers }: { providers: ReadonlyArray<{ id: string
           label={t("key")}
           hint={config.hasKey ? t("keySet") : t("keyMissing")}
           type="password"
-          autoComplete="off"
+          autoComplete="new-password"
+          data-1p-ignore
+          data-lpignore="true"
+          data-bwignore
+          data-form-type="other"
           value={key}
           onChange={(e) => setKey(e.target.value)}
         />

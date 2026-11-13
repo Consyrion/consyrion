@@ -225,3 +225,26 @@ describe("key disputes (#267) – deterministic, from stored events only", () =>
     expect(noDocumentedDispute(early)).toBe(false);
   });
 });
+
+describe("key disputes – what is counted can be reached (QA 12.11.26)", () => {
+  const render = (messages: Record<string, unknown>, locale: string) =>
+    renderToStaticMarkup(
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <CruxesCard view={view} recommendedId="pro_a" />
+      </NextIntlClientProvider>,
+    );
+
+  it("offers 'show all' when the filter counts more disputes than the first three", () => {
+    const html = render(en, "en");
+    expect(html).toContain("All (4)");
+    expect(html).toContain("Show all 4 disputes");
+  });
+
+  it("shows category and missing-answer reason in the reader's language, never the stored English", () => {
+    const german = render(de, "de");
+    expect(german).toContain("kritisch · Sicherheit");
+    expect(german).toContain("Keine Antwort – Anbieterfehler (Zeitüberschreitung)");
+    expect(german).not.toContain("provider error");
+    expect(german).not.toContain("· security");
+  });
+});

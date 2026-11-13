@@ -64,6 +64,9 @@ const DE: Dictionary = {
   "action failed": "Aktion fehlgeschlagen",
   "could not load the decision": "Entscheidung konnte nicht geladen werden",
   'Record "{action}" for this decision?': "„{action}“ für diese Entscheidung speichern?",
+  "Critical or high objections against this proposal are still open. Did you read them, and do you accept the risk?":
+    "Gegen diesen Vorschlag sind noch kritische oder hohe Einwände offen. Hast du sie gelesen und übernimmst du das Risiko?",
+  "Accept risk and approve": "Risiko übernehmen und freigeben",
   Yes: "Ja",
   "no Execution Council run for this decision yet.": "für diese Entscheidung gibt es noch keinen Execution-Council-Lauf.",
   "the run produced no changes.": "der Lauf hat keine Änderungen erzeugt.",
@@ -72,6 +75,9 @@ const DE: Dictionary = {
 };
 
 const FR: Dictionary = {
+  "Critical or high objections against this proposal are still open. Did you read them, and do you accept the risk?":
+    "Des objections critiques ou importantes contre cette proposition restent ouvertes. Les as-tu lues et acceptes-tu le risque ?",
+  "Accept risk and approve": "Accepter le risque et approuver",
   queued: "en file d’attente",
   running: "en cours",
   awaiting_approval: "attend l’approbation",
@@ -109,6 +115,9 @@ const FR: Dictionary = {
 };
 
 const ES: Dictionary = {
+  "Critical or high objections against this proposal are still open. Did you read them, and do you accept the risk?":
+    "Siguen abiertas objeciones críticas o altas contra esta propuesta. ¿Las has leído y aceptas el riesgo?",
+  "Accept risk and approve": "Aceptar el riesgo y aprobar",
   queued: "en cola",
   running: "en curso",
   awaiting_approval: "pendiente de aprobación",

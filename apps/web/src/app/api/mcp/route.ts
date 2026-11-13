@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/server/db";
 import { handleMcpMessage } from "@/lib/server/mcp";
 import { mcpTools } from "@/lib/server/mcp-tools";
+import { appOrigin, mcpChallenge } from "@/lib/server/oauth";
 import { rateLimit } from "@/lib/server/rate-limit";
 
 /** Largest JSON-RPC batch accepted in one request (#405). */
@@ -13,6 +14,7 @@ const MCP_MAX_BATCH = 20;
  * MCP server endpoint (Streamable HTTP, stateless): `POST /api/mcp` with `Authorization: Bearer <API token>`.
  * Pro and up (entitlement `mcp`; self-hosted always). Read-only tokens (cnr_) see only read tools; integration (cni_)
  * and full (cns_) tokens can also prepare projects and start councils on the workspace's own keys. See docs/mcp.md.
+ * A client without a token is pointed to the OAuth sign-in, which ends in the same kind of token.
  */
 export async function POST(request: Request) {
   try {
@@ -30,8 +32,7 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, { status: 400 });
     }
-    const origin = new URL(request.url).origin.replace("0.0.0.0", "localhost");
-    const tools = mcpTools(db, actor, scope, process.env.BETTER_AUTH_URL?.replace(/\/$/, "") || origin);
+    const tools = mcpTools(db, actor, scope, appOrigin(request));
     const messages = Array.isArray(body) ? body : [body];
     // A JSON-RPC batch must not multiply what one request may do (#405): at most MCP_MAX_BATCH messages, and every
     // message counts against the per-user limit on its own.
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
     const message = error instanceof DomainError ? error.message : "Unexpected server error";
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32001, message } },
-      { status, headers: status === 401 ? { "WWW-Authenticate": 'Bearer realm="consyrium"' } : undefined },
+      // The 401 names the protected-resource metadata, so an MCP client can start the OAuth sign-in (RFC 9728 §5.1).
+      { status, headers: status === 401 ? { "WWW-Authenticate": mcpChallenge(appOrigin(request)) } : undefined },
     );
   }
 }

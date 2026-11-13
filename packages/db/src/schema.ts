@@ -1919,3 +1919,47 @@ export const deletionTombstone = pgTable(
   },
   (t) => [primaryKey({ columns: [t.kind, t.entityId] })],
 );
+
+/**
+ * OAuth sign-in for MCP clients and the Obsidian plugin (docs/mcp.md, migration 0057): clients registered through
+ * `POST /api/oauth/register` (RFC 7591). Public clients only – there is no client secret; PKCE proves that the party
+ * redeeming a code is the one that asked for it. Platform data without a workspace: registration is open, the consent
+ * page shows the redirect target. First-party clients (the Obsidian plugin) are built in and have no row here.
+ */
+export const oauthClient = pgTable("oauth_client", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull().unique(),
+  name: text("name").notNull(),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * One-time authorization codes of the OAuth sign-in: created when the signed-in user allows a client, redeemed once at
+ * `POST /api/oauth/token` for an ordinary `api_token`. Only the sha256 of the code is stored; a code lives two minutes
+ * and is consumed by the first exchange attempt, successful or not. `client_id` is the public client id (no foreign
+ * key: built-in clients have no `oauth_client` row).
+ */
+export const oauthCode = pgTable(
+  "oauth_code",
+  {
+    id: text("id").primaryKey(),
+    codeHash: text("code_hash").notNull().unique(),
+    clientId: text("client_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    redirectUri: text("redirect_uri").notNull(),
+    /** PKCE S256 challenge: base64url(sha256(code_verifier)). */
+    codeChallenge: text("code_challenge").notNull(),
+    /** API token scope the code turns into: "integration" (OAuth scope "councils") or "read". */
+    scope: text("scope").$type<"integration" | "read">().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("oauth_code_expires_idx").on(t.expiresAt)],
+);

@@ -35,13 +35,14 @@ export function AuthShell({ children }: { children: ReactNode }) {
           </span>
         </Link>
         <div className="grid flex-1 items-center gap-4 py-4 lg:py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(400px,0.9fr)] lg:gap-[clamp(32px,5vw,96px)]">
-          <section aria-label={t("about")}>
+          {/* QA 12.11.26 (phone): the form sat below the animation, out of view – on small screens it comes first. */}
+          <section aria-label={t("about")} className="max-lg:order-2">
             <p className="hidden font-[family-name:var(--font-display)] text-[clamp(44px,4.6vw,76px)] lg:block leading-[1.02] font-semibold tracking-[-0.035em]">
               {t("headline1")}
               <span className="block bg-[linear-gradient(90deg,#22d3ee,#2ee6a8)] bg-clip-text text-transparent">{t("headline2")}</span>
             </p>
             <p className="mt-4 hidden text-[clamp(16px,1.5vw,22px)] tracking-[0.3em] text-muted lg:block">{t("tagline")}</p>
-            {/* The landing page's 3D scene (first chapter), compact above the form on mobile. */}
+            {/* The landing page's 3D scene (first chapter), compact below the form on mobile. */}
             <AuthScene className="mx-auto max-w-[420px] lg:mt-2 lg:max-w-[640px]" />
             <ul className="mt-6 hidden grid-cols-3 divide-x divide-glass-line lg:grid">
               {FEATURES.map((feature) => (
@@ -56,7 +57,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
               ))}
             </ul>
           </section>
-          <div className="mx-auto w-full max-w-[600px]">
+          <div className="mx-auto w-full max-w-[600px] max-lg:order-1">
             <div className="rounded-[26px] bg-[linear-gradient(140deg,rgb(34_211_238/0.9),rgb(47_123_255/0.5)_45%,rgb(139_92_246/0.9))] p-px shadow-[0_0_60px_-10px_rgb(34_211_238/0.35),0_0_90px_-20px_rgb(139_92_246/0.4)]">
               <div className="rounded-[25px] bg-[rgb(7_13_26/0.86)] px-6 py-8 backdrop-blur-xl sm:px-10 sm:py-12 lg:px-12">{children}</div>
             </div>

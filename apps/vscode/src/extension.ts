@@ -138,7 +138,19 @@ export function activate(context: vscode.ExtensionContext) {
               t("Yes"),
             );
             if (confirm !== t("Yes")) return;
-            await api.approve(sessionId, message.action as ApprovalAction, message.comment);
+            try {
+              await api.approve(sessionId, message.action as ApprovalAction, message.comment);
+            } catch (error) {
+              // Owner decision 13.11.26: open critical/high objections need an explicit risk acceptance – ask once, then retry.
+              if (!(error instanceof ConsyriumApiError && error.status === 409 && /accept the risk/.test(error.message))) throw error;
+              const accept = await vscode.window.showWarningMessage(
+                t("Critical or high objections against this proposal are still open. Did you read them, and do you accept the risk?"),
+                { modal: true, detail: error.message },
+                t("Accept risk and approve"),
+              );
+              if (accept !== t("Accept risk and approve")) return;
+              await api.approve(sessionId, message.action as ApprovalAction, message.comment, undefined, true);
+            }
             await render();
             provider.refresh();
           }

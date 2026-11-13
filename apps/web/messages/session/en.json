@@ -362,14 +362,16 @@
     },
     "formulaText": {
       "text": "total = sum over all criteria of the {weighted, select, yes {vote-weighted } other {}}average of the independent scores × weight / 100; weights: {weights}{weighted, select, yes {; vote weights: {votes}} other {}}"
-    }
+    },
+    "hintReview": "Read the open objections under “Key disputes” and compare the alternatives before you approve. «Request more debate» lets the council argue these points again."
   },
   "verdictScreen": {
     "participation": {
       "label": "Valid participation:",
       "short": "short: {list}",
       "noValid": "no valid contribution",
-      "all": "every model delivered in every phase it was called in."
+      "all": "every model delivered at least once in every phase it was called in.",
+      "failedCalls": "{n, plural, one {# call} other {# calls}} failed: {list}"
     },
     "waiting": "The verdict is computed deterministically from independent scores, gates and objections.",
     "recordError": "Could not record the decision",
@@ -380,7 +382,7 @@
       "qualifiedBlocked": "meets the confirmed requirements, but cannot be approved in this council",
       "architectureCandidate": "architecture candidate – performance proof open ({ids})"
     },
-    "voteWeights": "Vote weights (fixed at the start, #140): {list}. Weighted are each model's scores and ranking, not its own proposal; the feasibility check counts every model once.",
+    "voteWeights": "Vote weights (fixed at the start): {list}. Weighted are each model's scores and ranking, not its own proposal; the feasibility check counts every model once.",
     "notApprovableHint": "You can request changes to the brief or reject; a changed brief needs a new council.",
     "otherGateOne": "{proposals} meets the confirmed requirements but did not pass another gate (security minimum, minimum score or a blocking objection) – see Evaluation.",
     "otherGateMany": "{proposals} meet the confirmed requirements but did not pass another gate (security minimum, minimum score or a blocking objection) – see Evaluation.",
@@ -518,6 +520,12 @@
     "mark": {
       "favorite": "Proposal {label} is marked as favourite – not approved; the verdict still needs verification.",
       "prototype": "Proposal {label} has an approved prototype / measurement build – not a finished solution and not a regular approval."
+    },
+    "risk": {
+      "title": "{n, plural, one {# critical or high objection against Proposal {label} is} other {# critical or high objections against Proposal {label} are}} still open:",
+      "accept": "I have read these objections and accept the remaining risk of this decision.",
+      "criticalReason": "A critical objection is open: write in the field above why you approve anyway.",
+      "note": "Stored with your decision: who accepted which objections, and when. The verdict itself is unchanged."
     }
   },
   "requirementGate": {

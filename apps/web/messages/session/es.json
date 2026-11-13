@@ -362,14 +362,16 @@
     },
     "formulaText": {
       "text": "total = suma sobre todos los criterios de la media {weighted, select, yes {ponderada por votos } other {}}de las puntuaciones independientes × peso / 100; pesos: {weights}{weighted, select, yes {; pesos de voto: {votes}} other {}}"
-    }
+    },
+    "hintReview": "Lee las objeciones abiertas en «Puntos de desacuerdo decisivos» y compara las alternativas antes de aprobar. «Solicitar más debate» permite al consejo volver a discutir estos puntos."
   },
   "verdictScreen": {
     "participation": {
       "label": "Participación válida:",
       "short": "faltan: {list}",
       "noValid": "ninguna contribución válida",
-      "all": "cada modelo entregó en cada fase en la que fue llamado."
+      "all": "cada modelo entregó al menos una vez en cada fase en la que fue llamado.",
+      "failedCalls": "{n, plural, one {# llamada falló} other {# llamadas fallaron}}: {list}"
     },
     "waiting": "El veredicto se calcula de forma determinista a partir de puntuaciones independientes, umbrales y objeciones.",
     "recordError": "No se pudo registrar la decisión",
@@ -380,7 +382,7 @@
       "qualifiedBlocked": "cumple los requisitos confirmados, pero no se puede aprobar en este Council",
       "architectureCandidate": "candidata de arquitectura – prueba de rendimiento pendiente ({ids})"
     },
-    "voteWeights": "Pesos de voto (fijados al inicio, #140): {list}. Se ponderan las puntuaciones y la clasificación de cada modelo, no su propia propuesta; la comprobación de viabilidad cuenta cada modelo una vez.",
+    "voteWeights": "Pesos de voto (fijados al inicio): {list}. Se ponderan las puntuaciones y la clasificación de cada modelo, no su propia propuesta; la comprobación de viabilidad cuenta cada modelo una vez.",
     "notApprovableHint": "Puedes pedir cambios en el encargo o rechazar; un encargo cambiado necesita un nuevo council.",
     "otherGateOne": "{proposals} cumple los requisitos confirmados, pero no superó otro umbral (mínimo de seguridad, puntuación mínima u objeción bloqueante) – ver Evaluation.",
     "otherGateMany": "{proposals} cumplen los requisitos confirmados, pero no superaron otro umbral (mínimo de seguridad, puntuación mínima u objeción bloqueante) – ver Evaluation.",
@@ -518,6 +520,12 @@
     "mark": {
       "favorite": "La propuesta {label} está marcada como favorita – no aprobada; el veredicto aún requiere verificación.",
       "prototype": "La propuesta {label} tiene un build de prototipo / medición aprobado – no es una solución terminada ni una aprobación regular."
+    },
+    "risk": {
+      "title": "{n, plural, one {Sigue abierta # objeción crítica o alta contra la propuesta {label}:} other {Siguen abiertas # objeciones críticas o altas contra la propuesta {label}:}}",
+      "accept": "He leído estas objeciones y acepto el riesgo restante de esta decisión.",
+      "criticalReason": "Hay una objeción crítica abierta: escribe en el campo de arriba por qué apruebas de todos modos.",
+      "note": "Se guarda con tu decisión: quién aceptó qué objeciones y cuándo. El veredicto en sí no cambia."
     }
   },
   "requirementGate": {

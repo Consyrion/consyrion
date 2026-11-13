@@ -10,8 +10,12 @@ export default function ImpressumPage() {
       <section>
         <h2 className="text-lg font-semibold">Anbieter</h2>
         <p className="mt-2 text-muted">
-          {o.brand} ist ein Angebot von:
-          <br />
+          {o.company === o.brand ? null : (
+            <>
+              {o.brand} ist ein Angebot von:
+              <br />
+            </>
+          )}
           {o.company}
           <br />
           {o.street}

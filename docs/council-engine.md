@@ -258,9 +258,13 @@ The PDF report is unchanged in this step.
 
 ## Decision report
 
+The Markdown report starts with the answer: right under the outcome stands "The answer in brief" – title, summary and
+recommended steps of the proposal the report leads with, unchanged (a leading proposal that cannot be approved is named
+as such). The steps are not repeated under "Next steps"; that section then says what the reader has to do.
+
 Markdown and JSON exports (`/api/sessions/:id/report?format=md|json`) contain the outcome, recommended solution
 with independent rationales, evaluation matrix (incl. confidence), the **full debate transcript** (questions,
-answers, critiques, rebuttals with model, role, round, target proposal, severity and evidence), remaining risks,
+answers, critiques, rebuttals with model, role, round, target proposal, severity and evidence), remaining risks (one line per point: the same risk named by the consensus, the proposal and several objections is listed once; an open objection written about an earlier revision says so: "raised against v1, the recommendation is v2"; the list is grouped by who named the risk – consensus, the proposal itself, open objections),
 objections, alternatives, consensus and human decisions.
 
 **Valid participation rate (#182):** the report (`validParticipation`, Markdown line "Valid participation: 5/6
@@ -269,7 +273,9 @@ objections, alternatives, consensus and human decisions.
 (`validParticipation()` in `packages/council/src/participation.ts`, exposed as `participation` in the session view):
 a phase counts as delivered when at least one of the model's calls in it ended `ok` (a successful retry counts); a
 model marked failed, or without any successful call, falls short and is listed with the phases it missed. Before the
-first model call there is no rate. Further quality metrics from #182 (convergence, objection survival, weight
+first model call there is no rate. Since QA 12.11.26 the calls that did **not** end `ok` are named beside the rate
+(`failedCalls`: model, phase, number of calls; screen and report "2 calls failed: GLM – Minority Review ×2"), so
+"4/4 (100 %)" no longer reads as a clean run when a model needed retries or one answer was unusable. Further quality metrics from #182 (convergence, objection survival, weight
 dominance, single-shot benchmark) are not implemented yet.
 
 **Objections, not "minority opinions" (#169):** a critique's `claim` is defined in the schema and the prompt as the
@@ -943,6 +949,43 @@ score can never be read as "passed" before the reader has seen which requirement
 1 status, 2 requirements (gate), 3 overall scores, 4 criteria, 5 key disputes (#267, `CruxesCard`, built separately),
 6 objections. The plain-language "why no recommendation" card (#230) stays in the decision card below the dashboard.
 The 30-second usability measurement of #266 still needs a test with real people.
+
+**The answer and its reservations in the hero (QA 12.11.26).** Live test 12.11.26 found that the hero named
+"Recommended: Proposal D" but not what D says (a ten-topic list stood only in "Open Council" and in the export), and that
+a green tick sat beside six open high objections while "low confidence" appeared far below. Now:
+
+- **The answer** – the recommended proposal's own title, summary and `recommendations`, as written, in a box inside the
+  hero (`answer` prop; marked as a model's statement, not a fact check). Not shown once a human has decided.
+- **Reservations** – when high/critical objections against the recommendation are still open (accepted, unresolved or
+  open, not moot) or the confidence notice is shown, the hero turns amber, starts with "With reservations: …" and links
+  to the key disputes (`#key-disputes`). The verdict itself is unchanged; only the presentation stops overstating it.
+  The Markdown/PDF report states the same reservations right after "The answer in brief" (`cautionLines`).
+- **Key disputes reachable** – the filter chips count all disputes; the card shows the first three and a "Show all N"
+  button (before, "All (6)" listed three without saying so). The open points of the Consensus Round are listed in full
+  and "Next steps" counts the same list.
+- **Words, not codes** – objection categories (`verdict.cruxes.category.*`), severities in risk lines, the author's
+  stored "Evidence:" marker (`localizeResponse`), "answer unusable (schema)" and call error kinds in the Council Room
+  (`callErrorKindText`) appear in the page language; internal issue numbers (#140, #245) left the UI texts.
+- The hint «Repeat evaluation» only appears when an evaluation is actually missing (the action is disabled otherwise);
+  without a missing evaluation the notice points to the key disputes and «Request more debate».
+- **One rule for screen and report** (ChatGPT review of #631): `verdictCaution()` in `packages/core` decides the
+  reservations for the hero and the report alike – open **critical** and **high** objections against the recommendation,
+  counted and named apart ("1 critical and 2 high objections"), and low confidence read from the stored
+  `confidence === "low"` ("reduced" is limited review depth, not low confidence; verdicts without a stored confidence fall
+  back to their issues and failed evaluators). After the human decided, the hero keeps showing the answer of the chosen
+  proposal ("The answer you chose"; an alternative if one was selected, none after a rejection).
+- **Explicit risk acceptance (owner decision 13.11.26).** An action that leads to a build of a proposal – approve, select
+  an alternative, approve a prototype, approve after measurement – is refused by the server while critical or high
+  objections against that proposal are still open (open, accepted or unresolved, not moot), unless the request carries
+  `acceptRisk: true`; with a **critical** one a written reason (`comment`) is required as well. Enforced in
+  `submitApproval` (`openRiskObjections`), so the web form, the API, the VS Code extension and any other client go through
+  it. The audit event of the approval stores `acceptedRisk.objectionIds`. The decision form lists those objections with
+  a checkbox "I have read these objections and accept the remaining risk"; the hero then shows "risk accepted for N open
+  objections" beside the decision. Deliberately **no hard block**: an objection is a model's claim, not a verified fact,
+  and a single model must not get a veto – the existing hard blocks (blocking security objection, requirement gate,
+  decision format) stay unchanged. The VS Code extension asks for the acceptance in a dialog and retries.
+- Council Room: failed calls are a small numbered badge on the model node (sentence as tooltip and in the participation
+  table) instead of a line that ran into the centre disc.
 
 ## PDF in three levels (#268, 05.11.26)
 

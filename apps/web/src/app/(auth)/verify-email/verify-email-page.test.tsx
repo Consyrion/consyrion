@@ -13,7 +13,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { default: VerifyEmailPage } = await import("./page");
-const render = (params: { error?: string }) => VerifyEmailPage({ searchParams: Promise.resolve(params) });
+const render = (params: { error?: string; next?: string }) => VerifyEmailPage({ searchParams: Promise.resolve(params) });
 
 describe("verify-email page", () => {
   beforeEach(() => {
@@ -23,6 +23,21 @@ describe("verify-email page", () => {
   it("sends a signed-in user on to the dashboard (the client follows callbackURL after a successful sign-in)", async () => {
     sessionUser = { id: "u1" };
     await expect(render({})).rejects.toThrow("REDIRECT /dashboard");
+  });
+
+  it("sends a signed-in user who came from the OAuth consent page back to it – and nowhere else", async () => {
+    sessionUser = { id: "u1" };
+    const next = "/oauth/authorize?response_type=code&client_id=consyrium-obsidian";
+    await expect(render({ next })).rejects.toThrow(`REDIRECT ${next}`);
+    await expect(render({ next: "https://evil.example/" })).rejects.toThrow("REDIRECT /dashboard");
+    await expect(render({ next: "//evil.example/oauth/authorize?x=1" })).rejects.toThrow("REDIRECT /dashboard");
+    await expect(render({ next: "/settings" })).rejects.toThrow("REDIRECT /dashboard");
+  });
+
+  it("keeps a safe target on the sign-in link for a visitor without a session", async () => {
+    const next = "/oauth/authorize?response_type=code&client_id=consyrium-obsidian";
+    expect(renderToStaticMarkup(await render({ next }))).toContain(`href="/sign-in?next=${encodeURIComponent(next)}"`);
+    expect(renderToStaticMarkup(await render({ next: "https://evil.example/" }))).toContain('href="/sign-in"');
   });
 
   it("confirms the address for a visitor without a session (verification link)", async () => {

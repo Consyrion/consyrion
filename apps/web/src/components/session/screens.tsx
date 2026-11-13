@@ -1,8 +1,8 @@
 "use client";
 
 import { AskAssistantButton } from "../assistant-open";
-import { CRITERIA, dedupeStatements, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrium/core/browser";
-import { EngineText, useConfidenceIssueText } from "./engine-text";
+import { CRITERIA, dedupeSamePoint, dedupeStatements, verdictCaution, type ConfidenceIssue, type Confidence, type Criterion } from "@consyrium/core/browser";
+import { EngineText, useConfidenceIssueText, useUndefendedReasonText } from "./engine-text";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { SendDecision } from "../delivery";
@@ -24,6 +24,7 @@ import {
   SEVERITY_TONE,
   STATUS_TONE,
   useEnumText,
+  useResponseText,
   useRoleLabel,
   useGateText,
   useIneligibleReason,
@@ -348,6 +349,7 @@ export function TwelveMindsScreen({ view }: { view: View }) {
   const t = useTranslations("phaseScreens");
   const roleLabel = useRoleLabel();
   const severityText = useEnumText("verdict.cruxes.severity");
+  const categoryText = useEnumText("verdict.cruxes.category");
 
   return (
     <div className="space-y-5">
@@ -401,7 +403,7 @@ export function TwelveMindsScreen({ view }: { view: View }) {
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <Badge tone="primary">{t("proposal", { label: proposalLabel(view, c.targetProposalId) })}</Badge>
                     <Badge tone={SEVERITY_TONE[(c.severity ?? "low") as keyof typeof SEVERITY_TONE]}>{severityText(c.severity)}</Badge>
-                    <Badge>{c.category}</Badge>
+                    <Badge>{categoryText(c.category)}</Badge>
                     <span className="text-muted">{t("minds.meta", { role: roleLabel(c.role), model: modelName(view, c.participantId), round: c.round })}</span>
                   </div>
                   <p className="mt-2 text-sm">{c.body}</p>
@@ -470,7 +472,10 @@ export function MinorityConsensusScreen({ view, canApprove = false }: { view: Vi
   const review = view.minorityReview;
   const proposal = view.proposals.find((p) => p.id === proposalId);
   const t = useTranslations("phaseScreens");
+  const reasonText = useUndefendedReasonText();
+  const responseText = useResponseText();
   const severityText = useEnumText("verdict.cruxes.severity");
+  const categoryText = useEnumText("verdict.cruxes.category");
   const statusText = useEnumText("phaseScreens.objectionStatus");
   const consensusText = useEnumText("phaseScreens.consensus.status");
   return (
@@ -522,7 +527,7 @@ export function MinorityConsensusScreen({ view, canApprove = false }: { view: Vi
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="primary">{t("proposal", { label: proposalLabel(view, o.proposalId) })}</Badge>
                     <Badge tone={SEVERITY_TONE[o.severity]}>{severityText(o.severity)}</Badge>
-                    <Badge>{o.category}</Badge>
+                    <Badge>{categoryText(o.category)}</Badge>
                     <Badge tone={STATUS_TONE[o.status]}>{statusText(o.status)}</Badge>
                     {o.blocking ? <Badge tone="danger">{t("minority.blocks")}</Badge> : null}
                     <span className="text-muted">{t("minority.raisedBy", { model: modelName(view, o.raisedByParticipantId) })}</span>
@@ -538,7 +543,11 @@ export function MinorityConsensusScreen({ view, canApprove = false }: { view: Vi
                   <p className="mt-2 border-l-2 border-accent/60 pl-3">
                     <span className="text-xs text-muted">{t("minority.response")}</span>
                     <br />
-                    {o.response ?? (o.undefendedReason ? t("notDefended", { reason: o.undefendedReason }) : t("minority.noResponse"))}
+                    {o.response
+                      ? responseText(o.response)
+                      : o.undefendedReason
+                        ? t("notDefended", { reason: reasonText(o.undefendedReason) })
+                        : t("minority.noResponse")}
                   </p>
                   {o.resolutionReason ? (
                     <p className="mt-2 text-muted">
@@ -688,7 +697,8 @@ function ConfidenceNotice({ view, matrix, recommendedProposalId }: { view: View;
           <li key={`${issue.kind}-${index}`}>{issueText(issue, label)}.</li>
         ))}
       </ul>
-      {level === "low" ? <p className="mt-1">{matrix.requirementGate ? t("hintRepeat") : t("hintDebate")}</p> : null}
+      {/* QA 12.11.26: the hint named «Bewertung wiederholen» although no evaluation was missing and the option was disabled. */}
+      {level === "low" ? <p className="mt-1">{failed.length ? (matrix.requirementGate ? t("hintRepeat") : t("hintDebate")) : t("hintReview")}</p> : null}
     </Alert>
   );
 }
@@ -940,6 +950,8 @@ function ValidParticipation({ view }: { view: View }) {
   const p = view.participation;
   const t = useTranslations("verdictScreen.participation");
   if (!p || p.percent === null) return null;
+  // QA 12.11.26: a model counts as taking part once one call per phase succeeded – the failed ones are named beside it.
+  const failedCalls = (p as { failedCalls?: { participantId: string; phase: string; calls: number }[] }).failedCalls ?? [];
   return (
     <p className="text-sm text-muted" data-testid="valid-participation">
       {t("label")}{" "}
@@ -950,6 +962,15 @@ function ValidParticipation({ view }: { view: View }) {
       {p.shortfalls.length
         ? ` – ${t("short", { list: p.shortfalls.map((s) => `${modelName(view, s.participantId)} (${s.phases.length ? s.phases.join(", ") : t("noValid")})`).join(", ") })}`
         : ` – ${t("all")}`}
+      {failedCalls.length ? (
+        <span className="text-warning">
+          {" "}
+          {t("failedCalls", {
+            n: failedCalls.reduce((sum, f) => sum + f.calls, 0),
+            list: failedCalls.map((f) => `${modelName(view, f.participantId)} – ${f.phase}${f.calls > 1 ? ` ×${f.calls}` : ""}`).join(", "),
+          })}
+        </span>
+      ) : null}
     </p>
   );
 }
@@ -968,14 +989,19 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   const [action, setAction] = useState<string>(initialAction === "record_measurement" ? "request_changes" : initialAction);
   const [comment, setComment] = useState("");
   const [alternative, setAlternative] = useState("");
+  // Owner decision 13.11.26: approving against open critical/high objections needs an explicit risk acceptance.
+  const [acceptRisk, setAcceptRisk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("verdictScreen");
+  const reasonText = useUndefendedReasonText();
   const tp = useTranslations("phaseScreens");
   const tOutcome = useTranslations("verdict.dashboard.outcome");
   const format = useFormatter();
   const feasibility = useFeasibilityLabel();
   const statusText = useEnumText("phaseScreens.objectionStatus");
+  const severityText = useEnumText("verdict.cruxes.severity");
+  const categoryText = useEnumText("verdict.cruxes.category");
   const verdictReason = useVerdictReason();
   const gateText = useGateText();
   // Night test 07.11.26: "could not confirm that a proposal meets every requirement" was wrong when one did – the
@@ -1038,6 +1064,20 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
   // The same conflict named by several proposals is listed once (#173).
   const conflicts = dedupeStatements(view.proposals.flatMap((p) => contentOf(p).requirementConflicts ?? []));
   const total = (proposalId: string) => (matrix as { proposals?: MatrixProposal[] } | undefined)?.proposals?.find((p) => p.proposalId === proposalId)?.total;
+  // The proposal this action would build and the open critical/high objections against it – same rule as the server
+  // (openRiskObjections in the council service), which refuses the approval without the acceptance.
+  const riskTarget = action === "approve" ? (decision?.recommendedProposalId ?? null) : BUILD_FORM_ACTIONS.has(action) ? alternative || null : null;
+  const riskObjections = riskTarget
+    ? view.objections.filter(
+        (o) =>
+          o.proposalId === riskTarget &&
+          ["open", "accepted", "unresolved"].includes(o.status) &&
+          !o.moot &&
+          (o.severity === "critical" || o.severity === "high"),
+      )
+    : [];
+  const riskCritical = riskObjections.filter((o) => o.severity === "critical").length;
+  const riskMissing = riskObjections.length > 0 && (!acceptRisk || (riskCritical > 0 && !comment.trim()));
 
   async function submit() {
     setBusy(true);
@@ -1045,7 +1085,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
     try {
       await fetchJson(`/api/sessions/${view.session.id}/approval`, {
         method: "POST",
-        body: JSON.stringify({ action, comment, selectedProposalId: PROPOSAL_ACTIONS.has(action) ? alternative : undefined }),
+        body: JSON.stringify({ action, comment, selectedProposalId: PROPOSAL_ACTIONS.has(action) ? alternative : undefined, acceptRisk }),
       });
       await onChange();
     } catch (err) {
@@ -1074,6 +1114,29 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
           recommendedId={notApprovable ? null : (decision.recommendedProposalId ?? null)}
           // #597: an idea-check council reads a verdict without anything approvable as a favourite with open points.
           idea={notApprovable && councilPurpose(view.session.policy) === "idea_check" ? ideaCheck(matrix as unknown as IdeaCheckMatrix) : null}
+          answer={(() => {
+            // ChatGPT review of #631: after the decision the hero keeps showing the answer – of the proposal the human chose.
+            const last = view.approvals.at(-1);
+            const chosenId =
+              last?.action === "select_alternative"
+                ? (last.selectedProposalId ?? null)
+                : last?.action === "reject"
+                  ? null
+                  : notApprovable
+                    ? null
+                    : (decision.recommendedProposalId ?? null);
+            const chosen = chosenId ? view.proposals.find((p) => p.id === chosenId) : null;
+            if (!chosen) return null;
+            const c = contentOf(chosen);
+            return { title: c.title, summary: c.summary, recommendations: c.recommendations ?? [] };
+          })()}
+          // One rule for this hero and the report (core verdictCaution): critical and high counted apart.
+          caution={verdictCaution({
+            recommendedProposalId: notApprovable ? null : decision.recommendedProposalId,
+            objections: view.objections,
+            confidence: matrix.confidence ?? null,
+            legacyIssueCount: (matrix.confidenceIssues?.length ?? 0) + missingEvaluators,
+          })}
         />
       ) : null}
       {(() => {
@@ -1177,10 +1240,22 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
               <div>
                 <p className="text-sm font-medium">{t("remainingRisks")}</p>
                 <List
-                  items={[
-                    ...content.risks.map((r) => t("riskMitigation", { risk: r.risk, severity: r.severity, mitigation: r.mitigation })),
-                    ...openObjections.current.map((o) => t(o.status === "accepted" ? "openObjectionAccepted" : "openObjectionUnresolved", { claim: o.claim })),
-                  ]}
+                  items={dedupeSamePoint(
+                    [
+                      ...content.risks.map((r) => ({
+                        statement: r.risk,
+                        line: t("riskMitigation", { risk: r.risk, severity: severityText(r.severity), mitigation: r.mitigation }),
+                        rank: 0,
+                      })),
+                      ...openObjections.current.map((o) => ({
+                        statement: o.claim,
+                        line: t(o.status === "accepted" ? "openObjectionAccepted" : "openObjectionUnresolved", { claim: o.claim }),
+                        rank: o.status === "accepted" ? 1 : 2,
+                      })),
+                    ],
+                    (entry) => entry.statement,
+                    (entry) => entry.rank,
+                  ).map((entry) => entry.line)}
                 />
               </div>
             </div>
@@ -1219,8 +1294,8 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
                 {t("objections.line", {
                   model: modelName(view, o.raisedByParticipantId),
                   label: proposalLabel(view, o.proposalId),
-                  category: o.category,
-                  severity: o.severity,
+                  category: categoryText(o.category),
+                  severity: severityText(o.severity),
                   claim: o.claim,
                 })}
                 {o.blocking ? <span className="text-danger"> – {t("objections.blocks")}</span> : null}
@@ -1235,7 +1310,7 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
                   </span>
                 ) : null}
                 {o.undefendedReason && !o.response ? (
-                  <span className="text-warning"> – {t("objections.notDefended", { reason: o.undefendedReason })}</span>
+                  <span className="text-warning"> – {t("objections.notDefended", { reason: reasonText(o.undefendedReason) })}</span>
                 ) : null}
               </li>
             ))}
@@ -1376,18 +1451,40 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
             </div>
             <div className="mt-3">
               <TextAreaField
-                label={action === "select_alternative" || action === "request_changes" || PROPOSAL_ACTIONS.has(action) ? t("form.reason") : t("form.comment")}
+                label={
+                  action === "select_alternative" || action === "request_changes" || PROPOSAL_ACTIONS.has(action) || riskCritical > 0
+                    ? t("form.reason")
+                    : t("form.comment")
+                }
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 maxLength={5000}
               />
             </div>
+            {riskObjections.length ? (
+              <div className="mt-3 rounded-xl border border-warning/60 bg-warning/10 p-3 text-sm" data-testid="risk-acceptance">
+                <p className="font-medium">{t("risk.title", { n: riskObjections.length, label: proposalLabel(view, riskTarget ?? "") })}</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                  {riskObjections.map((o) => (
+                    <li key={o.id}>
+                      <span className="font-medium">{severityText(o.severity)}</span>: {o.claim}
+                    </li>
+                  ))}
+                </ul>
+                <label className="mt-2 flex items-start gap-2">
+                  <input type="checkbox" className="mt-1" checked={acceptRisk} onChange={(e) => setAcceptRisk(e.target.checked)} />
+                  <span>{t("risk.accept")}</span>
+                </label>
+                {riskCritical ? <p className="mt-1 text-xs">{t("risk.criticalReason")}</p> : null}
+                <p className="mt-1 text-[11px] text-muted">{t("risk.note")}</p>
+              </div>
+            ) : null}
             {error ? (
               <div className="mt-3">
                 <Alert>{error}</Alert>
               </div>
             ) : null}
-            <Button className="mt-3" disabled={busy} onClick={() => void submit()}>
+            <Button className="mt-3" disabled={busy || riskMissing} onClick={() => void submit()}>
               {busy ? t("form.saving") : t("form.record")}
             </Button>
           </Card>
@@ -1398,6 +1495,9 @@ export function VerdictScreen({ view, canApprove, onChange }: { view: View; canA
     </div>
   );
 }
+
+/** Form actions that lead to a build of the named proposal and therefore need the risk acceptance (13.11.26). */
+const BUILD_FORM_ACTIONS = new Set(["select_alternative", "approve_prototype", "approve_after_measurement"]);
 
 /** Actions of the decision form that name a proposal (#249 part 2 adds favourite, prototype and after measurement). */
 const PROPOSAL_ACTIONS = new Set(["select_alternative", "mark_favorite", "approve_prototype", "approve_after_measurement"]);

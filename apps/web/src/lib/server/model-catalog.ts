@@ -81,3 +81,15 @@ export async function probeModel(db: Database, actor: ActorContext, credentialId
     return "not_found";
   }
 }
+
+/**
+ * Which of the chosen models the provider refuses although it lists them (same check as at the start, see
+ * `probeModel`). Used by the cost preview on request, so a client can name the model before the user presses start.
+ */
+export async function unusableModels<P extends { credentialId: string; modelId: string }>(
+  participants: readonly P[],
+  probe: (credentialId: string, modelId: string) => Promise<"ok" | "not_found" | "unknown">,
+): Promise<Array<{ credentialId: string; modelId: string }>> {
+  const results = await Promise.all(participants.map(async (p) => ({ p, result: await probe(p.credentialId, p.modelId).catch(() => "unknown" as const) })));
+  return results.filter((r) => r.result === "not_found").map((r) => ({ credentialId: r.p.credentialId, modelId: r.p.modelId }));
+}

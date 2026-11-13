@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dedupeStatements, describeObjection, objectionStatusText, sameObjectionPoint } from "./objections";
+import { dedupeSamePoint, dedupeStatements, describeObjection, objectionStatusText, sameObjectionPoint } from "./objections";
 
 describe("describeObjection (#169)", () => {
   it("names the objection, its author, the proposal, the reasoning and the decision", () => {
@@ -76,5 +76,34 @@ describe("same objection point within one model (night test 07.11.26)", () => {
     ).toBe(false);
     // Too short to judge by words: only identical statements count.
     expect(sameObjectionPoint("Costs too high.", "Costs are too high for R6.")).toBe(false);
+  });
+});
+
+describe("dedupeSamePoint", () => {
+  const wal = "Eine reine Dateikopie der SQLite-Datenbank im WAL-Modus kann ein inkonsistentes Backup erzeugen.";
+  const walAgain = "Die Dateikopie der SQLite-Datenbank im WAL-Modus kann ein inkonsistentes Backup erzeugen, solange kein Checkpoint läuft.";
+  const rights = "Die Zugriffsrechte auf die SQLite- und Backup-Dateien sind nicht festgelegt und erlauben fremden Lesezugriff.";
+
+  it("keeps one entry per point: the best-ranked wording, at the place of the first mention", () => {
+    const entries = [
+      { text: wal, rank: 3 },
+      { text: rights, rank: 3 },
+      { text: walAgain, rank: 0 },
+      { text: wal, rank: 1 },
+    ];
+    expect(
+      dedupeSamePoint(
+        entries,
+        (e) => e.text,
+        (e) => e.rank,
+      ),
+    ).toEqual([
+      { text: walAgain, rank: 0 },
+      { text: rights, rank: 3 },
+    ]);
+  });
+
+  it("keeps the first wording on equal rank, leaves different points alone and drops empty statements", () => {
+    expect(dedupeSamePoint([wal, " ", rights, walAgain], (e) => e)).toEqual([wal, rights]);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { CRITERIA, type Criterion } from "@consyrium/core/browser";
+import { CRITERIA, hasCaution, type Criterion, type VerdictCaution } from "@consyrium/core/browser";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Card } from "../ui/surface";
@@ -108,6 +108,8 @@ export function VerdictDashboard({
   recommendedId,
   nextAction,
   idea,
+  answer,
+  caution,
 }: {
   view: View;
   matrix: DashboardMatrix & { failedEvaluators?: { participantId: string; modelId: string; outcome: string }[] };
@@ -124,6 +126,16 @@ export function VerdictDashboard({
    * result as a favourite with open points instead of "not approvable". Read from the stored matrix, never a new status.
    */
   idea?: IdeaCheckResult | null;
+  /**
+   * QA 12.11.26: the hero named "Proposal D" but not what D says – the reader had to scroll to "Open Council" to see the
+   * answer to the question. The recommended proposal's own title, summary and recommendations, as written.
+   */
+  answer?: { title: string; summary: string; recommendations: string[] } | null;
+  /**
+   * QA 12.11.26: a green tick sat beside six open high objections, and "low confidence" only appeared far below. What
+   * qualifies the recommendation is stated in the hero itself and turns it amber; the verdict itself is unchanged.
+   */
+  caution?: VerdictCaution | null;
 }) {
   const t = useTranslations("verdict.dashboard");
   const [asTable, setAsTable] = useState(false);
@@ -155,8 +167,26 @@ export function VerdictDashboard({
         : { title: chosen ? t("decided.chosen", { label: label(chosen) }) : t("decided.approved"), tone: "success" as const }
       : null;
   const ideaShown = !decided && idea ? idea : null;
+  // Owner decision 13.11.26: the server only accepts such an approval with an explicit risk acceptance, so open
+  // critical/high objections against the chosen proposal mean that risk was accepted – said beside the decision.
+  const riskAccepted =
+    chosen && decided?.tone === "success"
+      ? view.objections.filter(
+          (o) =>
+            o.proposalId === chosen && ["open", "accepted", "unresolved"].includes(o.status) && !o.moot && (o.severity === "critical" || o.severity === "high"),
+        ).length
+      : 0;
   const title = decided?.title ?? (ideaShown ? t(`idea.title.${ideaShown.kind}`) : aiTitle);
-  const heroTone = decided?.tone ?? (ideaShown ? (ideaShown.kind === "none" ? "danger" : "success") : outcome.tone);
+  const cautioned = !decided && !ideaShown && Boolean(recommendedId) && Boolean(caution && hasCaution(caution));
+  // "1 critical and 2 high objections" – critical ones named first and apart (ChatGPT review of #631).
+  const objectionList = caution
+    ? [caution.openCritical ? t("caution.critical", { n: caution.openCritical }) : null, caution.openHigh ? t("caution.high", { n: caution.openHigh }) : null]
+        .filter(Boolean)
+        .join(` ${t("caution.and")} `)
+    : "";
+  const openCount = caution ? caution.openCritical + caution.openHigh : 0;
+  const baseTone = decided?.tone ?? (ideaShown ? (ideaShown.kind === "none" ? "danger" : "success") : outcome.tone);
+  const heroTone: Tone = cautioned && baseTone === "success" ? "warning" : baseTone;
   const expectedEvaluators = Math.max(0, view.participants.length - 1);
   // Requirements that no proposal meets (night test 07.11.26: "all copies stay in CH" vs. "nightly copy in the USA"):
   // named in the hero so the owner sees which ones to change; only when nothing can be approved.
@@ -246,6 +276,32 @@ export function VerdictDashboard({
               <p className="text-xs text-muted">{t("idea.note")}</p>
             </div>
           ) : null}
+          {cautioned && caution ? (
+            <p className="mt-2 max-w-3xl text-sm font-medium text-text" data-testid="verdict-caution">
+              <span aria-hidden="true">! </span>
+              {openCount > 0
+                ? t(`caution.objections${caution.lowConfidence ? "Low" : ""}${openCount === 1 ? "One" : "Many"}`, { list: objectionList })
+                : t("caution.lowConfidence")}{" "}
+              <a href="#key-disputes" className="underline">
+                {t("caution.read")}
+              </a>
+            </p>
+          ) : null}
+          {answer ? (
+            <div className="mt-3 max-w-3xl rounded-xl border border-line bg-surface/70 p-3 text-sm text-text" data-testid="verdict-answer">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted">{decided ? t("answer.chosenTitle") : t("answer.title")}</p>
+              <p className="mt-1 font-medium">{answer.title}</p>
+              {answer.summary ? <p className="mt-1">{answer.summary}</p> : null}
+              {answer.recommendations.length ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {answer.recommendations.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="mt-2 text-[11px] text-muted">{t("answer.note")}</p>
+            </div>
+          ) : null}
           {decided ? <p className="mt-1 text-xs text-muted">{t("decided.aiVerdict", { verdict: aiTitle })}</p> : null}
           {ideaShown ? null : (
             <p className="mt-1 text-xs font-medium text-text">{approvableIds.size ? t("approvableYes", { n: approvableIds.size }) : t("approvableNo")}</p>
@@ -271,7 +327,7 @@ export function VerdictDashboard({
                     : t.has(`action.${decision.action}`)
                       ? t(`action.${decision.action}`)
                       : decision.action.replaceAll("_", " "),
-                })}${decision.comment ? ` – “${decision.comment}”` : ""}`
+                })}${riskAccepted ? ` – ${t("riskAccepted", { n: riskAccepted })}` : ""}${decision.comment ? ` – “${decision.comment}”` : ""}`
               : t("nothingBuilt")}
           </p>
           {nextAction ? (

@@ -1,6 +1,6 @@
 {
   "name": "consyrium-obsidian",
-  "version": "0.1.0",
+  "version": "0.3.2",
   "description": "Send selected notes to a CONSYRIUM AI council and save the decision report as a new note.",
   "private": true,
   "license": "AGPL-3.0-only",

@@ -362,14 +362,16 @@
     },
     "formulaText": {
       "text": "总分 = 所有标准的{weighted, select, yes {按投票加权的} other {}}独立评分平均值 × 权重 / 100 之和；权重：{weights}{weighted, select, yes {；投票权重：{votes}} other {}}"
-    }
+    },
+    "hintReview": "在批准之前，请阅读“关键争议点”下的未决异议并比较备选方案。「请求更多辩论」可让委员会重新讨论这些问题。"
   },
   "verdictScreen": {
     "participation": {
       "label": "有效参与：",
       "short": "缺失：{list}",
       "noValid": "没有有效贡献",
-      "all": "每个模型在被调用的每个阶段都完成了交付。"
+      "all": "每个模型在被调用的每个阶段至少交付了一次有效结果。",
+      "failedCalls": "{n, plural, other {# 次调用失败：{list}}}"
     },
     "waiting": "裁决根据独立评分、门槛和异议以确定性方式计算。",
     "recordError": "无法记录该决定",
@@ -380,7 +382,7 @@
       "qualifiedBlocked": "满足已确认的要求，但在本次 Council 中不可批准",
       "architectureCandidate": "架构候选——性能证明待定（{ids}）"
     },
-    "voteWeights": "投票权重（开始时确定，#140）：{list}。加权的是每个模型的评分和排名，而不是它自己的方案；可行性检查对每个模型只计一次。",
+    "voteWeights": "投票权重（开始时确定）：{list}。加权的是每个模型的评分和排名，而不是它自己的方案；可行性检查对每个模型只计一次。",
     "notApprovableHint": "你可以请求修改任务说明或拒绝；修改后的任务说明需要新的 council。",
     "otherGateOne": "{proposals} 满足已确认的要求，但未通过另一道门槛（安全最低要求、最低分数或阻止性异议）——见 Evaluation。",
     "otherGateMany": "{proposals} 满足已确认的要求，但未通过另一道门槛（安全最低要求、最低分数或阻止性异议）——见 Evaluation。",
@@ -518,6 +520,12 @@
     "mark": {
       "favorite": "方案 {label} 已标记为首选——未批准；该结论仍需验证。",
       "prototype": "方案 {label} 已批准原型/测量构建——不是完成的解决方案，也不是常规批准。"
+    },
+    "risk": {
+      "title": "{n, plural, one {针对方案 {label} 仍有 # 项严重或高级别异议未解决：} other {针对方案 {label} 仍有 # 项严重或高级别异议未解决：}}",
+      "accept": "我已阅读这些异议，并接受此决定的剩余风险。",
+      "criticalReason": "存在未解决的严重异议：请在上方字段中写明你仍然批准的理由。",
+      "note": "与你的决定一起保存：谁在何时接受了哪些异议。裁决本身不变。"
     }
   },
   "requirementGate": {

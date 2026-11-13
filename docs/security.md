@@ -67,6 +67,62 @@ answer is the same whether an account exists or not. Setting the new password en
 (`revokeSessionsOnPasswordReset`) and marks the address as verified, because the link reached it – so the real owner
 of an address somebody else pre-registered can take it back. Without SMTP there is no reset.
 
+## OAuth sign-in for MCP clients and the Obsidian plugin (11.11.26)
+
+Authorization code with PKCE for public clients (`docs/mcp.md` → "Sign-in (OAuth)"). What an attacker could try and
+what stops it:
+
+- **Anybody can register a client** (RFC 7591, needed by MCP clients; 20 per hour and address). A registration grants
+  nothing. The name a client gives itself is not trusted: the consent page shows **where the access goes** – scheme
+  and host of the redirect URI, without path or query – more prominently than the name, and says that the app is not
+  verified by CONSYRIUM AI. Only the built-in Obsidian client is marked official.
+- **Redirect URIs** are validated when registered, when read again from the database and before a code is created
+  (`isAllowedRedirectUri`, `packages/core/src/oauth.ts`): `https`, `http` only on the loopback interface, and a fixed
+  list of app schemes (`cursor://`, `vscode://`, `vscode-insiders://`, `claude://`, exactly
+  `obsidian://consyrium-auth`). No `javascript:`/`data:`/`file:`, no other app scheme, no fragment, no embedded
+  credentials, no backslash or control characters. An authorization request must name a registered URI character for
+  character; a request that does not validate is explained on the page and **never redirected**.
+- **Intercepted code:** PKCE with S256 is mandatory (no `plain`, no request without a challenge). A code is bound to
+  client, redirect URI, user, workspace and challenge; only its sha256 is stored; it lives 2 minutes.
+- **Replay and races:** the exchange marks the code as used in one `UPDATE … WHERE used_at IS NULL AND expires_at > now
+RETURNING` – two parallel requests cannot both succeed. Client, redirect URI and verifier are checked after that, so
+  any wrong attempt consumes the code; every refusal is the same `invalid_grant`.
+- **Forged consent (CSRF, clickjacking):** Allow/Deny is a Next.js server action (refused unless the request comes
+  from this origin). The action trusts nothing from the form: it validates the whole request again, needs a session
+  (an API token cannot consent – `sessionOnly`), re-checks the membership of the workspace and redirects only to the
+  registered URI. Pages cannot be framed (`frame-ancestors 'none'`, `X-Frame-Options: DENY`).
+- **Scope:** only `councils` (integration token) and `read`. Full access cannot be obtained by signing in; the token
+  is an ordinary API token (90 days, revocable, membership re-checked on every request, audit `oauth.authorized` and
+  `api_token.created`).
+- **Open redirect through sign-in:** `/sign-in?next=…` accepts exactly one target, the consent page of this origin
+  (`safeNext`, `apps/web/src/lib/safe-next.ts`: must start with `/oauth/authorize?`; no `//`, backslash, scheme,
+  fragment or control character; at most 2000 characters). Everything else leads to the dashboard.
+- **Token and register endpoints** read no cookie, so `Access-Control-Allow-Origin: *` exposes nothing a
+  cross-site page could not send itself; they are limited per address and never cached.
+- **Obsidian plugin:** `obsidian://consyrium-auth` can be opened by any web page. The plugin acts only on an answer
+  whose `state` equals the one of a request the user started in the settings within the last ten minutes, and redeems
+  the code with a PKCE verifier that never left the plugin's memory – a foreign link can neither plant another account
+  nor cancel a running request.
+
+Known limits: the rate limits are per process and per address (`rate-limit.ts`); registered clients are never removed
+automatically; a connected app's token lives until it expires or is revoked (no refresh, no revocation endpoint); the
+consent page has no workspace picker – the token is for the active workspace, which the page names; without
+JavaScript the redirect after "Allow" is a link the user clicks.
+
+## Secret fields and password managers (QA 12.11.26)
+
+Live test 12.11.26: Chrome filled a saved login (e-mail into "Label", password into "API key") into "Add API key" – one
+click on "Save key" would have stored the user's password as a provider key and sent it to the provider for the key
+check. Every secret input that is not a sign-in password (provider keys, bot and Confluence tokens, Stripe keys, the
+SkillHub review key) now carries `autoComplete="new-password"` plus the ignore hints of 1Password, LastPass and Bitwarden
+(`data-1p-ignore`, `data-lpignore`, `data-bwignore`, `data-form-type="other"`); the label fields before them have
+`autoComplete="off"`. `secret-field-guard.test.ts` fails on any new password input outside sign-in, sign-up and password
+reset that lacks them.
+
+**Crawlers and internal pages (QA 12.11.26).** `/robots.txt` (`app/robots.ts`) allows the public pages and disallows
+the app, the API, `/design`, `/invite` and `/oauth`; `/sitemap.xml` (`app/sitemap.ts`) lists only public pages, both
+built from `BETTER_AUTH_URL`. The component gallery `/design` needs a sign-in.
+
 ## Smaller hardening (#408)
 
 - Privacy export: team skills and the exporting user's own, never colleagues' private skills.

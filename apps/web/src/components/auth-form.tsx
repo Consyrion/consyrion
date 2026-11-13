@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
+import { safeNext, withNext } from "@/lib/safe-next";
 import { Button } from "./ui/button";
 import { TextField } from "./ui/field";
 import { PasswordField } from "./ui/password-field";
@@ -42,6 +43,7 @@ export function AuthForm({
   socialProviders,
   passwordReset = false,
   oauthError = null,
+  next = null,
 }: {
   mode: "sign-in" | "sign-up";
   socialProviders: Array<keyof typeof SOCIAL_LABELS>;
@@ -49,7 +51,15 @@ export function AuthForm({
   passwordReset?: boolean;
   /** `error` query parameter after a failed Google/GitHub sign-in. */
   oauthError?: string | null;
+  /** `next` query parameter: where to go after signing in. Only the OAuth consent page is accepted (safeNext). */
+  next?: string | null;
 }) {
+  // Checked again here: the value must never be used unvalidated, whoever renders this form.
+  const target = safeNext(next);
+  const after = target ?? "/dashboard";
+  // The verification link and Better Auth's own redirect after a sign-in both lead to /verify-email, which passes a
+  // signed-in user on to the target.
+  const verifyUrl = withNext("/verify-email", target);
   const router = useRouter();
   const t = useTranslations("auth");
   const [error, setError] = useState<string | null>(() =>
@@ -70,8 +80,8 @@ export function AuthForm({
     // successful sign-in the client follows the same URL; that page sends a signed-in user on to the dashboard.
     const result =
       mode === "sign-up"
-        ? await authClient.signUp.email({ email, password, name: String(form.get("name")), callbackURL: "/verify-email" })
-        : await authClient.signIn.email({ email, password, callbackURL: "/verify-email" });
+        ? await authClient.signUp.email({ email, password, name: String(form.get("name")), callbackURL: verifyUrl })
+        : await authClient.signIn.email({ email, password, callbackURL: verifyUrl });
     setPending(false);
     if (result.error) {
       // Unverified address: the server has just sent a fresh link.
@@ -84,7 +94,7 @@ export function AuthForm({
       setNotice(t("verifyCheckInbox", { email }));
       return;
     }
-    router.push("/dashboard");
+    router.push(after);
     router.refresh();
   }
 
@@ -139,7 +149,7 @@ export function AuthForm({
               className="h-14 w-full gap-3 rounded-xl border-white/20 bg-transparent text-base font-semibold hover:border-primary hover:bg-white/5"
               onClick={async () => {
                 setError(null);
-                const result = await authClient.signIn.social({ provider, callbackURL: "/dashboard", errorCallbackURL: "/sign-in" });
+                const result = await authClient.signIn.social({ provider, callbackURL: after, errorCallbackURL: "/sign-in" });
                 if (result.error) setError(result.error.message ?? t("socialFailed"));
               }}
             >
@@ -172,14 +182,14 @@ export function AuthForm({
         {mode === "sign-up" ? (
           <>
             {t("haveAccount")}{" "}
-            <Link className="font-semibold text-primary hover:underline" href="/sign-in">
+            <Link className="font-semibold text-primary hover:underline" href={withNext("/sign-in", target)}>
               {t("signIn")}
             </Link>
           </>
         ) : (
           <>
             {t("newHere")}{" "}
-            <Link className="font-semibold text-primary hover:underline" href="/sign-up">
+            <Link className="font-semibold text-primary hover:underline" href={withNext("/sign-up", target)}>
               {t("createAnAccount")}
             </Link>
           </>

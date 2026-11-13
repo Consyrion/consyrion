@@ -1,4 +1,4 @@
-import { deriveCruxes } from "./cruxes";
+import { deriveCruxes, remainingDisagreements } from "./cruxes";
 import { contentOf, modelName, type View } from "./helpers";
 import type { RequirementGateResult } from "./requirement-gate";
 
@@ -92,6 +92,7 @@ export function deriveNextSteps(view: View, proposalId: string | null, gate?: Re
       .slice(0, 5),
     assumptions: (content.assumptions ?? []).slice(0, 5),
     stopIf: stopIf.slice(0, 4),
-    revisitWhen: ((view.consensus as { disagreements?: string[] } | null)?.disagreements ?? []).slice(0, 4),
+    // The same list the Key disputes card shows (QA 12.11.26: "one of the 4 open points" next to five listed ones).
+    revisitWhen: remainingDisagreements(view),
   };
 }

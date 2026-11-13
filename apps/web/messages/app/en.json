@@ -176,7 +176,14 @@
     "showArchived": "Show {n} sessions of archived projects",
     "hideArchived": "Hide sessions of archived projects",
     "archivedBadge": "archived",
-    "qualityLink": "Process quality"
+    "qualityLink": "Process quality",
+    "filter": {
+      "search": "Search by name",
+      "submit": "Search",
+      "all": "All",
+      "shown": "{n} of {of} shown",
+      "none": "Nothing matches this search or filter."
+    }
   },
   "projects": {
     "metaTitle": "Projects",
@@ -277,7 +284,14 @@
       "listTitle": "Archive ({n})",
       "startBlocked": "Project is archived – restore it first"
     },
-    "deleteCounts": "This project: {sessions, plural, one {# council session} other {# council sessions}} ({running} running or queued), {documents, plural, one {# document} other {# documents}}."
+    "deleteCounts": "This project: {sessions, plural, one {# council session} other {# council sessions}} ({running} running or queued), {documents, plural, one {# document} other {# documents}}.",
+    "filter": {
+      "search": "Search by name",
+      "submit": "Search",
+      "all": "All",
+      "shown": "{n} of {of} shown",
+      "none": "Nothing matches this search or filter."
+    }
   },
   "councilSetup": {
     "metaTitle": "Configure AI team",
@@ -645,6 +659,10 @@
       "searchButton": "Search",
       "empty": "No public skills yet.",
       "noResults": "No skills match your search.",
+      "pages": "Pages",
+      "previousPage": "Back",
+      "nextPage": "More skills",
+      "pageNumber": "Page {page}",
       "type": "Type",
       "allTypes": "All types"
     },

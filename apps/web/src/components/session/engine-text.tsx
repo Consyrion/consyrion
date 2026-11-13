@@ -1,7 +1,7 @@
 "use client";
 
-import type { ConfidenceIssue } from "@consyrium/core/browser";
-import { useTranslations } from "next-intl";
+import { undefendedReasonText, type ConfidenceIssue } from "@consyrium/core/browser";
+import { useLocale, useTranslations } from "next-intl";
 
 /**
  * The council engine stores the fixed parts of an objection decision in English ("Conceded by the author – …",
@@ -53,9 +53,16 @@ export function EngineText({ text }: { text: string }) {
   return <>{engine(text)}</>;
 }
 
+/** Why an author did not answer, in the viewer's language – the engine stores the reason as an English sentence. */
+export function useUndefendedReasonText() {
+  const locale = useLocale();
+  return (reason: string) => undefendedReasonText(reason, locale);
+}
+
 /** The reasons for reduced or low confidence, from the stored structure (`describeConfidenceIssue` is English only). */
 export function useConfidenceIssueText() {
   const t = useTranslations("engineText.issue") as unknown as T;
+  const reasonText = useUndefendedReasonText();
   return (issue: ConfidenceIssue, label: (proposalId: string) => string): string => {
     switch (issue.kind) {
       case "missing_evaluators":
@@ -75,7 +82,7 @@ export function useConfidenceIssueText() {
       case "no_debate_contribution":
         return t("no_debate_contribution", { model: issue.modelId });
       case "undefended_proposal":
-        return t("undefended_proposal", { label: label(issue.proposalId), reason: issue.reason, count: issue.count });
+        return t("undefended_proposal", { label: label(issue.proposalId), reason: reasonText(issue.reason), count: issue.count });
       case "phase_shortened":
         return t("phase_shortened", { phase: phaseName(issue.phase) });
       case "weighting_changed_winner":

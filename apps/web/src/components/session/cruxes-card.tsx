@@ -4,10 +4,10 @@ import { COUNCIL_PHASE_LABELS, type CouncilPhase } from "@consyrium/core/browser
 import { interventionCounts } from "./human-questions";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
-import { useEngineText } from "./engine-text";
+import { useEngineText, useUndefendedReasonText } from "./engine-text";
 import { Card } from "../ui/surface";
 import { deriveCruxes, matchesFilter, noDocumentedDispute, remainingDisagreements, type Crux, type CruxFilter, type CruxStatus } from "./cruxes";
-import type { View } from "./helpers";
+import { useResponseText, type View } from "./helpers";
 
 const STATUS_TONE: Record<CruxStatus, string> = {
   open: "border-warning/60 text-warning",
@@ -16,14 +16,21 @@ const STATUS_TONE: Record<CruxStatus, string> = {
   refuted: "border-success/60 text-success",
   resolved: "border-success/60 text-success",
 };
+/** Disputes shown before "show all" – the ones that decided the verdict or still endanger it come first. */
+const CRUX_FOCUS = 3;
+
 const STATUS_ICON: Record<CruxStatus, string> = { open: "?", unresolved: "?", accepted: "!", refuted: "✓", resolved: "✓" };
 
 /** Key disputes (#267) on the Final Verdict screen: at most three, each traceable to stored statements. */
 export function CruxesCard({ view, recommendedId }: { view: View; recommendedId: string | null }) {
   const t = useTranslations("verdict.cruxes");
   const [filter, setFilter] = useState<CruxFilter>("all");
+  // QA 12.11.26: the chips counted six disputes while only three were listed and nothing said so – the first three stay
+  // the focus, the rest is one click away and the count always matches what can be reached.
+  const [showAll, setShowAll] = useState(false);
   const everything = deriveCruxes(view, recommendedId, Number.POSITIVE_INFINITY);
-  const cruxes = deriveCruxes(view, recommendedId, 3, filter);
+  const matching = deriveCruxes(view, recommendedId, Number.POSITIVE_INFINITY, filter);
+  const cruxes = showAll ? matching : matching.slice(0, CRUX_FOCUS);
   const remaining = remainingDisagreements(view);
   if (!everything.length && !remaining.length) {
     // Far enough for disputes but none stored: say so instead of disappearing or inventing one (#267).
@@ -37,7 +44,7 @@ export function CruxesCard({ view, recommendedId }: { view: View; recommendedId:
   }
   const filters: CruxFilter[] = ["all", "open", "critical", "resolved"];
   return (
-    <Card>
+    <Card id="key-disputes" className="scroll-mt-6">
       <h3 className="font-semibold">{t("title")}</h3>
       <p className="text-xs text-muted">{t("intro")}</p>
       <HumanCount view={view} />
@@ -62,11 +69,16 @@ export function CruxesCard({ view, recommendedId }: { view: View; recommendedId:
           <CruxItem key={c.id} crux={c} index={i + 1} />
         ))}
       </ol>
+      {matching.length > CRUX_FOCUS ? (
+        <button type="button" className="mt-2 text-xs text-primary underline" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+          {showAll ? t("showFewer", { n: CRUX_FOCUS }) : t("showAll", { n: matching.length })}
+        </button>
+      ) : null}
       {remaining.length ? (
         <div className="mt-4">
           <p className="text-xs font-medium">{t("remaining")}</p>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-muted">
-            {remaining.slice(0, 5).map((d) => (
+            {remaining.map((d) => (
               <li key={d}>{d}</li>
             ))}
           </ul>
@@ -80,6 +92,8 @@ export function CruxesCard({ view, recommendedId }: { view: View; recommendedId:
 function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
   const t = useTranslations("verdict.cruxes");
   const engine = useEngineText();
+  const reasonText = useUndefendedReasonText();
+  const responseText = useResponseText();
   const format = useFormatter();
   const [open, setOpen] = useState(false);
   const when = (iso: string | null) => (iso ? format.dateTime(new Date(iso), { dateStyle: "short", timeStyle: "medium" }) : t("notStored"));
@@ -103,7 +117,7 @@ function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
         <span className="text-muted">{t("proposal", { label: c.proposal })}</span>
         <span className="rounded-full border border-line px-2 py-0.5 text-muted">
           {t(`severity.${c.severity}`)}
-          {c.category ? ` · ${c.category.replaceAll("_", " ")}` : ""}
+          {c.category ? ` · ${t.has(`category.${c.category}`) ? t(`category.${c.category}`) : c.category.replaceAll("_", " ")}` : ""}
         </span>
         <span className={`rounded-full border px-2 py-0.5 ${STATUS_TONE[c.status]}`}>
           <span aria-hidden="true">{STATUS_ICON[c.status]}</span> {t(`status.${c.status}`)}
@@ -126,10 +140,12 @@ function CruxItem({ crux: c, index }: { crux: Crux; index: number }) {
         <dt className="text-muted">{t("authorAnswer", { model: c.author.by })}</dt>
         <dd>
           {c.author.unanswered
-            ? t("unanswered", { reason: c.author.unanswered })
+            ? t("unanswered", { reason: reasonText(c.author.unanswered) })
             : c.author.conceded
-              ? `${t("conceded")}${c.author.response ? ` – ${c.author.response}` : ""}`
-              : (c.author.response ?? t("noAnswer"))}
+              ? `${t("conceded")}${c.author.response ? ` – ${responseText(c.author.response)}` : ""}`
+              : c.author.response
+                ? responseText(c.author.response)
+                : t("noAnswer")}
         </dd>
         <dt className="text-muted">{t("review")}</dt>
         <dd>{c.review.reason ? `${c.review.by ? `${c.review.by}: ` : ""}${engine(c.review.reason)}` : t("notReviewed")}</dd>

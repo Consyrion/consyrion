@@ -35,6 +35,7 @@ export function ReplayScreen({ view, live }: { view: View; live: boolean }) {
   const format = useFormatter();
   const roleText = useRoleLabel();
   const severityText = useEnumText("verdict.cruxes.severity");
+  const categoryText = useEnumText("verdict.cruxes.category");
   const objectionStatusText = useEnumText("phaseScreens.objectionStatus");
   const consensusText = useEnumText("phaseScreens.consensus.status");
   const { events, withoutTime } = useMemo(() => buildReplayEvents(view), [view]);
@@ -140,7 +141,7 @@ export function ReplayScreen({ view, live }: { view: View; live: boolean }) {
     if (e.kind === "objection")
       return (
         <>
-          <p className="text-xs text-muted">{[severityText(String(d.severity ?? "")), String(d.category ?? "")].filter(Boolean).join(" · ")}</p>
+          <p className="text-xs text-muted">{[severityText(String(d.severity ?? "")), categoryText(String(d.category ?? ""))].filter(Boolean).join(" · ")}</p>
           <p className="mt-1 whitespace-pre-wrap text-sm">{String(d.claim ?? "")}</p>
           <p className="mt-1 text-xs text-muted">
             {state.objectionDecisionsFinal ? t("objectionFinal", { status: objectionStatusText(String(d.status ?? "")) }) : t("objectionPending")}

@@ -17,7 +17,9 @@ export {
 export { COUNCIL_PURPOSES, MAX_PARTICIPANTS, MAX_TOKEN_BUDGET, MIN_PARTICIPANTS, MIN_TOKEN_BUDGET, MODE_POLICIES, tokenBudgetError } from "./policy";
 export type { CouncilPurpose } from "./policy";
 export { CRITERIA, describeConfidenceIssue, type Confidence, type ConfidenceIssue, type Criterion } from "./verdict";
-export { dedupeStatements, objectionStatusText } from "./objections";
+export { dedupeSamePoint, dedupeStatements, objectionStatusText } from "./objections";
+export { callErrorKindText, undefendedReasonText } from "./undefended-reason";
+export { hasCaution, verdictCaution, type VerdictCaution } from "./verdict-caution";
 export { MAX_TASK_ATTEMPTS, MIN_OVERRIDE_REASON } from "./readiness";
 export { countLimits, describeMeasure, detectMeasure, type MeasureUnit, type RequirementMeasure } from "./requirement-measure";
 export {

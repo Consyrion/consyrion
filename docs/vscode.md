@@ -29,3 +29,8 @@ missing there). Display name and view container are "CONSYRIUM AI".
 Tree, decision view and messages follow the setting `consyrium.language` (`auto` = VS Code display language; `en`,
 `de`, `fr`, `es`). Phase and mode names are product names and stay unchanged; model output is shown as written.
 "Open decision" from the command palette focuses the CONSYRIUM AI view instead of failing.
+
+**Risk acceptance (13.11.26).** When critical or high objections against the proposal are still open, the server refuses
+an approval without an explicit risk acceptance. The extension then asks in a dialog ("Accept risk and approve") and
+sends the approval again with `acceptRisk: true`; a critical objection also needs a written comment, as in the web app.
+

@@ -1,11 +1,12 @@
 import { LandingPage } from "@/components/landing/landing-page";
 import { getSessionUser } from "@/lib/server/actor";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = {
-  title: { absolute: "CONSYRIUM AI – Debate. Decide. Deliver." },
-  description:
-    "Several AI models think independently, challenge each other and reach a documented verdict. You approve – then CONSYRIUM AI builds it as a reviewed pull request.",
-};
+/** QA 12.11.26: the German page carried an English title and description – both follow the page language now. */
+export async function generateMetadata() {
+  const t = await getTranslations("meta");
+  return { title: { absolute: t("homeTitle") }, description: t("homeDescription") };
+}
 
 /** Public home (consyrium.com). Signed-in users see "Open dashboard" instead of "Sign in". */
 export default async function Home() {
